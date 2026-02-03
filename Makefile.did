@@ -1,0 +1,197 @@
+.PHONY: build run test clean fmt lint docker-build docker-run docs help
+
+# Variables
+APP_NAME=did-service
+VERSION=1.0.0
+MAIN_PATH=./cmd/did
+BINARY_PATH=./bin/$(APP_NAME)
+DOCKER_IMAGE=$(APP_NAME):$(VERSION)
+
+# Colors for output
+BLUE=\033[0;34m
+GREEN=\033[0;32m
+RED=\033[0;31m
+NC=\033[0m # No Color
+
+help: ## Display this help screen
+	@echo "$(BLUE)DID Management System - Make Commands$(NC)"
+	@echo ""
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
+	@echo ""
+
+build: ## Build the DID service binary
+	@echo "$(BLUE)Building $(APP_NAME) v$(VERSION)...$(NC)"
+	@mkdir -p bin
+	@go build -o $(BINARY_PATH) -ldflags="-X main.version=$(VERSION)" $(MAIN_PATH)
+	@echo "$(GREEN)✓ Build successful: $(BINARY_PATH)$(NC)"
+
+run: ## Run the DID service locally
+	@echo "$(BLUE)Starting DID service...$(NC)"
+	@go run $(MAIN_PATH)/main.go
+
+run-build: build ## Build and run the DID service
+	@echo "$(BLUE)Running DID service...$(NC)"
+	@$(BINARY_PATH)
+
+dev: ## Run in development mode with hot reload
+	@echo "$(BLUE)Starting in development mode...$(NC)"
+	@which air > /dev/null || go install github.com/cosmtrek/air@latest
+	@DID_LOGGING_LEVEL=debug air -c .air.toml
+
+test: ## Run all tests
+	@echo "$(BLUE)Running tests...$(NC)"
+	@go test -v -race -coverprofile=coverage.out ./pkg/did ./internal/crypto ./cmd/did
+	@echo "$(GREEN)✓ Tests completed$(NC)"
+
+test-coverage: test ## Run tests with coverage report
+	@echo "$(BLUE)Generating coverage report...$(NC)"
+	@go tool cover -html=coverage.out -o coverage.html
+	@echo "$(GREEN)✓ Coverage report: coverage.html$(NC)"
+
+test-verbose: ## Run tests with verbose output
+	@go test -v -race ./pkg/did ./internal/crypto
+
+benchmark: ## Run performance benchmarks
+	@echo "$(BLUE)Running benchmarks...$(NC)"
+	@go test -bench=. -benchmem ./pkg/did ./internal/crypto
+
+fmt: ## Format code with gofmt
+	@echo "$(BLUE)Formatting code...$(NC)"
+	@go fmt ./...
+	@gofmt -s -w .
+	@echo "$(GREEN)✓ Code formatted$(NC)"
+
+lint: ## Run linter
+	@echo "$(BLUE)Running linter...$(NC)"
+	@which golangci-lint > /dev/null || go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@golangci-lint run ./pkg/did ./internal/crypto ./cmd/did
+	@echo "$(GREEN)✓ Lint completed$(NC)"
+
+vet: ## Run go vet
+	@echo "$(BLUE)Running go vet...$(NC)"
+	@go vet ./...
+	@echo "$(GREEN)✓ Vet completed$(NC)"
+
+check: fmt vet lint test ## Run all checks (format, vet, lint, test)
+	@echo "$(GREEN)✓ All checks passed$(NC)"
+
+clean: ## Clean build artifacts and temporary files
+	@echo "$(BLUE)Cleaning...$(NC)"
+	@rm -rf bin/
+	@rm -f coverage.out coverage.html
+	@go clean
+	@echo "$(GREEN)✓ Clean completed$(NC)"
+
+deps: ## Download and verify dependencies
+	@echo "$(BLUE)Managing dependencies...$(NC)"
+	@go mod download
+	@go mod verify
+	@echo "$(GREEN)✓ Dependencies verified$(NC)"
+
+tidy: ## Tidy up go.mod and go.sum
+	@echo "$(BLUE)Tidying dependencies...$(NC)"
+	@go mod tidy
+	@echo "$(GREEN)✓ Dependencies tidied$(NC)"
+
+docker-build: ## Build Docker image
+	@echo "$(BLUE)Building Docker image: $(DOCKER_IMAGE)$(NC)"
+	@docker build -t $(DOCKER_IMAGE) -f Dockerfile .
+	@echo "$(GREEN)✓ Docker image built: $(DOCKER_IMAGE)$(NC)"
+
+docker-run: docker-build ## Build and run Docker container
+	@echo "$(BLUE)Running Docker container...$(NC)"
+	@docker run -p 8080:8080 \
+		-e DID_ATALA_PRISM_ENDPOINT=https://prism.atalaprism.io \
+		-e DID_CARDANO_NETWORK_ID=testnet \
+		-e DID_LOGGING_LEVEL=info \
+		$(DOCKER_IMAGE)
+
+docker-push: docker-build ## Push Docker image to registry
+	@echo "$(BLUE)Pushing Docker image...$(NC)"
+	@docker push $(DOCKER_IMAGE)
+	@echo "$(GREEN)✓ Docker image pushed$(NC)"
+
+docs: ## Generate API documentation
+	@echo "$(BLUE)Generating documentation...$(NC)"
+	@godoc -http=:6060 &
+	@echo "$(GREEN)✓ Documentation available at http://localhost:6060$(NC)"
+
+install-tools: ## Install development tools
+	@echo "$(BLUE)Installing development tools...$(NC)"
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@go install github.com/cosmtrek/air@latest
+	@echo "$(GREEN)✓ Tools installed$(NC)"
+
+init: tidy install-tools ## Initialize project (install tools, tidy deps)
+	@echo "$(GREEN)✓ Project initialized$(NC)"
+
+generate: ## Run code generation
+	@echo "$(BLUE)Running code generation...$(NC)"
+	@go generate ./...
+	@echo "$(GREEN)✓ Code generation completed$(NC)"
+
+proto: ## Compile protocol buffers (if applicable)
+	@echo "$(BLUE)Compiling protocol buffers...$(NC)"
+	@protoc --go_out=. --go-grpc_out=. $(PROTO_FILES)
+	@echo "$(GREEN)✓ Protocol buffers compiled$(NC)"
+
+migrate: ## Run database migrations (requires db setup)
+	@echo "$(BLUE)Running migrations...$(NC)"
+	@go run ./cmd/migrate/main.go
+	@echo "$(GREEN)✓ Migrations completed$(NC)"
+
+health: ## Check service health
+	@echo "$(BLUE)Checking service health...$(NC)"
+	@curl -s http://localhost:8080/health | jq . || echo "Service not running"
+
+ready: ## Check service readiness
+	@echo "$(BLUE)Checking service readiness...$(NC)"
+	@curl -s http://localhost:8080/ready | jq . || echo "Service not ready"
+
+logs: ## View application logs
+	@docker logs -f $$(docker ps -q -f "ancestor=$(DOCKER_IMAGE)")
+
+version: ## Display version information
+	@echo "$(BLUE)DID Service v$(VERSION)$(NC)"
+	@echo "Go Version: $$(go version | awk '{print $$3}')"
+	@echo "Git Commit: $$(git rev-parse --short HEAD 2>/dev/null || echo 'N/A')"
+
+# Development environment setup
+setup-dev: ## Setup development environment
+	@echo "$(BLUE)Setting up development environment...$(NC)"
+	@cp .env.example .env
+	@go mod download
+	@echo "$(GREEN)✓ Development environment ready$(NC)"
+
+# Quick test of core functionality
+quick-test: build ## Quick test of key functionality
+	@echo "$(BLUE)Running quick functionality test...$(NC)"
+	@go test -run TestDIDCreation -v ./pkg/did
+	@echo "$(GREEN)✓ Quick test completed$(NC)"
+
+# Generate mocks for testing
+mock-gen: ## Generate test mocks
+	@echo "$(BLUE)Generating test mocks...$(NC)"
+	@which mockgen > /dev/null || go install github.com/golang/mock/mockgen@latest
+	@mockgen -source=pkg/did/repository.go -destination=tests/mocks/mock_repository.go -package=mocks Repository
+	@echo "$(GREEN)✓ Mocks generated$(NC)"
+
+# Security scanning
+security: ## Run security scan
+	@echo "$(BLUE)Running security scan...$(NC)"
+	@which gosec > /dev/null || go install github.com/securego/gosec/v2/cmd/gosec@latest
+	@gosec ./...
+	@echo "$(GREEN)✓ Security scan completed$(NC)"
+
+# Performance profiling
+profile: build ## Generate performance profile
+	@echo "$(BLUE)Generating performance profile...$(NC)"
+	@go test -cpuprofile=cpu.prof -memprofile=mem.prof -bench=. ./pkg/did
+	@go tool pprof -http=:8081 cpu.prof
+	@echo "$(GREEN)✓ Profile available at http://localhost:8081$(NC)"
+
+# Comprehensive CI simulation
+ci: clean check test-coverage security ## Run comprehensive CI checks
+	@echo "$(GREEN)✓ CI checks passed$(NC)"
+
+.DEFAULT_GOAL := help

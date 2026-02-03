@@ -1,0 +1,5110 @@
+openapi: 3.1.0
+info:
+  title: Echo - Decentralized Messaging Platform API
+  description: |
+    # Overview
+    Echo is a decentralized, blockchain-anchored messaging platform that combines 
+    the best features of WhatsApp, Telegram, and Signal with blockchain-verified 
+    identity and provable message integrity.
+    
+    ## Key Features
+    - **Decentralized Identity (DID)** - Self-sovereign identity on Cardano blockchain
+    - **End-to-End Encryption** - Noise Protocol implementation
+    - **Blockchain Anchoring** - Provable message integrity via Constellation Hypergraph
+    - **Trust Scoring** - Dynamic 0-100 trust scores based on behavior and verification
+    - **ECHO Token Rewards** - Incentive system for platform participation
+    
+    ## Authentication
+    All API requests require authentication via DID-based signatures or session tokens
+    obtained through the authentication endpoints.
+    
+    ## Rate Limiting
+    - Standard users: 100 requests/minute
+    - Verified users: 500 requests/minute
+    - Enterprise accounts: 2000 requests/minute
+    
+    Rate limit headers are included in all responses:
+    - `X-RateLimit-Limit`
+    - `X-RateLimit-Remaining`
+    - `X-RateLimit-Reset`
+  version: 1.0.0
+  contact:
+    name: Echo API Support
+    email: api-support@echo.app
+    url: https://developers.echo.app
+  license:
+    name: Proprietary
+    url: https://echo.app/terms
+
+servers:
+  - url: https://api.echo.app/v1
+    description: Production server
+  - url: https://api.staging.echo.app/v1
+    description: Staging server
+  - url: https://api.sandbox.echo.app/v1
+    description: Sandbox for testing
+
+tags:
+  - name: Authentication
+    description: User registration, authentication, and session management
+  - name: Identity
+    description: DID management, verification, and trust scoring
+  - name: Messaging
+    description: Send, receive, and manage messages
+  - name: Conversations
+    description: Manage one-on-one and group conversations
+  - name: Groups
+    description: Create and manage groups and channels
+  - name: Calls
+    description: Voice and video calling functionality
+  - name: Files
+    description: File upload, download, and management
+  - name: Trust
+    description: Trust network and verification management
+  - name: Tokens
+    description: ECHO token rewards and transactions
+  - name: Contacts
+    description: Contact management and discovery
+  - name: Notifications
+    description: Push notification preferences and management
+  - name: Enterprise
+    description: Enterprise-specific endpoints for verified organizations
+  - name: Bots
+    description: Bot framework and automation endpoints
+
+security:
+  - BearerAuth: []
+  - DIDSignature: []
+
+paths:
+  # ============================================================================
+  # AUTHENTICATION
+  # ============================================================================
+  /auth/register/phone:
+    post:
+      tags:
+        - Authentication
+      summary: Initialize registration with phone number
+      description: |
+        Begin the universal onboarding flow by sending an SMS verification code.
+        This is the entry point for non-crypto-native users.
+      operationId: initiatePhoneRegistration
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - phone_number
+                - country_code
+              properties:
+                phone_number:
+                  type: string
+                  pattern: '^\d{10,15}$'
+                  example: "5551234567"
+                country_code:
+                  type: string
+                  pattern: '^\+\d{1,3}$'
+                  example: "+1"
+                device_info:
+                  $ref: '#/components/schemas/DeviceInfo'
+      responses:
+        '200':
+          description: Verification code sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verification_id:
+                    type: string
+                    format: uuid
+                  expires_at:
+                    type: string
+                    format: date-time
+                  retry_after:
+                    type: integer
+                    description: Seconds before code can be resent
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /auth/register/verify:
+    post:
+      tags:
+        - Authentication
+      summary: Verify phone number and create DID
+      description: |
+        Complete phone verification and automatically create a Cardano-based DID.
+        Returns session tokens and initiates passkey creation flow.
+      operationId: verifyPhoneAndCreateDID
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - verification_id
+                - code
+              properties:
+                verification_id:
+                  type: string
+                  format: uuid
+                code:
+                  type: string
+                  pattern: '^\d{6}$'
+                  example: "123456"
+                passkey_challenge:
+                  type: string
+                  format: base64
+                  description: WebAuthn challenge for passkey creation
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/InvalidVerificationCode'
+
+  /auth/register/credential:
+    post:
+      tags:
+        - Authentication
+      summary: Register with verifiable credential (OIDC4VC)
+      description: |
+        Streamlined onboarding using pre-existing verifiable credentials.
+        Supports digital driver's licenses, bank-issued credentials, and 
+        proof of humanity certificates.
+      operationId: registerWithCredential
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - credential_presentation
+              properties:
+                credential_presentation:
+                  type: string
+                  description: OIDC4VC credential presentation JWT
+                credential_type:
+                  type: string
+                  enum:
+                    - government_id
+                    - bank_credential
+                    - proof_of_humanity
+                    - professional_credential
+                device_info:
+                  $ref: '#/components/schemas/DeviceInfo'
+      responses:
+        '201':
+          description: Account created with high initial trust score
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AuthResponse'
+                  - type: object
+                    properties:
+                      verification_badge:
+                        $ref: '#/components/schemas/VerificationBadge'
+                      initial_trust_score:
+                        type: integer
+                        minimum: 0
+                        maximum: 100
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate existing user
+      description: |
+        Authenticate using passkey (WebAuthn) or DID signature.
+        Supports biometric authentication on mobile devices.
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/PasskeyAuthRequest'
+                - $ref: '#/components/schemas/DIDAuthRequest'
+              discriminator:
+                propertyName: auth_type
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      operationId: refreshToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: New tokens issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout and invalidate session
+      operationId: logout
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                all_devices:
+                  type: boolean
+                  default: false
+                  description: Logout from all devices if true
+      responses:
+        '204':
+          description: Successfully logged out
+
+  /auth/recovery/initiate:
+    post:
+      tags:
+        - Authentication
+      summary: Initiate account recovery
+      description: |
+        Start account recovery process using backup recovery phrase
+        or trusted contact verification.
+      operationId: initiateRecovery
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - recovery_method
+                - identifier
+              properties:
+                recovery_method:
+                  type: string
+                  enum: [recovery_phrase, trusted_contacts, backup_key]
+                identifier:
+                  type: string
+                  description: DID or phone number associated with account
+      responses:
+        '200':
+          description: Recovery process initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recovery_session_id:
+                    type: string
+                    format: uuid
+                  required_steps:
+                    type: array
+                    items:
+                      type: string
+                  expires_at:
+                    type: string
+                    format: date-time
+
+  # ============================================================================
+  # IDENTITY
+  # ============================================================================
+  /identity/did:
+    get:
+      tags:
+        - Identity
+      summary: Get current user's DID document
+      operationId: getOwnDID
+      responses:
+        '200':
+          description: DID document retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DIDDocument'
+
+  /identity/did/{did}:
+    get:
+      tags:
+        - Identity
+      summary: Resolve a DID to its document
+      operationId: resolveDID
+      parameters:
+        - name: did
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^did:cardano:[a-zA-Z0-9]+$'
+      responses:
+        '200':
+          description: DID document found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DIDDocument'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /identity/credentials:
+    get:
+      tags:
+        - Identity
+      summary: List user's verifiable credentials
+      operationId: listCredentials
+      responses:
+        '200':
+          description: List of credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  credentials:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VerifiableCredential'
+    post:
+      tags:
+        - Identity
+      summary: Add a verifiable credential
+      operationId: addCredential
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - credential
+              properties:
+                credential:
+                  type: string
+                  description: Verifiable credential JWT or JSON-LD
+      responses:
+        '201':
+          description: Credential added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifiableCredential'
+
+  /identity/verification/initiate:
+    post:
+      tags:
+        - Identity
+      summary: Initiate high-assurance identity verification
+      description: |
+        Start the in-app identity verification process using government ID 
+        or Apple Digital ID. Rewards user with ECHO tokens upon completion.
+      operationId: initiateVerification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - verification_method
+              properties:
+                verification_method:
+                  type: string
+                  enum:
+                    - government_id_scan
+                    - apple_digital_id
+                    - bank_verification
+      responses:
+        '200':
+          description: Verification session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id:
+                    type: string
+                    format: uuid
+                  verification_url:
+                    type: string
+                    format: uri
+                    description: URL for ID scanning widget (if applicable)
+                  expires_at:
+                    type: string
+                    format: date-time
+
+  /identity/verification/{session_id}/complete:
+    post:
+      tags:
+        - Identity
+      summary: Complete identity verification
+      operationId: completeVerification
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                verification_data:
+                  type: string
+                  description: Encrypted verification result from provider
+      responses:
+        '200':
+          description: Verification completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [verified, pending_review, rejected]
+                  badge:
+                    $ref: '#/components/schemas/VerificationBadge'
+                  trust_score_change:
+                    type: integer
+                  echo_reward:
+                    type: number
+                    description: ECHO tokens awarded
+
+  /identity/trust-score:
+    get:
+      tags:
+        - Identity
+      summary: Get current user's trust score details
+      operationId: getTrustScore
+      responses:
+        '200':
+          description: Trust score breakdown
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrustScore'
+
+  # ============================================================================
+  # USER PROFILE
+  # ============================================================================
+  /profile:
+    get:
+      tags:
+        - Identity
+      summary: Get current user's profile
+      operationId: getProfile
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+    patch:
+      tags:
+        - Identity
+      summary: Update profile
+      operationId: updateProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name:
+                  type: string
+                  maxLength: 64
+                bio:
+                  type: string
+                  maxLength: 500
+                avatar:
+                  type: string
+                  description: File ID of uploaded avatar image
+                status:
+                  type: string
+                  maxLength: 140
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  /profile/personas:
+    get:
+      tags:
+        - Identity
+      summary: List user's personas
+      operationId: listPersonas
+      responses:
+        '200':
+          description: List of personas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  personas:
+                    type: array
+                    maxItems: 5
+                    items:
+                      $ref: '#/components/schemas/Persona'
+    post:
+      tags:
+        - Identity
+      summary: Create a new persona
+      operationId: createPersona
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - display_name
+                - category
+              properties:
+                display_name:
+                  type: string
+                  maxLength: 64
+                category:
+                  type: string
+                  enum: [professional, personal, family, gaming, custom]
+                custom_label:
+                  type: string
+                  maxLength: 32
+                avatar:
+                  type: string
+                bio:
+                  type: string
+                  maxLength: 500
+      responses:
+        '201':
+          description: Persona created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Persona'
+        '400':
+          description: Maximum personas reached (5)
+
+  /profile/personas/{persona_id}:
+    patch:
+      tags:
+        - Identity
+      summary: Update a persona
+      operationId: updatePersona
+      parameters:
+        - name: persona_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name:
+                  type: string
+                avatar:
+                  type: string
+                bio:
+                  type: string
+      responses:
+        '200':
+          description: Persona updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Persona'
+    delete:
+      tags:
+        - Identity
+      summary: Delete a persona
+      operationId: deletePersona
+      parameters:
+        - name: persona_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Persona deleted
+
+  # ============================================================================
+  # CONTACTS
+  # ============================================================================
+  /contacts:
+    get:
+      tags:
+        - Contacts
+      summary: List contacts
+      operationId: listContacts
+      parameters:
+        - name: trust_circle
+          in: query
+          schema:
+            type: string
+            enum: [inner_circle, trusted, acquaintance, all]
+        - name: search
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageToken'
+      responses:
+        '200':
+          description: Contact list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contacts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Contact'
+                  next_page_token:
+                    type: string
+
+  /contacts/{contact_id}:
+    get:
+      tags:
+        - Contacts
+      summary: Get contact details
+      operationId: getContact
+      parameters:
+        - name: contact_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Contact details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+    patch:
+      tags:
+        - Contacts
+      summary: Update contact settings
+      operationId: updateContact
+      parameters:
+        - name: contact_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nickname:
+                  type: string
+                trust_circle:
+                  type: string
+                  enum: [inner_circle, trusted, acquaintance]
+                personas_visible:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: Which of my personas this contact can see
+                blocked:
+                  type: boolean
+                muted:
+                  type: boolean
+      responses:
+        '200':
+          description: Contact updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+    delete:
+      tags:
+        - Contacts
+      summary: Remove contact
+      operationId: removeContact
+      parameters:
+        - name: contact_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Contact removed
+
+  /contacts/discover:
+    post:
+      tags:
+        - Contacts
+      summary: Discover contacts by various methods
+      description: |
+        Find users by DID, username, or through mutual connections.
+        Does not expose phone numbers to maintain privacy.
+      operationId: discoverContacts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                method:
+                  type: string
+                  enum: [did, username, qr_code, mutual_connections]
+                query:
+                  type: string
+                  description: DID, username, or QR payload depending on method
+      responses:
+        '200':
+          description: Matching users found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContactSearchResult'
+
+  /contacts/requests:
+    get:
+      tags:
+        - Contacts
+      summary: List pending contact requests
+      operationId: listContactRequests
+      parameters:
+        - name: direction
+          in: query
+          schema:
+            type: string
+            enum: [incoming, outgoing, all]
+            default: incoming
+      responses:
+        '200':
+          description: Pending requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requests:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContactRequest'
+    post:
+      tags:
+        - Contacts
+      summary: Send contact request
+      operationId: sendContactRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - target_did
+              properties:
+                target_did:
+                  type: string
+                message:
+                  type: string
+                  maxLength: 200
+                persona_id:
+                  type: string
+                  format: uuid
+                  description: Which persona to present to this contact
+      responses:
+        '201':
+          description: Request sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactRequest'
+
+  /contacts/requests/{request_id}:
+    post:
+      tags:
+        - Contacts
+      summary: Respond to contact request
+      operationId: respondToContactRequest
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - action
+              properties:
+                action:
+                  type: string
+                  enum: [accept, reject, block]
+                initial_trust_circle:
+                  type: string
+                  enum: [trusted, acquaintance]
+                  default: acquaintance
+      responses:
+        '200':
+          description: Request processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [accepted, rejected, blocked]
+                  contact:
+                    $ref: '#/components/schemas/Contact'
+
+  # ============================================================================
+  # CONVERSATIONS
+  # ============================================================================
+  /conversations:
+    get:
+      tags:
+        - Conversations
+      summary: List conversations
+      operationId: listConversations
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [direct, group, channel, all]
+            default: all
+        - name: archived
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: folder_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageToken'
+      responses:
+        '200':
+          description: Conversation list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConversationSummary'
+                  next_page_token:
+                    type: string
+    post:
+      tags:
+        - Conversations
+      summary: Create a new conversation
+      operationId: createConversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+              properties:
+                type:
+                  type: string
+                  enum: [direct, group]
+                participant_dids:
+                  type: array
+                  items:
+                    type: string
+                  minItems: 1
+                  description: Required for direct (1 participant) or group (1+ participants)
+                name:
+                  type: string
+                  maxLength: 100
+                  description: Required for groups
+                description:
+                  type: string
+                  maxLength: 500
+                settings:
+                  $ref: '#/components/schemas/ConversationSettings'
+      responses:
+        '201':
+          description: Conversation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+
+  /conversations/{conversation_id}:
+    get:
+      tags:
+        - Conversations
+      summary: Get conversation details
+      operationId: getConversation
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      responses:
+        '200':
+          description: Conversation details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags:
+        - Conversations
+      summary: Update conversation settings
+      operationId: updateConversation
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                avatar:
+                  type: string
+                settings:
+                  $ref: '#/components/schemas/ConversationSettings'
+      responses:
+        '200':
+          description: Conversation updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+    delete:
+      tags:
+        - Conversations
+      summary: Leave or delete conversation
+      operationId: deleteConversation
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - name: delete_for_all
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Delete for all participants (admin only)
+      responses:
+        '204':
+          description: Left/deleted conversation
+
+  /conversations/{conversation_id}/archive:
+    post:
+      tags:
+        - Conversations
+      summary: Archive conversation
+      operationId: archiveConversation
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                folder_id:
+                  type: string
+                  format: uuid
+                  description: Optional folder to archive into
+      responses:
+        '200':
+          description: Conversation archived
+
+  /conversations/{conversation_id}/hidden:
+    post:
+      tags:
+        - Conversations
+      summary: Move conversation to hidden folder
+      description: |
+        Moves the conversation to a biometrically-protected hidden folder.
+        Requires biometric verification to access afterwards.
+      operationId: hideConversation
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - biometric_token
+              properties:
+                biometric_token:
+                  type: string
+                  description: Token from successful biometric authentication
+                folder_id:
+                  type: string
+                  format: uuid
+                  description: Specific hidden folder (default if not specified)
+      responses:
+        '200':
+          description: Conversation hidden
+    delete:
+      tags:
+        - Conversations
+      summary: Remove conversation from hidden folder
+      operationId: unhideConversation
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - biometric_token
+              properties:
+                biometric_token:
+                  type: string
+      responses:
+        '200':
+          description: Conversation unhidden
+
+  /conversations/{conversation_id}/participants:
+    get:
+      tags:
+        - Conversations
+      summary: List conversation participants
+      operationId: listParticipants
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageToken'
+      responses:
+        '200':
+          description: Participant list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  participants:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Participant'
+                  total_count:
+                    type: integer
+                  next_page_token:
+                    type: string
+    post:
+      tags:
+        - Conversations
+      summary: Add participants to group
+      operationId: addParticipants
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - participant_dids
+              properties:
+                participant_dids:
+                  type: array
+                  items:
+                    type: string
+                  maxItems: 100
+      responses:
+        '200':
+          description: Participants added
+
+  /conversations/{conversation_id}/participants/{participant_did}:
+    delete:
+      tags:
+        - Conversations
+      summary: Remove participant from group
+      operationId: removeParticipant
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - name: participant_did
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Participant removed
+    patch:
+      tags:
+        - Conversations
+      summary: Update participant role
+      operationId: updateParticipantRole
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - name: participant_did
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role
+              properties:
+                role:
+                  type: string
+                  enum: [owner, admin, moderator, member]
+      responses:
+        '200':
+          description: Role updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Participant'
+
+  # ============================================================================
+  # MESSAGING
+  # ============================================================================
+  /conversations/{conversation_id}/messages:
+    get:
+      tags:
+        - Messaging
+      summary: Get messages in conversation
+      operationId: getMessages
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - name: before
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Get messages before this timestamp
+        - name: after
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Get messages after this timestamp
+        - name: around
+          in: query
+          schema:
+            type: string
+          description: Message ID to center results around
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Message list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+                  has_more_before:
+                    type: boolean
+                  has_more_after:
+                    type: boolean
+    post:
+      tags:
+        - Messaging
+      summary: Send a message
+      operationId: sendMessage
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '201':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '403':
+          description: Cannot send to this conversation
+
+  /conversations/{conversation_id}/messages/{message_id}:
+    get:
+      tags:
+        - Messaging
+      summary: Get specific message
+      operationId: getMessage
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - $ref: '#/components/parameters/MessageId'
+      responses:
+        '200':
+          description: Message details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+    patch:
+      tags:
+        - Messaging
+      summary: Edit message
+      description: |
+        Edit a previously sent message. Creates an edit history entry 
+        anchored to blockchain for provability.
+      operationId: editMessage
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - $ref: '#/components/parameters/MessageId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  maxLength: 10000
+      responses:
+        '200':
+          description: Message edited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+    delete:
+      tags:
+        - Messaging
+      summary: Delete message
+      operationId: deleteMessage
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - $ref: '#/components/parameters/MessageId'
+        - name: for_everyone
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Delete for all participants (sender only)
+      responses:
+        '204':
+          description: Message deleted
+
+  /conversations/{conversation_id}/messages/{message_id}/reactions:
+    get:
+      tags:
+        - Messaging
+      summary: Get message reactions
+      operationId: getReactions
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - $ref: '#/components/parameters/MessageId'
+      responses:
+        '200':
+          description: Reaction list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Reaction'
+    post:
+      tags:
+        - Messaging
+      summary: Add reaction to message
+      operationId: addReaction
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - $ref: '#/components/parameters/MessageId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - emoji
+              properties:
+                emoji:
+                  type: string
+                  description: Unicode emoji or custom reaction ID
+      responses:
+        '201':
+          description: Reaction added
+    delete:
+      tags:
+        - Messaging
+      summary: Remove reaction from message
+      operationId: removeReaction
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - $ref: '#/components/parameters/MessageId'
+        - name: emoji
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Reaction removed
+
+  /conversations/{conversation_id}/messages/{message_id}/proof:
+    get:
+      tags:
+        - Messaging
+      summary: Get blockchain proof for message
+      description: |
+        Retrieve cryptographic proof of message integrity and timestamp
+        from the Constellation Hypergraph blockchain.
+      operationId: getMessageProof
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - $ref: '#/components/parameters/MessageId'
+      responses:
+        '200':
+          description: Blockchain proof
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageProof'
+
+  /conversations/{conversation_id}/messages/{message_id}/forward:
+    post:
+      tags:
+        - Messaging
+      summary: Forward message to another conversation
+      operationId: forwardMessage
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - $ref: '#/components/parameters/MessageId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - target_conversation_ids
+              properties:
+                target_conversation_ids:
+                  type: array
+                  items:
+                    type: string
+                  maxItems: 10
+                include_attribution:
+                  type: boolean
+                  default: true
+                  description: Include original sender attribution
+      responses:
+        '200':
+          description: Message forwarded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  forwarded_messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+
+  /conversations/{conversation_id}/messages/search:
+    get:
+      tags:
+        - Messaging
+      summary: Search messages in conversation
+      operationId: searchMessages
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+        - name: from_did
+          in: query
+          schema:
+            type: string
+          description: Filter by sender
+        - name: has_attachment
+          in: query
+          schema:
+            type: boolean
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageToken'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MessageSearchResult'
+                  total_count:
+                    type: integer
+                  next_page_token:
+                    type: string
+
+  /conversations/{conversation_id}/typing:
+    post:
+      tags:
+        - Messaging
+      summary: Send typing indicator
+      operationId: sendTypingIndicator
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                typing:
+                  type: boolean
+                  default: true
+      responses:
+        '204':
+          description: Typing indicator sent
+
+  /conversations/{conversation_id}/read:
+    post:
+      tags:
+        - Messaging
+      summary: Mark messages as read
+      operationId: markAsRead
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                up_to_message_id:
+                  type: string
+                  description: Mark all messages up to this ID as read
+      responses:
+        '204':
+          description: Messages marked as read
+
+  /messages/scheduled:
+    get:
+      tags:
+        - Messaging
+      summary: List scheduled messages
+      operationId: listScheduledMessages
+      responses:
+        '200':
+          description: Scheduled messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ScheduledMessage'
+    post:
+      tags:
+        - Messaging
+      summary: Schedule a message
+      operationId: scheduleMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/SendMessageRequest'
+                - type: object
+                  required:
+                    - conversation_id
+                    - scheduled_at
+                  properties:
+                    conversation_id:
+                      type: string
+                    scheduled_at:
+                      type: string
+                      format: date-time
+                    timezone:
+                      type: string
+                      example: "America/New_York"
+      responses:
+        '201':
+          description: Message scheduled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduledMessage'
+
+  /messages/scheduled/{scheduled_id}:
+    delete:
+      tags:
+        - Messaging
+      summary: Cancel scheduled message
+      operationId: cancelScheduledMessage
+      parameters:
+        - name: scheduled_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Scheduled message cancelled
+
+  # ============================================================================
+  # POLLS
+  # ============================================================================
+  /conversations/{conversation_id}/polls:
+    post:
+      tags:
+        - Messaging
+      summary: Create a poll
+      operationId: createPoll
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question
+                - options
+              properties:
+                question:
+                  type: string
+                  maxLength: 300
+                options:
+                  type: array
+                  items:
+                    type: string
+                    maxLength: 100
+                  minItems: 2
+                  maxItems: 10
+                allows_multiple_answers:
+                  type: boolean
+                  default: false
+                is_anonymous:
+                  type: boolean
+                  default: false
+                closes_at:
+                  type: string
+                  format: date-time
+                quiz_mode:
+                  type: boolean
+                  default: false
+                correct_option_index:
+                  type: integer
+                  minimum: 0
+      responses:
+        '201':
+          description: Poll created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Poll'
+
+  /conversations/{conversation_id}/polls/{poll_id}/vote:
+    post:
+      tags:
+        - Messaging
+      summary: Vote on a poll
+      operationId: votePoll
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - name: poll_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - option_indices
+              properties:
+                option_indices:
+                  type: array
+                  items:
+                    type: integer
+                    minimum: 0
+      responses:
+        '200':
+          description: Vote recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Poll'
+
+  # ============================================================================
+  # GROUPS
+  # ============================================================================
+  /groups:
+    get:
+      tags:
+        - Groups
+      summary: List user's groups
+      operationId: listGroups
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [owned, admin, member, all]
+            default: all
+        - name: visibility
+          in: query
+          schema:
+            type: string
+            enum: [public, private, all]
+            default: all
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageToken'
+      responses:
+        '200':
+          description: Group list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GroupSummary'
+                  next_page_token:
+                    type: string
+    post:
+      tags:
+        - Groups
+      summary: Create a new group
+      operationId: createGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGroupRequest'
+      responses:
+        '201':
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+
+  /groups/discover:
+    get:
+      tags:
+        - Groups
+      summary: Discover public groups
+      operationId: discoverGroups
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: min_trust_score
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 100
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [relevance, members, activity, trust_score]
+            default: relevance
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageToken'
+      responses:
+        '200':
+          description: Discovered groups
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GroupSummary'
+                  next_page_token:
+                    type: string
+
+  /groups/{group_id}:
+    get:
+      tags:
+        - Groups
+      summary: Get group details
+      operationId: getGroup
+      parameters:
+        - $ref: '#/components/parameters/GroupId'
+      responses:
+        '200':
+          description: Group details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+    patch:
+      tags:
+        - Groups
+      summary: Update group settings
+      operationId: updateGroup
+      parameters:
+        - $ref: '#/components/parameters/GroupId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGroupRequest'
+      responses:
+        '200':
+          description: Group updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+    delete:
+      tags:
+        - Groups
+      summary: Delete group
+      operationId: deleteGroup
+      parameters:
+        - $ref: '#/components/parameters/GroupId'
+      responses:
+        '204':
+          description: Group deleted
+
+  /groups/{group_id}/join:
+    post:
+      tags:
+        - Groups
+      summary: Join a public group or request to join
+      operationId: joinGroup
+      parameters:
+        - $ref: '#/components/parameters/GroupId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                invite_code:
+                  type: string
+                message:
+                  type: string
+                  maxLength: 200
+      responses:
+        '200':
+          description: Joined or request submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [joined, pending_approval, rejected]
+                  group:
+                    $ref: '#/components/schemas/Group'
+
+  /groups/{group_id}/leave:
+    post:
+      tags:
+        - Groups
+      summary: Leave group
+      operationId: leaveGroup
+      parameters:
+        - $ref: '#/components/parameters/GroupId'
+      responses:
+        '204':
+          description: Left group
+
+  /groups/{group_id}/invite:
+    post:
+      tags:
+        - Groups
+      summary: Generate invite link
+      operationId: createGroupInvite
+      parameters:
+        - $ref: '#/components/parameters/GroupId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                max_uses:
+                  type: integer
+                  minimum: 1
+                expires_at:
+                  type: string
+                  format: date-time
+                requires_approval:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: Invite created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupInvite'
+
+  /groups/{group_id}/pinned:
+    get:
+      tags:
+        - Groups
+      summary: Get pinned messages
+      operationId: getPinnedMessages
+      parameters:
+        - $ref: '#/components/parameters/GroupId'
+      responses:
+        '200':
+          description: Pinned messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+    post:
+      tags:
+        - Groups
+      summary: Pin a message
+      operationId: pinMessage
+      parameters:
+        - $ref: '#/components/parameters/GroupId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message_id
+              properties:
+                message_id:
+                  type: string
+                notify_members:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Message pinned
+
+  /groups/{group_id}/pinned/{message_id}:
+    delete:
+      tags:
+        - Groups
+      summary: Unpin a message
+      operationId: unpinMessage
+      parameters:
+        - $ref: '#/components/parameters/GroupId'
+        - $ref: '#/components/parameters/MessageId'
+      responses:
+        '204':
+          description: Message unpinned
+
+  # ============================================================================
+  # CHANNELS
+  # ============================================================================
+  /channels:
+    get:
+      tags:
+        - Groups
+      summary: List user's channels
+      operationId: listChannels
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [owner, admin, subscriber, all]
+            default: all
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageToken'
+      responses:
+        '200':
+          description: Channel list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  channels:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChannelSummary'
+                  next_page_token:
+                    type: string
+    post:
+      tags:
+        - Groups
+      summary: Create broadcast channel
+      operationId: createChannel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChannelRequest'
+      responses:
+        '201':
+          description: Channel created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+
+  /channels/{channel_id}:
+    get:
+      tags:
+        - Groups
+      summary: Get channel details
+      operationId: getChannel
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Channel details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+    patch:
+      tags:
+        - Groups
+      summary: Update channel
+      operationId: updateChannel
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateChannelRequest'
+      responses:
+        '200':
+          description: Channel updated
+    delete:
+      tags:
+        - Groups
+      summary: Delete channel
+      operationId: deleteChannel
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Channel deleted
+
+  /channels/{channel_id}/subscribe:
+    post:
+      tags:
+        - Groups
+      summary: Subscribe to channel
+      operationId: subscribeChannel
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Subscribed
+
+  /channels/{channel_id}/unsubscribe:
+    post:
+      tags:
+        - Groups
+      summary: Unsubscribe from channel
+      operationId: unsubscribeChannel
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Unsubscribed
+
+  /channels/{channel_id}/posts:
+    get:
+      tags:
+        - Groups
+      summary: Get channel posts
+      operationId: getChannelPosts
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageToken'
+      responses:
+        '200':
+          description: Channel posts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChannelPost'
+                  next_page_token:
+                    type: string
+    post:
+      tags:
+        - Groups
+      summary: Create channel post
+      operationId: createChannelPost
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  maxLength: 10000
+                attachments:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/AttachmentInput'
+                scheduled_at:
+                  type: string
+                  format: date-time
+                silent:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: Post created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelPost'
+
+  # ============================================================================
+  # CALLS
+  # ============================================================================
+  /calls:
+    post:
+      tags:
+        - Calls
+      summary: Initiate a call
+      operationId: initiateCall
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - conversation_id
+                - type
+              properties:
+                conversation_id:
+                  type: string
+                type:
+                  type: string
+                  enum: [voice, video]
+                scheduled_at:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: Call initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Call'
+
+  /calls/{call_id}:
+    get:
+      tags:
+        - Calls
+      summary: Get call details
+      operationId: getCall
+      parameters:
+        - name: call_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Call details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Call'
+
+  /calls/{call_id}/join:
+    post:
+      tags:
+        - Calls
+      summary: Join an ongoing call
+      operationId: joinCall
+      parameters:
+        - name: call_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                with_video:
+                  type: boolean
+                  default: false
+                with_audio:
+                  type: boolean
+                  default: true
+      responses:
+        '200':
+          description: Joined call
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  call:
+                    $ref: '#/components/schemas/Call'
+                  webrtc_offer:
+                    type: string
+                  ice_servers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/IceServer'
+
+  /calls/{call_id}/leave:
+    post:
+      tags:
+        - Calls
+      summary: Leave call
+      operationId: leaveCall
+      parameters:
+        - name: call_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Left call
+
+  /calls/{call_id}/end:
+    post:
+      tags:
+        - Calls
+      summary: End call for all participants
+      operationId: endCall
+      parameters:
+        - name: call_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Call ended
+
+  /calls/{call_id}/screen-share:
+    post:
+      tags:
+        - Calls
+      summary: Start screen sharing
+      operationId: startScreenShare
+      parameters:
+        - name: call_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                share_type:
+                  type: string
+                  enum: [screen, window, tab]
+                  default: screen
+                with_audio:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Screen share started
+    delete:
+      tags:
+        - Calls
+      summary: Stop screen sharing
+      operationId: stopScreenShare
+      parameters:
+        - name: call_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Screen share stopped
+
+  /calls/{call_id}/recording:
+    post:
+      tags:
+        - Calls
+      summary: Start call recording
+      operationId: startRecording
+      parameters:
+        - name: call_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Recording started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recording_id:
+                    type: string
+    delete:
+      tags:
+        - Calls
+      summary: Stop call recording
+      operationId: stopRecording
+      parameters:
+        - name: call_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Recording stopped
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recording_id:
+                    type: string
+                  file_id:
+                    type: string
+                  duration_seconds:
+                    type: integer
+
+  # ============================================================================
+  # FILES
+  # ============================================================================
+  /files/upload:
+    post:
+      tags:
+        - Files
+      summary: Upload a file
+      description: Upload files up to 2GB with client-side encryption
+      operationId: uploadFile
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                encryption_key_wrapped:
+                  type: string
+                purpose:
+                  type: string
+                  enum: [message_attachment, avatar, group_avatar, document]
+                  default: message_attachment
+      responses:
+        '201':
+          description: File uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileUploadResponse'
+        '413':
+          description: File too large
+
+  /files/{file_id}:
+    get:
+      tags:
+        - Files
+      summary: Get file metadata
+      operationId: getFileMetadata
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileMetadata'
+    delete:
+      tags:
+        - Files
+      summary: Delete file
+      operationId: deleteFile
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: File deleted
+
+  /files/{file_id}/download:
+    get:
+      tags:
+        - Files
+      summary: Download file
+      operationId: downloadFile
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /files/{file_id}/proof:
+    get:
+      tags:
+        - Files
+      summary: Get file integrity proof
+      operationId: getFileProof
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File integrity proof
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileProof'
+
+  # ============================================================================
+  # TRUST
+  # ============================================================================
+  /trust/reports:
+    post:
+      tags:
+        - Trust
+      summary: Report user or content
+      operationId: submitReport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - report_type
+                - target_type
+                - target_id
+                - reason
+              properties:
+                report_type:
+                  type: string
+                  enum: [spam, harassment, fraud, impersonation, illegal_content, other]
+                target_type:
+                  type: string
+                  enum: [user, message, group, channel]
+                target_id:
+                  type: string
+                reason:
+                  type: string
+                  maxLength: 1000
+                evidence_message_ids:
+                  type: array
+                  items:
+                    type: string
+                  maxItems: 10
+      responses:
+        '201':
+          description: Report submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  report_id:
+                    type: string
+                  status:
+                    type: string
+                    enum: [submitted, under_review]
+                  blockchain_tx:
+                    type: string
+
+  /trust/blocked:
+    get:
+      tags:
+        - Trust
+      summary: List blocked users
+      operationId: listBlocked
+      responses:
+        '200':
+          description: Blocked users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  blocked:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BlockedUser'
+    post:
+      tags:
+        - Trust
+      summary: Block a user
+      operationId: blockUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - target_did
+              properties:
+                target_did:
+                  type: string
+                report:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: User blocked
+
+  /trust/blocked/{did}:
+    delete:
+      tags:
+        - Trust
+      summary: Unblock a user
+      operationId: unblockUser
+      parameters:
+        - name: did
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: User unblocked
+
+  # ============================================================================
+  # TOKENS
+  # ============================================================================
+  /tokens/balance:
+    get:
+      tags:
+        - Tokens
+      summary: Get ECHO token balance
+      operationId: getTokenBalance
+      responses:
+        '200':
+          description: Token balance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  available:
+                    type: number
+                    format: double
+                  staked:
+                    type: number
+                    format: double
+                  pending_rewards:
+                    type: number
+                    format: double
+                  total:
+                    type: number
+                    format: double
+
+  /tokens/rewards:
+    get:
+      tags:
+        - Tokens
+      summary: Get rewards tracker data
+      operationId: getRewardsTracker
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month, all_time]
+            default: month
+      responses:
+        '200':
+          description: Rewards data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardsTracker'
+
+  /tokens/rewards/history:
+    get:
+      tags:
+        - Tokens
+      summary: Get reward distribution history
+      operationId: getRewardHistory
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [messaging, payment_rail, referral, staking, achievement, all]
+            default: all
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageToken'
+      responses:
+        '200':
+          description: Reward history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rewards:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RewardTransaction'
+                  next_page_token:
+                    type: string
+
+  /tokens/achievements:
+    get:
+      tags:
+        - Tokens
+      summary: Get achievements and milestones
+      operationId: getAchievements
+      responses:
+        '200':
+          description: Achievements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  completed:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Achievement'
+                  in_progress:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Achievement'
+                  available:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Achievement'
+
+  /tokens/staking:
+    get:
+      tags:
+        - Tokens
+      summary: Get staking information
+      operationId: getStakingInfo
+      responses:
+        '200':
+          description: Staking info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StakingInfo'
+    post:
+      tags:
+        - Tokens
+      summary: Stake tokens
+      operationId: stakeTokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: number
+                  format: double
+                  minimum: 10
+                validator_node:
+                  type: string
+      responses:
+        '200':
+          description: Tokens staked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StakingInfo'
+
+  /tokens/staking/unstake:
+    post:
+      tags:
+        - Tokens
+      summary: Unstake tokens
+      operationId: unstakeTokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: number
+                  format: double
+      responses:
+        '200':
+          description: Unstake initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  amount:
+                    type: number
+                  available_at:
+                    type: string
+                    format: date-time
+
+  /tokens/referrals:
+    get:
+      tags:
+        - Tokens
+      summary: Get referral program info
+      operationId: getReferralInfo
+      responses:
+        '200':
+          description: Referral info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralInfo'
+
+  /tokens/referrals/link:
+    post:
+      tags:
+        - Tokens
+      summary: Generate referral link
+      operationId: generateReferralLink
+      responses:
+        '201':
+          description: Referral link created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  link:
+                    type: string
+                    format: uri
+                  code:
+                    type: string
+                  expires_at:
+                    type: string
+                    format: date-time
+
+  # ============================================================================
+  # NOTIFICATIONS
+  # ============================================================================
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get notifications
+      operationId: getNotifications
+      parameters:
+        - name: unread_only
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageToken'
+      responses:
+        '200':
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+                  unread_count:
+                    type: integer
+                  next_page_token:
+                    type: string
+
+  /notifications/read:
+    post:
+      tags:
+        - Notifications
+      summary: Mark notifications as read
+      operationId: markNotificationsRead
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notification_ids:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '204':
+          description: Marked as read
+
+  /notifications/settings:
+    get:
+      tags:
+        - Notifications
+      summary: Get notification preferences
+      operationId: getNotificationSettings
+      responses:
+        '200':
+          description: Notification settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationSettings'
+    put:
+      tags:
+        - Notifications
+      summary: Update notification preferences
+      operationId: updateNotificationSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationSettings'
+      responses:
+        '200':
+          description: Settings updated
+
+  /notifications/devices:
+    get:
+      tags:
+        - Notifications
+      summary: List registered devices
+      operationId: listDevices
+      responses:
+        '200':
+          description: Device list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Device'
+    post:
+      tags:
+        - Notifications
+      summary: Register device for push notifications
+      operationId: registerDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - platform
+                - push_token
+              properties:
+                platform:
+                  type: string
+                  enum: [ios, android]
+                push_token:
+                  type: string
+                device_name:
+                  type: string
+      responses:
+        '201':
+          description: Device registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+
+  /notifications/devices/{device_id}:
+    delete:
+      tags:
+        - Notifications
+      summary: Unregister device
+      operationId: unregisterDevice
+      parameters:
+        - name: device_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Device unregistered
+
+  # ============================================================================
+  # ENTERPRISE
+  # ============================================================================
+  /enterprise/organizations:
+    post:
+      tags:
+        - Enterprise
+      summary: Register enterprise organization
+      operationId: registerOrganization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationRegistration'
+      responses:
+        '201':
+          description: Organization registration initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  organization_id:
+                    type: string
+                  verification_status:
+                    type: string
+                    enum: [pending_documentation, under_review, verified, rejected]
+                  required_documents:
+                    type: array
+                    items:
+                      type: string
+
+  /enterprise/organizations/{org_id}:
+    get:
+      tags:
+        - Enterprise
+      summary: Get organization details
+      operationId: getOrganization
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Organization details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+    patch:
+      tags:
+        - Enterprise
+      summary: Update organization
+      operationId: updateOrganization
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name:
+                  type: string
+                description:
+                  type: string
+                logo:
+                  type: string
+                support_url:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: Organization updated
+
+  /enterprise/organizations/{org_id}/employees:
+    get:
+      tags:
+        - Enterprise
+      summary: List organization employees
+      operationId: listEmployees
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageToken'
+      responses:
+        '200':
+          description: Employee list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  employees:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Employee'
+                  next_page_token:
+                    type: string
+    post:
+      tags:
+        - Enterprise
+      summary: Add employee to organization
+      operationId: addEmployee
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - employee_did
+                - role
+              properties:
+                employee_did:
+                  type: string
+                role:
+                  type: string
+                  enum: [admin, manager, representative, support]
+                department:
+                  type: string
+                title:
+                  type: string
+      responses:
+        '201':
+          description: Employee added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+
+  /enterprise/organizations/{org_id}/alerts:
+    post:
+      tags:
+        - Enterprise
+      summary: Send fraud alert or transaction confirmation
+      operationId: sendAlert
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - customer_did
+                - alert_type
+                - message
+              properties:
+                customer_did:
+                  type: string
+                alert_type:
+                  type: string
+                  enum: [fraud_alert, transaction_confirmation, security_notice, account_update]
+                message:
+                  type: string
+                requires_confirmation:
+                  type: boolean
+                  default: false
+                transaction_details:
+                  type: object
+                  properties:
+                    amount:
+                      type: number
+                    currency:
+                      type: string
+                    merchant:
+                      type: string
+                expires_at:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: Alert sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alert_id:
+                    type: string
+                  delivery_status:
+                    type: string
+                    enum: [delivered, pending, failed]
+                  blockchain_tx:
+                    type: string
+
+  # ============================================================================
+  # BOTS
+  # ============================================================================
+  /bots:
+    get:
+      tags:
+        - Bots
+      summary: List user's bots
+      operationId: listOwnedBots
+      responses:
+        '200':
+          description: Bot list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bots:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Bot'
+    post:
+      tags:
+        - Bots
+      summary: Create a new bot
+      operationId: createBot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBotRequest'
+      responses:
+        '201':
+          description: Bot created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Bot'
+                  - type: object
+                    properties:
+                      api_token:
+                        type: string
+
+  /bots/marketplace:
+    get:
+      tags:
+        - Bots
+      summary: Browse bot marketplace
+      operationId: browseMarketplace
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [popularity, rating, newest]
+            default: popularity
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageToken'
+      responses:
+        '200':
+          description: Marketplace bots
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bots:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BotListing'
+                  next_page_token:
+                    type: string
+
+  /bots/{bot_id}:
+    get:
+      tags:
+        - Bots
+      summary: Get bot details
+      operationId: getBot
+      parameters:
+        - name: bot_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Bot details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bot'
+    patch:
+      tags:
+        - Bots
+      summary: Update bot
+      operationId: updateBot
+      parameters:
+        - name: bot_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name:
+                  type: string
+                description:
+                  type: string
+                avatar:
+                  type: string
+                webhook_url:
+                  type: string
+                  format: uri
+                commands:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/BotCommand'
+      responses:
+        '200':
+          description: Bot updated
+    delete:
+      tags:
+        - Bots
+      summary: Delete bot
+      operationId: deleteBot
+      parameters:
+        - name: bot_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Bot deleted
+
+  # ============================================================================
+  # WEBSOCKET
+  # ============================================================================
+  /ws:
+    get:
+      tags:
+        - Messaging
+      summary: WebSocket connection for real-time events
+      description: |
+        Establish WebSocket connection for real-time message delivery,
+        presence updates, typing indicators, and call signaling.
+        
+        ## Events
+        - `message.new` - New message received
+        - `message.updated` - Message edited  
+        - `message.deleted` - Message deleted
+        - `typing.start` / `typing.stop` - Typing indicators
+        - `presence.update` - User online/offline status
+        - `call.incoming` - Incoming call
+      operationId: websocketConnect
+      responses:
+        '101':
+          description: Switching protocols to WebSocket
+_version:
+          type: string
+        device_name:
+          type: string
+
+    # --------------------------------------------------------------------------
+    # Authentication
+    # --------------------------------------------------------------------------
+    AuthResponse:
+      type: object
+      required:
+        - access_token
+        - refresh_token
+        - user
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/UserProfile'
+
+    PasskeyAuthRequest:
+      type: object
+      required:
+        - auth_type
+        - credential
+      properties:
+        auth_type:
+          type: string
+          const: passkey
+        credential:
+          type: object
+          description: WebAuthn credential assertion
+
+    DIDAuthRequest:
+      type: object
+      required:
+        - auth_type
+        - did
+        - signature
+        - timestamp
+      properties:
+        auth_type:
+          type: string
+          const: did_signature
+        did:
+          type: string
+        signature:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        nonce:
+          type: string
+
+    # --------------------------------------------------------------------------
+    # Identity & Profile
+    # --------------------------------------------------------------------------
+    DIDDocument:
+      type: object
+      required:
+        - id
+        - verificationMethod
+      properties:
+        id:
+          type: string
+          example: "did:cardano:abc123"
+        controller:
+          type: string
+        verificationMethod:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              type:
+                type: string
+              controller:
+                type: string
+              publicKeyMultibase:
+                type: string
+        authentication:
+          type: array
+          items:
+            type: string
+        service:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              type:
+                type: string
+              serviceEndpoint:
+                type: string
+
+    UserProfile:
+      type: object
+      required:
+        - did
+        - display_name
+        - trust_score
+      properties:
+        did:
+          type: string
+        display_name:
+          type: string
+        username:
+          type: string
+        bio:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        status:
+          type: string
+        trust_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        verification_badges:
+          type: array
+          items:
+            $ref: '#/components/schemas/VerificationBadge'
+        created_at:
+          type: string
+          format: date-time
+        last_seen:
+          type: string
+          format: date-time
+        online:
+          type: boolean
+
+    Persona:
+      type: object
+      required:
+        - id
+        - display_name
+        - category
+      properties:
+        id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        category:
+          type: string
+          enum: [professional, personal, family, gaming, custom]
+        custom_label:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        bio:
+          type: string
+        is_default:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    TrustScore:
+      type: object
+      required:
+        - score
+        - level
+      properties:
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        level:
+          type: string
+          enum: [new, basic, trusted, verified, highly_trusted]
+        breakdown:
+          type: object
+          properties:
+            verification_score:
+              type: integer
+            interaction_score:
+              type: integer
+            longevity_score:
+              type: integer
+            report_penalty:
+              type: integer
+        multiplier:
+          type: number
+          format: float
+          description: Reward multiplier based on trust score
+        last_updated:
+          type: string
+          format: date-time
+
+    VerificationBadge:
+      type: object
+      required:
+        - type
+        - verified_at
+      properties:
+        type:
+          type: string
+          enum: [identity_verified, phone_verified, email_verified, professional, government, financial_institution]
+        display_name:
+          type: string
+        icon_url:
+          type: string
+          format: uri
+        verified_at:
+          type: string
+          format: date-time
+        issuer:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+
+    VerifiableCredential:
+      type: object
+      required:
+        - id
+        - type
+        - issuer
+      properties:
+        id:
+          type: string
+        type:
+          type: array
+          items:
+            type: string
+        issuer:
+          type: string
+        issuance_date:
+          type: string
+          format: date-time
+        expiration_date:
+          type: string
+          format: date-time
+        credential_subject:
+          type: object
+          additionalProperties: true
+        proof:
+          type: object
+
+    # --------------------------------------------------------------------------
+    # Contacts
+    # --------------------------------------------------------------------------
+    Contact:
+      type: object
+      required:
+        - did
+        - display_name
+        - trust_circle
+      properties:
+        did:
+          type: string
+        display_name:
+          type: string
+        nickname:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        trust_score:
+          type: integer
+        trust_circle:
+          type: string
+          enum: [inner_circle, trusted, acquaintance]
+        verification_badges:
+          type: array
+          items:
+            $ref: '#/components/schemas/VerificationBadge'
+        mutual_contacts_count:
+          type: integer
+        blocked:
+          type: boolean
+        muted:
+          type: boolean
+        online:
+          type: boolean
+        last_seen:
+          type: string
+          format: date-time
+        added_at:
+          type: string
+          format: date-time
+
+    ContactSearchResult:
+      type: object
+      required:
+        - did
+        - display_name
+      properties:
+        did:
+          type: string
+        display_name:
+          type: string
+        username:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        trust_score:
+          type: integer
+        verification_badges:
+          type: array
+          items:
+            $ref: '#/components/schemas/VerificationBadge'
+        mutual_contacts:
+          type: array
+          items:
+            type: object
+            properties:
+              did:
+                type: string
+              display_name:
+                type: string
+
+    ContactRequest:
+      type: object
+      required:
+        - id
+        - from_did
+        - to_did
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        from_did:
+          type: string
+        to_did:
+          type: string
+        from_user:
+          $ref: '#/components/schemas/UserProfile'
+        message:
+          type: string
+        status:
+          type: string
+          enum: [pending, accepted, rejected, expired]
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+
+    BlockedUser:
+      type: object
+      required:
+        - did
+        - blocked_at
+      properties:
+        did:
+          type: string
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        blocked_at:
+          type: string
+          format: date-time
+
+    # --------------------------------------------------------------------------
+    # Conversations & Messaging
+    # --------------------------------------------------------------------------
+    ConversationSummary:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [direct, group, channel]
+        name:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        last_message:
+          $ref: '#/components/schemas/MessagePreview'
+        unread_count:
+          type: integer
+        muted:
+          type: boolean
+        pinned:
+          type: boolean
+        archived:
+          type: boolean
+        hidden:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time
+
+    Conversation:
+      type: object
+      required:
+        - id
+        - type
+        - created_at
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [direct, group]
+        name:
+          type: string
+        description:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Participant'
+        participant_count:
+          type: integer
+        settings:
+          $ref: '#/components/schemas/ConversationSettings'
+        my_role:
+          type: string
+          enum: [owner, admin, moderator, member]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ConversationSettings:
+      type: object
+      properties:
+        disappearing_messages:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            duration_seconds:
+              type: integer
+        min_trust_score_to_join:
+          type: integer
+          minimum: 0
+          maximum: 100
+        allow_screenshots:
+          type: boolean
+          default: true
+        provable_mode:
+          type: boolean
+          default: false
+          description: Anchor all messages to blockchain
+
+    Participant:
+      type: object
+      required:
+        - did
+        - role
+      properties:
+        did:
+          type: string
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        role:
+          type: string
+          enum: [owner, admin, moderator, member]
+        trust_score:
+          type: integer
+        verification_badges:
+          type: array
+          items:
+            $ref: '#/components/schemas/VerificationBadge'
+        joined_at:
+          type: string
+          format: date-time
+        online:
+          type: boolean
+
+    Message:
+      type: object
+      required:
+        - id
+        - conversation_id
+        - sender_did
+        - content
+        - created_at
+      properties:
+        id:
+          type: string
+        conversation_id:
+          type: string
+        sender_did:
+          type: string
+        sender:
+          $ref: '#/components/schemas/UserProfile'
+        content:
+          type: string
+        content_type:
+          type: string
+          enum: [text, image, video, audio, file, location, poll, system]
+          default: text
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+        reply_to:
+          type: object
+          properties:
+            message_id:
+              type: string
+            preview:
+              type: string
+            sender_did:
+              type: string
+        forwarded_from:
+          type: object
+          properties:
+            original_sender_did:
+              type: string
+            original_conversation_id:
+              type: string
+        reactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReactionSummary'
+        mentions:
+          type: array
+          items:
+            type: string
+        edited:
+          type: boolean
+        edited_at:
+          type: string
+          format: date-time
+        deleted:
+          type: boolean
+        silent:
+          type: boolean
+        blockchain_proof:
+          type: object
+          properties:
+            tx_hash:
+              type: string
+            anchored_at:
+              type: string
+              format: date-time
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        read_by:
+          type: array
+          items:
+            type: object
+            properties:
+              did:
+                type: string
+              read_at:
+                type: string
+                format: date-time
+
+    MessagePreview:
+      type: object
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+          maxLength: 100
+        content_type:
+          type: string
+        sender_did:
+          type: string
+        sender_name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    SendMessageRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          maxLength: 10000
+        content_type:
+          type: string
+          enum: [text, location]
+          default: text
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttachmentInput'
+        reply_to_id:
+          type: string
+        mentions:
+          type: array
+          items:
+            type: string
+        silent:
+          type: boolean
+          default: false
+        provable:
+          type: boolean
+          default: false
+          description: Anchor message to blockchain
+        disappears_after:
+          type: integer
+          description: Seconds until message auto-deletes
+
+    AttachmentInput:
+      type: object
+      required:
+        - file_id
+      properties:
+        file_id:
+          type: string
+        caption:
+          type: string
+
+    Attachment:
+      type: object
+      required:
+        - id
+        - type
+        - file_id
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [image, video, audio, document, other]
+        file_id:
+          type: string
+        filename:
+          type: string
+        mime_type:
+          type: string
+        size_bytes:
+          type: integer
+        thumbnail_url:
+          type: string
+          format: uri
+        download_url:
+          type: string
+          format: uri
+        caption:
+          type: string
+        duration_seconds:
+          type: integer
+        dimensions:
+          type: object
+          properties:
+            width:
+              type: integer
+            height:
+              type: integer
+
+    Reaction:
+      type: object
+      required:
+        - emoji
+        - user_did
+      properties:
+        emoji:
+          type: string
+        user_did:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        created_at:
+          type: string
+          format: date-time
+
+    ReactionSummary:
+      type: object
+      required:
+        - emoji
+        - count
+      properties:
+        emoji:
+          type: string
+        count:
+          type: integer
+        includes_me:
+          type: boolean
+
+    MessageProof:
+      type: object
+      required:
+        - message_id
+        - hash
+        - tx_hash
+        - anchored_at
+      properties:
+        message_id:
+          type: string
+        hash:
+          type: string
+          description: SHA-256 hash of message content
+        tx_hash:
+          type: string
+          description: Constellation Hypergraph transaction hash
+        block_hash:
+          type: string
+        anchored_at:
+          type: string
+          format: date-time
+        verification_url:
+          type: string
+          format: uri
+        zk_proof:
+          type: string
+          description: Zero-knowledge proof for verification
+
+    MessageSearchResult:
+      type: object
+      required:
+        - message
+        - highlights
+      properties:
+        message:
+          $ref: '#/components/schemas/Message'
+        highlights:
+          type: array
+          items:
+            type: string
+
+    ScheduledMessage:
+      type: object
+      required:
+        - id
+        - conversation_id
+        - content
+        - scheduled_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        conversation_id:
+          type: string
+        content:
+          type: string
+        content_type:
+          type: string
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttachmentInput'
+        scheduled_at:
+          type: string
+          format: date-time
+        timezone:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Poll:
+      type: object
+      required:
+        - id
+        - question
+        - options
+      properties:
+        id:
+          type: string
+        question:
+          type: string
+        options:
+          type: array
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+              text:
+                type: string
+              vote_count:
+                type: integer
+              voters:
+                type: array
+                items:
+                  type: string
+        total_votes:
+          type: integer
+        allows_multiple_answers:
+          type: boolean
+        is_anonymous:
+          type: boolean
+        is_closed:
+          type: boolean
+        closes_at:
+          type: string
+          format: date-time
+        my_votes:
+          type: array
+          items:
+            type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    # --------------------------------------------------------------------------
+    # Groups & Channels
+    # --------------------------------------------------------------------------
+    GroupSummary:
+      type: object
+      required:
+        - id
+        - name
+        - member_count
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        member_count:
+          type: integer
+        visibility:
+          type: string
+          enum: [public, private]
+        verification_score:
+          type: integer
+          description: Average trust score of members
+        my_role:
+          type: string
+          enum: [owner, admin, moderator, member]
+        category:
+          type: string
+
+    Group:
+      type: object
+      required:
+        - id
+        - name
+        - owner_did
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        owner_did:
+          type: string
+        member_count:
+          type: integer
+        online_count:
+          type: integer
+        visibility:
+          type: string
+          enum: [public, private]
+        join_approval_required:
+          type: boolean
+        min_trust_score:
+          type: integer
+        verification_score:
+          type: integer
+        invite_link:
+          type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+
+    CreateGroupRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        avatar:
+          type: string
+        visibility:
+          type: string
+          enum: [public, private]
+          default: private
+        join_approval_required:
+          type: boolean
+          default: false
+        min_trust_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 0
+        initial_members:
+          type: array
+          items:
+            type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    UpdateGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        avatar:
+          type: string
+        visibility:
+          type: string
+          enum: [public, private]
+        join_approval_required:
+          type: boolean
+        min_trust_score:
+          type: integer
+
+    GroupInvite:
+      type: object
+      required:
+        - code
+        - link
+      properties:
+        code:
+          type: string
+        link:
+          type: string
+          format: uri
+        max_uses:
+          type: integer
+        uses:
+          type: integer
+        requires_approval:
+          type: boolean
+        expires_at:
+          type: string
+          format: date-time
+        created_by:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    JoinRequest:
+      type: object
+      required:
+        - id
+        - user_did
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_did:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        message:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        created_at:
+          type: string
+          format: date-time
+
+    ChannelSummary:
+      type: object
+      required:
+        - id
+        - name
+        - subscriber_count
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        subscriber_count:
+          type: integer
+        is_subscribed:
+          type: boolean
+        my_role:
+          type: string
+          enum: [owner, admin, subscriber]
+
+    Channel:
+      type: object
+      required:
+        - id
+        - name
+        - owner_did
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        owner_did:
+          type: string
+        subscriber_count:
+          type: integer
+        visibility:
+          type: string
+          enum: [public, private]
+        category:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    CreateChannelRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        avatar:
+          type: string
+        visibility:
+          type: string
+          enum: [public, private]
+          default: public
+        category:
+          type: string
+
+    UpdateChannelRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        avatar:
+          type: string
+        visibility:
+          type: string
+
+    ChannelPost:
+      type: object
+      required:
+        - id
+        - content
+        - created_at
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+        view_count:
+          type: integer
+        reaction_count:
+          type: integer
+        comment_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        edited_at:
+          type: string
+          format: date-time
+
+    # --------------------------------------------------------------------------
+    # Calls
+    # --------------------------------------------------------------------------
+    Call:
+      type: object
+      required:
+        - id
+        - conversation_id
+        - type
+        - status
+      properties:
+        id:
+          type: string
+        conversation_id:
+          type: string
+        type:
+          type: string
+          enum: [voice, video]
+        status:
+          type: string
+          enum: [ringing, active, ended, missed]
+        initiator_did:
+          type: string
+        participants:
+          type: array
+          items:
+            type: object
+            properties:
+              did:
+                type: string
+              display_name:
+                type: string
+              status:
+                type: string
+                enum: [ringing, connected, disconnected]
+              video_enabled:
+                type: boolean
+              audio_enabled:
+                type: boolean
+              screen_sharing:
+                type: boolean
+        started_at:
+          type: string
+          format: date-time
+        ended_at:
+          type: string
+          format: date-time
+        duration_seconds:
+          type: integer
+
+    IceServer:
+      type: object
+      required:
+        - urls
+      properties:
+        urls:
+          type: array
+          items:
+            type: string
+        username:
+          type: string
+        credential:
+          type: string
+
+    # --------------------------------------------------------------------------
+    # Files
+    # --------------------------------------------------------------------------
+    FileUploadResponse:
+      type: object
+      required:
+        - file_id
+        - filename
+        - size_bytes
+      properties:
+        file_id:
+          type: string
+        filename:
+          type: string
+        mime_type:
+          type: string
+        size_bytes:
+          type: integer
+        ipfs_hash:
+          type: string
+        blockchain_tx:
+          type: string
+        thumbnail_url:
+          type: string
+          format: uri
+
+    FileMetadata:
+      type: object
+      required:
+        - id
+        - filename
+        - size_bytes
+      properties:
+        id:
+          type: string
+        filename:
+          type: string
+        mime_type:
+          type: string
+        size_bytes:
+          type: integer
+        ipfs_hash:
+          type: string
+        owner_did:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+
+    FileProof:
+      type: object
+      required:
+        - file_id
+        - hash
+      properties:
+        file_id:
+          type: string
+        hash:
+          type: string
+        ipfs_hash:
+          type: string
+        blockchain_tx:
+          type: string
+        anchored_at:
+          type: string
+          format: date-time
+        verification_url:
+          type: string
+          format: uri
+
+    # --------------------------------------------------------------------------
+    # Tokens & Rewards
+    # --------------------------------------------------------------------------
+    RewardsTracker:
+      type: object
+      properties:
+        total_earned:
+          type: number
+          format: double
+        period_earned:
+          type: number
+          format: double
+        breakdown:
+          type: object
+          properties:
+            messaging:
+              type: number
+            payment_rail:
+              type: number
+            referrals:
+              type: number
+            staking:
+              type: number
+            achievements:
+              type: number
+        daily_earnings:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              amount:
+                type: number
+        multiplier:
+          type: number
+          format: float
+        daily_cap:
+          type: number
+        daily_remaining:
+          type: number
+
+    RewardTransaction:
+      type: object
+      required:
+        - id
+        - type
+        - amount
+        - created_at
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [messaging, payment_rail, referral, staking, achievement, bonus]
+        amount:
+          type: number
+          format: double
+        description:
+          type: string
+        blockchain_tx:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Achievement:
+      type: object
+      required:
+        - id
+        - name
+        - reward_amount
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        icon_url:
+          type: string
+          format: uri
+        reward_amount:
+          type: number
+        progress:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        target:
+          type: integer
+        current:
+          type: integer
+        completed_at:
+          type: string
+          format: date-time
+        multiplier_bonus:
+          type: number
+          format: float
+
+    StakingInfo:
+      type: object
+      properties:
+        staked_amount:
+          type: number
+          format: double
+        apy:
+          type: number
+          format: float
+        pending_rewards:
+          type: number
+        validator_node:
+          type: string
+        staked_at:
+          type: string
+          format: date-time
+        unlock_at:
+          type: string
+          format: date-time
+
+    ReferralInfo:
+      type: object
+      properties:
+        referral_code:
+          type: string
+        referral_link:
+          type: string
+          format: uri
+        total_referrals:
+          type: integer
+        verified_referrals:
+          type: integer
+        total_earned:
+          type: number
+        tiers:
+          type: array
+          items:
+            type: object
+            properties:
+              tier:
+                type: integer
+              count:
+                type: integer
+              earnings:
+                type: number
+
+    # --------------------------------------------------------------------------
+    # Notifications
+    # --------------------------------------------------------------------------
+    Notification:
+      type: object
+      required:
+        - id
+        - type
+        - created_at
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [message, mention, reaction, contact_request, group_invite, call_missed, reward, system]
+        title:
+          type: string
+        body:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+        read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    NotificationSettings:
+      type: object
+      properties:
+        push_enabled:
+          type: boolean
+        messages:
+          type: boolean
+        mentions:
+          type: boolean
+        reactions:
+          type: boolean
+        contact_requests:
+          type: boolean
+        group_invites:
+          type: boolean
+        calls:
+          type: boolean
+        rewards:
+          type: boolean
+        quiet_hours:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            start:
+              type: string
+              pattern: '^\d{2}:\d{2}$'
+            end:
+              type: string
+              pattern: '^\d{2}:\d{2}$'
+            timezone:
+              type: string
+
+    Device:
+      type: object
+      required:
+        - id
+        - platform
+      properties:
+        id:
+          type: string
+        platform:
+          type: string
+          enum: [ios, android]
+        device_name:
+          type: string
+        last_active:
+          type: string
+          format: date-time
+        registered_at:
+          type: string
+          format: date-time
+
+    # --------------------------------------------------------------------------
+    # Enterprise
+    # --------------------------------------------------------------------------
+    OrganizationRegistration:
+      type: object
+      required:
+        - legal_name
+        - type
+        - country
+      properties:
+        legal_name:
+          type: string
+        display_name:
+          type: string
+        type:
+          type: string
+          enum: [corporation, financial_institution, government, nonprofit]
+        country:
+          type: string
+        registration_number:
+          type: string
+        website:
+          type: string
+          format: uri
+        contact_email:
+          type: string
+          format: email
+
+    Organization:
+      type: object
+      required:
+        - id
+        - legal_name
+        - verification_status
+      properties:
+        id:
+          type: string
+        did:
+          type: string
+        legal_name:
+          type: string
+        display_name:
+          type: string
+        type:
+          type: string
+        logo_url:
+          type: string
+          format: uri
+        verification_status:
+          type: string
+          enum: [pending, verified, suspended]
+        verification_tier:
+          type: string
+          enum: [basic, regulated, government]
+        employee_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    Employee:
+      type: object
+      required:
+        - did
+        - role
+      properties:
+        did:
+          type: string
+        display_name:
+          type: string
+        role:
+          type: string
+          enum: [admin, manager, representative, support]
+        department:
+          type: string
+        title:
+          type: string
+        verified:
+          type: boolean
+        added_at:
+          type: string
+          format: date-time
+
+    # --------------------------------------------------------------------------
+    # Bots
+    # --------------------------------------------------------------------------
+    Bot:
+      type: object
+      required:
+        - id
+        - display_name
+        - owner_did
+      properties:
+        id:
+          type: string
+        display_name:
+          type: string
+        username:
+          type: string
+        description:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        owner_did:
+          type: string
+        trust_score:
+          type: integer
+        webhook_url:
+          type: string
+          format: uri
+        commands:
+          type: array
+          items:
+            $ref: '#/components/schemas/BotCommand'
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    BotListing:
+      type: object
+      required:
+        - id
+        - display_name
+      properties:
+        id:
+          type: string
+        display_name:
+          type: string
+        description:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        category:
+          type: string
+        trust_score:
+          type: integer
+        user_count:
+          type: integer
+        rating:
+          type: number
+          format: float
+        review_count:
+          type: integer
+
+    CreateBotRequest:
+      type: object
+      required:
+        - display_name
+      properties:
+        display_name:
+          type: string
+          maxLength: 64
+        username:
+          type: string
+          maxLength: 32
+        description:
+          type: string
+          maxLength: 500
+        avatar:
+          type: string
+        webhook_url:
+          type: string
+          format: uri
+        commands:
+          type: array
+          items:
+            $ref: '#/components/schemas/BotCommand'
+
+    BotCommand:
+      type: object
+      required:
+        - command
+        - description
+      properties:
+        command:
+          type: string
+          pattern: '^/[a-z0-9_]+$'
+        description:
+          type: string
+        parameters:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              required:
+                type: boolean
+
+    BotPermissions:
+      type: object
+      properties:
+        can_read_messages:
+          type: boolean
+        can_send_messages:
+          type: boolean
+        can_read_members:
+          type: boolean
+        can_manage_messages:
+          type: boolean
+        can_initiate_payments:
+          type: boolean
+        allowed_conversations:
+          type: array
+          items:
+            type: string
