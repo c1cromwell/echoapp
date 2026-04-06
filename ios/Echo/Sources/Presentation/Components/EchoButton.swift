@@ -1,5 +1,7 @@
 import SwiftUI
 
+import SwiftUI
+
 /// Button style enumeration
 public enum EchoButtonStyle {
     case primary

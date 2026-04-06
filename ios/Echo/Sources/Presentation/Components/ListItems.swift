@@ -1,5 +1,7 @@
 import SwiftUI
 
+import SwiftUI
+
 /// ECHO List Items - Reusable list item components
 public struct ContactListItem: View {
     let name: String
@@ -58,7 +60,7 @@ public struct ContactListItem: View {
             .cornerRadius(12)
         }
         .buttonStyle(PlainButtonStyle())
-        .accessibility(element: children: .ignore)
+        .accessibilityElement(children: .ignore)
         .accessibility(label: Text("\(name), trust level: \(trustLevel)"))
     }
     
@@ -144,11 +146,9 @@ public struct ConversationListItem: View {
             .cornerRadius(12)
         }
         .buttonStyle(PlainButtonStyle())
-        .accessibility(element: children: .ignore)
+        .accessibilityElement(children: .ignore)
         .accessibility(label: Text("\(contactName), \(lastMessage)"))
-        if unreadCount > 0 {
-            .accessibility(value: Text("\(unreadCount) unread messages"))
-        }
+        .accessibility(value: unreadCount > 0 ? Text("\(unreadCount) unread messages") : Text(""))
     }
     
     private var initials: String {
@@ -222,11 +222,9 @@ public struct SettingsListItem: View {
         .cornerRadius(12)
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)
-        .accessibility(element: children: .ignore)
+        .accessibilityElement(children: .ignore)
         .accessibility(label: Text(title))
-        if let subtitle = subtitle {
-            .accessibility(hint: Text(subtitle))
-        }
+        .accessibility(hint: subtitle != nil ? Text(subtitle!) : Text(""))
     }
 }
 

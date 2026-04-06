@@ -1,5 +1,7 @@
 import SwiftUI
 
+import SwiftUI
+
 /// ECHO Custom Navigation Bar Component
 /// Back button, title, and trailing action
 public struct EchoNavBar: View {

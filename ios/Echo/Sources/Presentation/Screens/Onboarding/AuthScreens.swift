@@ -1,5 +1,7 @@
 import SwiftUI
 
+import SwiftUI
+
 /// Welcome/Splash Screen - First screen of onboarding
 public struct WelcomeView: View {
     @Environment(\.dismiss) var dismiss

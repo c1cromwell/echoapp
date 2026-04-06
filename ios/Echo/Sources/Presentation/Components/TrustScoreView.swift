@@ -1,5 +1,7 @@
 import SwiftUI
 
+import SwiftUI
+
 /// ECHO Trust Score Circular View
 /// Animated circular progress (140×140pt, 10pt stroke)
 public struct TrustScoreView: View {
@@ -75,7 +77,7 @@ public struct TrustScoreView: View {
                 animationProgress = scorePercentage
             }
         }
-        .accessibility(element: children: .ignore)
+        .accessibilityElement(children: .ignore)
         .accessibility(label: Text("Trust Score"))
         .accessibility(value: Text("\(score) out of 100, \(level) level"))
     }

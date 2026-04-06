@@ -1,5 +1,7 @@
 import SwiftUI
 
+import SwiftUI
+
 /// Text field state enumeration
 public enum EchoTextFieldState {
     case `default`

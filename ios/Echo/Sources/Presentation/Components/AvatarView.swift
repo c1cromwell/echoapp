@@ -1,5 +1,7 @@
 import SwiftUI
 
+import SwiftUI
+
 /// Avatar size enumeration
 public enum AvatarSize {
     case xs      // 24pt
@@ -143,7 +145,7 @@ public struct AvatarView: View {
                     .accessibility(label: Text("Status: \(statusLabel)"))
             }
         }
-        .accessibility(element: children: .ignore)
+        .accessibilityElement(children: .ignore)
         .accessibility(label: Text("User avatar"))
         .accessibility(hint: Text(initials ?? "Avatar image"))
     }

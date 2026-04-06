@@ -1,5 +1,7 @@
 import SwiftUI
 
+import SwiftUI
+
 /// ECHO Custom Tab Bar
 /// 5 tabs with unread badges and custom styling
 public struct EchoTabBar: View {

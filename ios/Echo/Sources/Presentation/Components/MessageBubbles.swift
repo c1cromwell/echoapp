@@ -1,5 +1,7 @@
 import SwiftUI
 
+import SwiftUI
+
 /// ECHO Message Bubble Component
 /// Sent/Received with 7 delivery status indicators (v3.1)
 public enum MessageStatus: String {

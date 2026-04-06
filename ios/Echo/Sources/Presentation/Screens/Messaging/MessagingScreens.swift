@@ -1,5 +1,7 @@
 import SwiftUI
 
+import SwiftUI
+
 /// Messaging - Conversation List Screen
 public struct ConversationListView: View {
     @State private var searchText = ""

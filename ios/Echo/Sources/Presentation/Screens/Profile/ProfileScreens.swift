@@ -1,5 +1,7 @@
 import SwiftUI
 
+import SwiftUI
+
 // MARK: - Screen 1: Profile Tab (Enhanced per spec)
 
 public struct ProfileTabView: View {
