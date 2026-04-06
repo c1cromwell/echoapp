@@ -1,0 +1,82 @@
+{
+  "protocol": "Kinnami E2E Encryption",
+  "version": "1.0",
+  "description": "Cross-platform test vectors for Go and Swift",
+  "parameters": {
+    "cipher": "AES-256-GCM",
+    "curve": "P-256",
+    "info": "message-encryption",
+    "kdf": "HKDF-SHA256",
+    "key_bytes": 32,
+    "nonce_bytes": 12,
+    "salt": "ECHO-E2E-KINNAMI",
+    "tag_bytes": 16
+  },
+  "vectors": [
+    {
+      "name": "simple_hello",
+      "description": "Basic ASCII message",
+      "sender_private_key": "afqN+M7iFhhK0krO8KZpTfr/a83EvvaP9Pvp+yUbsXY=",
+      "sender_public_key": "Ll6nbQqF91j6EdUMPxrBrDWBbB11aN423JHda+CVK+3pAJ1UKTVBePNKlbgOL6UywmisJsIB5AwMedlTYEiFbw==",
+      "recipient_private_key": "cE0iER9graBMXbhgw8vUV+EiRolwUdJPo+83O4w0B0Q=",
+      "recipient_public_key": "dlCHcu6zTGAOKqr1UtIp14USp/VBYISYqpEv9QW4lnc6chMniMfhzGAiX1eAzfNTMgVXearJpXn9G24etYQNnw==",
+      "derived_key": "SqHw+8fYHa4EIXd6mZ9k7fUaYdFI0sKZvNjUw+ssaRw=",
+      "plaintext": "Hello Echo!",
+      "nonce": "X6iAN1oJgXV7/aB3",
+      "ciphertext": "3HKe6ei1IdPtDwU=",
+      "tag": "Z+1Rsn6SwYNv9EjMfNsHIg=="
+    },
+    {
+      "name": "unicode_emoji",
+      "description": "Unicode with emoji",
+      "sender_private_key": "jV4oANPeh5QSdBvGBUNwLJOzx5z8UmFaki66mvZO2cI=",
+      "sender_public_key": "zjnITb5x0zPdNsU2XP8zPmGh2LJa0ah2FNrZm4Q0xTTFMJynwrhW2F0t//79bil1ru6XR9dS39ZRN2JzxT/u6w==",
+      "recipient_private_key": "OhdAFTUNE12Wtz7VLZ8XY8fB5iXhNJCOoPJKtpfk3xY=",
+      "recipient_public_key": "+WYeEpp0dRZQbxQduAwro27u0ohtD79EE5kUXNsauocnaGNkgyx2YiBFTELVQmSVJkJFOunApfZpRcLSU4MUDA==",
+      "derived_key": "QmHUKQPOAvghA9uAdNVZYlN/gScUXBnwB+N4GDuDgJ0=",
+      "plaintext": "Hey 👋 こんにちは",
+      "nonce": "7SjCqcpL1oRiBnHJ",
+      "ciphertext": "UZuHPoSO8X3jy8bM/hiDX7QnAGeoVHaX",
+      "tag": "UDOmgMjqg8l4IQyRWsju2A=="
+    },
+    {
+      "name": "empty_string",
+      "description": "Empty plaintext",
+      "sender_private_key": "J1mL8+GozHdQxESG8vooZrljpglVxZBpNXWlSwbJpCY=",
+      "sender_public_key": "CP1Y6aubW2tLh5TEe0T/iATa0I8cT3748S0Bdg1s1QDQT5cQm5sOtnRGNI+tIWhICCZ9rguwEVwOjOF2SDQnXw==",
+      "recipient_private_key": "kj8zMcyM+WqoSIzQXNakveeY7Ss1HZiTBu3IaFrs0Sw=",
+      "recipient_public_key": "DxQlS0sHdpWZ3M8Od9xOf8YokmR+cwuOn/k7skPTqJJjE4OuKrbaN1VGDF0W9Ro95gycQFp7fRKvICM0M1wSVw==",
+      "derived_key": "Tj/Pu+kM+dfUVgMqqcTbQIYAWn5jk43jUOD9aYX5CZ8=",
+      "plaintext": "",
+      "nonce": "IFIkGE1DvBg6ep28",
+      "ciphertext": "",
+      "tag": "9TCPm8tXbPNtUo520Ki6Wg=="
+    },
+    {
+      "name": "long_message",
+      "description": "Longer message simulating real chat",
+      "sender_private_key": "+MtBev72XA9GsYJBba551GYidE89IqUhr3GSM9eCXyQ=",
+      "sender_public_key": "nqQAto93ir+KQCOcVkKx2yLIS3lF66U3tw7CK/cYFo37FI3dLA1FO4Ff5OCdk3i4UClA48haxvZNEVX1VbhwMQ==",
+      "recipient_private_key": "ce9DF8dbnAcl8CW11GLwKJOpxvOYoxzPHqtdrQAXHSg=",
+      "recipient_public_key": "0A+EuL/UKyvl+xWhia+O2KBk7AEjCD+V/sYITIASirbmfZiB5tiTlLdFazCRQt6VCiNasg/FcjTG4AOqT5OBmQ==",
+      "derived_key": "3R3/cpjd1Vp6P8AosaiTL7hdIiV3UQq+OI/xJ5EUt9o=",
+      "plaintext": "This is a longer message that simulates a real conversation between two Echo users. It includes multiple sentences and should test that the encryption handles larger payloads correctly across both platforms.",
+      "nonce": "joajQPekPvcpQbYB",
+      "ciphertext": "P14Xq4xXYsNydgAv7taJb45z6Qcdf6nTGesda0cz6pI+aqa6NAgJIsxMrK44j8Fi0DgHRHcXvYU06AOOfIA59fuUNW5W6oF1Dl3dLVAa8hRVzoWlEtadNXnL/sXTZLCpExnt3aqNxWsKByAFOD8ePEw2M1tE7Kbb5pwxs6+Bc1iuz7GZWPTmcXPMJ8qJNaQFUP70zQwu5BwNMr4akKGmv6e9x4y/DnSE6LVFzER9K/wzXw2nEU2Suwx2rDIO44Sl/FNPKoKqCTKb47V7vCRR",
+      "tag": "zHgskucl1o7ArtjWzw7wgA=="
+    },
+    {
+      "name": "json_payload",
+      "description": "JSON-structured content",
+      "sender_private_key": "uBftEH2guXzwNcoBRPKeBdwmXFuiEo9x76j08Qk7aYA=",
+      "sender_public_key": "XVa/UAYvOgzBaP+30jrYuxL6Gtjs7MhtjONdIE/a4yPq3CP2xSOS/hDYxVxDw1nTQbeHEHP+PUgvFH+WMEzMjw==",
+      "recipient_private_key": "S4180tGf5mSJQidexbtWfpGhHEGpy5KUsT7wTlo3rgM=",
+      "recipient_public_key": "/e2iiKmaHHcHKDE/WhwhRM8dC23/0MmNBE836D4X/LkboY4ZQcb72BjpKfHup3o2NkPVxvz/UTESUslE7AcrVw==",
+      "derived_key": "H+Kg+hP5UIt4/VURMRLM3N0zTXukhODfRfqskWDOyDs=",
+      "plaintext": "{\"type\":\"text\",\"content\":\"encrypted payload\",\"timestamp\":\"2025-01-01T00:00:00Z\"}",
+      "nonce": "+2jbcnOdzjgE+mgW",
+      "ciphertext": "TsGEMj10c7JXLNFTljiH6cva8g2+VwpSbyqLFHbP3H+vfW1JXymRNIad0v9LEV6ubip0AbOUD7shSNVFoqUg3T/HmW+PYXk5Mw9xYq+YsNQ=",
+      "tag": "IgSLDYqtGo4BVmmFYP5RnQ=="
+    }
+  ]
+}

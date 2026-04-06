@@ -1,0 +1,25 @@
+FROM golang:1.20-alpine
+
+WORKDIR /app
+
+# Install dependencies
+RUN apk add --no-cache \
+    git \
+    curl \
+    postgresql-client \
+    bash
+
+# Copy go mod files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build integration test binary
+RUN go test -c -o /app/bin/integration.test ./test/integration
+
+# Run integration tests
+ENTRYPOINT ["/app/bin/integration.test", "-test.v", "-test.timeout=10m"]

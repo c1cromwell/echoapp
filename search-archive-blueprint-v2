@@ -1,0 +1,1457 @@
+# Advanced Message Search and Archive System
+
+## Overview
+
+This feature provides users with powerful search capabilities across their entire message history while maintaining end-to-end encryption and privacy protection through client-side indexing and zero-knowledge search techniques. Users can quickly locate specific conversations, files, or information across years of communication history without compromising the security principles that protect their private communications.
+
+## Architecture
+
+The search system operates through local indexing where message content is processed and indexed on each user's device using privacy-preserving techniques. All search operations are performed locally to maintain privacy, with no message content exposed to external systems. The system uses a hybrid approach combining traditional full-text search with lightweight on-device semantic embeddings.
+
+### Search & Archive Flow
+
+```mermaid
+flowchart TD
+    subgraph Ingest["Message Ingestion"]
+        NM[New Message Received]
+        DE[Decrypt Content]
+        TK[Tokenize & Normalize]
+        EX[Extract Metadata]
+        EM[Generate Embeddings]
+    end
+    
+    subgraph Index["Local Index Engine"]
+        FT[Full-Text Index<br/>Inverted Index]
+        VX[Vector Index<br/>HNSW Graph]
+        MT[Metadata Index<br/>SQLite]
+        EN[Segment Encryption]
+    end
+    
+    subgraph Search["Search Processing"]
+        QP[Query Parser]
+        OP[Operator Extraction]
+        KS[Keyword Search]
+        SS[Semantic Search]
+        FL[Filter Application]
+        RK[Result Ranking]
+        TR[Trust Boosting]
+    end
+    
+    subgraph Archive["Archive System"]
+        AR[Archive Rules Engine]
+        SC[Smart Categorization]
+        AF[Archive Folders]
+        RT[Retention Policies]
+    end
+    
+    subgraph Storage["Storage Layer"]
+        LS[Local Storage]
+        AB[Encrypted Backup]
+        SY[Cross-Device Sync]
+    end
+    
+    NM --> DE
+    DE --> TK --> FT
+    DE --> EX --> MT
+    DE --> EM --> VX
+    
+    FT & VX & MT --> EN
+    EN --> LS
+    LS --> AB
+    LS --> SY
+    
+    QP --> OP
+    OP --> KS --> FT
+    OP --> SS --> VX
+    OP --> FL --> MT
+    
+    KS & SS --> RK
+    FL --> RK
+    MT --> TR --> RK
+    
+    MT --> AR --> SC --> AF
+    AF --> RT
+```
+
+### Architecture Components
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| Full-Text Index | SQLite FTS5 | Keyword search with ranking |
+| Vector Index | HNSW (hnswlib) | Semantic similarity search |
+| Embedding Model | MiniLM-L6-v2 quantized | On-device text embeddings |
+| Metadata Store | SQLite | Filters, relationships, trust data |
+| Encryption | AES-256-GCM | Index protection at rest |
+| Sync Protocol | Delta-based CRDT | Cross-device consistency |
+
+## Key Components
+
+### Local Message Indexing
+
+Message content is processed and indexed on each user's device using privacy-preserving techniques that create searchable metadata without exposing message content to external systems. Indexing occurs automatically as messages are received.
+
+**Key Features:**
+
+* Automatic indexing on message receipt
+* Background processing with battery awareness
+* Local-only processing (never leaves device)
+* Incremental index updates
+* Segment-based index encryption
+* Index backup to user-controlled storage
+* Automatic index optimization
+* Configurable index size limits
+
+**Indexing Pipeline:**
+
+```
+Message Received
+       │
+       ▼
+┌─────────────────┐
+│ Decrypt Message │
+└────────┬────────┘
+         │
+    ┌────┴────┬─────────────┐
+    ▼         ▼             ▼
+┌───────┐ ┌────────┐ ┌──────────┐
+│Tokenize│ │Extract │ │Generate  │
+│  Text  │ │Metadata│ │Embedding │
+└───┬───┘ └───┬────┘ └────┬─────┘
+    │         │           │
+    ▼         ▼           ▼
+┌───────┐ ┌────────┐ ┌──────────┐
+│  FTS5 │ │ SQLite │ │  HNSW    │
+│ Index │ │ Tables │ │  Index   │
+└───┬───┘ └───┬────┘ └────┬─────┘
+    │         │           │
+    └────┬────┴───────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Encrypt Segment │
+└─────────────────┘
+```
+
+**Indexing Triggers:**
+
+| Trigger | Behavior |
+|---------|----------|
+| Message received | Index immediately (foreground) or queue (background) |
+| App launch | Process queued messages, optimize index |
+| Manual refresh | Re-index recent messages, verify integrity |
+| Backup restore | Full re-index from message store |
+
+### Index Storage & Performance
+
+**Storage Specifications:**
+
+| Component | Size per 1K Messages | Formula |
+|-----------|---------------------|---------|
+| Full-Text Index | ~2.0 MB | ~2KB per message average |
+| Vector Index | ~1.5 MB | 384 dims × 4 bytes + overhead |
+| Metadata Index | ~0.5 MB | ~500 bytes per message |
+| **Total** | **~4.0 MB** | **~4KB per message** |
+
+**Capacity Limits:**
+
+| Device Tier | Max Messages | Max Index Size | Notes |
+|-------------|--------------|----------------|-------|
+| Low Storage (<32GB) | 100,000 | 400 MB | Auto-archive older |
+| Standard (32-128GB) | 250,000 | 1 GB | Default limit |
+| High Storage (>128GB) | 500,000 | 2 GB | User can increase |
+
+**Performance Targets:**
+
+| Operation | Target | Maximum | Notes |
+|-----------|--------|---------|-------|
+| Keyword search | <100ms | 500ms | Cold cache |
+| Semantic search | <300ms | 1000ms | Including embedding |
+| Combined search | <400ms | 1200ms | Keywords + semantic |
+| Filter application | <50ms | 200ms | Per filter |
+| Index new message | <200ms | 500ms | Including embedding |
+| Batch index (100 msgs) | <5s | 15s | Background |
+| Full re-index (10K) | <5 min | 15 min | One-time |
+
+**Memory Constraints:**
+
+| Component | Resident Memory | Peak Memory |
+|-----------|-----------------|-------------|
+| Embedding model | 25 MB | 40 MB |
+| Vector index | 50 MB | 100 MB |
+| FTS index cache | 20 MB | 50 MB |
+| Search working set | 10 MB | 30 MB |
+| **Total** | **105 MB** | **220 MB** |
+
+### Index Encryption
+
+All search indexes are encrypted at rest using a multi-layer encryption scheme.
+
+**Encryption Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Layer 1: Operating System Protection                    │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ iOS: Data Protection Class A (Complete Protection)  │ │
+│ │ Android: Keystore + File-Based Encryption          │ │
+│ └─────────────────────────────────────────────────────┘ │
+├─────────────────────────────────────────────────────────┤
+│ Layer 2: Application Encryption                         │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ Algorithm: AES-256-GCM                              │ │
+│ │ Key Derivation: Argon2id(passkey, salt, 3, 64MB)   │ │
+│ │ Key Storage: Secure Enclave / Keystore             │ │
+│ └─────────────────────────────────────────────────────┘ │
+├─────────────────────────────────────────────────────────┤
+│ Layer 3: Segment Encryption                             │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ Each index segment encrypted independently          │ │
+│ │ Segment key: HKDF(master_key, segment_id)          │ │
+│ │ Compromised segment doesn't expose others          │ │
+│ └─────────────────────────────────────────────────────┘ │
+├─────────────────────────────────────────────────────────┤
+│ Layer 4: Optional PIN/Biometric Gate                    │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ Additional unlock required to access search         │ │
+│ │ 3 failed attempts: temporary lockout (5 min)       │ │
+│ │ 10 failed attempts: require passkey re-entry       │ │
+│ └─────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Key Management:**
+
+| Key | Derivation | Storage | Rotation |
+|-----|------------|---------|----------|
+| Master Index Key | Argon2id from passkey | Secure Enclave | On passkey change |
+| Segment Keys | HKDF from master | Derived on-demand | Never (immutable segments) |
+| Backup Key | Argon2id from passkey + backup salt | Device only | Per backup |
+| Sync Key | X25519 key agreement | Per-device keypair | On device deauthorization |
+
+**Index Access Control:**
+
+```typescript
+interface IndexAccessControl {
+  // Unlock index for searching
+  async unlock(credentials: Credentials): Promise<IndexSession>;
+  
+  // Auto-lock conditions
+  lockConditions: {
+    appBackgrounded: true;
+    screenLocked: true;
+    idleTimeout: 300; // seconds
+  };
+  
+  // Session management
+  session: {
+    maxDuration: 3600; // seconds
+    requireReauth: ['export', 'backup', 'share'];
+  };
+}
+```
+
+### Keyword Search
+
+Users can search by keywords to locate specific messages. Search results are ranked by relevance and recency. Fuzzy matching handles typos and variations.
+
+**Key Features:**
+
+* Full-text keyword search with BM25 ranking
+* Fuzzy matching for typos (Levenshtein distance ≤ 2)
+* Case-insensitive and accent-insensitive
+* Partial word matching (prefix search)
+* Search result highlighting with context
+* Result ranking by relevance × recency
+* Search history tracking (local only)
+* Query auto-correction suggestions
+
+**Search Operators:**
+
+| Operator | Syntax | Example | Description |
+|----------|--------|---------|-------------|
+| AND | `term1 AND term2` | `meeting AND tuesday` | Both terms required |
+| OR | `term1 OR term2` | `lunch OR dinner` | Either term matches |
+| NOT | `NOT term` | `project NOT cancelled` | Exclude term |
+| Phrase | `"exact phrase"` | `"quarterly report"` | Exact phrase match |
+| Prefix | `term*` | `meet*` | Prefix matching |
+| From | `from:name` | `from:alice` | Sender filter |
+| To | `to:name` | `to:bob` | Recipient filter |
+| In | `in:conversation` | `in:work-chat` | Conversation filter |
+| Has | `has:type` | `has:image` | Content type filter |
+| Before | `before:date` | `before:2026-01-01` | Date filter |
+| After | `after:date` | `after:2025-06-01` | Date filter |
+| Is | `is:status` | `is:pinned` | Status filter |
+| Trust | `trust:level` | `trust:verified` | Trust level filter |
+| Circle | `circle:name` | `circle:inner` | Trust circle filter |
+
+**Combined Query Examples:**
+
+```
+from:alice "project update" has:file after:2025-12-01
+→ Files from Alice containing "project update" since Dec 2025
+
+(meeting OR standup) in:engineering NOT cancelled
+→ Meeting/standup messages in engineering chat, excluding cancelled
+
+trust:verified has:link after:2025-01-01
+→ Links from verified users in 2025
+
+circle:inner OR circle:trusted
+→ All messages from inner or trusted circles
+```
+
+**Query Parser:**
+
+```typescript
+interface ParsedQuery {
+  // Free text terms
+  terms: string[];
+  
+  // Phrase matches
+  phrases: string[];
+  
+  // Negated terms
+  excluded: string[];
+  
+  // Operators
+  filters: {
+    from?: string[];
+    to?: string[];
+    in?: string[];
+    has?: ContentType[];
+    before?: Date;
+    after?: Date;
+    is?: MessageStatus[];
+    trust?: TrustLevel[];
+    circle?: CircleLevel[];
+  };
+  
+  // Boolean logic
+  logic: 'AND' | 'OR';
+}
+
+function parseQuery(input: string): ParsedQuery {
+  // Tokenize and extract operators
+  // Build structured query representation
+  // Validate date formats and filter values
+  // Return parsed query for execution
+}
+```
+
+### Semantic Search
+
+The system supports semantic search that can locate messages based on meaning rather than exact keyword matches. Semantic search utilizes a lightweight on-device embedding model.
+
+**Key Features:**
+
+* Semantic meaning matching beyond keywords
+* 100% local processing (no cloud AI)
+* Concept-based search ("find travel plans" → vacation, flights, hotels)
+* Synonym and paraphrase matching
+* Context-aware result ranking
+* Related message suggestions
+* Search refinement recommendations
+* Hybrid keyword + semantic ranking
+
+**On-Device Embedding Model:**
+
+| Property | Specification |
+|----------|---------------|
+| Model | MiniLM-L6-v2 (quantized INT8) |
+| Size | 22 MB |
+| Embedding Dimension | 384 |
+| Runtime | ONNX Runtime Mobile (iOS/Android) |
+| Inference Time | ~50ms per message |
+| Languages | English primary, 100+ supported |
+
+**Embedding Pipeline:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Message Text                         │
+│        "Let's grab lunch tomorrow at noon"             │
+└────────────────────────┬────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│                    Preprocessing                        │
+│    Lowercase, normalize unicode, truncate to 256 tokens │
+└────────────────────────┬────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│               MiniLM-L6-v2 (Quantized)                 │
+│                   ONNX Runtime                          │
+└────────────────────────┬────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│              384-Dimensional Embedding                  │
+│    [0.023, -0.156, 0.089, ..., 0.042] (normalized)    │
+└────────────────────────┬────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│                  HNSW Vector Index                      │
+│         Approximate Nearest Neighbor Storage            │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Semantic Search Flow:**
+
+```typescript
+interface SemanticSearchConfig {
+  // Number of candidates from vector search
+  vectorCandidates: 100;
+  
+  // Final results after re-ranking
+  finalResults: 20;
+  
+  // Minimum similarity threshold
+  minSimilarity: 0.5;
+  
+  // Hybrid weighting
+  weights: {
+    semantic: 0.6;
+    keyword: 0.3;
+    recency: 0.1;
+  };
+}
+
+async function semanticSearch(
+  query: string,
+  config: SemanticSearchConfig
+): Promise<SearchResult[]> {
+  // 1. Generate query embedding
+  const queryEmbedding = await embedModel.encode(query);
+  
+  // 2. Vector similarity search (ANN)
+  const vectorResults = await vectorIndex.search(
+    queryEmbedding,
+    config.vectorCandidates
+  );
+  
+  // 3. Keyword search for same query
+  const keywordResults = await keywordSearch(query);
+  
+  // 4. Merge and re-rank
+  const merged = mergeResults(vectorResults, keywordResults, config.weights);
+  
+  // 5. Apply trust boosting
+  const boosted = applyTrustBoost(merged);
+  
+  // 6. Return top results
+  return boosted.slice(0, config.finalResults);
+}
+```
+
+**Vector Index Configuration:**
+
+```typescript
+interface HNSWConfig {
+  // Index construction
+  M: 16;                    // Connections per node
+  efConstruction: 200;      // Construction search depth
+  
+  // Search parameters
+  efSearch: 100;            // Query search depth
+  
+  // Distance metric
+  metric: 'cosine';
+  
+  // Memory management
+  maxElements: 500000;      // Max indexed messages
+  allowReplaceDeleted: true;
+}
+```
+
+**Semantic Search Limitations:**
+
+| Limitation | Explanation | Mitigation |
+|------------|-------------|------------|
+| English-optimized | Best performance on English | Keyword fallback for other languages |
+| 256 token limit | Long messages truncated | Index first 256 tokens + last 64 |
+| Initial indexing slow | ~50ms per message | Background processing, progress indicator |
+| Memory usage | 50-100MB for vector index | Configurable index size limit |
+| No real-time update | New messages queued | Process queue on search if recent |
+
+### Advanced Search Filters
+
+Users can apply advanced filters to narrow search results by date range, sender identity, conversation context, or content type.
+
+**Key Features:**
+
+* Date range filtering (before, after, between)
+* Sender/recipient filtering
+* Conversation filtering
+* Content type filtering (text, images, files, links, voice)
+* Trust score filtering
+* Verification status filtering
+* Message status filtering (pinned, starred, unread)
+* Multiple filter combination (AND logic)
+* Filter preset saving
+
+**Filter Definitions:**
+
+```typescript
+interface SearchFilters {
+  // Time filters
+  dateRange?: {
+    after?: Date;
+    before?: Date;
+  };
+  
+  // Participant filters
+  from?: UserId[];
+  to?: UserId[];
+  participants?: UserId[];  // Either sender or recipient
+  
+  // Conversation filters
+  conversations?: ConversationId[];
+  conversationTypes?: ('direct' | 'group')[];
+  
+  // Content filters
+  contentTypes?: ('text' | 'image' | 'video' | 'file' | 'voice' | 'link')[];
+  hasAttachment?: boolean;
+  attachmentTypes?: string[];  // MIME types
+  minAttachmentSize?: number;
+  maxAttachmentSize?: number;
+  
+  // Trust filters
+  trustLevels?: TrustLevel[];
+  circles?: CircleLevel[];
+  verificationStatus?: ('verified' | 'unverified' | 'any')[];
+  
+  // Status filters
+  isPinned?: boolean;
+  isStarred?: boolean;
+  isUnread?: boolean;
+  isSilent?: boolean;
+  isScheduled?: boolean;
+  isDisappearing?: boolean;
+  isEdited?: boolean;
+  isForwarded?: boolean;
+  
+  // Archive filters
+  includeArchived?: boolean;
+  archivedOnly?: boolean;
+  archiveFolder?: string;
+}
+```
+
+**Filter Presets:**
+
+```typescript
+const BUILT_IN_PRESETS: FilterPreset[] = [
+  {
+    name: "Photos from Trusted",
+    filters: {
+      contentTypes: ['image'],
+      circles: ['inner', 'trusted'],
+    }
+  },
+  {
+    name: "Files This Week",
+    filters: {
+      contentTypes: ['file'],
+      dateRange: { after: startOfWeek() },
+    }
+  },
+  {
+    name: "Unread from Verified",
+    filters: {
+      isUnread: true,
+      verificationStatus: ['verified'],
+    }
+  },
+  {
+    name: "Links to Review",
+    filters: {
+      contentTypes: ['link'],
+      circles: ['known', 'public'],
+      dateRange: { after: daysAgo(7) },
+    }
+  },
+];
+```
+
+### Trust Network Integration
+
+Search results are filtered and ranked based on the sender's trust level and relationship to the searcher.
+
+**Trust-Based Filtering:**
+
+| Filter | Operator | Values |
+|--------|----------|--------|
+| Trust Level | `trust:` | `unverified`, `newcomer`, `member`, `trusted`, `verified` |
+| Circle | `circle:` | `inner`, `trusted`, `known`, `public` |
+| Verification | `verified:` | `true`, `false`, `kyc`, `phone`, `email` |
+| Relationship | `rel:` | `endorsed`, `endorser`, `mutual`, `blocked` |
+
+**Trust-Based Ranking Boost:**
+
+```typescript
+interface TrustRankingConfig {
+  // Multiplicative boost by circle
+  circleBoost: {
+    inner: 1.3;      // +30% relevance
+    trusted: 1.15;   // +15% relevance
+    known: 1.0;      // baseline
+    public: 0.9;     // -10% relevance
+  };
+  
+  // Multiplicative boost by trust level
+  trustBoost: {
+    verified: 1.2;   // +20% relevance
+    trusted: 1.1;    // +10% relevance
+    member: 1.0;     // baseline
+    newcomer: 0.95;  // -5% relevance
+    unverified: 0.85; // -15% relevance
+  };
+  
+  // Additional boosts
+  verifiedBadgeBoost: 1.1;    // Has any verification badge
+  endorsedByMeBoost: 1.15;    // I endorsed this person
+  mutualEndorsementBoost: 1.2; // We endorsed each other
+}
+
+function applyTrustBoost(
+  results: SearchResult[],
+  config: TrustRankingConfig
+): SearchResult[] {
+  return results.map(result => {
+    let boost = 1.0;
+    
+    // Apply circle boost
+    boost *= config.circleBoost[result.senderCircle];
+    
+    // Apply trust level boost
+    boost *= config.trustBoost[result.senderTrustLevel];
+    
+    // Apply additional boosts
+    if (result.senderHasVerification) {
+      boost *= config.verifiedBadgeBoost;
+    }
+    if (result.endorsedByMe) {
+      boost *= config.endorsedByMeBoost;
+    }
+    if (result.mutualEndorsement) {
+      boost *= config.mutualEndorsementBoost;
+    }
+    
+    return {
+      ...result,
+      boostedScore: result.baseScore * boost,
+    };
+  }).sort((a, b) => b.boostedScore - a.boostedScore);
+}
+```
+
+**Default Exclusions:**
+
+| Sender Status | Default Behavior | User Override |
+|---------------|------------------|---------------|
+| Blocked | Excluded from all results | Cannot override |
+| Reported as spam | Excluded by default | Can include via filter |
+| Trust < 20 | Deprioritized | Can filter to include |
+| Public circle | Requires explicit search | Include via `circle:public` |
+
+### In-Conversation Search
+
+Quick search within the current conversation context.
+
+**Key Features:**
+
+* Activated by search icon or Cmd/Ctrl + F
+* Searches only current conversation
+* Real-time results as you type
+* Jump-to-message navigation
+* Previous/Next result buttons (↑↓)
+* Match highlighting in message bubbles
+* Match count display
+* Keyboard navigation support
+
+**UI Specification:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ ← Alice Johnson                              🔍 ⋮      │
+├─────────────────────────────────────────────────────────┤
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ 🔍 meeting                              3 of 12 ↑↓ × │ │
+│ └─────────────────────────────────────────────────────┘ │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│   ┌─────────────────────────────────┐                  │
+│   │ Let's schedule a [meeting] for  │                  │
+│   │ next week to discuss the...     │ ← Highlighted    │
+│   └─────────────────────────────────┘                  │
+│                                                         │
+│                    ┌─────────────────────────────────┐  │
+│                    │ The [meeting] went well, thanks │  │
+│                    │ for organizing it!              │  │
+│                    └─────────────────────────────────┘  │
+│                                                         │
+│   ┌─────────────────────────────────┐                  │
+│   │ Can we move the [meeting] to    │ ← Current match  │
+│   │ Thursday instead?               │    (highlighted) │
+│   └─────────────────────────────────┘                  │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Keyboard Shortcuts:**
+
+| Shortcut | Action |
+|----------|--------|
+| Cmd/Ctrl + F | Open in-conversation search |
+| Enter | Next result |
+| Shift + Enter | Previous result |
+| Escape | Close search |
+| Cmd/Ctrl + G | Next result (alternative) |
+| Cmd/Ctrl + Shift + G | Previous result (alternative) |
+
+### Archive Functionality
+
+Users can organize their message history into custom categories and folders while maintaining the ability to search across archived content.
+
+**Key Features:**
+
+* Custom archive folders with icons/colors
+* Automatic archiving by inactivity
+* Automatic archiving by content type
+* Automatic archiving by trust score
+* Full search capability across archives
+* Archive browsing and navigation
+* Bulk archive/unarchive operations
+* Archive restoration with merge handling
+
+**Archive Folder Structure:**
+
+```typescript
+interface ArchiveFolder {
+  id: string;
+  name: string;
+  icon: string;          // Emoji or icon name
+  color: string;         // Hex color
+  createdAt: Date;
+  
+  // Folder settings
+  settings: {
+    retentionDays: number | null;  // null = forever
+    autoDeleteMedia: boolean;
+    countInSearch: boolean;        // Include in global search
+  };
+  
+  // Statistics
+  stats: {
+    conversationCount: number;
+    messageCount: number;
+    storageBytes: number;
+    oldestMessage: Date;
+    newestMessage: Date;
+  };
+}
+```
+
+**Default Archive Folders:**
+
+| Folder | Icon | Auto-Archive Rule |
+|--------|------|-------------------|
+| General Archive | 📦 | Manual only |
+| Old Conversations | 🕰️ | Inactive 90+ days |
+| Media Heavy | 🖼️ | >50 media messages |
+| Low Priority | 📉 | Public circle, inactive 30+ days |
+| Groups | 👥 | Group chats inactive 60+ days |
+
+### Archive Rules Engine
+
+Users can define rules for automatic archiving based on conversation inactivity, trust score thresholds, or content type classifications.
+
+**Key Features:**
+
+* Rule-based automatic archiving
+* Multiple conditions per rule (AND/OR)
+* Scheduled rule execution
+* Rule priority ordering
+* Dry-run testing
+* Rule activity logging
+* Import/export rules
+* Rule templates
+
+**Rule Definition:**
+
+```typescript
+interface ArchiveRule {
+  id: string;
+  name: string;
+  enabled: boolean;
+  priority: number;        // Lower = higher priority
+  
+  // Conditions (AND logic within, OR between condition groups)
+  conditions: ConditionGroup[];
+  
+  // Action
+  action: {
+    type: 'archive' | 'delete' | 'move';
+    targetFolder?: string;
+    retentionDays?: number;
+  };
+  
+  // Schedule
+  schedule: {
+    frequency: 'daily' | 'weekly' | 'monthly';
+    time: string;          // HH:MM
+    timezone: string;
+  };
+  
+  // Exceptions
+  exceptions: {
+    pinnedConversations: boolean;  // Never archive if pinned
+    innerCircle: boolean;          // Never archive inner circle
+    recentActivity: number;        // Days of grace period
+  };
+}
+
+interface ConditionGroup {
+  logic: 'AND' | 'OR';
+  conditions: Condition[];
+}
+
+type Condition =
+  | { type: 'inactivity'; days: number }
+  | { type: 'trustLevel'; levels: TrustLevel[]; operator: 'in' | 'notIn' }
+  | { type: 'circle'; circles: CircleLevel[]; operator: 'in' | 'notIn' }
+  | { type: 'conversationType'; types: ('direct' | 'group')[] }
+  | { type: 'messageCount'; count: number; operator: 'lt' | 'gt' | 'eq' }
+  | { type: 'mediaCount'; count: number; operator: 'lt' | 'gt' }
+  | { type: 'hasLabel'; labels: string[] }
+  | { type: 'storageSize'; bytes: number; operator: 'lt' | 'gt' };
+```
+
+**Example Rules:**
+
+```typescript
+const exampleRules: ArchiveRule[] = [
+  {
+    name: "Archive inactive public contacts",
+    conditions: [[
+      { type: 'inactivity', days: 30 },
+      { type: 'circle', circles: ['public'], operator: 'in' },
+    ]],
+    action: { type: 'archive', targetFolder: 'low-priority' },
+    exceptions: { pinnedConversations: true, innerCircle: true },
+  },
+  {
+    name: "Clean up old group chats",
+    conditions: [[
+      { type: 'inactivity', days: 90 },
+      { type: 'conversationType', types: ['group'] },
+      { type: 'messageCount', count: 1000, operator: 'gt' },
+    ]],
+    action: { type: 'archive', targetFolder: 'groups', retentionDays: 365 },
+  },
+  {
+    name: "Archive unverified after inactivity",
+    conditions: [[
+      { type: 'inactivity', days: 14 },
+      { type: 'trustLevel', levels: ['unverified'], operator: 'in' },
+    ]],
+    action: { type: 'archive', targetFolder: 'low-priority' },
+  },
+];
+```
+
+### Smart Categorization
+
+The system automatically suggests categories based on content analysis performed locally.
+
+**Key Features:**
+
+* ML-based category suggestions
+* User confirmation before applying
+* Custom category creation
+* Category-based quick filters
+* Learning from user corrections
+* Privacy-preserving analysis
+
+**Auto-Detected Categories:**
+
+| Category | Detection Signals |
+|----------|-------------------|
+| Work | Business hours, formal language, work contact labels |
+| Personal | Casual language, emoji usage, personal contacts |
+| Finance | Currency symbols, payment keywords, bank-related |
+| Travel | Location names, booking references, dates |
+| Family | Family relationship keywords, shared group names |
+| Shopping | Product names, prices, order confirmations |
+| Health | Medical terms, appointment keywords |
+| Events | Date/time patterns, RSVP keywords, invitations |
+
+**Category Suggestion UI:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ 💡 Suggested Categories                                 │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ Based on your conversations, we suggest:               │
+│                                                         │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ 💼 Work (23 conversations)                    [Add] │ │
+│ │    Includes: Team Standup, Project Alpha, ...       │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ 👨‍👩‍👧 Family (8 conversations)                   [Add] │ │
+│ │    Includes: Mom, Family Group, ...                 │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ ✈️ Travel (3 conversations)                   [Add] │ │
+│ │    Includes: Trip Planning, Hotel Booking, ...      │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ Analysis performed locally. No data shared.            │
+│                                                         │
+│            [Dismiss]              [Add All]            │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Secure Backup
+
+Archived messages remain fully encrypted and accessible through the search interface. Users can configure secure backup to user-controlled storage locations.
+
+**Key Features:**
+
+* Client-side encryption before upload
+* Multiple backup destination support
+* Incremental backup (delta sync)
+* Backup verification and integrity checks
+* Scheduled automatic backups
+* Backup versioning and history
+* Secure restoration process
+* Backup size management
+
+**Backup Destinations:**
+
+| Destination | Encryption | Key Storage | Notes |
+|-------------|------------|-------------|-------|
+| Local Device | AES-256-GCM | Secure Enclave | External drive, SD card |
+| iCloud | AES-256-GCM | Device Keychain | iOS only, encrypted before upload |
+| Google Drive | AES-256-GCM | Device Keystore | Android primary, iOS supported |
+| IPFS | AES-256-GCM | Device + optional recovery | Decentralized, user-controlled |
+| Filecoin | AES-256-GCM | Device + optional recovery | Long-term archival storage |
+| Custom S3 | AES-256-GCM | User-managed | Self-hosted option |
+
+**Backup Encryption Flow:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Index Data                           │
+└────────────────────────┬────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│              Generate Backup Key                        │
+│    backup_key = Argon2id(passkey, backup_salt)         │
+└────────────────────────┬────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│              Compress (LZ4)                             │
+│    Reduces size 40-60%                                  │
+└────────────────────────┬────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│              Encrypt (AES-256-GCM)                      │
+│    encrypt(backup_key, compressed_data)                │
+└────────────────────────┬────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│              Upload to Destination                      │
+│    Only encrypted blob leaves device                    │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Backup Metadata (Unencrypted Header):**
+
+```typescript
+interface BackupMetadata {
+  // Identification
+  backupId: string;
+  userId: string;          // Hashed, not plaintext
+  deviceId: string;        // Hashed
+  
+  // Versioning
+  schemaVersion: number;
+  appVersion: string;
+  createdAt: Date;
+  
+  // Size info
+  compressedSize: number;
+  uncompressedSize: number;
+  messageCount: number;    // Approximate, rounded to nearest 1000
+  
+  // Encryption info
+  algorithm: 'AES-256-GCM';
+  kdfAlgorithm: 'Argon2id';
+  kdfParams: {
+    memory: 65536;
+    iterations: 3;
+    parallelism: 4;
+  };
+  
+  // Integrity
+  checksum: string;        // SHA-256 of encrypted blob
+  
+  // NOT included: message content, contact names, search terms
+}
+```
+
+**Backup Schedule Options:**
+
+| Schedule | Best For | Notes |
+|----------|----------|-------|
+| Manual only | Privacy-conscious users | User triggers each backup |
+| Daily | Active users | Runs at configured time, WiFi only |
+| Weekly | Moderate users | Default option |
+| Monthly | Light users | Minimal bandwidth |
+| On significant change | All users | After 1000+ new messages |
+
+### Cross-Device Search Synchronization
+
+Search indexes can be synchronized across devices while maintaining encryption.
+
+**Key Features:**
+
+* Encrypted index sync between devices
+* Delta-based sync (only changes)
+* Bandwidth-efficient compression
+* Offline search with local index
+* Conflict resolution for concurrent edits
+* Selective sync by device capability
+* Sync progress and status display
+* Device authorization management
+
+**Sync Modes:**
+
+| Mode | Index Content | Storage | Use Case |
+|------|---------------|---------|----------|
+| Full | Complete index | 100% | Primary device |
+| Recent | Last 90 days | ~30% | Secondary device |
+| Minimal | Last 30 days, no vectors | ~10% | Low-storage device |
+| Metadata | Metadata only, fetch on search | ~5% | Temporary device |
+| None | No sync | 0% | Privacy-maximum |
+
+**Sync Protocol:**
+
+```typescript
+interface SyncProtocol {
+  // Device registration
+  async registerDevice(deviceInfo: DeviceInfo): Promise<DeviceAuth>;
+  async deauthorizeDevice(deviceId: string): Promise<void>;
+  
+  // Sync operations
+  async pushDelta(delta: EncryptedDelta): Promise<SyncResult>;
+  async pullDelta(since: SyncCursor): Promise<EncryptedDelta>;
+  async resolveConflict(conflict: SyncConflict): Promise<Resolution>;
+  
+  // Encryption
+  keyAgreement: 'X25519';
+  bulkEncryption: 'AES-256-GCM';
+  
+  // Transport
+  protocol: 'WebSocket';
+  compression: 'LZ4';
+  maxDeltaSize: 10 * 1024 * 1024; // 10 MB
+}
+
+interface EncryptedDelta {
+  deviceId: string;
+  sequenceNumber: number;
+  timestamp: Date;
+  operations: EncryptedBlob;  // Add, update, delete operations
+  checksum: string;
+}
+```
+
+**Conflict Resolution:**
+
+| Conflict Type | Resolution Strategy |
+|---------------|---------------------|
+| Same message indexed differently | Latest timestamp wins |
+| Message deleted on one device | Deletion propagates |
+| Archive folder differs | Merge folders, dedupe |
+| Settings conflict | Device-specific override |
+
+### Search Result Sharing
+
+Users can create secure links to specific messages or conversations that can be shared with verified contacts.
+
+**Key Features:**
+
+* Generate secure message/conversation links
+* Access control configuration
+* Expiration time setting
+* Optional password protection
+* View count limiting
+* Link revocation
+* Blockchain-verified integrity
+* Share activity tracking
+
+**Link Structure:**
+
+```typescript
+interface SecureShareLink {
+  // Link identification
+  linkId: string;
+  createdBy: UserId;
+  createdAt: Date;
+  
+  // Content reference
+  contentType: 'message' | 'conversation' | 'search_results';
+  contentIds: string[];
+  contentHash: string;      // For integrity verification
+  
+  // Access control
+  accessControl: {
+    allowedUsers?: UserId[];          // Specific users only
+    requireVerification?: TrustLevel;  // Minimum trust level
+    requireCircle?: CircleLevel;       // Minimum circle level
+    password?: string;                 // Hashed password
+  };
+  
+  // Limits
+  limits: {
+    expiresAt?: Date;
+    maxViews?: number;
+    currentViews: number;
+  };
+  
+  // Blockchain verification
+  verification: {
+    metagraphTxHash: string;
+    snapshotId: string;
+    timestamp: Date;
+  };
+  
+  // Status
+  status: 'active' | 'expired' | 'revoked' | 'exhausted';
+}
+```
+
+**Link Sharing UI:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Share Message                                      ×    │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ Message from Alice Johnson                              │
+│ "The quarterly report is attached..."                   │
+│                                                         │
+│ ─────────────────────────────────────────────────────── │
+│                                                         │
+│ Who can access:                                         │
+│ ○ Anyone with link                                      │
+│ ○ Verified users only                                   │
+│ ● Specific people  [Add recipients...]                  │
+│                                                         │
+│ ─────────────────────────────────────────────────────── │
+│                                                         │
+│ Link expires:                                           │
+│ [▼ 7 days                                    ]         │
+│                                                         │
+│ □ Require password                                      │
+│ □ Limit views to [ 10 ]                                │
+│                                                         │
+│ ─────────────────────────────────────────────────────── │
+│                                                         │
+│ ✓ Include blockchain verification proof                │
+│                                                         │
+│        [Cancel]              [Generate Link]           │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Verification Display:**
+
+When a recipient opens a shared link:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Shared Message                               Verified ✓ │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ Shared by: Bob Smith                                    │
+│ Original sender: Alice Johnson                          │
+│ Sent: January 15, 2026 at 2:34 PM                      │
+│                                                         │
+│ ─────────────────────────────────────────────────────── │
+│                                                         │
+│ "The quarterly report is attached. Please review       │
+│ before our meeting on Thursday."                        │
+│                                                         │
+│ 📎 Q4_Report.pdf (2.3 MB)                              │
+│                                                         │
+│ ─────────────────────────────────────────────────────── │
+│                                                         │
+│ 🔒 Verification                                         │
+│                                                         │
+│ This message has been verified on the Constellation    │
+│ blockchain. The content has not been modified since    │
+│ it was originally sent.                                │
+│                                                         │
+│ Transaction: 0x7f3a...8c2d                             │
+│ Snapshot: #1,234,567                                   │
+│ Anchored: January 15, 2026 at 2:34:12 PM              │
+│                                                         │
+│                    [View on Explorer]                   │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Saved Searches
+
+Users can save frequently used searches for quick access.
+
+**Key Features:**
+
+* Save search query with all filters
+* Name and organize saved searches
+* Pin to search home screen
+* Notification on new matching results
+* Share saved searches with contacts
+* Import/export saved searches
+* Suggested saves based on usage
+
+**Saved Search Structure:**
+
+```typescript
+interface SavedSearch {
+  id: string;
+  name: string;
+  icon?: string;
+  color?: string;
+  createdAt: Date;
+  lastUsed: Date;
+  useCount: number;
+  
+  // Search definition
+  query: {
+    text: string;
+    filters: SearchFilters;
+    sortBy: 'relevance' | 'date' | 'sender';
+    sortOrder: 'asc' | 'desc';
+  };
+  
+  // Notification settings
+  notifications: {
+    enabled: boolean;
+    frequency: 'immediate' | 'daily' | 'weekly';
+    lastNotified: Date;
+    newResultsSince: number;  // Count since last check
+  };
+  
+  // Organization
+  pinned: boolean;
+  folder?: string;
+}
+```
+
+**Saved Search Limits by Trust:**
+
+| Trust Level | Max Saved Searches | Notifications |
+|-------------|-------------------|---------------|
+| Unverified | 5 | No |
+| Newcomer | 10 | Daily digest |
+| Member | 20 | Daily digest |
+| Trusted | 50 | Real-time |
+| Verified | Unlimited | Real-time |
+
+### Search Result Export
+
+Users can export search results for external use with verification proofs.
+
+**Key Features:**
+
+* Multiple export formats
+* Selective content inclusion
+* Blockchain verification proofs
+* Redaction options
+* Batch export
+* Export history
+
+**Export Formats:**
+
+| Format | Use Case | Includes |
+|--------|----------|----------|
+| PDF | Legal/compliance, sharing | Formatted view, verification, optional media |
+| JSON | Data processing, backup | Structured data, full metadata |
+| Plain Text | Simple viewing | Messages only, timestamps |
+| CSV | Spreadsheet analysis | Metadata only, no content |
+| HTML | Web viewing | Formatted, interactive |
+
+**Export Options:**
+
+```typescript
+interface ExportOptions {
+  format: 'pdf' | 'json' | 'txt' | 'csv' | 'html';
+  
+  content: {
+    includeMessages: boolean;
+    includeMedia: boolean;
+    includeReactions: boolean;
+    includeEdits: boolean;
+    includeMetadata: boolean;
+  };
+  
+  privacy: {
+    redactNames: boolean;
+    redactPhoneNumbers: boolean;
+    redactEmails: boolean;
+    useAliases: boolean;       // Replace names with Person A, B, etc.
+  };
+  
+  verification: {
+    includeProofs: boolean;
+    includeAnchors: boolean;
+    includeTimestamps: boolean;
+  };
+  
+  formatting: {
+    dateFormat: string;
+    timezone: string;
+    language: string;
+  };
+}
+```
+
+### Search Analytics
+
+Privacy-preserving analytics help users understand their search patterns.
+
+**Key Features:**
+
+* Search frequency tracking
+* Popular search terms (local only)
+* Search performance metrics
+* Result quality indicators
+* Usage pattern insights
+* All analytics computed locally
+* Optional analytics export
+* No telemetry transmitted
+
+**Analytics Dashboard:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Search Analytics                                        │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ This Week's Activity                                    │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │  Searches: 47  │  Avg Time: 142ms  │  Found: 94%   │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ Top Search Terms                                        │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │  1. meeting (12)    4. report (5)                   │ │
+│ │  2. alice (9)       5. project (4)                  │ │
+│ │  3. tomorrow (7)    6. deadline (3)                 │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ Search Performance                                      │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │  ████████████████████░░░░  85% under 200ms         │ │
+│ │  ██████████████░░░░░░░░░░  60% semantic matches    │ │
+│ │  ██████████████████████░░  92% clicked results     │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ Storage                                                 │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │  Index Size: 847 MB / 1 GB                         │ │
+│ │  Messages Indexed: 234,567                         │ │
+│ │  Last Optimized: 2 days ago                        │ │
+│ │                          [Optimize Now]            │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ 🔒 All analytics computed locally. Nothing transmitted. │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Security Principles
+
+* All search operations are performed locally on the user's device
+* Message content is never exposed to external search services
+* No search queries are transmitted or logged externally
+* Search indexes are encrypted at rest with multiple layers
+* Index encryption keys are derived from user passkey, never stored
+* Semantic search uses on-device ML model only (22 MB MiniLM)
+* Archive data remains fully encrypted with same protections
+* Backup data is encrypted client-side before any transmission
+* Cross-device sync uses end-to-end encrypted delta protocol
+* Shared links include blockchain verification proofs
+* User privacy is preserved through local-only processing
+* No telemetry, analytics, or usage data leaves the device
+* Trust-based filtering protects against low-quality results
+
+## Integration Points
+
+### With Messaging Blueprint
+
+| Feature | Integration |
+|---------|-------------|
+| Message Receipt | Auto-index on receive, background processing |
+| Message Editing | Index original + all edits, search matches any version |
+| Message Deletion | Remove from index, tombstone prevents re-index |
+| Disappearing Messages | Index until expiry, then purge completely |
+| Hidden Folders | Separate encrypted index, biometric required |
+| Pinned Messages | `is:pinned` filter, boost in relevance |
+| Forwarded Messages | `is:forwarded` filter, track original source |
+| Reactions | Index reactions as metadata, `has:reaction` filter |
+
+### With Trust Network Blueprint
+
+| Feature | Integration |
+|---------|-------------|
+| Trust Levels | `trust:` filter, relevance boosting |
+| Trust Circles | `circle:` filter, visibility control |
+| Verification | `verified:` filter, badge display in results |
+| Blocked Users | Excluded from results, no exceptions |
+| Endorsements | `rel:endorsed` filter, ranking boost |
+| Privacy Settings | Respect visibility settings in shared links |
+
+### With Silent & Scheduled Blueprint
+
+| Feature | Integration |
+|---------|-------------|
+| Silent Messages | `is:silent` filter, normal indexing |
+| Scheduled Messages | `is:scheduled` for pending, normal after delivery |
+| Scheduled Tab | Separate search within scheduled queue |
+
+## Appendix: Error Codes
+
+| Code | Meaning | User Message |
+|------|---------|--------------|
+| SEARCH_001 | Index corrupted | "Search index needs repair. This may take a few minutes." |
+| SEARCH_002 | Index locked | "Search is temporarily unavailable. Please try again." |
+| SEARCH_003 | Query too complex | "Please simplify your search query." |
+| SEARCH_004 | No results | "No messages found matching your search." |
+| SEARCH_005 | Timeout | "Search took too long. Try narrowing your filters." |
+| INDEX_001 | Storage full | "Not enough storage to index new messages." |
+| INDEX_002 | Embedding failed | "Some messages couldn't be indexed for semantic search." |
+| BACKUP_001 | Backup failed | "Backup couldn't be completed. Check your connection." |
+| BACKUP_002 | Restore failed | "Backup file is corrupted or incompatible." |
+| SYNC_001 | Sync conflict | "Sync conflict detected. Using most recent version." |
+| SYNC_002 | Device not authorized | "This device is not authorized for sync." |
+| SHARE_001 | Link expired | "This shared link has expired." |
+| SHARE_002 | Access denied | "You don't have permission to view this content." |
+| SHARE_003 | View limit reached | "This link has reached its view limit." |
+
+---
+
+*Blueprint Version: 2.0*  
+*Last Updated: February 5, 2026*  
+*Status: Complete with Implementation Details*

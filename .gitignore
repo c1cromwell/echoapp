@@ -18,6 +18,11 @@ ios/*.xcodeproj/project.xcworkspace
 *.dSYM.zip
 *.dSYM
 
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
 # Android
 android/.gradle/
 android/app/build/

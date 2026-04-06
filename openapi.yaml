@@ -1,0 +1,1644 @@
+openapi: 3.1.0
+info:
+  title: ECHO Platform API
+  version: 1.0.0
+  description: |
+    ECHO Platform REST API and WebSocket specification.
+    
+    **Architecture**: Client-server relay with E2E encryption. The API server is a stateless
+    relay and operational cache. It cannot read message content (E2E encrypted blobs only),
+    does not own user identities (Cardano DIDs), and does not control token balances
+    (Constellation metagraph).
+    
+    **Authentication**: All endpoints except /v1/auth/* require a Bearer token in the
+    Authorization header. Tokens are issued after passkey/biometric verification.
+    
+    **Encryption**: Request/response bodies for sensitive endpoints are encrypted with
+    a session key (AES-256-GCM) negotiated during auth. Message content is always E2E
+    encrypted on the client (X25519 + ChaCha20-Poly1305) before transmission.
+    
+    **On-chain references**: Endpoints that interact with blockchain state (tokens, identity,
+    trust) return cached values with a `snapshotHash` field for client-side verification
+    against on-chain state (Phase 3+).
+  contact:
+    name: ECHO Engineering
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://api.echo.network/v1
+    description: Production
+  - url: https://api.staging.echo.network/v1
+    description: Staging
+  - url: http://localhost:8080/v1
+    description: Local development
+
+tags:
+  - name: Auth
+    description: Authentication and registration (passkey/biometric)
+  - name: Messages
+    description: E2E encrypted message relay
+  - name: Conversations
+    description: Conversation management
+  - name: Users
+    description: User profiles and contacts
+  - name: Identity
+    description: Decentralized identity (Cardano DIDs) and verifiable credentials
+  - name: Tokens
+    description: ECHO token balance, transfers, staking, and rewards
+  - name: Groups
+    description: Group management and key distribution
+  - name: WebSocket
+    description: Real-time messaging and presence channels
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ──────────────────────────── AUTH ────────────────────────────
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new account
+      description: |
+        Creates a new ECHO account. The client generates a Secure Enclave key pair
+        and submits the public key. The server creates a DID registration request
+        on Cardano and returns a session token.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [publicKey, deviceInfo]
+              properties:
+                publicKey:
+                  type: string
+                  format: base64url
+                  description: P-256 public key from Secure Enclave
+                displayName:
+                  type: string
+                  maxLength: 64
+                deviceInfo:
+                  $ref: "#/components/schemas/DeviceInfo"
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "409":
+          description: Public key already registered
+
+  /auth/challenge:
+    post:
+      tags: [Auth]
+      summary: Request authentication challenge
+      description: Server returns a random challenge nonce for the client to sign with Secure Enclave.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [did]
+              properties:
+                did:
+                  type: string
+                  description: User's DID (did:prism:...)
+      responses:
+        "200":
+          description: Challenge issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  challenge:
+                    type: string
+                    format: base64url
+                    description: Random nonce to sign (expires in 60 seconds)
+                  expiresAt:
+                    type: string
+                    format: date-time
+
+  /auth/verify:
+    post:
+      tags: [Auth]
+      summary: Verify signed challenge
+      description: |
+        Client signs the challenge with Secure Enclave (requires biometric) and
+        submits the signature. Server verifies against the registered public key
+        and issues access + refresh tokens.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [did, challenge, signature]
+              properties:
+                did:
+                  type: string
+                challenge:
+                  type: string
+                  format: base64url
+                signature:
+                  type: string
+                  format: base64url
+                  description: ECDSA P-256 signature from Secure Enclave
+      responses:
+        "200":
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid signature or expired challenge
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        "200":
+          description: New tokens issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid or expired refresh token
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout and invalidate tokens
+      responses:
+        "204":
+          description: Logged out successfully
+
+  # ──────────────────────── CONVERSATIONS ────────────────────────
+  /conversations:
+    get:
+      tags: [Conversations]
+      summary: List conversations
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Pagination cursor
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        "200":
+          description: Conversation list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Conversation"
+                  nextCursor:
+                    type: string
+                    nullable: true
+
+    post:
+      tags: [Conversations]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [participantDIDs]
+              properties:
+                participantDIDs:
+                  type: array
+                  items:
+                    type: string
+                  minItems: 1
+                  description: DIDs of participants (excluding self)
+                name:
+                  type: string
+                  maxLength: 128
+                  description: Group name (required if >1 participant)
+                isGroup:
+                  type: boolean
+                  default: false
+      responses:
+        "201":
+          description: Conversation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+
+  /conversations/{conversationId}:
+    get:
+      tags: [Conversations]
+      summary: Get conversation details
+      parameters:
+        - $ref: "#/components/parameters/conversationId"
+      responses:
+        "200":
+          description: Conversation details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        "404":
+          description: Conversation not found
+
+    delete:
+      tags: [Conversations]
+      summary: Leave or delete conversation
+      parameters:
+        - $ref: "#/components/parameters/conversationId"
+      responses:
+        "204":
+          description: Left conversation
+
+  # ──────────────────────── MESSAGES ────────────────────────
+  /conversations/{conversationId}/messages:
+    get:
+      tags: [Messages]
+      summary: Fetch messages (E2E encrypted blobs)
+      description: |
+        Returns E2E encrypted message blobs. The client decrypts locally using
+        Kinnami (X25519 + ChaCha20-Poly1305). The server never sees plaintext.
+      parameters:
+        - $ref: "#/components/parameters/conversationId"
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+        - name: direction
+          in: query
+          schema:
+            type: string
+            enum: [newer, older]
+            default: older
+      responses:
+        "200":
+          description: Encrypted messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EncryptedMessage"
+                  nextCursor:
+                    type: string
+                    nullable: true
+
+    post:
+      tags: [Messages]
+      summary: Send an E2E encrypted message via relay
+      description: |
+        Submits an E2E encrypted message blob for relay to the recipient(s).
+        The server queues for offline recipients and sends APNs push notifications.
+        The commitment hash is batched into a Merkle tree for on-chain anchoring.
+        
+        **Rate limit**: 60 messages/minute per DID (adjustable by trust tier).
+      parameters:
+        - $ref: "#/components/parameters/conversationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageRequest"
+      responses:
+        "202":
+          description: Message accepted for relay
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageAccepted"
+        "429":
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+
+  /messages/{messageId}:
+    put:
+      tags: [Messages]
+      summary: Edit a message (re-encrypt and re-relay)
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageRequest"
+      responses:
+        "200":
+          description: Edit relayed
+        "403":
+          description: Edit window expired (24h) or not message owner
+
+    delete:
+      tags: [Messages]
+      summary: Delete a message
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deletion relayed to participants
+
+  /messages/{messageId}/read:
+    put:
+      tags: [Messages]
+      summary: Mark message as read
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Read receipt relayed
+
+  /messages/{messageId}/reactions:
+    post:
+      tags: [Messages]
+      summary: Add a reaction
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [emoji]
+              properties:
+                emoji:
+                  type: string
+                  maxLength: 8
+      responses:
+        "201":
+          description: Reaction relayed
+
+    delete:
+      tags: [Messages]
+      summary: Remove a reaction
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                emoji:
+                  type: string
+      responses:
+        "204":
+          description: Reaction removed
+
+  # ──────────────────────── USERS ────────────────────────
+  /users/profile:
+    get:
+      tags: [Users]
+      summary: Get own profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+    put:
+      tags: [Users]
+      summary: Update own profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName:
+                  type: string
+                  maxLength: 64
+                username:
+                  type: string
+                  maxLength: 32
+                  pattern: "^[a-zA-Z0-9_]+$"
+                bio:
+                  type: string
+                  maxLength: 256
+                showLastSeen:
+                  type: string
+                  enum: [everyone, contacts, nobody]
+                showOnlineStatus:
+                  type: string
+                  enum: [everyone, contacts, nobody]
+                showReadReceipts:
+                  type: boolean
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /users/{did}:
+    get:
+      tags: [Users]
+      summary: Get another user's profile by DID
+      parameters:
+        - name: did
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User profile (respecting their privacy settings)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          description: User not found
+
+  /users/search:
+    get:
+      tags: [Users]
+      summary: Search users by username or display name
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 25
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserProfile"
+
+  /contacts:
+    get:
+      tags: [Users]
+      summary: List contacts
+      responses:
+        "200":
+          description: Contact list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contacts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserProfile"
+
+  /contacts/{did}:
+    post:
+      tags: [Users]
+      summary: Add a contact
+      parameters:
+        - name: did
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Contact added
+
+    delete:
+      tags: [Users]
+      summary: Remove a contact
+      parameters:
+        - name: did
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Contact removed
+
+  /contacts/{did}/block:
+    post:
+      tags: [Users]
+      summary: Block a user
+      parameters:
+        - name: did
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: User blocked (relay will drop their messages)
+
+    delete:
+      tags: [Users]
+      summary: Unblock a user
+      parameters:
+        - name: did
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: User unblocked
+
+  /users/avatar:
+    post:
+      tags: [Users]
+      summary: Upload avatar
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: JPEG or PNG, max 2MB
+      responses:
+        "200":
+          description: Avatar uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  avatarURL:
+                    type: string
+                    format: uri
+
+  /users/account:
+    delete:
+      tags: [Users]
+      summary: Delete account
+      description: |
+        Permanently deletes the account. Revokes Cardano credentials, removes
+        relay data, and invalidates all tokens. DID remains on Cardano as a
+        revoked record (immutable).
+      responses:
+        "204":
+          description: Account deletion initiated
+
+  # ──────────────────────── IDENTITY ────────────────────────
+  /identity/did:
+    post:
+      tags: [Identity]
+      summary: Create a new DID
+      description: Registers a DID on Cardano using the user's Secure Enclave public key.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [publicKey]
+              properties:
+                publicKey:
+                  type: string
+                  format: base64url
+                  description: P-256 public key from Secure Enclave
+      responses:
+        "202":
+          description: DID creation submitted to Cardano
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DIDDocument"
+
+  /identity/did/{did}:
+    get:
+      tags: [Identity]
+      summary: Resolve a DID document
+      parameters:
+        - name: did
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: DID document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DIDDocument"
+
+  /identity/verify:
+    post:
+      tags: [Identity]
+      summary: Initiate identity verification
+      description: |
+        Returns a URL/token for the third-party IDV provider (e.g., Stripe Identity).
+        The iOS app connects directly to the IDV provider — the backend never sees
+        raw documents or PII.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [verificationType]
+              properties:
+                verificationType:
+                  type: string
+                  enum: [email, phone, government_id, enterprise]
+      responses:
+        "200":
+          description: Verification session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessionId:
+                    type: string
+                  providerURL:
+                    type: string
+                    format: uri
+                    description: IDV provider URL for direct client connection
+                  expiresAt:
+                    type: string
+                    format: date-time
+
+  /identity/verifications:
+    get:
+      tags: [Identity]
+      summary: List verification status
+      responses:
+        "200":
+          description: Verification records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verifications:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Verification"
+
+  /identity/credentials:
+    get:
+      tags: [Identity]
+      summary: List verifiable credentials
+      responses:
+        "200":
+          description: Credential list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  credentials:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Credential"
+
+    post:
+      tags: [Identity]
+      summary: Request a new credential
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [schemaId]
+              properties:
+                schemaId:
+                  type: string
+                  description: Credential schema ID on Cardano
+      responses:
+        "202":
+          description: Credential issuance submitted to Cardano
+
+  /identity/credentials/{credentialId}/verify:
+    get:
+      tags: [Identity]
+      summary: Verify a credential
+      parameters:
+        - name: credentialId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Credential verification result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  issuerDID:
+                    type: string
+                  issuedAt:
+                    type: string
+                    format: date-time
+                  revokedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+
+  /identity/credentials/{credentialId}/revoke:
+    delete:
+      tags: [Identity]
+      summary: Revoke a credential
+      parameters:
+        - name: credentialId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          description: Revocation submitted to Cardano
+
+  # ──────────────────────── TOKENS ────────────────────────
+  /tokens/balance:
+    get:
+      tags: [Tokens]
+      summary: Get ECHO token balance
+      description: Returns cached balance from metagraph Currency L1 state. Includes snapshot hash for client verification (Phase 3+).
+      responses:
+        "200":
+          description: Token balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenBalance"
+
+  /tokens/history:
+    get:
+      tags: [Tokens]
+      summary: Transaction history
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [all, send, receive, reward, stake, unstake]
+      responses:
+        "200":
+          description: Transaction list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Transaction"
+                  nextCursor:
+                    type: string
+                    nullable: true
+
+  /tokens/send:
+    post:
+      tags: [Tokens]
+      summary: Send ECHO tokens
+      description: Submits a token transfer to the metagraph Currency L1.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [recipientDID, amount]
+              properties:
+                recipientDID:
+                  type: string
+                amount:
+                  type: string
+                  description: Decimal string (e.g., "10.5")
+                memo:
+                  type: string
+                  maxLength: 256
+      responses:
+        "202":
+          description: Transfer submitted to Currency L1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+
+  /tokens/stake:
+    post:
+      tags: [Tokens]
+      summary: Stake ECHO tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, tier]
+              properties:
+                amount:
+                  type: string
+                  description: Decimal string
+                tier:
+                  type: string
+                  enum: [bronze, silver, gold, platinum]
+                  description: Lock duration tier (30/90/180/365 days)
+      responses:
+        "202":
+          description: Stake submitted to Currency L1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StakePosition"
+
+  /tokens/unstake:
+    delete:
+      tags: [Tokens]
+      summary: Unstake ECHO tokens
+      description: Initiates unstaking. Subject to lock duration per tier.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [stakeId]
+              properties:
+                stakeId:
+                  type: string
+      responses:
+        "202":
+          description: Unstake submitted
+
+  /tokens/rewards/claim:
+    post:
+      tags: [Tokens]
+      summary: Claim pending rewards
+      description: |
+        Claims pending rewards. Backend pre-validates against daily caps and
+        anti-gaming rules, then batches into Currency L1 submission.
+        
+        **Rate limit**: Varies by reward type. Messaging rewards capped daily per trust tier.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rewardType]
+              properties:
+                rewardType:
+                  type: string
+                  enum: [messaging, referral, staking, payment_rail, verification, governance, content, loyalty]
+                evidence:
+                  type: object
+                  description: Type-specific evidence (e.g., message count, referral code)
+      responses:
+        "202":
+          description: Reward claim batched for Currency L1 submission
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  claimId:
+                    type: string
+                  amount:
+                    type: string
+                  status:
+                    type: string
+                    enum: [pending, batched, confirmed]
+        "429":
+          description: Daily cap exceeded
+
+  /tokens/trust-score:
+    get:
+      tags: [Tokens]
+      summary: Get trust score and tier
+      description: Returns cached trust tier and multiplier. Raw score stays off-chain; on-chain commitment is H(score || nonce).
+      responses:
+        "200":
+          description: Trust score info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrustScore"
+
+  /tokens/achievements:
+    get:
+      tags: [Tokens]
+      summary: List achievements and badges
+      responses:
+        "200":
+          description: Achievement list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  achievements:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Achievement"
+
+  # ──────────────────────── GROUPS ────────────────────────
+  /groups/{groupId}/members:
+    get:
+      tags: [Groups]
+      summary: List group members
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+      responses:
+        "200":
+          description: Member list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  members:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GroupMember"
+                  totalCount:
+                    type: integer
+                  nextCursor:
+                    type: string
+                    nullable: true
+
+    post:
+      tags: [Groups]
+      summary: Add members to group
+      description: Admin only. Triggers group key rotation and re-distribution.
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [memberDIDs]
+              properties:
+                memberDIDs:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Members added; group key rotated
+
+  /groups/{groupId}/members/{did}:
+    delete:
+      tags: [Groups]
+      summary: Remove a member from group
+      description: Admin only. Triggers group key rotation.
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: did
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Member removed; group key rotated
+
+  /groups/{groupId}/key:
+    post:
+      tags: [Groups]
+      summary: Distribute group encryption key
+      description: |
+        Encrypted group symmetric key distribution. Each member receives the
+        group key encrypted with their individual public key. Called automatically
+        on group creation, member add/remove, and periodic rotation.
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [encryptedKeys]
+              properties:
+                encryptedKeys:
+                  type: array
+                  items:
+                    type: object
+                    required: [recipientDID, encryptedKey]
+                    properties:
+                      recipientDID:
+                        type: string
+                      encryptedKey:
+                        type: string
+                        format: base64url
+                        description: Group symmetric key encrypted with recipient's public key
+                keyVersion:
+                  type: integer
+                  description: Monotonically increasing key version
+      responses:
+        "200":
+          description: Keys distributed
+
+# ──────────────────────── COMPONENTS ────────────────────────
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token from /auth/verify
+
+  parameters:
+    conversationId:
+      name: conversationId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    DeviceInfo:
+      type: object
+      properties:
+        platform:
+          type: string
+          enum: [iOS, Android]
+        osVersion:
+          type: string
+        appVersion:
+          type: string
+        deviceModel:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+          description: Access token TTL in seconds
+        did:
+          type: string
+          description: User's DID
+        sessionKey:
+          type: string
+          format: base64url
+          description: Session encryption key (AES-256-GCM)
+
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          nullable: true
+        isGroup:
+          type: boolean
+        participants:
+          type: array
+          items:
+            type: object
+            properties:
+              did:
+                type: string
+              displayName:
+                type: string
+              trustTier:
+                type: integer
+        lastMessage:
+          $ref: "#/components/schemas/EncryptedMessage"
+        unreadCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    EncryptedMessage:
+      type: object
+      description: E2E encrypted message blob. Server cannot read content.
+      properties:
+        id:
+          type: string
+        conversationId:
+          type: string
+        senderDID:
+          type: string
+          description: Present in Phase 1-2; hidden with sealed sender in Phase 3+
+        contentType:
+          type: string
+          enum: [text, image, video, audio, file, location, contact, sticker]
+        encryptedPayload:
+          type: object
+          description: Kinnami encrypted payload (opaque to server)
+          properties:
+            version:
+              type: integer
+            ephemeralPublicKey:
+              type: string
+              format: base64url
+            nonce:
+              type: string
+              format: base64url
+            ciphertext:
+              type: string
+              format: base64url
+            tag:
+              type: string
+              format: base64url
+            commitment:
+              type: string
+              format: base64url
+              description: H(H(plaintext) || nonce) for on-chain anchoring
+        signature:
+          type: string
+          format: base64url
+          description: Sender's P-256 signature over the encrypted payload
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [sending, sent, delivered, read, failed, anchored]
+          description: '"anchored" = commitment included in finalized metagraph snapshot'
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Disappearing message expiry
+
+    SendMessageRequest:
+      type: object
+      required: [contentType, encryptedPayload, signature]
+      properties:
+        contentType:
+          type: string
+          enum: [text, image, video, audio, file, location, contact, sticker]
+        encryptedPayload:
+          type: object
+          required: [version, ephemeralPublicKey, nonce, ciphertext, tag, commitment]
+          properties:
+            version:
+              type: integer
+            ephemeralPublicKey:
+              type: string
+              format: base64url
+            nonce:
+              type: string
+              format: base64url
+            ciphertext:
+              type: string
+              format: base64url
+            tag:
+              type: string
+              format: base64url
+            commitment:
+              type: string
+              format: base64url
+        signature:
+          type: string
+          format: base64url
+        replyToId:
+          type: string
+          nullable: true
+        expiresIn:
+          type: integer
+          nullable: true
+          description: Disappearing message TTL in seconds
+
+    MessageAccepted:
+      type: object
+      properties:
+        messageId:
+          type: string
+        status:
+          type: string
+          enum: [relayed, queued]
+          description: '"relayed" = recipient online; "queued" = recipient offline'
+        timestamp:
+          type: string
+          format: date-time
+
+    UserProfile:
+      type: object
+      properties:
+        did:
+          type: string
+        displayName:
+          type: string
+        username:
+          type: string
+          nullable: true
+        avatarURL:
+          type: string
+          format: uri
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        trustTier:
+          type: integer
+          minimum: 1
+          maximum: 5
+        verificationBadges:
+          type: array
+          items:
+            type: string
+            enum: [email_verified, phone_verified, identity_verified, government_id, enterprise]
+        isOnline:
+          type: boolean
+          nullable: true
+          description: "null if privacy setting hides this"
+        lastSeen:
+          type: string
+          format: date-time
+          nullable: true
+          description: "null if privacy setting hides this"
+
+    DIDDocument:
+      type: object
+      properties:
+        did:
+          type: string
+          description: "did:prism:..."
+        publicKeys:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              type:
+                type: string
+                enum: [EcdsaSecp256r1VerificationKey2019, X25519KeyAgreementKey2020]
+              publicKeyBase64:
+                type: string
+                format: base64url
+        serviceEndpoints:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              type:
+                type: string
+              endpoint:
+                type: string
+                format: uri
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        cardanoTxHash:
+          type: string
+          description: Cardano transaction hash for on-chain verification
+
+    Verification:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [email, phone, government_id, enterprise]
+        status:
+          type: string
+          enum: [pending, verified, failed, expired]
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    Credential:
+      type: object
+      properties:
+        id:
+          type: string
+        schemaId:
+          type: string
+        issuerDID:
+          type: string
+        status:
+          type: string
+          enum: [active, revoked, expired]
+        issuedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        cardanoTxHash:
+          type: string
+
+    TokenBalance:
+      type: object
+      properties:
+        available:
+          type: string
+          description: Decimal string
+        staked:
+          type: string
+        pendingRewards:
+          type: string
+        total:
+          type: string
+        snapshotHash:
+          type: string
+          description: Metagraph snapshot hash for client-side verification (Phase 3+)
+        snapshotHeight:
+          type: integer
+        cachedAt:
+          type: string
+          format: date-time
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [send, receive, reward, stake, unstake]
+        amount:
+          type: string
+        counterpartyDID:
+          type: string
+          nullable: true
+        memo:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, confirmed, failed]
+        timestamp:
+          type: string
+          format: date-time
+        metagraphTxHash:
+          type: string
+          nullable: true
+
+    StakePosition:
+      type: object
+      properties:
+        id:
+          type: string
+        amount:
+          type: string
+        tier:
+          type: string
+          enum: [bronze, silver, gold, platinum]
+        apy:
+          type: string
+          description: Current APY as percentage string
+        stakedAt:
+          type: string
+          format: date-time
+        unlocksAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [active, unstaking, completed]
+
+    TrustScore:
+      type: object
+      properties:
+        tier:
+          type: integer
+          minimum: 1
+          maximum: 5
+        tierName:
+          type: string
+          enum: [unverified, newcomer, member, verified, trusted]
+        multiplier:
+          type: string
+          description: Reward multiplier (e.g., "1.5")
+        onChainCommitment:
+          type: string
+          format: base64url
+          description: H(score || nonce) recorded on metagraph Data L1
+
+    Achievement:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        earnedAt:
+          type: string
+          format: date-time
+          nullable: true
+        progress:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    GroupMember:
+      type: object
+      properties:
+        did:
+          type: string
+        displayName:
+          type: string
+        role:
+          type: string
+          enum: [owner, admin, member]
+        joinedAt:
+          type: string
+          format: date-time
+
+    # ──── WebSocket Message Schemas ────
+    WSIncomingMessage:
+      type: object
+      description: Messages received from WebSocket relay
+      properties:
+        type:
+          type: string
+          enum: [message, typing, presence, receipt, ack, confirmation, queue_drain]
+        payload:
+          type: object
+          description: Type-specific payload
+        timestamp:
+          type: string
+          format: date-time
+
+    WSConfirmation:
+      type: object
+      description: On-chain anchoring confirmation pushed via WebSocket
+      properties:
+        type:
+          type: string
+          enum: [message_anchored, reward_confirmed, balance_updated]
+        referenceId:
+          type: string
+          description: Message ID, claim ID, or transaction ID
+        snapshotHash:
+          type: string
+        snapshotHeight:
+          type: integer
+        merkleProof:
+          type: array
+          items:
+            type: string
+            format: base64url
+          description: Merkle proof for client-side verification (Phase 3+)
+
+# ──────────────── WebSocket Channels (documentation) ────────────────
+# WebSocket endpoint: wss://ws.echo.network/v1/ws
+# Auth: Bearer token in Authorization header or ?token= query param
+#
+# Channels (multiplexed over single connection):
+#
+# /messages    - E2E encrypted message relay (EncryptedMessage payloads)
+#                On reconnect: server drains offline queue automatically
+#
+# /typing      - Typing indicators
+#                Payload: { conversationId, isTyping }
+#
+# /presence    - Online/offline status updates
+#                Payload: { did, status: online|away|offline, lastSeen }
+#
+# /receipts    - Read receipts and delivery confirmations
+#                Payload: { messageId, conversationId, status, timestamp }
+#
+# /confirmations - On-chain anchoring confirmations (WSConfirmation)
+#                  Pushed when metagraph snapshot includes user's data
+#
+# Heartbeat: Client sends ping every 30s; server responds with pong
+# Reconnect: Exponential backoff (2^n seconds, max 5 attempts)
+# Queue drain: On reconnect, server sends type=queue_drain with queued messages

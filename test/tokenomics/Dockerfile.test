@@ -1,0 +1,25 @@
+FROM golang:1.20-alpine
+
+WORKDIR /app
+
+# Install dependencies
+RUN apk add --no-cache \
+    git \
+    curl \
+    make \
+    bash
+
+# Copy go mod files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the test binary
+RUN go test -c -o /app/bin/tokenomics.test ./test/tokenomics
+
+# Run tests
+ENTRYPOINT ["/app/bin/tokenomics.test", "-test.v", "-test.cover"]

@@ -1,0 +1,71 @@
+# Token genesis parameters — used by Scala Currency L1 at snapshot #1
+# Go backend reads this for pre-validation and display
+
+genesis:
+  total_supply: 1_000_000_000
+  decimal_places: 8
+
+  allocations:
+    community_rewards:
+      amount: 400_000_000
+      type: emission_pool
+      emission_years: 10
+      year_percentages: [20, 16, 13, 11, 9, 7, 6, 6, 6, 6]
+
+    treasury:
+      amount: 220_000_000
+      type: multi_sig
+      signers: 5
+      threshold: 3
+      initial_distributions:
+        pacaswap_liquidity: 80_000_000
+        operational_reserve: 40_000_000
+        locked_reserve: 100_000_000
+
+    founders:
+      amount: 180_000_000
+      type: vesting_locks
+      cliff_months: 12
+      vest_months: 48
+      cliff_release_percent: 25
+      monthly_after_cliff: "1/36th"
+      allocations:
+        - role: "CEO / Visionary / Product"
+          share_percent: 55.56
+          amount: 100_000_000
+          did: "" # Set at genesis
+        - role: "CTO / Lead iOS Engineer"
+          share_percent: 11.11
+          amount: 20_000_000
+          did: "" # Set at genesis
+        - role: "Scala / Blockchain Lead"
+          share_percent: 11.11
+          amount: 20_000_000
+          did: "" # Set at genesis
+        - role: "Head of Growth / Community"
+          share_percent: 11.11
+          amount: 20_000_000
+          did: "" # Set at genesis
+        - role: "Head of Design / UX"
+          share_percent: 11.11
+          amount: 20_000_000
+          did: "" # Set at genesis
+
+    future_team:
+      amount: 100_000_000
+      type: reserved_pool
+      release_mechanism: multi_sig
+      revert_to_treasury_after_years: 3
+
+    ecosystem:
+      amount: 100_000_000
+      type: governance_pool
+      release_mechanism: governance_vote
+
+  staking_tiers:
+    bronze:   { duration_days: 30,  apr: 5.0 }
+    silver:   { duration_days: 90,  apr: 8.0 }
+    gold:     { duration_days: 180, apr: 12.0 }
+    platinum: { duration_days: 365, apr: 15.0 }
+
+  unstaking_cooldown_days: 14
