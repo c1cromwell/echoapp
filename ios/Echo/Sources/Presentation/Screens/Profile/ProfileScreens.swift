@@ -4,7 +4,7 @@ import SwiftUI
 
 // MARK: - Screen 1: Profile Tab (Enhanced per spec)
 
-public struct ProfileTabView: View {
+ struct ProfileTabView: View {
     @State private var showEditProfile = false
     @State private var showPersonas = false
     @State private var showSettings = false
@@ -26,7 +26,7 @@ public struct ProfileTabView: View {
     let onHelpSupport: () -> Void
     let onAbout: () -> Void
 
-    public init(
+    init(
         profile: ProfileData = ProfileData(),
         personas: [Persona] = [],
         maxPersonas: Int = 10,
@@ -62,7 +62,7 @@ public struct ProfileTabView: View {
         self.onAbout = onAbout
     }
 
-    public var body: some View {
+     var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -215,7 +215,7 @@ public struct ProfileTabView: View {
 
 // MARK: - Screen 2: Edit Profile
 
-public struct EditProfileView: View {
+ struct EditProfileView: View {
     @Environment(\.dismiss) var dismiss
     @Binding var displayName: String
     @Binding var username: String
@@ -229,7 +229,7 @@ public struct EditProfileView: View {
     let onSave: () -> Void
     let onChangePhoto: () -> Void
 
-    public init(
+     init(
         displayName: Binding<String>,
         username: Binding<String>,
         bio: Binding<String>,
@@ -255,7 +255,7 @@ public struct EditProfileView: View {
         self.onChangePhoto = onChangePhoto
     }
 
-    public var body: some View {
+     var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -343,7 +343,7 @@ public struct EditProfileView: View {
 
 // MARK: - Screen 3: Personas Management
 
-public struct PersonasManagementView: View {
+ struct PersonasManagementView: View {
     @Environment(\.dismiss) var dismiss
     let personas: [Persona]
     let maxPersonas: Int
@@ -352,7 +352,7 @@ public struct PersonasManagementView: View {
     let onSetDefault: (String) -> Void
     let onCreatePersona: () -> Void
 
-    public init(
+     init(
         personas: [Persona] = [],
         maxPersonas: Int = 10,
         onEditPersona: @escaping (Persona) -> Void = { _ in },
@@ -368,7 +368,7 @@ public struct PersonasManagementView: View {
         self.onCreatePersona = onCreatePersona
     }
 
-    public var body: some View {
+     var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -465,7 +465,7 @@ public struct PersonasManagementView: View {
 
 // MARK: - Screen 4: Create/Edit Persona
 
-public struct CreateEditPersonaView: View {
+ struct CreateEditPersonaView: View {
     @Environment(\.dismiss) var dismiss
     @State var selectedType: PersonaType
     @State var personaName: String
@@ -479,7 +479,7 @@ public struct CreateEditPersonaView: View {
     let isSaving: Bool
     let onSave: (PersonaType, String, String, String, Bool, PersonaVisibility, [String]) -> Void
 
-    public init(
+     init(
         persona: Persona? = nil,
         isSaving: Bool = false,
         onSave: @escaping (PersonaType, String, String, String, Bool, PersonaVisibility, [String]) -> Void = { _, _, _, _, _, _, _ in }
@@ -496,7 +496,7 @@ public struct CreateEditPersonaView: View {
         _selectedContactIds = State(initialValue: persona?.selectedContactIds ?? [])
     }
 
-    public var body: some View {
+     var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -626,13 +626,13 @@ public struct CreateEditPersonaView: View {
 
 // MARK: - Screen 5: Account Settings
 
-public struct AccountSettingsView: View {
+ struct AccountSettingsView: View {
     @Environment(\.dismiss) var dismiss
     let account: AccountInfo
     let onDeleteAccount: () -> Void
     @State private var showDeleteAlert = false
 
-    public init(
+     init(
         account: AccountInfo = AccountInfo(),
         onDeleteAccount: @escaping () -> Void = {}
     ) {
@@ -640,7 +640,7 @@ public struct AccountSettingsView: View {
         self.onDeleteAccount = onDeleteAccount
     }
 
-    public var body: some View {
+     var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -680,7 +680,11 @@ public struct AccountSettingsView: View {
                                     }
                                     Spacer()
                                     Button(action: {
+                                        #if os(iOS)
                                         UIPasteboard.general.string = did
+                                        #elseif os(macOS)
+                                        NSPasteboard.general.setString(did, forType: .string)
+                                        #endif
                                     }) {
                                         Image(systemName: "doc.on.doc")
                                             .foregroundColor(.echoGray400)
@@ -769,12 +773,12 @@ public struct AccountSettingsView: View {
 
 // MARK: - Screen 6: Privacy & Security Settings
 
-public struct PrivacySecuritySettingsView: View {
+ struct PrivacySecuritySettingsView: View {
     @Environment(\.dismiss) var dismiss
     @Binding var settings: EnhancedPrivacySettings
     let onSave: (EnhancedPrivacySettings) -> Void
 
-    public init(
+     init(
         settings: Binding<EnhancedPrivacySettings>,
         onSave: @escaping (EnhancedPrivacySettings) -> Void = { _ in }
     ) {
@@ -782,7 +786,7 @@ public struct PrivacySecuritySettingsView: View {
         self.onSave = onSave
     }
 
-    public var body: some View {
+     var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -901,12 +905,12 @@ public struct PrivacySecuritySettingsView: View {
 
 // MARK: - Screen 7: Notification Settings
 
-public struct NotificationSettingsView: View {
+ struct NotificationSettingsView: View {
     @Environment(\.dismiss) var dismiss
     @Binding var settings: EnhancedNotificationSettings
     let onSave: (EnhancedNotificationSettings) -> Void
 
-    public init(
+     init(
         settings: Binding<EnhancedNotificationSettings>,
         onSave: @escaping (EnhancedNotificationSettings) -> Void = { _ in }
     ) {
@@ -914,7 +918,7 @@ public struct NotificationSettingsView: View {
         self.onSave = onSave
     }
 
-    public var body: some View {
+     var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -1050,12 +1054,12 @@ public struct NotificationSettingsView: View {
 
 // MARK: - Screen 8: Appearance Settings
 
-public struct AppearanceSettingsView: View {
+ struct AppearanceSettingsView: View {
     @Environment(\.dismiss) var dismiss
     @Binding var settings: AppearanceSettings
     let onSave: (AppearanceSettings) -> Void
 
-    public init(
+     init(
         settings: Binding<AppearanceSettings>,
         onSave: @escaping (AppearanceSettings) -> Void = { _ in }
     ) {
@@ -1071,7 +1075,7 @@ public struct AppearanceSettingsView: View {
         ("Orange", "orange", Color(hex: 0xF59E0B))
     ]
 
-    public var body: some View {
+     var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -1191,14 +1195,14 @@ public struct AppearanceSettingsView: View {
 
 // MARK: - Screen 9: Storage & Data
 
-public struct StorageDataView: View {
+ struct StorageDataView: View {
     @Environment(\.dismiss) var dismiss
     @Binding var storageInfo: StorageInfo
     let onClearCache: () -> Void
     let onBackUp: () -> Void
     @State private var showClearCacheAlert = false
 
-    public init(
+     init(
         storageInfo: Binding<StorageInfo>,
         onClearCache: @escaping () -> Void = {},
         onBackUp: @escaping () -> Void = {}
@@ -1208,7 +1212,7 @@ public struct StorageDataView: View {
         self.onBackUp = onBackUp
     }
 
-    public var body: some View {
+     var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -1362,7 +1366,7 @@ public struct StorageDataView: View {
 
 // MARK: - Screen 10: About Echo
 
-public struct AboutView: View {
+ struct AboutView: View {
     @Environment(\.dismiss) var dismiss
 
     let appVersion: String
@@ -1373,7 +1377,7 @@ public struct AboutView: View {
     let onPrivacyPolicy: () -> Void
     let onOpenSource: () -> Void
 
-    public init(
+     init(
         appVersion: String = "1.0.0",
         onHelpCenter: @escaping () -> Void = {},
         onContactSupport: @escaping () -> Void = {},
@@ -1391,7 +1395,7 @@ public struct AboutView: View {
         self.onOpenSource = onOpenSource
     }
 
-    public var body: some View {
+     var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -1465,14 +1469,14 @@ public struct AboutView: View {
 
 // MARK: - Persona Switcher View
 
-public struct PersonaSwitcherView: View {
+ struct PersonaSwitcherView: View {
     let personas: [Persona]
     let activePersonaId: String?
     let contactName: String
     let onSelectPersona: (String) -> Void
     let onCreatePersona: () -> Void
 
-    public init(
+     init(
         personas: [Persona] = [],
         activePersonaId: String? = nil,
         contactName: String = "",
@@ -1486,7 +1490,7 @@ public struct PersonaSwitcherView: View {
         self.onCreatePersona = onCreatePersona
     }
 
-    public var body: some View {
+     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Message as:")
                 .typographyStyle(.caption, color: .echoGray500)
@@ -1563,12 +1567,12 @@ public struct PersonaSwitcherView: View {
 
 // MARK: - Persona Switch Warning View
 
-public struct PersonaSwitchWarningView: View {
+ struct PersonaSwitchWarningView: View {
     let context: PersonaSwitchContext
     let onConfirm: () -> Void
     let onCancel: () -> Void
 
-    public var body: some View {
+     var body: some View {
         VStack(spacing: Spacing.lg.rawValue) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 36))
@@ -1608,13 +1612,13 @@ public struct PersonaSwitchWarningView: View {
 
 // MARK: - Visibility Matrix View
 
-public struct VisibilityMatrixView: View {
+ struct VisibilityMatrixView: View {
     @Environment(\.dismiss) var dismiss
     let personas: [Persona]
     let matrixEntries: [VisibilityMatrixEntry]
     let onToggleVisibility: (String, String, Bool) -> Void
 
-    public init(
+     init(
         personas: [Persona] = [],
         matrixEntries: [VisibilityMatrixEntry] = [],
         onToggleVisibility: @escaping (String, String, Bool) -> Void = { _, _, _ in }
@@ -1628,7 +1632,7 @@ public struct VisibilityMatrixView: View {
         personas.filter { $0.deletionState == nil }
     }
 
-    public var body: some View {
+     var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -1720,13 +1724,13 @@ public struct VisibilityMatrixView: View {
 
 // MARK: - Per-Persona Privacy Settings View
 
-public struct PersonaPrivacySettingsView: View {
+ struct PersonaPrivacySettingsView: View {
     @Environment(\.dismiss) var dismiss
     let personaName: String
     @Binding var settings: PersonaPrivacySettings
     let onSave: (PersonaPrivacySettings) -> Void
 
-    public init(
+     init(
         personaName: String = "",
         settings: Binding<PersonaPrivacySettings>,
         onSave: @escaping (PersonaPrivacySettings) -> Void = { _ in }
@@ -1736,7 +1740,7 @@ public struct PersonaPrivacySettingsView: View {
         self.onSave = onSave
     }
 
-    public var body: some View {
+     var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -1804,13 +1808,13 @@ public struct PersonaPrivacySettingsView: View {
 
 // MARK: - Per-Persona Notification Settings View
 
-public struct PersonaNotificationSettingsView: View {
+ struct PersonaNotificationSettingsView: View {
     @Environment(\.dismiss) var dismiss
     let personaName: String
     @Binding var settings: PersonaNotificationSettings
     let onSave: (PersonaNotificationSettings) -> Void
 
-    public init(
+     init(
         personaName: String = "",
         settings: Binding<PersonaNotificationSettings>,
         onSave: @escaping (PersonaNotificationSettings) -> Void = { _ in }
@@ -1820,7 +1824,7 @@ public struct PersonaNotificationSettingsView: View {
         self.onSave = onSave
     }
 
-    public var body: some View {
+     var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -1880,13 +1884,13 @@ public struct PersonaNotificationSettingsView: View {
 
 // MARK: - Per-Persona Feature Settings View
 
-public struct PersonaFeatureSettingsView: View {
+ struct PersonaFeatureSettingsView: View {
     @Environment(\.dismiss) var dismiss
     let personaName: String
     @Binding var settings: PersonaFeatureSettings
     let onSave: (PersonaFeatureSettings) -> Void
 
-    public init(
+     init(
         personaName: String = "",
         settings: Binding<PersonaFeatureSettings>,
         onSave: @escaping (PersonaFeatureSettings) -> Void = { _ in }
@@ -1896,7 +1900,7 @@ public struct PersonaFeatureSettingsView: View {
         self.onSave = onSave
     }
 
-    public var body: some View {
+     var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -1940,7 +1944,7 @@ public struct PersonaFeatureSettingsView: View {
 
 // MARK: - Enhanced Persona Deletion View
 
-public struct PersonaDeletionView: View {
+ struct PersonaDeletionView: View {
     @Environment(\.dismiss) var dismiss
     let persona: Persona
     @State private var archiveConversations = true
@@ -1951,7 +1955,7 @@ public struct PersonaDeletionView: View {
     let onDelete: (PersonaDeletionOptions) -> Void
     let onExport: () -> Void
 
-    public init(
+     init(
         persona: Persona,
         onDelete: @escaping (PersonaDeletionOptions) -> Void = { _ in },
         onExport: @escaping () -> Void = {}
@@ -1969,7 +1973,7 @@ public struct PersonaDeletionView: View {
         confirmationText == confirmationRequired
     }
 
-    public var body: some View {
+     var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -2100,7 +2104,7 @@ public struct PersonaDeletionView: View {
                                 dismiss()
                             }
 
-                            Button(action: {
+                            Button {
                                 let options = PersonaDeletionOptions(
                                     archiveConversations: archiveConversations,
                                     notifyContacts: notifyContacts,
@@ -2109,7 +2113,7 @@ public struct PersonaDeletionView: View {
                                 )
                                 onDelete(options)
                                 dismiss()
-                            }) {
+                            } label: {
                                 Text("Delete Persona")
                                     .typographyStyle(.body, color: .white)
                                     .frame(maxWidth: .infinity)
@@ -2130,13 +2134,13 @@ public struct PersonaDeletionView: View {
 
 // MARK: - Persona Badges View
 
-public struct PersonaBadgesView: View {
+ struct PersonaBadgesView: View {
     @Environment(\.dismiss) var dismiss
     let persona: Persona
     let onAddBadge: () -> Void
     let onRemoveBadge: (String) -> Void
 
-    public init(
+     init(
         persona: Persona,
         onAddBadge: @escaping () -> Void = {},
         onRemoveBadge: @escaping (String) -> Void = { _ in }
@@ -2146,7 +2150,7 @@ public struct PersonaBadgesView: View {
         self.onRemoveBadge = onRemoveBadge
     }
 
-    public var body: some View {
+     var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -2292,11 +2296,11 @@ public struct PersonaBadgesView: View {
 
 // MARK: - Persona Recovery Banner
 
-public struct PersonaRecoveryBanner: View {
+ struct PersonaRecoveryBanner: View {
     let persona: Persona
     let onRecover: () -> Void
 
-    public var body: some View {
+     var body: some View {
         if let deletion = persona.deletionState, deletion.canRecover {
             HStack(spacing: Spacing.md.rawValue) {
                 Image(systemName: "exclamationmark.triangle.fill")
@@ -2328,7 +2332,7 @@ public struct PersonaRecoveryBanner: View {
 
 // MARK: - Refactored Settings Hub (navigates to sub-screens)
 
-public struct SettingsView: View {
+ struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     @State private var showSignOutAlert = false
 
@@ -2341,7 +2345,7 @@ public struct SettingsView: View {
     let onAbout: () -> Void
     let onSignOut: () -> Void
 
-    public init(
+     init(
         onAccountSettings: @escaping () -> Void = {},
         onPrivacySettings: @escaping () -> Void = {},
         onNotificationSettings: @escaping () -> Void = {},
@@ -2361,7 +2365,7 @@ public struct SettingsView: View {
         self.onSignOut = onSignOut
     }
 
-    public var body: some View {
+     var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -2421,7 +2425,12 @@ public struct SettingsView: View {
 
 struct SettingsSectionView<Content: View>: View {
     let title: String
-    let content: () -> Content
+    @ViewBuilder let content: () -> Content
+
+    init(title: String, @ViewBuilder content: @escaping () -> Content) {
+        self.title = title
+        self.content = content
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md.rawValue) {

@@ -465,13 +465,6 @@ struct TrustScoreResponse: Codable {
     let components: TrustScoreComponents
 }
 
-struct TrustScoreComponents: Codable {
-    let verification: Int
-    let behavior: Int
-    let onChain: Int
-    let penalties: Int
-}
-
 struct AchievementResponse: Codable {
     let id: String
     let name: String

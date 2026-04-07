@@ -1,5 +1,7 @@
 import Foundation
 
+import Foundation
+
 // MARK: - Auth Response (from server)
 
 struct AuthTokenResponse: Decodable {

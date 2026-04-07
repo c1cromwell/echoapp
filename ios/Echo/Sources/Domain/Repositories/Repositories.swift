@@ -32,8 +32,8 @@ actor ConcreteAuthRepository: AuthRepository {
     
     func register(email: String, password: String, username: String) async throws -> LoginResponse {
         // Generate public key from Secure Enclave
-        let publicKeyData = try secureEnclave.getPublicKey()
-        let publicKeyBase64 = publicKeyData.base64EncodedString()
+        let publicKeyBase64 = try await secureEnclave.generateBiometricProtectedKey(id: "user-register-key")
+
         
         let request = RegisterRequest(
             email: email,
@@ -88,7 +88,7 @@ actor ConcreteAuthRepository: AuthRepository {
     }
     
     func logout() async throws {
-        try await apiClient.post(endpoint: AuthEndpoint.logout, body: EmptyRequest())
+        let _: [String: String] = try await apiClient.post(endpoint: AuthEndpoint.logout, body: EmptyRequest())
         try await keychain.clearAuthCredentials()
     }
     
@@ -99,8 +99,7 @@ actor ConcreteAuthRepository: AuthRepository {
     
     func createPasskey() async throws -> String {
         // Generate passkey from Secure Enclave
-        let passkeyData = try secureEnclave.createPasskey()
-        return passkeyData.base64EncodedString()
+        return try await secureEnclave.generateBiometricProtectedKey(id: "passkey-\(UUID().uuidString)")
     }
     
     func verifyPasskey(credential: String) async throws -> Bool {
@@ -422,7 +421,16 @@ actor ConcreteTokenRepository: TokenRepository {
             lastUpdated: Date()
         )
         
-        try await localStorage.saveToken(token)
+        let localToken = LocalToken(
+            id: token.id,
+            balance: token.balance,
+            frozen: token.frozen,
+            available: token.available,
+            staked: token.staked,
+            currency: token.currency,
+            lastUpdated: token.lastUpdated
+        )
+        try await localStorage.saveToken(localToken)
         return token
     }
     

@@ -3,7 +3,7 @@
 
 import SwiftUI
 
-struct StakingView: View {
+struct WalletStakingView: View {
     @ObservedObject var viewModel: WalletViewModel
     @Environment(\.dismiss) private var dismiss
 
@@ -21,7 +21,9 @@ struct StakingView: View {
                             TextField("0.00", text: $viewModel.stakeAmount)
                                 .font(Font.Echo.displayMedium)
                                 .foregroundStyle(Color.Echo.onSurface)
+                                #if os(iOS)
                                 .keyboardType(.decimalPad)
+                                #endif
 
                             Text("ECHO")
                                 .font(Font.Echo.bodyLarge)

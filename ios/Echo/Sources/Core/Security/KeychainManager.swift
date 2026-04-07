@@ -182,6 +182,51 @@ actor KeychainManager {
         try delete(key: "refreshToken", service: KeychainService.authentication.rawValue)
     }
     
+    // MARK: - Generic Codable Operations
+    
+    /// Store a Codable value in Keychain
+    func store<T: Codable>(key: String, value: T) async throws {
+        let data = try JSONEncoder().encode(value)
+        
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: key,
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        ]
+        
+        // Delete existing
+        SecItemDelete(query as CFDictionary)
+        
+        // Add new
+        let status = SecItemAdd(query as CFDictionary, nil)
+        guard status == errSecSuccess else {
+            throw KeychainError.storageError(status)
+        }
+    }
+    
+    /// Retrieve a Codable value from Keychain
+    func retrieve<T: Codable>(key: String, as type: T.Type) async throws -> T? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: key,
+            kSecReturnData as String: true
+        ]
+        
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        
+        guard status == errSecSuccess else {
+            return nil
+        }
+        
+        guard let data = result as? Data else {
+            return nil
+        }
+        
+        return try JSONDecoder().decode(T.self, from: data)
+    }
+    
     // MARK: - Verification
     
     /// Check if a key exists in Keychain

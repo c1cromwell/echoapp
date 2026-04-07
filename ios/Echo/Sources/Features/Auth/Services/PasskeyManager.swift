@@ -1,5 +1,9 @@
 import AuthenticationServices
+import AuthenticationServices
 import CryptoKit
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - Protocol
 
@@ -144,12 +148,16 @@ final class PasskeyManager: NSObject, PasskeyManagerProtocol,
     func presentationAnchor(
         for controller: ASAuthorizationController
     ) -> ASPresentationAnchor {
+        #if os(iOS)
         guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let window = scene.windows.first
         else {
             return ASPresentationAnchor()
         }
         return window
+        #else
+        return ASPresentationAnchor()
+        #endif
     }
 }
 

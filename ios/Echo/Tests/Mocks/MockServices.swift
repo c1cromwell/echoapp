@@ -60,7 +60,7 @@ class MockAuthService: AuthServiceProtocol {
 
 // MARK: - Mock Keychain Manager
 
-class MockKeychainManager: KeychainManagerProtocol {
+class MockKeychainManager: TokenKeychainProtocol {
     var storedToken: String?
     var saveTokenCallCount = 0
     var clearAllCallCount = 0

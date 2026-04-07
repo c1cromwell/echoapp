@@ -3,7 +3,7 @@ import Combine
 
 /// Auth ViewModel - Manages authentication flow
 @Observable
-public class AuthViewModel: NSObject {
+ class AuthViewModel: NSObject {
     // MARK: - Published State
     
     @ObservationIgnored @Published var isLoading = false
@@ -16,10 +16,10 @@ public class AuthViewModel: NSObject {
     // MARK: - Dependencies
     
     private let authService: AuthServiceProtocol
-    private let keychainManager: KeychainManagerProtocol
+    private let keychainManager: TokenKeychainProtocol
     private var cancellables = Set<AnyCancellable>()
     
-    public enum AuthState {
+     enum AuthState {
         case welcome
         case phoneEntry
         case otpVerification
@@ -28,9 +28,9 @@ public class AuthViewModel: NSObject {
         case complete
     }
     
-    public init(
+     init(
         authService: AuthServiceProtocol,
-        keychainManager: KeychainManagerProtocol
+        keychainManager: TokenKeychainProtocol
     ) {
         self.authService = authService
         self.keychainManager = keychainManager
@@ -39,7 +39,7 @@ public class AuthViewModel: NSObject {
     
     // MARK: - Public Methods
     
-    public func requestOTP(phone: String) {
+     func requestOTP(phone: String) {
         isLoading = true
         errorMessage = nil
         
@@ -60,7 +60,7 @@ public class AuthViewModel: NSObject {
         }
     }
     
-    public func verifyOTP(_ code: String) {
+     func verifyOTP(_ code: String) {
         isLoading = true
         errorMessage = nil
         
@@ -82,7 +82,7 @@ public class AuthViewModel: NSObject {
         }
     }
     
-    public func setupPasskey() {
+     func setupPasskey() {
         isLoading = true
         
         Task {
@@ -101,7 +101,7 @@ public class AuthViewModel: NSObject {
         }
     }
     
-    public func signOut() {
+     func signOut() {
         keychainManager.clearAll()
         isAuthenticated = false
         authState = .welcome
@@ -112,7 +112,7 @@ public class AuthViewModel: NSObject {
 
 // MARK: - Protocol Definition
 
-public protocol AuthServiceProtocol {
+ protocol AuthServiceProtocol {
     func requestOTP(phone: String) async throws -> OTPResponse
     func verifyOTP(phone: String, code: String) async throws -> AuthResponse
     func registerPasskey() async throws
@@ -120,37 +120,29 @@ public protocol AuthServiceProtocol {
     func refreshToken() async throws -> String
 }
 
-public struct OTPResponse: Codable {
-    public let expiresIn: Int
-    public let phone: String
+ struct OTPResponse: Codable {
+     let expiresIn: Int
+     let phone: String
 }
 
-public struct AuthResponse: Codable {
-    public let token: String
-    public let refreshToken: String
-    public let did: String
-    public let user: UserProfile
+ struct AuthResponse: Codable {
+     let token: String
+     let refreshToken: String
+     let did: String
+     let user: UserProfile
 }
 
-public struct UserProfile: Codable {
-    public let id: String
-    public let phone: String
-    public let displayName: String?
-    public let username: String?
-    public let avatarURL: String?
-}
-
-// MARK: - Protocol Definition
-
-public protocol KeychainManagerProtocol {
-    func saveToken(_ token: String) throws
-    func retrieveToken() -> String?
-    func clearAll()
+ struct UserProfile: Codable {
+     let id: String
+     let phone: String
+     let displayName: String?
+     let username: String?
+     let avatarURL: String?
 }
 
 // MARK: - Profile ViewModel
 
-public protocol ProfileServiceProtocol {
+ protocol ProfileServiceProtocol {
     func fetchProfile() async throws -> ProfileData
     func updateProfile(_ profile: ProfileData) async throws -> ProfileData
     func checkUsernameAvailability(_ username: String) async throws -> Bool
@@ -187,22 +179,22 @@ public protocol ProfileServiceProtocol {
     func exportPersonaData(personaId: String) async throws -> URL
 }
 
-public struct ProfileData {
-    public var displayName: String
-    public var username: String
-    public var bio: String
-    public var status: String
-    public var avatarURL: String?
-    public var website: String?
-    public var links: [String]
-    public var trustScore: Int
-    public var trustLevel: String
-    public var isVerified: Bool
-    public var messagesSent: Int
-    public var contactsCount: Int
-    public var echoRewards: Double
+ struct ProfileData {
+     var displayName: String
+     var username: String
+     var bio: String
+     var status: String
+     var avatarURL: String?
+     var website: String?
+     var links: [String]
+     var trustScore: Int
+     var trustLevel: String
+     var isVerified: Bool
+     var messagesSent: Int
+     var contactsCount: Int
+     var echoRewards: Double
 
-    public init(
+     init(
         displayName: String = "",
         username: String = "",
         bio: String = "",
@@ -233,13 +225,13 @@ public struct ProfileData {
     }
 }
 
-public struct ProfileSettings {
-    public var notifications: EnhancedNotificationSettings
-    public var privacy: EnhancedPrivacySettings
-    public var appearance: AppearanceSettings
-    public var account: AccountInfo
+ struct ProfileSettings {
+     var notifications: EnhancedNotificationSettings
+     var privacy: EnhancedPrivacySettings
+     var appearance: AppearanceSettings
+     var account: AccountInfo
 
-    public init(
+     init(
         notifications: EnhancedNotificationSettings = .init(),
         privacy: EnhancedPrivacySettings = .init(),
         appearance: AppearanceSettings = .init(),
@@ -253,7 +245,7 @@ public struct ProfileSettings {
 }
 
 @Observable
-public class ProfileViewModel: NSObject {
+ class ProfileViewModel: NSObject {
     // MARK: - Profile State
     @ObservationIgnored @Published var profile = ProfileData()
     @ObservationIgnored @Published var personas: [Persona] = []
@@ -292,24 +284,24 @@ public class ProfileViewModel: NSObject {
 
     static let maxBioLength = 500
 
-    public init(profileService: ProfileServiceProtocol) {
+     init(profileService: ProfileServiceProtocol) {
         self.profileService = profileService
         super.init()
     }
 
     // MARK: - Trust-Level Persona Limits
 
-    public var personaLimits: PersonaLimits {
+     var personaLimits: PersonaLimits {
         PersonaLimits.forTrustLevel(profile.trustLevel)
     }
 
-    public var maxPersonas: Int {
+     var maxPersonas: Int {
         personaLimits.maxPersonas
     }
 
     // MARK: - Profile Methods
 
-    public func fetchProfile() {
+     func fetchProfile() {
         isLoading = true
         errorMessage = nil
 
@@ -329,7 +321,7 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public func beginEditProfile() {
+     func beginEditProfile() {
         editDisplayName = profile.displayName
         editUsername = profile.username
         editBio = profile.bio
@@ -338,7 +330,7 @@ public class ProfileViewModel: NSObject {
         isUsernameAvailable = nil
     }
 
-    public func checkUsernameAvailability() {
+     func checkUsernameAvailability() {
         let username = editUsername
         guard !username.isEmpty, username != profile.username else {
             isUsernameAvailable = nil
@@ -362,7 +354,7 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public func saveProfile() {
+     func saveProfile() {
         isSaving = true
         errorMessage = nil
 
@@ -392,7 +384,7 @@ public class ProfileViewModel: NSObject {
 
     // MARK: - Persona Methods
 
-    public func fetchPersonas() {
+     func fetchPersonas() {
         Task {
             do {
                 let result = try await profileService.fetchPersonas()
@@ -410,20 +402,20 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public var canCreatePersona: Bool {
+     var canCreatePersona: Bool {
         personas.count < maxPersonas
     }
 
-    public var remainingPersonaSlots: Int {
+     var remainingPersonaSlots: Int {
         max(0, maxPersonas - personas.count)
     }
 
-    public var activePersona: Persona? {
+     var activePersona: Persona? {
         guard let id = activePersonaId else { return nil }
         return personas.first { $0.id == id }
     }
 
-    public func createPersona(_ persona: Persona) {
+     func createPersona(_ persona: Persona) {
         guard canCreatePersona else {
             errorMessage = "You've reached the maximum number of personas for your trust level."
             return
@@ -454,7 +446,7 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public func updatePersona(_ persona: Persona) {
+     func updatePersona(_ persona: Persona) {
         isSaving = true
 
         Task {
@@ -476,7 +468,7 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public func deletePersona(id: String, options: PersonaDeletionOptions = PersonaDeletionOptions()) {
+     func deletePersona(id: String, options: PersonaDeletionOptions = PersonaDeletionOptions()) {
         guard personas.count > 1 else {
             errorMessage = "You must have at least one persona."
             return
@@ -513,7 +505,7 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public func recoverPersona(id: String) {
+     func recoverPersona(id: String) {
         Task {
             do {
                 let recovered = try await profileService.recoverPersona(id: id)
@@ -531,7 +523,7 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public func setDefaultPersona(id: String) {
+     func setDefaultPersona(id: String) {
         Task {
             do {
                 try await profileService.setDefaultPersona(id: id)
@@ -550,7 +542,7 @@ public class ProfileViewModel: NSObject {
 
     // MARK: - Persona Switching
 
-    public func switchPersona(to personaId: String, forContact contactId: String) {
+     func switchPersona(to personaId: String, forContact contactId: String) {
         Task {
             do {
                 let context = try await profileService.validatePersonaSwitch(
@@ -575,7 +567,7 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public func confirmPersonaSwitch() {
+     func confirmPersonaSwitch() {
         guard let context = switchContext else { return }
         activePersonaId = context.toPersonaId
         updatePersonaLastActive(context.toPersonaId)
@@ -583,7 +575,7 @@ public class ProfileViewModel: NSObject {
         switchContext = nil
     }
 
-    public func cancelPersonaSwitch() {
+     func cancelPersonaSwitch() {
         showSwitchWarning = false
         switchContext = nil
     }
@@ -596,7 +588,7 @@ public class ProfileViewModel: NSObject {
 
     // MARK: - Visibility Matrix
 
-    public func fetchVisibilityMatrix() {
+     func fetchVisibilityMatrix() {
         Task {
             do {
                 let matrix = try await profileService.fetchVisibilityMatrix()
@@ -613,7 +605,7 @@ public class ProfileViewModel: NSObject {
 
     // MARK: - Access Grants
 
-    public func grantAccess(personaId: String, contactId: String, permissions: AccessPermissions = .init()) {
+     func grantAccess(personaId: String, contactId: String, permissions: AccessPermissions = .init()) {
         Task {
             do {
                 let grant = try await profileService.grantAccess(personaId: personaId, contactId: contactId, permissions: permissions)
@@ -633,7 +625,7 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public func revokeAccess(personaId: String, grantId: String) {
+     func revokeAccess(personaId: String, grantId: String) {
         Task {
             do {
                 try await profileService.revokeAccess(grantId: grantId)
@@ -652,7 +644,7 @@ public class ProfileViewModel: NSObject {
 
     // MARK: - Persona Conversations
 
-    public func fetchPersonaConversations(personaId: String) {
+     func fetchPersonaConversations(personaId: String) {
         Task {
             do {
                 let convos = try await profileService.fetchPersonaConversations(personaId: personaId)
@@ -669,7 +661,7 @@ public class ProfileViewModel: NSObject {
 
     // MARK: - Per-Persona Settings
 
-    public func updatePersonaPrivacySettings(personaId: String, settings: PersonaPrivacySettings) {
+     func updatePersonaPrivacySettings(personaId: String, settings: PersonaPrivacySettings) {
         Task {
             do {
                 try await profileService.updatePersonaPrivacySettings(personaId: personaId, settings: settings)
@@ -686,7 +678,7 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public func updatePersonaNotificationSettings(personaId: String, settings: PersonaNotificationSettings) {
+     func updatePersonaNotificationSettings(personaId: String, settings: PersonaNotificationSettings) {
         Task {
             do {
                 try await profileService.updatePersonaNotificationSettings(personaId: personaId, settings: settings)
@@ -703,7 +695,7 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public func updatePersonaFeatureSettings(personaId: String, settings: PersonaFeatureSettings) {
+     func updatePersonaFeatureSettings(personaId: String, settings: PersonaFeatureSettings) {
         Task {
             do {
                 try await profileService.updatePersonaFeatureSettings(personaId: personaId, settings: settings)
@@ -722,7 +714,7 @@ public class ProfileViewModel: NSObject {
 
     // MARK: - Badges
 
-    public func addBadge(personaId: String, badge: PersonaBadge) {
+     func addBadge(personaId: String, badge: PersonaBadge) {
         Task {
             do {
                 let added = try await profileService.addPersonaBadge(personaId: personaId, badge: badge)
@@ -741,7 +733,7 @@ public class ProfileViewModel: NSObject {
 
     // MARK: - Export
 
-    public func exportPersonaData(personaId: String) {
+     func exportPersonaData(personaId: String) {
         isLoading = true
         Task {
             do {
@@ -761,7 +753,7 @@ public class ProfileViewModel: NSObject {
 
     // MARK: - Settings Methods
 
-    public func fetchSettings() {
+     func fetchSettings() {
         Task {
             do {
                 let result = try await profileService.fetchSettings()
@@ -776,7 +768,7 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public func updateNotificationSettings(_ settings: EnhancedNotificationSettings) {
+     func updateNotificationSettings(_ settings: EnhancedNotificationSettings) {
         Task {
             do {
                 try await profileService.updateNotificationSettings(settings)
@@ -791,7 +783,7 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public func updatePrivacySettings(_ settings: EnhancedPrivacySettings) {
+     func updatePrivacySettings(_ settings: EnhancedPrivacySettings) {
         Task {
             do {
                 try await profileService.updatePrivacySettings(settings)
@@ -806,7 +798,7 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public func updateAppearanceSettings(_ settings: AppearanceSettings, themeManager: ThemeManager? = nil) {
+     func updateAppearanceSettings(_ settings: AppearanceSettings, themeManager: ThemeManager? = nil) {
         Task {
             do {
                 try await profileService.updateAppearanceSettings(settings)
@@ -826,7 +818,7 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public func fetchStorageInfo() {
+     func fetchStorageInfo() {
         Task {
             do {
                 let info = try await profileService.fetchStorageInfo()
@@ -841,7 +833,7 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public func clearCache() {
+     func clearCache() {
         isLoading = true
         Task {
             do {
@@ -860,7 +852,7 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public func backUpNow() {
+     func backUpNow() {
         isLoading = true
         Task {
             do {
@@ -879,7 +871,7 @@ public class ProfileViewModel: NSObject {
         }
     }
 
-    public func deleteAccount() {
+     func deleteAccount() {
         isLoading = true
         Task {
             do {
@@ -900,7 +892,7 @@ public class ProfileViewModel: NSObject {
 // MARK: - Messaging ViewModel
 
 @Observable
-public class MessagingViewModel: NSObject {
+ class MessagingViewModel: NSObject {
     @ObservationIgnored @Published var conversations: [ConversationModel] = []
     @ObservationIgnored @Published var selectedConversation: ConversationModel?
     @ObservationIgnored @Published var messages: [MessageModel] = []
@@ -910,12 +902,12 @@ public class MessagingViewModel: NSObject {
     private let messagingService: MessagingServiceProtocol
     private var cancellables = Set<AnyCancellable>()
     
-    public init(messagingService: MessagingServiceProtocol) {
+     init(messagingService: MessagingServiceProtocol) {
         self.messagingService = messagingService
         super.init()
     }
     
-    public func fetchConversations() {
+     func fetchConversations() {
         isLoading = true
         
         Task {
@@ -934,12 +926,12 @@ public class MessagingViewModel: NSObject {
         }
     }
     
-    public func selectConversation(_ conversation: ConversationModel) {
+     func selectConversation(_ conversation: ConversationModel) {
         selectedConversation = conversation
         fetchMessages(for: conversation.id)
     }
     
-    public func fetchMessages(for conversationId: String) {
+     func fetchMessages(for conversationId: String) {
         Task {
             do {
                 let messages = try await messagingService.fetchMessages(conversationId: conversationId)
@@ -954,7 +946,7 @@ public class MessagingViewModel: NSObject {
         }
     }
     
-    public func sendMessage(_ content: String, to conversationId: String) {
+     func sendMessage(_ content: String, to conversationId: String) {
         Task {
             do {
                 try await messagingService.sendMessage(content, to: conversationId)
@@ -970,35 +962,35 @@ public class MessagingViewModel: NSObject {
     }
 }
 
-public protocol MessagingServiceProtocol {
+ protocol MessagingServiceProtocol {
     func fetchConversations() async throws -> [ConversationModel]
     func fetchMessages(conversationId: String) async throws -> [MessageModel]
     func sendMessage(_ content: String, to conversationId: String) async throws
     func markAsRead(conversationId: String) async throws
 }
 
-public struct ConversationModel: Identifiable {
-    public let id: String
-    public let participantId: String
-    public let participantName: String
-    public var lastMessage: String?
-    public var unreadCount: Int
-    public var updatedAt: Date
+ struct ConversationModel: Identifiable {
+     let id: String
+     let participantId: String
+     let participantName: String
+     var lastMessage: String?
+     var unreadCount: Int
+     var updatedAt: Date
 }
 
-public struct MessageModel: Identifiable {
-    public let id: String
-    public let conversationId: String
-    public let senderId: String
-    public let content: String
-    public let status: MessageStatus
-    public let createdAt: Date
+ struct MessageModel: Identifiable {
+     let id: String
+     let conversationId: String
+     let senderId: String
+     let content: String
+     let status: MessageStatus
+     let createdAt: Date
 }
 
 // MARK: - Trust ViewModel
 
 @Observable
-public class TrustViewModel: NSObject {
+ class TrustViewModel: NSObject {
     @ObservationIgnored @Published var trustScore = 0
     @ObservationIgnored @Published var trustLevel = "Newcomer"
     @ObservationIgnored @Published var breakdown: TrustBreakdown?
@@ -1007,12 +999,12 @@ public class TrustViewModel: NSObject {
     
     private let trustService: TrustServiceProtocol
     
-    public init(trustService: TrustServiceProtocol) {
+     init(trustService: TrustServiceProtocol) {
         self.trustService = trustService
         super.init()
     }
     
-    public func fetchTrustScore(userId: String) {
+     func fetchTrustScore(userId: String) {
         isLoading = true
         
         Task {
@@ -1033,7 +1025,7 @@ public class TrustViewModel: NSObject {
         }
     }
     
-    public func submitVerification(documents: [URL], selfie: URL) {
+     func submitVerification(documents: [URL], selfie: URL) {
         isLoading = true
         
         Task {
@@ -1052,29 +1044,29 @@ public class TrustViewModel: NSObject {
     }
 }
 
-public protocol TrustServiceProtocol {
+ protocol TrustServiceProtocol {
     func fetchTrustScore(userId: String) async throws -> TrustScoreResult
     func submitVerification(documents: [URL], selfie: URL) async throws
     func updateTrustCircle(contactId: String, tier: String) async throws
 }
 
-public struct TrustScoreResult {
-    public let score: Int
-    public let level: String
-    public let breakdown: TrustBreakdown
+ struct TrustScoreResult {
+     let score: Int
+     let level: String
+     let breakdown: TrustBreakdown
 }
 
-public struct TrustBreakdown {
-    public let identity: Int
-    public let behavior: Int
-    public let network: Int
-    public let activity: Int
+ struct TrustBreakdown {
+     let identity: Int
+     let behavior: Int
+     let network: Int
+     let activity: Int
 }
 
 // MARK: - Rewards ViewModel
 
 @Observable
-public class RewardsViewModel: NSObject {
+ class RewardsViewModel: NSObject {
     @ObservationIgnored @Published var tokenBalance = 0.0
     @ObservationIgnored @Published var activities: [RewardActivityModel] = []
     @ObservationIgnored @Published var isLoading = false
@@ -1082,12 +1074,12 @@ public class RewardsViewModel: NSObject {
     
     private let rewardsService: RewardsServiceProtocol
     
-    public init(rewardsService: RewardsServiceProtocol) {
+     init(rewardsService: RewardsServiceProtocol) {
         self.rewardsService = rewardsService
         super.init()
     }
     
-    public func fetchBalance() {
+     func fetchBalance() {
         Task {
             do {
                 let balance = try await rewardsService.fetchBalance()
@@ -1102,7 +1094,7 @@ public class RewardsViewModel: NSObject {
         }
     }
     
-    public func fetchActivity() {
+     func fetchActivity() {
         Task {
             do {
                 let activities = try await rewardsService.fetchActivity()
@@ -1117,7 +1109,7 @@ public class RewardsViewModel: NSObject {
         }
     }
     
-    public func claimRewards() {
+     func claimRewards() {
         isLoading = true
         
         Task {
@@ -1137,17 +1129,17 @@ public class RewardsViewModel: NSObject {
     }
 }
 
-public protocol RewardsServiceProtocol {
+ protocol RewardsServiceProtocol {
     func fetchBalance() async throws -> Double
     func fetchActivity() async throws -> [RewardActivityModel]
     func stakeTokens(amount: Double, period: Int) async throws
     func claimRewards() async throws -> Double
 }
 
-public struct RewardActivityModel: Identifiable {
-    public let id: String
-    public let type: String
-    public let amount: Double
-    public let description: String
-    public let date: Date
+ struct RewardActivityModel: Identifiable {
+     let id: String
+     let type: String
+     let amount: Double
+     let description: String
+     let date: Date
 }

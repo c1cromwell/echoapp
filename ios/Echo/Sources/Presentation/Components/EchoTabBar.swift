@@ -86,10 +86,8 @@ struct TabBarItemView: View {
             .foregroundColor(isSelected ? .echoPrimary : .echoGray500)
             .frame(maxWidth: .infinity)
         }
-        .accessibility(label: Text(item.title))
-        if let badge = item.badge, badge > 0 {
-            .accessibility(value: Text("\(badge) unread"))
-        }
+        .accessibilityLabel(item.title)
+        .accessibilityValue(item.badge.map { $0 > 0 ? "\($0) unread" : "" } ?? "")
     }
 }
 

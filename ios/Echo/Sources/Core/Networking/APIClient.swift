@@ -88,7 +88,7 @@ actor APIClient {
         endpoint: APIEndpoint,
         method: HTTPMethod,
         body: Encodable? = nil
-    ) throws -> URLRequest {
+    ) async throws -> URLRequest {
         let url = configuration.baseURL.appendingPathComponent(endpoint.path)
         var request = URLRequest(url: url)
         

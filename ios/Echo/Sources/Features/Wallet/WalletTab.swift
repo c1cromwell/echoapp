@@ -47,7 +47,9 @@ struct WalletTab: View {
                 .padding()
             }
             .icyBackground()
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     HStack(spacing: 6) {
@@ -226,7 +228,7 @@ struct WalletActionButtons: View {
     var body: some View {
         HStack(spacing: 12) {
             NavigationLink {
-                StakingView(viewModel: viewModel)
+                WalletStakingView(viewModel: viewModel)
             } label: {
                 actionButton("Stake", icon: "lock.shield")
             }

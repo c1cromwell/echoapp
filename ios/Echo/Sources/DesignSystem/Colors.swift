@@ -123,7 +123,7 @@ extension Color {
 
 extension Color {
     /// Adaptive primary text color
-    static let echoPrimaryText = Color(light: .echoGray900, dark: .echoGray50)
+    public static let echoPrimaryText = Color(light: .echoGray900, dark: .echoGray50)
     
     /// Adaptive secondary text color
     static let echoSecondaryText = Color(light: .echoGray600, dark: .echoGray300)

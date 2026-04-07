@@ -1,14 +1,6 @@
 import Foundation
 import Combine
 
-// MARK: - Keychain Protocol
-
-protocol KeychainManagerProtocol {
-    func save(_ data: Data, for key: String) throws
-    func load(for key: String) throws -> Data?
-    func delete(for key: String) throws
-}
-
 // MARK: - Token Manager
 
 final class TokenManager: ObservableObject {
@@ -18,14 +10,14 @@ final class TokenManager: ObservableObject {
     private var accessToken: String?
     private var accessTokenExpiry: Date?
 
-    private let keychain: KeychainManagerProtocol
+    private let keychain: DataKeychainProtocol
     private let apiClient: AuthAPIClientProtocol
     private var refreshTask: Task<String, Error>?
 
     static let refreshTokenKey = "echo.auth.refresh_token"
     static let biometricStateKey = "echo.auth.biometric_state"
 
-    init(keychain: KeychainManagerProtocol, apiClient: AuthAPIClientProtocol) {
+    init(keychain: DataKeychainProtocol, apiClient: AuthAPIClientProtocol) {
         self.keychain = keychain
         self.apiClient = apiClient
         self.isAuthenticated = hasStoredRefreshToken()
@@ -111,22 +103,17 @@ final class TokenManager: ObservableObject {
     }
 }
 
-// MARK: - Keychain Adapter (bridges existing KeychainManager)
+// MARK: - Keychain Adapter
 
-final class KeychainAdapter: KeychainManagerProtocol {
-    private let keychain: KeychainManager
-
-    init(keychain: KeychainManager = .shared) {
-        self.keychain = keychain
-    }
-
+final class KeychainAdapter: DataKeychainProtocol {
+    
     func save(_ data: Data, for key: String) throws {
-        // Actor isolation requires async — we bridge with a semaphore for sync callers
         let semaphore = DispatchSemaphore(value: 0)
         var thrownError: Error?
         Task {
             do {
-                try await keychain.store(data: data, key: key)
+                let manager = KeychainManager.shared
+                try await manager.store(data: data, key: key)
             } catch {
                 thrownError = error
             }
@@ -142,7 +129,8 @@ final class KeychainAdapter: KeychainManagerProtocol {
         var thrownError: Error?
         Task {
             do {
-                result = try await keychain.retrieveData(key: key)
+                let manager = KeychainManager.shared
+                result = try await manager.retrieveData(key: key)
             } catch {
                 thrownError = error
             }
@@ -158,7 +146,8 @@ final class KeychainAdapter: KeychainManagerProtocol {
         var thrownError: Error?
         Task {
             do {
-                try await keychain.delete(key: key)
+                let manager = KeychainManager.shared
+                try await manager.delete(key: key)
             } catch {
                 thrownError = error
             }
@@ -172,7 +161,7 @@ final class KeychainAdapter: KeychainManagerProtocol {
 // MARK: - Mock for Testing
 
 #if DEBUG
-final class MockKeychainManager: KeychainManagerProtocol {
+final class MockDataKeychainManager: DataKeychainProtocol {
     var storage: [String: Data] = [:]
 
     func save(_ data: Data, for key: String) throws {

@@ -46,7 +46,7 @@ public struct OTPInputView: View {
                     .onChange(of: digits[index]) { newValue in
                         // Only allow single digit
                         if newValue.count > 1 {
-                            digits[index] = String(newValue.last ?? "")
+                            digits[index] = newValue.last.map(String.init) ?? ""
                         }
                         
                         // Only allow numeric input
@@ -131,11 +131,13 @@ struct OTPDigitField: View {
         .onTapGesture {
             onEditingChanged(true)
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIKeyboardDidShow)) { _ in
+        #if os(iOS)
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
             if isActive {
                 onEditingChanged(true)
             }
         }
+        #endif
     }
 }
 

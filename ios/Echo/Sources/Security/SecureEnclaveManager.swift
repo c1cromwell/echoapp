@@ -1,6 +1,9 @@
 import Foundation
 import CryptoKit
 import LocalAuthentication
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Manages cryptographic keys in iOS Secure Enclave with biometric protection
 /// 
@@ -39,6 +42,10 @@ actor SecureEnclaveManager {
     }
   }
   
+  // MARK: - Singleton
+  
+  static let shared = SecureEnclaveManager()
+  
   // MARK: - Properties
   
   private let keychain = KeychainManager.shared
@@ -70,7 +77,7 @@ actor SecureEnclaveManager {
     
     do {
       // Generate Secure Enclave private key (P-256)
-      let privateKey = try P256.Signing.PrivateKey(format: .uncompressed)
+      let privateKey = try P256.Signing.PrivateKey(compactRepresentable: false)
       let publicKey = privateKey.publicKey
       
       // Serialize public key for storage
@@ -80,9 +87,9 @@ actor SecureEnclaveManager {
       // Store private key in Secure Enclave via Keychain
       let attributes: [String: Any] = [
         kSecClass as String: kSecClassKey,
-        kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeP256,
+        kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
         kSecAttrKeyClass as String: kSecAttrKeyClassPrivate,
-        kSecUseSecureEnclave as String: true,
+        kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
         kSecAttrLabel as String: keyId,
         kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         kSecReturnRef as String: true
@@ -246,8 +253,9 @@ actor SecureEnclaveManager {
     publicKey: P256.Signing.PublicKey
   ) -> Bool {
     do {
-      return try publicKey.isValidSignature(
-        signature,
+      let ecdsaSignature = try P256.Signing.ECDSASignature(rawRepresentation: signature)
+      return publicKey.isValidSignature(
+        ecdsaSignature,
         for: data
       )
     } catch {
@@ -314,7 +322,7 @@ actor SecureEnclaveManager {
     let query: [String: Any] = [
       kSecClass as String: kSecClassKey,
       kSecAttrLabel as String: keyId,
-      kSecUseSecureEnclave as String: true
+      kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave
     ]
     
     let status = SecItemDelete(query as CFDictionary)
@@ -378,7 +386,7 @@ actor SecureEnclaveManager {
     let query: [String: Any] = [
       kSecClass as String: kSecClassKey,
       kSecAttrLabel as String: keyId,
-      kSecUseSecureEnclave as String: true,
+      kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
       kSecReturnRef as String: true
     ]
     
@@ -411,60 +419,4 @@ struct KeyMetadata: Codable {
   let publicKey: String // base64-encoded
 }
 
-/// Thread-safe keychain manager
-actor KeychainManager {
-  static let shared = KeychainManager()
-  
-  func store<T: Codable>(key: String, value: T) async throws {
-    let data = try JSONEncoder().encode(value)
-    
-    let query: [String: Any] = [
-      kSecClass as String: kSecClassGenericPassword,
-      kSecAttrAccount as String: key,
-      kSecValueData as String: data,
-      kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-    ]
-    
-    // Delete existing
-    SecItemDelete(query as CFDictionary)
-    
-    // Add new
-    let status = SecItemAdd(query as CFDictionary, nil)
-    guard status == errSecSuccess else {
-      throw SecureEnclaveError.operationFailed("Store failed: \(status)")
-    }
-  }
-  
-  func retrieve<T: Codable>(key: String, as: T.Type) async throws -> T? {
-    let query: [String: Any] = [
-      kSecClass as String: kSecClassGenericPassword,
-      kSecAttrAccount as String: key,
-      kSecReturnData as String: true
-    ]
-    
-    var result: CFTypeRef?
-    let status = SecItemCopyMatching(query as CFDictionary, &result)
-    
-    guard status == errSecSuccess else {
-      return nil
-    }
-    
-    guard let data = result as? Data else {
-      return nil
-    }
-    
-    return try JSONDecoder().decode(T.self, from: data)
-  }
-  
-  func delete(key: String) async throws {
-    let query: [String: Any] = [
-      kSecClass as String: kSecClassGenericPassword,
-      kSecAttrAccount as String: key
-    ]
-    
-    let status = SecItemDelete(query as CFDictionary)
-    guard status == errSecSuccess || status == errSecItemNotFound else {
-      throw SecureEnclaveError.operationFailed("Delete failed: \(status)")
-    }
-  }
-}
+

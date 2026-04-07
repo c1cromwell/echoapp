@@ -1,5 +1,8 @@
 import Foundation
 import LocalAuthentication
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Manages biometric authentication (Face ID / Touch ID)
 class BiometricAuthManager: NSObject {

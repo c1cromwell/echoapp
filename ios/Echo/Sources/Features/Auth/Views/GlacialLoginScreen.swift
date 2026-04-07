@@ -82,7 +82,9 @@ struct GlacialLoginScreen: View {
                                 .background(Color.Echo.surfaceContainerLowest)
                                 .clipShape(RoundedRectangle(cornerRadius: 32))
                                 .ghostBorder(opacity: 0.10)
+                                #if os(iOS)
                                 .keyboardType(.phonePad)
+                                #endif
 
                             Button {
                                 onSMSLogin(phoneNumber)

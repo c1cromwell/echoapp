@@ -291,7 +291,11 @@ public struct ReferralView: View {
                                     .monospaced()
                                 
                                 Button(action: {
+                                    #if os(iOS)
                                     UIPasteboard.general.string = referralCode
+                                    #elseif os(macOS)
+                                    NSPasteboard.general.setString(referralCode, forType: .string)
+                                    #endif
                                     copied = true
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                                         copied = false

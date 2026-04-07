@@ -1,3 +1,4 @@
+import Foundation
 import LocalAuthentication
 
 // MARK: - Biometric Status
@@ -11,10 +12,10 @@ enum BiometricStatus {
 // MARK: - Biometric Integrity Service
 
 final class BiometricIntegrityService {
-    private let keychain: KeychainManagerProtocol
+    private let keychain: DataKeychainProtocol
     private static let stateKey = "echo.biometric.domain_state"
 
-    init(keychain: KeychainManagerProtocol) {
+    init(keychain: DataKeychainProtocol) {
         self.keychain = keychain
     }
 

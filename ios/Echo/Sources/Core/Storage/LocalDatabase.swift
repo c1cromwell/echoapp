@@ -29,15 +29,15 @@ actor LocalDatabase {
     static func setup() throws {
         guard modelContainer == nil else { return }
         
+        let schema = Schema(LocalDatabase.shared.modelTypes)
+        let config = ModelConfiguration(
+            isStoredInMemoryOnly: false,
+            allowsSave: true,
+            cloudKitDatabase: .none
+        )
         let container = try ModelContainer(
-            for: LocalDatabase.shared.modelTypes,
-            configurations: [
-                ModelConfiguration(
-                    isStoredInMemoryOnly: false,
-                    allowsSave: true,
-                    cloudKitDatabase: .private
-                )
-            ]
+            for: schema,
+            configurations: config
         )
         
         modelContainer = container
@@ -53,7 +53,7 @@ actor LocalDatabase {
     
     // MARK: - User Operations
     
-    func saveUser(_ user: LocalUser) throws {
+    func saveUser(_ user: LocalUser) async throws {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -62,7 +62,7 @@ actor LocalDatabase {
         try context.save()
     }
     
-    func getUser(id: String) throws -> LocalUser? {
+    func getUser(id: String) async throws -> LocalUser? {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -75,7 +75,7 @@ actor LocalDatabase {
         return try context.fetch(descriptor).first
     }
     
-    func updateUser(_ user: LocalUser) throws {
+    func updateUser(_ user: LocalUser) async throws {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -85,7 +85,7 @@ actor LocalDatabase {
     
     // MARK: - Message Operations
     
-    func saveMessage(_ message: LocalMessage) throws {
+    func saveMessage(_ message: LocalMessage) async throws {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -94,7 +94,7 @@ actor LocalDatabase {
         try context.save()
     }
     
-    func getMessages(conversationId: String, limit: Int = 50) throws -> [LocalMessage] {
+    func getMessages(conversationId: String, limit: Int = 50) async throws -> [LocalMessage] {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -108,7 +108,7 @@ actor LocalDatabase {
         return try context.fetch(descriptor)
     }
     
-    func deleteMessage(id: String) throws {
+    func deleteMessage(id: String) async throws {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -125,7 +125,7 @@ actor LocalDatabase {
     
     // MARK: - Conversation Operations
     
-    func saveConversation(_ conversation: LocalConversation) throws {
+    func saveConversation(_ conversation: LocalConversation) async throws {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -134,7 +134,7 @@ actor LocalDatabase {
         try context.save()
     }
     
-    func getConversations(limit: Int = 20) throws -> [LocalConversation] {
+    func getConversations(limit: Int = 20) async throws -> [LocalConversation] {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -146,7 +146,7 @@ actor LocalDatabase {
         return try context.fetch(descriptor)
     }
     
-    func getConversation(id: String) throws -> LocalConversation? {
+    func getConversation(id: String) async throws -> LocalConversation? {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -161,7 +161,7 @@ actor LocalDatabase {
     
     // MARK: - Contact Operations
     
-    func saveContact(_ contact: LocalContact) throws {
+    func saveContact(_ contact: LocalContact) async throws {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -170,7 +170,7 @@ actor LocalDatabase {
         try context.save()
     }
     
-    func getContacts(limit: Int = 100) throws -> [LocalContact] {
+    func getContacts(limit: Int = 100) async throws -> [LocalContact] {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -182,7 +182,7 @@ actor LocalDatabase {
         return try context.fetch(descriptor)
     }
     
-    func removeContact(id: String) throws {
+    func removeContact(id: String) async throws {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -199,7 +199,7 @@ actor LocalDatabase {
     
     // MARK: - DID Operations
     
-    func saveDID(_ did: LocalDID) throws {
+    func saveDID(_ did: LocalDID) async throws {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -208,7 +208,7 @@ actor LocalDatabase {
         try context.save()
     }
     
-    func getDIDs() throws -> [LocalDID] {
+    func getDIDs() async throws -> [LocalDID] {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -221,7 +221,7 @@ actor LocalDatabase {
     
     // MARK: - Credential Operations
     
-    func saveCredential(_ credential: LocalCredential) throws {
+    func saveCredential(_ credential: LocalCredential) async throws {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -230,7 +230,7 @@ actor LocalDatabase {
         try context.save()
     }
     
-    func getCredentials() throws -> [LocalCredential] {
+    func getCredentials() async throws -> [LocalCredential] {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -238,7 +238,7 @@ actor LocalDatabase {
         return try context.fetch(FetchDescriptor<LocalCredential>())
     }
     
-    func revokeCredential(id: String) throws {
+    func revokeCredential(id: String) async throws {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -255,7 +255,7 @@ actor LocalDatabase {
     
     // MARK: - Token Operations
     
-    func saveToken(_ token: LocalToken) throws {
+    func saveToken(_ token: LocalToken) async throws {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -264,7 +264,7 @@ actor LocalDatabase {
         try context.save()
     }
     
-    func getToken() throws -> LocalToken? {
+    func getToken() async throws -> LocalToken? {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -277,7 +277,7 @@ actor LocalDatabase {
     
     // MARK: - Achievement Operations
     
-    func saveAchievement(_ achievement: LocalAchievement) throws {
+    func saveAchievement(_ achievement: LocalAchievement) async throws {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -286,7 +286,7 @@ actor LocalDatabase {
         try context.save()
     }
     
-    func getAchievements() throws -> [LocalAchievement] {
+    func getAchievements() async throws -> [LocalAchievement] {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -299,7 +299,7 @@ actor LocalDatabase {
     
     // MARK: - Cleanup
     
-    func clearAllData() throws {
+    func clearAllData() async throws {
         guard let context = await Self.context else {
             throw DatabaseError.notInitialized
         }
@@ -514,7 +514,7 @@ final class LocalToken {
 final class LocalAchievement {
     @Attribute(.unique) var id: String
     var name: String
-    var description: String
+    var achievementDescription: String
     var icon: String
     var category: String
     var level: Int
@@ -523,7 +523,7 @@ final class LocalAchievement {
     init(
         id: String,
         name: String,
-        description: String,
+        achievementDescription: String,
         icon: String,
         category: String,
         level: Int,
@@ -531,7 +531,7 @@ final class LocalAchievement {
     ) {
         self.id = id
         self.name = name
-        self.description = description
+        self.achievementDescription = achievementDescription
         self.icon = icon
         self.category = category
         self.level = level

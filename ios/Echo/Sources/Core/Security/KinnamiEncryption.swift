@@ -68,12 +68,10 @@ actor KinnamiEncryption {
         let sealedBox = try AES.GCM.seal(
             data,
             using: sharedSecret,
-            authenticating: additionalAuthenticatedData
+            authenticating: additionalAuthenticatedData ?? Data()
         )
         
-        guard let nonce = sealedBox.nonce.withUnsafeBytes(Data.init) as Data? else {
-            throw KinnamiError.encryptionFailed
-        }
+        let nonce = Data(sealedBox.nonce)
         
         let ciphertext = sealedBox.ciphertext
         let tag = sealedBox.tag
@@ -108,9 +106,7 @@ actor KinnamiEncryption {
         
         let sealedBox = try AES.GCM.seal(data, using: symmetricKey)
         
-        guard let nonce = sealedBox.nonce.withUnsafeBytes(Data.init) as Data? else {
-            throw KinnamiError.encryptionFailed
-        }
+        let nonce = Data(sealedBox.nonce)
         
         return EncryptedMessageWithPublicKey(
             ephemeralPublicKey: ephemeralPublicKey.base64EncodedString(),
@@ -136,14 +132,15 @@ actor KinnamiEncryption {
             throw KinnamiError.noSharedSecret
         }
         
-        guard let nonce = try AES.GCM.Nonce(data: Data(base64Encoded: encryptedMessage.nonce) ?? Data()),
+        guard let nonceData = Data(base64Encoded: encryptedMessage.nonce),
               let ciphertext = Data(base64Encoded: encryptedMessage.ciphertext),
               let tag = Data(base64Encoded: encryptedMessage.tag) else {
             throw KinnamiError.invalidEncryptedMessage
         }
         
+        let nonce = try AES.GCM.Nonce(data: nonceData)
         let sealedBox = try AES.GCM.SealedBox(nonce: nonce, ciphertext: ciphertext, tag: tag)
-        let decryptedData = try AES.GCM.open(sealedBox, using: sharedSecret, authenticating: additionalAuthenticatedData)
+        let decryptedData = try AES.GCM.open(sealedBox, using: sharedSecret, authenticating: additionalAuthenticatedData ?? Data())
         
         guard let plaintext = String(data: decryptedData, encoding: .utf8) else {
             throw KinnamiError.invalidDecryptedData
@@ -175,12 +172,13 @@ actor KinnamiEncryption {
             outputByteCount: 32
         )
         
-        guard let nonce = try AES.GCM.Nonce(data: Data(base64Encoded: encryptedMessage.nonce) ?? Data()),
+        guard let nonceData = Data(base64Encoded: encryptedMessage.nonce),
               let ciphertext = Data(base64Encoded: encryptedMessage.ciphertext),
               let tag = Data(base64Encoded: encryptedMessage.tag) else {
             throw KinnamiError.invalidEncryptedMessage
         }
         
+        let nonce = try AES.GCM.Nonce(data: nonceData)
         let sealedBox = try AES.GCM.SealedBox(nonce: nonce, ciphertext: ciphertext, tag: tag)
         let decryptedData = try AES.GCM.open(sealedBox, using: symmetricKey)
         

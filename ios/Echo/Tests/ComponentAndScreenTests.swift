@@ -1,4 +1,6 @@
 import XCTest
+import XCTest
+import SwiftUI
 @testable import Echo
 
 // MARK: - Design System Tests

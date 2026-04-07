@@ -45,6 +45,23 @@ public enum TypographyStyle {
     /// Overline text (12pt, semibold, uppercase for section labels)
     case overline
     
+    var fontSize: CGFloat {
+        switch self {
+        case .display: return 36
+        case .h1: return 32
+        case .h2: return 28
+        case .h3: return 24
+        case .h4: return 20
+        case .bodyLarge: return 16
+        case .body: return 14
+        case .bodySmall: return 12
+        case .button: return 14
+        case .caption: return 12
+        case .tiny: return 12
+        case .overline: return 12
+        }
+    }
+    
     var font: Font {
         switch self {
         case .display:
@@ -129,7 +146,7 @@ struct TextStyleModifier: ViewModifier {
         content
             .font(style.font)
             .tracking(style.letterSpacing)
-            .lineSpacing(style.lineHeight - style.font.pointSize)
+            .lineSpacing(style.lineHeight - style.fontSize)
             .foregroundColor(color)
     }
 }

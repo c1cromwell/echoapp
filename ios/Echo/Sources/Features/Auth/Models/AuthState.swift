@@ -1,5 +1,7 @@
 import Foundation
 
+import Foundation
+
 // MARK: - Auth State Machine
 
 enum AuthState: Equatable {

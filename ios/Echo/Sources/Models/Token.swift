@@ -68,9 +68,7 @@ public struct VestingSchedule {
         let calendar = Calendar.current
         let now = Date()
         
-        guard let releaseComponents = calendar.dateComponents([.year, .month], from: releasedAt, to: now) else {
-            return 0
-        }
+        let releaseComponents = calendar.dateComponents([.year, .month], from: releasedAt, to: now)
         
         let monthsElapsed = (releaseComponents.year ?? 0) * 12 + (releaseComponents.month ?? 0)
         

@@ -81,7 +81,7 @@ public struct EchoButton: View {
         case .secondary:
             return isPressed ? Color.echoSecondary.opacity(0.8) : .echoSecondary
         case .ghost:
-            return isPressed ? Color.echoGray200 : .transparent
+            return isPressed ? Color.echoGray200 : .clear
         case .destructive:
             return isPressed ? Color.echoError.opacity(0.8) : .echoError
         }
@@ -151,7 +151,7 @@ public struct EchoButton: View {
         .accessibilityElement(children: .ignore)
         .accessibility(label: Text(title))
         .accessibility(hint: Text(isLoading ? "Loading" : "Button"))
-        .accessibility(enabled: !isDisabled)
+        .accessibilityHidden(isDisabled)
     }
 }
 

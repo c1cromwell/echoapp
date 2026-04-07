@@ -128,7 +128,7 @@ actor WebSocketClient: NSObject, URLSessionWebSocketDelegate {
     // MARK: - Properties
     
     private let configuration: WebSocketConfiguration
-    private var webSocket: URLSessionWebSocket?
+    private var webSocket: URLSessionWebSocketTask?
     private var session: URLSession?
     private weak var delegate: WebSocketDelegate?
     
@@ -278,7 +278,7 @@ actor WebSocketClient: NSObject, URLSessionWebSocketDelegate {
         }
     }
     
-    private func handleMessage(_ message: URLSessionWebSocket.Message) async {
+    private func handleMessage(_ message: URLSessionWebSocketTask.Message) async {
         switch message {
         case .string(let text):
             DispatchQueue.main.async {
@@ -314,7 +314,7 @@ actor WebSocketClient: NSObject, URLSessionWebSocketDelegate {
     
     nonisolated func urlSession(
         _ session: URLSession,
-        webSocketTask: URLSessionWebSocket,
+        webSocketTask: URLSessionWebSocketTask,
         didOpenWithProtocol protocol: String?
     ) {
         // Handle connection opened
@@ -322,8 +322,8 @@ actor WebSocketClient: NSObject, URLSessionWebSocketDelegate {
     
     nonisolated func urlSession(
         _ session: URLSession,
-        webSocketTask: URLSessionWebSocket,
-        didCloseWith closeCode: URLSessionWebSocket.CloseCode,
+        webSocketTask: URLSessionWebSocketTask,
+        didCloseWith closeCode: URLSessionWebSocketTask.CloseCode,
         reason: Data?
     ) {
         Task {

@@ -28,9 +28,9 @@ struct AuthLoginView: View {
                     "Sign In",
                     style: .primary,
                     size: .large,
-                    icon: Image(systemName: "faceid"),
                     isLoading: viewModel.isAuthenticating,
                     isDisabled: viewModel.isAuthenticating,
+                    icon: Image(systemName: "faceid"),
                     action: {
                         Task {
                             if let user = await viewModel.loginWithPasskey() {

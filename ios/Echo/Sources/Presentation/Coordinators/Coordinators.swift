@@ -333,11 +333,17 @@ class RouteManager: ObservableObject {
 
 @MainActor
 class DeepLinkHandler {
-    static let shared = DeepLinkHandler()
+    private static var _shared: DeepLinkHandler?
+    static var shared: DeepLinkHandler {
+        if let existing = _shared { return existing }
+        let handler = DeepLinkHandler(appCoordinator: AppCoordinator())
+        _shared = handler
+        return handler
+    }
     
     private let appCoordinator: AppCoordinator
     
-    init(appCoordinator: AppCoordinator = AppCoordinator()) {
+    private init(appCoordinator: AppCoordinator) {
         self.appCoordinator = appCoordinator
     }
     
@@ -383,7 +389,7 @@ class DeepLinkHandler {
 // MARK: - Navigation Stack
 
 @MainActor
-class NavigationStack: ObservableObject {
+class EchoNavigationStack: ObservableObject {
     @Published var stack: [NavigationPath] = []
     
     func push(_ path: NavigationPath) {

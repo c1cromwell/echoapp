@@ -76,7 +76,7 @@ final class RewardsTests: XCTestCase {
         ]
         
         for (score, expectedMultiplier) in tests {
-            let trustScore = TrustScore(userID: "user-123", score: score)
+            let trustScore = RewardsTrustScore(userID: "user-123", score: score)
             XCTAssertEqual(trustScore.getMultiplier(), expectedMultiplier, "Score \(score) failed")
         }
     }
@@ -91,13 +91,13 @@ final class RewardsTests: XCTestCase {
         ]
         
         for (score, expectedLevel) in tests {
-            let trustScore = TrustScore(userID: "user-123", score: score)
+            let trustScore = RewardsTrustScore(userID: "user-123", score: score)
             XCTAssertEqual(trustScore.level, expectedLevel, "Score \(score) level failed")
         }
     }
     
     func testTrustScoreUpdate() {
-        var trustScore = TrustScore(userID: "user-123", score: 0)
+        var trustScore = RewardsTrustScore(userID: "user-123", score: 0)
         XCTAssertEqual(trustScore.level, "unverified")
         
         trustScore.updateScore(50)

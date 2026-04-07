@@ -1,5 +1,6 @@
 import XCTest
 import CryptoKit
+import XCTest
 @testable import Echo
 
 final class SecureEnclaveManagerTests: XCTestCase {

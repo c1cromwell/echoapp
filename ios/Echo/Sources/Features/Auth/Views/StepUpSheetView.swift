@@ -37,9 +37,9 @@ struct StepUpSheetView: View {
                 "Verify with Face ID",
                 style: .primary,
                 size: .large,
-                icon: Image(systemName: "faceid"),
                 isLoading: isAuthenticating,
                 isDisabled: isAuthenticating,
+                icon: Image(systemName: "faceid"),
                 action: { Task { await performStepUp() } }
             )
 

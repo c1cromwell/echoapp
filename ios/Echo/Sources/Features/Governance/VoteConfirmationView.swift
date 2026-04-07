@@ -39,7 +39,7 @@ struct VoteConfirmationView: View {
                 SummaryRow(label: "Proposal", value: proposal.title)
                 SummaryRow(label: "Your Vote", value: voteValue.displayName, valueColor: voteColor)
                 SummaryRow(label: "Your Weight", value: formatWeight(votingPower.weight))
-                SummaryRow(label: "Trust Tier", value: "Tier \(votingPower.trustTier) (\(votingPower.multiplier, specifier: "%.1f")×)")
+                SummaryRow(label: "Trust Tier", value: "Tier \(votingPower.trustTier) (\(String(format: "%.1f", votingPower.multiplier))×)")
             }
             .padding(20)
             .background(

@@ -281,12 +281,13 @@ struct CreateDIDUseCase {
     }
     
     func execute() async throws -> DID {
-        let publicKeyData = try secureEnclave.getPublicKey()
+        let keyId = "did-key-\(UUID().uuidString)"
+        let publicKeyBase64 = try await secureEnclave.generateBiometricProtectedKey(id: keyId)
         
         let did = DID(
             id: UUID().uuidString,
             did: "did:echo:\(UUID().uuidString)",
-            publicKey: publicKeyData.base64EncodedString(),
+            publicKey: publicKeyBase64,
             verificationMethod: "secureEnclave",
             proofType: "EcdsaSecp256r1Signature2019",
             created: Date(),

@@ -37,16 +37,24 @@ struct AuthDeviceInfo: Codable {
 final class DeviceFingerprintService {
 
     func collectDeviceInfo() -> AuthDeviceInfo {
+        #if os(iOS)
         let device = UIDevice.current
+        #endif
         let context = LAContext()
         _ = context.canEvaluatePolicy(
             .deviceOwnerAuthenticationWithBiometrics, error: nil
         )
 
+        #if os(iOS)
+        let osVersion = device.systemVersion
+        #else
+        let osVersion = "unknown"
+        #endif
+
         return AuthDeviceInfo(
             deviceId: computeDeviceId(),
             platform: "ios",
-            osVersion: device.systemVersion,
+            osVersion: osVersion,
             appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"]
                 as? String ?? "unknown",
             model: deviceModelIdentifier(),
@@ -70,7 +78,11 @@ final class DeviceFingerprintService {
     // MARK: - Private
 
     private func computeDeviceId() -> String {
+        #if os(iOS)
         let vendorId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
+        #else
+        let vendorId = "unknown"
+        #endif
         let model = deviceModelIdentifier()
         let data = "\(vendorId):\(model)".data(using: .utf8)!
         let hash = SHA256.hash(data: data)

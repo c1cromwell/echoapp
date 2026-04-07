@@ -62,7 +62,9 @@ struct ProposalDetailView: View {
             .padding(20)
         }
         .navigationTitle("Proposal")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .sheet(isPresented: $showConfirmation) {
             if let vote = selectedVote, let power = votingPower {
                 VoteConfirmationView(

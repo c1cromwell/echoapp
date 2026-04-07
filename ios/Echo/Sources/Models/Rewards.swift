@@ -66,7 +66,7 @@ public struct DailyRewardTracker {
 }
 
 /// Trust score with multiplier
-public struct TrustScore {
+public struct RewardsTrustScore {
     public let userID: String
     public private(set) var score: Int = 0 // 0-100
     public private(set) var level: String = "newcomer"

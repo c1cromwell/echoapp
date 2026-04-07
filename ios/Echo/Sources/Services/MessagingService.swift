@@ -35,7 +35,7 @@ public class MessagingService: BaseEchoService {
         public let type: String // "direct" or "group"
         public let participants: [String]
         public let createdAt: Date
-        public private(set) var updatedAt: Date
+        public var updatedAt: Date
         public var lastMessage: Message? = nil
     }
     

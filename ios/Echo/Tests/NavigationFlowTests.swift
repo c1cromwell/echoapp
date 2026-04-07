@@ -247,7 +247,7 @@ final class RouteManagerTests: XCTestCase {
 final class NavigationStackTests: XCTestCase {
 
     func testPushAndCurrent() {
-        let stack = NavigationStack()
+        let stack = EchoNavigationStack()
         XCTAssertNil(stack.current)
         XCTAssertFalse(stack.canPop)
 
@@ -257,7 +257,7 @@ final class NavigationStackTests: XCTestCase {
     }
 
     func testPopReturnsLast() {
-        let stack = NavigationStack()
+        let stack = EchoNavigationStack()
         stack.push(.main)
         stack.push(.settings)
 
@@ -267,7 +267,7 @@ final class NavigationStackTests: XCTestCase {
     }
 
     func testPopAllClearsStack() {
-        let stack = NavigationStack()
+        let stack = EchoNavigationStack()
         stack.push(.main)
         stack.push(.settings)
         stack.push(.contacts)

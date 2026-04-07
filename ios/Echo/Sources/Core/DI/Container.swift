@@ -1,8 +1,11 @@
 import Foundation
 
+import Foundation
+
 /// Dependency Injection Container for ECHO iOS app
 /// Manages creation and lifecycle of all services and dependencies
-actor DIContainer {
+@MainActor
+final class DIContainer {
     
     // MARK: - Singleton
     static let shared = DIContainer()
@@ -90,17 +93,9 @@ actor DIContainer {
             LocalDatabase.shared
         }
         
-        registerFactory(ServiceKeys.secureStorage) {
-            SecureStorage.shared
-        }
-        
-        registerFactory(ServiceKeys.cacheManager) {
-            CacheManager.shared
-        }
-        
         // Repository Services
         registerFactory(ServiceKeys.authRepository) { [weak self] in
-            AuthRepository(
+            ConcreteAuthRepository(
                 apiClient: self?.resolve(ServiceKeys.apiClient) ?? APIClient(configuration: .default),
                 keychain: self?.resolve(ServiceKeys.keychain) ?? KeychainManager.shared,
                 secureEnclave: self?.resolve(ServiceKeys.secureEnclave) ?? SecureEnclaveManager.shared
@@ -108,14 +103,14 @@ actor DIContainer {
         }
         
         registerFactory(ServiceKeys.userRepository) { [weak self] in
-            UserRepository(
+            ConcreteUserRepository(
                 apiClient: self?.resolve(ServiceKeys.apiClient) ?? APIClient(configuration: .default),
                 localStorage: self?.resolve(ServiceKeys.localStorage) ?? LocalDatabase.shared
             )
         }
         
         registerFactory(ServiceKeys.messageRepository) { [weak self] in
-            MessageRepository(
+            ConcreteMessageRepository(
                 apiClient: self?.resolve(ServiceKeys.apiClient) ?? APIClient(configuration: .default),
                 webSocketClient: self?.resolve(ServiceKeys.webSocketClient) ?? WebSocketClient(configuration: .default),
                 encryption: self?.resolve(ServiceKeys.kinnamiEncryption) ?? KinnamiEncryption(),
@@ -124,7 +119,7 @@ actor DIContainer {
         }
         
         registerFactory(ServiceKeys.tokenRepository) { [weak self] in
-            TokenRepository(
+            ConcreteTokenRepository(
                 apiClient: self?.resolve(ServiceKeys.apiClient) ?? APIClient(configuration: .default),
                 localStorage: self?.resolve(ServiceKeys.localStorage) ?? LocalDatabase.shared
             )
@@ -133,26 +128,26 @@ actor DIContainer {
         // UseCase Services
         registerFactory(ServiceKeys.authenticateUseCase) { [weak self] in
             AuthenticateUseCase(
-                repository: self?.resolve(ServiceKeys.authRepository) ?? AuthRepository()
+                repository: self?.resolve(ServiceKeys.authRepository) ?? ConcreteAuthRepository()
             )
         }
         
         registerFactory(ServiceKeys.sendMessageUseCase) { [weak self] in
             SendMessageUseCase(
-                repository: self?.resolve(ServiceKeys.messageRepository) ?? MessageRepository()
+                repository: self?.resolve(ServiceKeys.messageRepository) ?? ConcreteMessageRepository()
             )
         }
         
         registerFactory(ServiceKeys.createDIDUseCase) { [weak self] in
             CreateDIDUseCase(
-                userRepository: self?.resolve(ServiceKeys.userRepository) ?? UserRepository(),
+                userRepository: self?.resolve(ServiceKeys.userRepository) ?? ConcreteUserRepository(),
                 secureEnclave: self?.resolve(ServiceKeys.secureEnclave) ?? SecureEnclaveManager.shared
             )
         }
         
         registerFactory(ServiceKeys.getBalanceUseCase) { [weak self] in
             GetBalanceUseCase(
-                repository: self?.resolve(ServiceKeys.tokenRepository) ?? TokenRepository()
+                repository: self?.resolve(ServiceKeys.tokenRepository) ?? ConcreteTokenRepository()
             )
         }
     }

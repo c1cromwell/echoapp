@@ -50,7 +50,7 @@ struct SecondaryButton: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 48)
-            .background(Color(.systemGray6))
+            .background(Color.echoGray100)
             .foregroundColor(.blue)
             .cornerRadius(12)
         }
@@ -65,7 +65,9 @@ struct TextInputField: View {
     let placeholder: String
     @Binding var text: String
     var isSecure: Bool = false
+    #if os(iOS)
     var keyboardType: UIKeyboardType = .default
+    #endif
     var error: String?
     
     var body: some View {
@@ -77,11 +79,15 @@ struct TextInputField: View {
             if isSecure {
                 SecureField(placeholder, text: $text)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    #if os(iOS)
                     .keyboardType(keyboardType)
+                    #endif
             } else {
                 TextField(placeholder, text: $text)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    #if os(iOS)
                     .keyboardType(keyboardType)
+                    #endif
             }
             
             if let error = error {
@@ -107,15 +113,15 @@ struct CardView<Content: View>: View {
     var body: some View {
         content
             .padding(padding)
-            .background(Color(.systemBackground))
+            .background(Color.echoBackground)
             .cornerRadius(cornerRadius)
             .shadow(color: Color.Echo.onSurface.opacity(0.1), radius: 8, x: 0, y: 2)
     }
 }
 
-// MARK: - Trust Badge
+// MARK: - Trust Badge (see TrustBadge.swift for full implementation)
 
-struct TrustBadge: View {
+private struct _TrustBadgePlaceholder: View {
     let level: TrustLevel
     var size: CGFloat = 32
     
@@ -227,15 +233,15 @@ struct AchievementCard: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity)
-        .background(Color(.systemGray6))
+        .background(Color.echoGray100)
         .cornerRadius(12)
         .opacity(achievement.isUnlocked ? 1 : 0.5)
     }
 }
 
-// MARK: - Message Bubble
+// MARK: - Message Bubble (see MessageBubbles.swift for full implementation)
 
-struct MessageBubble: View {
+private struct _MessageBubblePlaceholder: View {
     let message: Message
     let isCurrentUser: Bool
     
@@ -273,7 +279,7 @@ struct MessageBubble: View {
                 Text(message.content)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(isCurrentUser ? Color.blue : Color(.systemGray5))
+                    .background(isCurrentUser ? Color.blue : Color.echoGray200)
                     .foregroundColor(isCurrentUser ? .white : Color.Echo.onSurface)
                     .cornerRadius(12)
                 
@@ -349,7 +355,7 @@ struct UserListItem: View {
                 }
             }
             .padding()
-            .background(Color(.systemGray6))
+            .background(Color.echoGray100)
             .cornerRadius(12)
         }
     }
@@ -409,7 +415,7 @@ struct ConversationCell: View {
                 }
             }
             .padding()
-            .background(Color(.systemBackground))
+            .background(Color.echoBackground)
         }
     }
 }
@@ -426,7 +432,7 @@ struct LoadingIndicator: View {
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
+        .background(Color.echoBackground)
     }
 }
 
@@ -453,7 +459,7 @@ struct EmptyStateView: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
+        .background(Color.echoBackground)
     }
 }
 

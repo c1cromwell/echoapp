@@ -84,7 +84,7 @@ public struct MessageBubble: View {
                 Text(message)
                     .typographyStyle(.body, color: textColor)
                     .lineLimit(nil)
-                    .frame(maxWidth: UIScreen.main.bounds.width * 0.7, alignment: .leading)
+                    .frame(maxWidth: 280, alignment: .leading)
             }
             .padding(.horizontal, Spacing.md.rawValue)
             .padding(.vertical, Spacing.sm.rawValue)
@@ -115,7 +115,7 @@ public struct MessageBubble: View {
                     Spacer()
                 }
             }
-            .frame(maxWidth: UIScreen.main.bounds.width * 0.7)
+            .frame(maxWidth: 280)
         }
         .frame(maxWidth: .infinity, alignment: isSent ? .trailing : .leading)
         .padding(.horizontal, Spacing.md.rawValue)
@@ -133,7 +133,7 @@ public struct MessageBubbleGroup: View {
     
     public var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md.rawValue) {
-            ForEach(0..<messages.count, id: \.self) { index in
+            ForEach(Array(messages.indices), id: \.self) { index in
                 let (message, status, timestamp, isSent) = messages[index]
                 MessageBubble(
                     message: message,
