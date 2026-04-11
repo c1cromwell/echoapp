@@ -67,15 +67,15 @@ type DeviceRecord struct {
 
 // CredentialRecord represents a stored WebAuthn passkey credential.
 type CredentialRecord struct {
-	ID           string    `json:"id"`
-	UserID       string    `json:"user_id"`
-	CredentialID string    `json:"credential_id"`
-	PublicKey    []byte    `json:"-"`
-	SignCount    int64     `json:"sign_count"`
-	DeviceID     string    `json:"device_id"`
-	AAGUID       string    `json:"aaguid,omitempty"`
-	FriendlyName string    `json:"friendly_name,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID           string     `json:"id"`
+	UserID       string     `json:"user_id"`
+	CredentialID string     `json:"credential_id"`
+	PublicKey    []byte     `json:"-"`
+	SignCount    int64      `json:"sign_count"`
+	DeviceID     string     `json:"device_id"`
+	AAGUID       string     `json:"aaguid,omitempty"`
+	FriendlyName string     `json:"friendly_name,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
 	LastUsedAt   *time.Time `json:"last_used_at,omitempty"`
 }
 
@@ -143,10 +143,10 @@ type AuditLogEntry struct {
 
 // AuthResponse is the standard authentication response.
 type AuthResponse struct {
-	AccessToken     string `json:"access_token"`
-	RefreshToken    string `json:"refresh_token,omitempty"`
-	ExpiresAt       string `json:"expires_at"`
-	User            *User  `json:"user,omitempty"`
+	AccessToken      string `json:"access_token"`
+	RefreshToken     string `json:"refresh_token,omitempty"`
+	ExpiresAt        string `json:"expires_at"`
+	User             *User  `json:"user,omitempty"`
 	PasskeyChallenge string `json:"passkey_challenge,omitempty"`
 }
 
@@ -173,6 +173,7 @@ type OTPVerifyRequest struct {
 
 // PasskeyRegistrationRequest registers a new passkey.
 type PasskeyRegistrationRequest struct {
+	Challenge           string              `json:"challenge"`
 	AttestationResponse AttestationResponse `json:"attestation_response"`
 	DeviceInfo          DeviceInfo          `json:"device_info"`
 }
@@ -193,13 +194,13 @@ type AttestationResponseDetail struct {
 
 // LoginRequest handles passkey or DID signature login.
 type LoginRequest struct {
-	AuthType   string          `json:"auth_type" validate:"required,oneof=passkey did_signature"`
+	AuthType   string           `json:"auth_type" validate:"required,oneof=passkey did_signature"`
 	Credential *LoginCredential `json:"credential,omitempty"`
-	DID        string          `json:"did,omitempty"`
-	Signature  string          `json:"signature,omitempty"`
-	Timestamp  string          `json:"timestamp,omitempty"`
-	Nonce      string          `json:"nonce,omitempty"`
-	DeviceInfo DeviceInfo      `json:"device_info"`
+	DID        string           `json:"did,omitempty"`
+	Signature  string           `json:"signature,omitempty"`
+	Timestamp  string           `json:"timestamp,omitempty"`
+	Nonce      string           `json:"nonce,omitempty"`
+	DeviceInfo DeviceInfo       `json:"device_info"`
 }
 
 // LoginCredential is the WebAuthn assertion from the client.
@@ -291,18 +292,18 @@ type TokenClaims struct {
 type AuthErrorCode string
 
 const (
-	ErrCodeInvalidPhone      AuthErrorCode = "AUTH_001"
-	ErrCodeOTPRateLimit      AuthErrorCode = "AUTH_002"
-	ErrCodeInvalidOTP        AuthErrorCode = "AUTH_003"
-	ErrCodePasskeyFailed     AuthErrorCode = "AUTH_004"
-	ErrCodeTokenExpired      AuthErrorCode = "AUTH_005"
-	ErrCodeRefreshInvalid    AuthErrorCode = "AUTH_006"
-	ErrCodeUnknownDevice     AuthErrorCode = "AUTH_007"
-	ErrCodeStepUpRequired    AuthErrorCode = "AUTH_008"
-	ErrCodeAccountLocked     AuthErrorCode = "AUTH_009"
-	ErrCodeDeviceIntegrity   AuthErrorCode = "AUTH_010"
-	ErrCodeRecoveryInvalid   AuthErrorCode = "AUTH_011"
-	ErrCodeGlobalRateLimit   AuthErrorCode = "AUTH_012"
+	ErrCodeInvalidPhone    AuthErrorCode = "AUTH_001"
+	ErrCodeOTPRateLimit    AuthErrorCode = "AUTH_002"
+	ErrCodeInvalidOTP      AuthErrorCode = "AUTH_003"
+	ErrCodePasskeyFailed   AuthErrorCode = "AUTH_004"
+	ErrCodeTokenExpired    AuthErrorCode = "AUTH_005"
+	ErrCodeRefreshInvalid  AuthErrorCode = "AUTH_006"
+	ErrCodeUnknownDevice   AuthErrorCode = "AUTH_007"
+	ErrCodeStepUpRequired  AuthErrorCode = "AUTH_008"
+	ErrCodeAccountLocked   AuthErrorCode = "AUTH_009"
+	ErrCodeDeviceIntegrity AuthErrorCode = "AUTH_010"
+	ErrCodeRecoveryInvalid AuthErrorCode = "AUTH_011"
+	ErrCodeGlobalRateLimit AuthErrorCode = "AUTH_012"
 )
 
 // AuthError is a structured authentication error.

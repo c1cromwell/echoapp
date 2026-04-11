@@ -1,6 +1,12 @@
 package auth
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
 	"testing"
 )
 
@@ -192,18 +198,9 @@ func TestAuthService_FullRegistrationFlow(t *testing.T) {
 	}
 
 	// Step 3: Register Passkey
-	passkeyResp, err := svc.RegisterPasskey(verifyResp.User.DID, PasskeyRegistrationRequest{
-		AttestationResponse: AttestationResponse{
-			ID:    "cred-id-1",
-			RawID: "raw-cred-id-1",
-			Response: AttestationResponseDetail{
-				ClientDataJSON:    "client-data",
-				AttestationObject: "attestation-object",
-			},
-			Type: "public-key",
-		},
-		DeviceInfo: di,
-	}, "1.1.1.1")
+	passkeyReq := buildTestAttestation(t, verifyResp.PasskeyChallenge, "cred-id-1", svc.PasskeyVerifier)
+	passkeyReq.DeviceInfo = di
+	passkeyResp, err := svc.RegisterPasskey(verifyResp.User.DID, passkeyReq, "1.1.1.1")
 	if err != nil {
 		t.Fatalf("register passkey: %v", err)
 	}
@@ -251,17 +248,24 @@ func TestAuthService_Login_UnknownDevice(t *testing.T) {
 	di := validDeviceInfo()
 
 	// Register a user first
-	user, credID := registerTestUser(t, svc, di)
+	_, credID, privKey := registerTestUser(t, svc, di)
 
-	// Try login with different device
+	// Get a login challenge
+	challengeResp, challengeErr := svc.LoginChallenge()
+	if challengeErr != nil {
+		t.Fatal(challengeErr)
+	}
+
+	// Build valid assertion but with different device
+	cred := buildTestAssertion(t, challengeResp.Challenge, credID, privKey, svc.PasskeyVerifier)
+
 	differentDevice := di
 	differentDevice.DeviceID = "totally-different-device"
 
 	_, err := svc.Login(LoginRequest{
-		AuthType: "passkey",
-		Credential: &LoginCredential{
-			ID: credID,
-		},
+		AuthType:   "passkey",
+		Nonce:      challengeResp.Challenge,
+		Credential: &cred,
 		DeviceInfo: differentDevice,
 	}, "1.1.1.1")
 
@@ -271,25 +275,24 @@ func TestAuthService_Login_UnknownDevice(t *testing.T) {
 	if err.Code != ErrCodeUnknownDevice {
 		t.Errorf("expected AUTH_007, got %s", err.Code)
 	}
-	_ = user
 }
 
 func TestAuthService_Login_DIDSignature_NonceReplay(t *testing.T) {
 	svc := newTestAuthService(t)
 	di := validDeviceInfo()
 
-	user, _ := registerTestUser(t, svc, di)
+	user, _, _ := registerTestUser(t, svc, di)
 
 	nonce := "unique-nonce-123"
 
 	// First login should succeed (DID signature verification is stubbed)
 	// We need a known device first
 	req := LoginRequest{
-		AuthType:  "did_signature",
-		DID:       user.DID,
-		Signature: "test-signature",
-		Timestamp: timeNowRFC3339(),
-		Nonce:     nonce,
+		AuthType:   "did_signature",
+		DID:        user.DID,
+		Signature:  "test-signature",
+		Timestamp:  timeNowRFC3339(),
+		Nonce:      nonce,
 		DeviceInfo: di,
 	}
 
@@ -310,7 +313,7 @@ func TestAuthService_Login_RateLimit(t *testing.T) {
 	// Exhaust the login rate limit
 	for i := 0; i < 10; i++ {
 		svc.Login(LoginRequest{
-			AuthType: "passkey",
+			AuthType:   "passkey",
 			Credential: &LoginCredential{ID: "nonexistent"},
 			DeviceInfo: di,
 		}, "1.1.1.1")
@@ -318,7 +321,7 @@ func TestAuthService_Login_RateLimit(t *testing.T) {
 
 	// 11th attempt should be rate limited
 	_, err := svc.Login(LoginRequest{
-		AuthType: "passkey",
+		AuthType:   "passkey",
 		Credential: &LoginCredential{ID: "nonexistent"},
 		DeviceInfo: di,
 	}, "1.1.1.1")
@@ -334,7 +337,7 @@ func TestAuthService_RefreshTokens(t *testing.T) {
 	svc := newTestAuthService(t)
 	di := validDeviceInfo()
 
-	_, _ = registerTestUser(t, svc, di)
+	_, _, _ = registerTestUser(t, svc, di)
 
 	// Get a refresh token via the registration flow
 	// (already tested above, just need the token)
@@ -355,16 +358,9 @@ func TestAuthService_RefreshTokens(t *testing.T) {
 		DeviceInfo:     di,
 	}, "1.1.1.1")
 
-	passkeyResp, _ := svc.RegisterPasskey(verifyResp.User.DID, PasskeyRegistrationRequest{
-		AttestationResponse: AttestationResponse{
-			ID: "cred-refresh-test",
-			Response: AttestationResponseDetail{
-				AttestationObject: "obj",
-			},
-			Type: "public-key",
-		},
-		DeviceInfo: di,
-	}, "1.1.1.1")
+	passkeyReq2 := buildTestAttestation(t, verifyResp.PasskeyChallenge, "cred-refresh-test", svc.PasskeyVerifier)
+	passkeyReq2.DeviceInfo = di
+	passkeyResp, _ := svc.RegisterPasskey(verifyResp.User.DID, passkeyReq2, "1.1.1.1")
 
 	// Refresh the token
 	refreshResp, err := svc.RefreshTokens(RefreshRequest{
@@ -461,7 +457,7 @@ func TestNewAuthError(t *testing.T) {
 
 // --- Helpers ---
 
-func registerTestUser(t *testing.T, svc *AuthService, di DeviceInfo) (*User, string) {
+func registerTestUser(t *testing.T, svc *AuthService, di DeviceInfo) (*User, string, *ecdsa.PrivateKey) {
 	t.Helper()
 
 	phoneResp, err := svc.RegisterPhone(PhoneRegistrationRequest{
@@ -488,21 +484,94 @@ func registerTestUser(t *testing.T, svc *AuthService, di DeviceInfo) (*User, str
 	}
 
 	credID := "test-cred-" + verifyResp.User.ID
-	passkeyResp, err := svc.RegisterPasskey(verifyResp.User.DID, PasskeyRegistrationRequest{
-		AttestationResponse: AttestationResponse{
-			ID: credID,
-			Response: AttestationResponseDetail{
-				AttestationObject: "test-attestation",
-			},
-			Type: "public-key",
-		},
-		DeviceInfo: di,
-	}, "1.1.1.1")
+	req, privKey := buildTestAttestationWithKey(t, verifyResp.PasskeyChallenge, credID, svc.PasskeyVerifier)
+	req.DeviceInfo = di
+	passkeyResp, err := svc.RegisterPasskey(verifyResp.User.DID, req, "1.1.1.1")
 	if err != nil {
 		t.Fatalf("register passkey: %v", err)
 	}
 
-	return passkeyResp.User, credID
+	return passkeyResp.User, credID, privKey
+}
+
+// buildTestAttestation generates a valid WebAuthn attestation request with a real P-256 key.
+func buildTestAttestation(t *testing.T, challenge, credID string, verifier *PasskeyVerifier) PasskeyRegistrationRequest {
+	t.Helper()
+	req, _ := buildTestAttestationWithKey(t, challenge, credID, verifier)
+	return req
+}
+
+// buildTestAttestationWithKey returns both the registration request and the private key for login tests.
+func buildTestAttestationWithKey(t *testing.T, challenge, credID string, verifier *PasskeyVerifier) (PasskeyRegistrationRequest, *ecdsa.PrivateKey) {
+	t.Helper()
+
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pubUncompressed := elliptic.Marshal(elliptic.P256(), key.PublicKey.X, key.PublicKey.Y)
+
+	clientData := ClientData{
+		Type:      "webauthn.create",
+		Challenge: challenge,
+		Origin:    verifier.Expected,
+	}
+	cdJSON, _ := json.Marshal(clientData)
+
+	return PasskeyRegistrationRequest{
+		Challenge: challenge,
+		AttestationResponse: AttestationResponse{
+			ID:    credID,
+			RawID: base64.RawURLEncoding.EncodeToString([]byte(credID)),
+			Response: AttestationResponseDetail{
+				ClientDataJSON:    base64.RawURLEncoding.EncodeToString(cdJSON),
+				AttestationObject: base64.RawURLEncoding.EncodeToString(pubUncompressed),
+			},
+			Type: "public-key",
+		},
+	}, key
+}
+
+// buildTestAssertion generates a valid WebAuthn assertion (login) credential.
+func buildTestAssertion(t *testing.T, challenge, credID string, privKey *ecdsa.PrivateKey, verifier *PasskeyVerifier) LoginCredential {
+	t.Helper()
+
+	clientData := ClientData{
+		Type:      "webauthn.get",
+		Challenge: challenge,
+		Origin:    verifier.Expected,
+	}
+	cdJSON, _ := json.Marshal(clientData)
+
+	rpHash := sha256.Sum256([]byte(verifier.RPID))
+	authData := make([]byte, 37)
+	copy(authData[:32], rpHash[:])
+	authData[32] = 0x01 // user present
+
+	cdHash := sha256.Sum256(cdJSON)
+	signedData := append(authData, cdHash[:]...)
+	digest := sha256.Sum256(signedData)
+
+	r, s, err := ecdsa.Sign(rand.Reader, privKey, digest[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	sig := make([]byte, 64)
+	rBytes := r.Bytes()
+	sBytes := s.Bytes()
+	copy(sig[32-len(rBytes):32], rBytes)
+	copy(sig[64-len(sBytes):64], sBytes)
+
+	return LoginCredential{
+		ID:    credID,
+		RawID: base64.RawURLEncoding.EncodeToString([]byte(credID)),
+		Response: AssertionResponseData{
+			ClientDataJSON:    base64.RawURLEncoding.EncodeToString(cdJSON),
+			AuthenticatorData: base64.RawURLEncoding.EncodeToString(authData),
+			Signature:         base64.RawURLEncoding.EncodeToString(sig),
+		},
+		Type: "public-key",
+	}
 }
 
 func contains(s, sub string) bool {

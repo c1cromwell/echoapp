@@ -19,6 +19,7 @@ import (
 type TestServer struct {
 	BaseURL  string
 	Server   *http.Server
+	Router   *api.Router
 	listener net.Listener
 	t        *testing.T
 }
@@ -48,6 +49,7 @@ func StartTestServer(t *testing.T) (ts *TestServer, cleanup func()) {
 	ts = &TestServer{
 		BaseURL:  baseURL,
 		Server:   server,
+		Router:   router,
 		listener: listener,
 		t:        t,
 	}
@@ -136,4 +138,14 @@ func (ts *TestServer) DecodeJSON(resp *http.Response, target interface{}) {
 	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
 		ts.t.Fatalf("failed to decode JSON response: %v", err)
 	}
+}
+
+// IssueTestToken creates a valid ES256 JWT for integration testing.
+func (ts *TestServer) IssueTestToken(userDID string) string {
+	ts.t.Helper()
+	token, _, err := ts.Router.TokenService().IssueAccessToken(userDID, "test-device", 1, "full")
+	if err != nil {
+		ts.t.Fatalf("failed to issue test token: %v", err)
+	}
+	return token
 }

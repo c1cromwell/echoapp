@@ -9,10 +9,20 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/api"
+	"github.com/thechadcromwell/echoapp/internal/database"
+	"github.com/thechadcromwell/echoapp/internal/infra"
+	"github.com/thechadcromwell/echoapp/internal/rewards"
+	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
+	"github.com/thechadcromwell/echoapp/internal/services/contacts"
+	"github.com/thechadcromwell/echoapp/internal/services/groups"
+	"github.com/thechadcromwell/echoapp/internal/services/media"
+	"github.com/thechadcromwell/echoapp/internal/services/notification"
+	rewardsSvc "github.com/thechadcromwell/echoapp/internal/services/rewards"
 )
 
 // ServerConfig holds the server configuration.
@@ -52,6 +62,31 @@ func (s *Server) setupTLS() *tls.Config {
 func (s *Server) Start() error {
 	router := api.NewRouter(s.config.AllowedOrigins)
 
+	// Initialize database
+	db, pgDB := s.initDatabase()
+	_ = pgDB // stored for graceful shutdown if needed
+
+	// Initialize Redis (optional)
+	s.initRedis()
+
+	// Initialize NATS (optional)
+	s.initNATS()
+
+	// Initialize storage backend
+	storage := s.initStorage()
+
+	// Initialize services and wire V3 handlers
+	emission := rewards.NewEmissionSchedule(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	router.V3 = &api.V3Handlers{
+		DB:           db,
+		Contacts:     contacts.NewService(db),
+		Notification: notification.NewService(db),
+		Media:        media.NewService(db, storage),
+		Rewards:      rewardsSvc.NewService(db, emission),
+		Groups:       groups.NewGroupService(),
+		Broadcasts:   broadcast_channels.NewChannelService(),
+	}
+
 	listener, err := net.Listen("tcp", ":"+s.config.Port)
 	if err != nil {
 		return fmt.Errorf("failed to listen on port %s: %w", s.config.Port, err)
@@ -86,6 +121,126 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		return nil
 	}
 	return s.server.Shutdown(ctx)
+}
+
+// initDatabase connects to PostgreSQL if DATABASE_HOST is set, otherwise falls back to in-memory.
+// Also runs migrations when using PostgreSQL.
+func (s *Server) initDatabase() (database.DB, *database.PostgresDB) {
+	dbHost := os.Getenv("DATABASE_HOST")
+	if dbHost == "" {
+		log.Println("DATABASE_HOST not set, using in-memory database")
+		return database.NewMemoryDB(), nil
+	}
+
+	dbPort := os.Getenv("DATABASE_PORT")
+	if dbPort == "" {
+		dbPort = "5432"
+	}
+
+	cfg := database.PostgresConfig{
+		Host:     dbHost,
+		Port:     dbPort,
+		Database: os.Getenv("DATABASE_NAME"),
+		User:     os.Getenv("DATABASE_USER"),
+		Password: os.Getenv("DATABASE_PASSWORD"),
+		SSLMode:  os.Getenv("DATABASE_SSLMODE"),
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	pgDB, err := database.NewPostgresDB(ctx, cfg)
+	if err != nil {
+		log.Printf("Failed to connect to PostgreSQL: %v — falling back to in-memory", err)
+		return database.NewMemoryDB(), nil
+	}
+	log.Printf("Connected to PostgreSQL at %s:%s/%s", cfg.Host, cfg.Port, cfg.Database)
+
+	// Run migrations
+	migrationsDir := filepath.Join(".", "migrations")
+	if _, err := os.Stat(migrationsDir); err == nil {
+		if err := database.Migrate(ctx, pgDB.Pool(), migrationsDir); err != nil {
+			log.Printf("Migration warning: %v", err)
+		}
+	}
+
+	return pgDB, pgDB
+}
+
+// initRedis connects to Redis if REDIS_HOST is set.
+func (s *Server) initRedis() *infra.RedisClient {
+	host := os.Getenv("REDIS_HOST")
+	if host == "" {
+		log.Println("REDIS_HOST not set, Redis features disabled")
+		return nil
+	}
+
+	port := os.Getenv("REDIS_PORT")
+	if port == "" {
+		port = "6379"
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	client, err := infra.NewRedisClient(ctx, infra.RedisConfig{
+		Host:     host,
+		Port:     port,
+		Password: os.Getenv("REDIS_PASSWORD"),
+	})
+	if err != nil {
+		log.Printf("Failed to connect to Redis: %v — Redis features disabled", err)
+		return nil
+	}
+	log.Printf("Connected to Redis at %s:%s", host, port)
+	return client
+}
+
+// initNATS connects to NATS if NATS_URL is set.
+func (s *Server) initNATS() *infra.NATSClient {
+	natsURL := os.Getenv("NATS_URL")
+	if natsURL == "" {
+		log.Println("NATS_URL not set, NATS event bus disabled")
+		return nil
+	}
+
+	client, err := infra.NewNATSClient(infra.NATSConfig{
+		URL:       natsURL,
+		ClusterID: os.Getenv("NATS_CLUSTER_ID"),
+	})
+	if err != nil {
+		log.Printf("Failed to connect to NATS: %v — event bus disabled", err)
+		return nil
+	}
+	log.Printf("Connected to NATS at %s", natsURL)
+	return client
+}
+
+// initStorage creates the media storage backend based on STORAGE_BACKEND env var.
+func (s *Server) initStorage() media.StorageBackend {
+	backend := os.Getenv("STORAGE_BACKEND")
+	switch backend {
+	case "s3", "storj":
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		storage, err := media.NewS3Storage(ctx, media.S3Config{
+			Endpoint:        os.Getenv("STORAGE_ENDPOINT"),
+			Region:          os.Getenv("STORAGE_REGION"),
+			Bucket:          os.Getenv("STORAGE_BUCKET"),
+			AccessKeyID:     os.Getenv("STORAGE_ACCESS_KEY_ID"),
+			SecretAccessKey: os.Getenv("STORAGE_SECRET_ACCESS_KEY"),
+			ForcePathStyle:  os.Getenv("STORAGE_FORCE_PATH_STYLE") != "false",
+		})
+		if err != nil {
+			log.Printf("Failed to initialize S3 storage: %v — falling back to memory", err)
+			return media.NewMemoryStorage()
+		}
+		log.Printf("Using S3-compatible storage: %s/%s", os.Getenv("STORAGE_ENDPOINT"), os.Getenv("STORAGE_BUCKET"))
+		return storage
+	default:
+		log.Println("STORAGE_BACKEND not set, using in-memory media storage")
+		return media.NewMemoryStorage()
+	}
 }
 
 func main() {

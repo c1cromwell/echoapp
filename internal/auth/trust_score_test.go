@@ -281,15 +281,15 @@ func TestCalculateTrustScore(t *testing.T) {
 				KYCLiteVerified: 1,
 			},
 			behavior: &BehaviorPoints{
-				AccountAgeMonths: 6,
-				MessageCount:     1000,
-				VerifiedContacts: 50,
-				ActiveGroups:     10,
-				DailyLoginStreak: 5,
+				AccountAgeMonths: 3,
+				MessageCount:     500,
+				VerifiedContacts: 20,
+				ActiveGroups:     5,
+				DailyLoginStreak: 2,
 			},
 			onChain: &OnChainPoints{
-				TransactionCount: 10,
-				StakedAmount:     1000,
+				TransactionCount: 5,
+				StakedAmount:     500,
 			},
 			penalties:          &PenaltyPoints{},
 			expectedLevel:      TrustLevelTrusted,
@@ -509,21 +509,21 @@ func getDefaultConfig() TrustScoreConfig {
 	config.VerificationWeights.FullKYC = 15
 	config.VerificationWeights.AppleDigitalID = 15
 	config.VerificationWeights.OrgVerified = 20
-	config.VerificationWeights.MaxVerification = 30
+	config.VerificationWeights.MaxVerification = 70
 
 	// Behavior weights
 	config.BehaviorWeights.AccountAgePerMonth = 1
 	config.BehaviorWeights.MessagesPerHundred = 1
-	config.BehaviorWeights.ContactsPerTen = 1
+	config.BehaviorWeights.ContactsPerTen = 3
 	config.BehaviorWeights.GroupsPerFive = 1
 	config.BehaviorWeights.DailyLoginStreak = 1
-	config.BehaviorWeights.MaxBehavior = 30
+	config.BehaviorWeights.MaxBehavior = 80
 
 	// On-chain weights
 	config.OnChainWeights.TransactionsPerTx = 1
 	config.OnChainWeights.StakingPer100ECHO = 1
 	config.OnChainWeights.GovernancePerVote = 1
-	config.OnChainWeights.MaxOnChain = 30
+	config.OnChainWeights.MaxOnChain = 70
 
 	// Penalty weights
 	config.PenaltyWeights.SpamReport = 2

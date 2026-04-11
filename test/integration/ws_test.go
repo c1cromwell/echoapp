@@ -64,7 +64,7 @@ func TestWS_Connect(t *testing.T) {
 	ts, cleanup := testutil.StartTestServer(t)
 	defer cleanup()
 
-	conn := wsConnect(t, ts.BaseURL, "alice_token_1234")
+	conn := wsConnect(t, ts.BaseURL, ts.IssueTestToken("alice"))
 	defer conn.Close()
 
 	// Connection succeeded — no error from wsConnect
@@ -93,10 +93,10 @@ func TestWS_DirectMessage(t *testing.T) {
 	defer cleanup()
 
 	// Connect two users
-	connA := wsConnect(t, ts.BaseURL, "alice_tok_1234")
+	connA := wsConnect(t, ts.BaseURL, ts.IssueTestToken("alice"))
 	defer connA.Close()
 
-	connB := wsConnect(t, ts.BaseURL, "bob_token_1234")
+	connB := wsConnect(t, ts.BaseURL, ts.IssueTestToken("bob"))
 	defer connB.Close()
 
 	// Small delay to ensure both clients are registered
@@ -106,7 +106,7 @@ func TestWS_DirectMessage(t *testing.T) {
 	payload, _ := json.Marshal("Hello Bob, this is Alice!")
 	sendWSMessage(t, connA, api.WSMessage{
 		Type:           "text",
-		To:             "user-bob_toke", // user ID derived from "bob_token_1234"[:8]
+		To:             "bob",
 		ConversationID: "conv-1",
 		Payload:        payload,
 	})
@@ -117,8 +117,8 @@ func TestWS_DirectMessage(t *testing.T) {
 	if msg.Type != "text" {
 		t.Errorf("expected type 'text', got %q", msg.Type)
 	}
-	if msg.From != "user-alice_to" { // derived from "alice_tok_1234"[:8]
-		t.Errorf("expected from 'user-alice_to', got %q", msg.From)
+	if msg.From != "alice" {
+		t.Errorf("expected from 'alice', got %q", msg.From)
 	}
 	if msg.ConversationID != "conv-1" {
 		t.Errorf("expected conversation_id 'conv-1', got %q", msg.ConversationID)
@@ -140,13 +140,13 @@ func TestWS_Broadcast(t *testing.T) {
 	ts, cleanup := testutil.StartTestServer(t)
 	defer cleanup()
 
-	connA := wsConnect(t, ts.BaseURL, "alice_tok_1234")
+	connA := wsConnect(t, ts.BaseURL, ts.IssueTestToken("alice"))
 	defer connA.Close()
 
-	connB := wsConnect(t, ts.BaseURL, "bob_token_1234")
+	connB := wsConnect(t, ts.BaseURL, ts.IssueTestToken("bob"))
 	defer connB.Close()
 
-	connC := wsConnect(t, ts.BaseURL, "carol_tok_1234")
+	connC := wsConnect(t, ts.BaseURL, ts.IssueTestToken("carol"))
 	defer connC.Close()
 
 	time.Sleep(50 * time.Millisecond)
@@ -194,7 +194,7 @@ func TestWS_PingPong(t *testing.T) {
 	ts, cleanup := testutil.StartTestServer(t)
 	defer cleanup()
 
-	conn := wsConnect(t, ts.BaseURL, "alice_tok_1234")
+	conn := wsConnect(t, ts.BaseURL, ts.IssueTestToken("alice"))
 	defer conn.Close()
 
 	time.Sleep(50 * time.Millisecond)
@@ -229,10 +229,10 @@ func TestWS_MessageNotDeliveredToSelf(t *testing.T) {
 	ts, cleanup := testutil.StartTestServer(t)
 	defer cleanup()
 
-	connA := wsConnect(t, ts.BaseURL, "alice_tok_1234")
+	connA := wsConnect(t, ts.BaseURL, ts.IssueTestToken("alice"))
 	defer connA.Close()
 
-	connB := wsConnect(t, ts.BaseURL, "bob_token_1234")
+	connB := wsConnect(t, ts.BaseURL, ts.IssueTestToken("bob"))
 	defer connB.Close()
 
 	time.Sleep(50 * time.Millisecond)
@@ -241,7 +241,7 @@ func TestWS_MessageNotDeliveredToSelf(t *testing.T) {
 	payload, _ := json.Marshal("DM for Bob only")
 	sendWSMessage(t, connA, api.WSMessage{
 		Type:    "text",
-		To:      "user-bob_toke",
+		To:      "bob",
 		Payload: payload,
 	})
 
@@ -262,10 +262,10 @@ func TestWS_MultipleMessagesInOrder(t *testing.T) {
 	ts, cleanup := testutil.StartTestServer(t)
 	defer cleanup()
 
-	connA := wsConnect(t, ts.BaseURL, "alice_tok_1234")
+	connA := wsConnect(t, ts.BaseURL, ts.IssueTestToken("alice"))
 	defer connA.Close()
 
-	connB := wsConnect(t, ts.BaseURL, "bob_token_1234")
+	connB := wsConnect(t, ts.BaseURL, ts.IssueTestToken("bob"))
 	defer connB.Close()
 
 	time.Sleep(50 * time.Millisecond)
@@ -275,7 +275,7 @@ func TestWS_MultipleMessagesInOrder(t *testing.T) {
 		payload, _ := json.Marshal(i)
 		sendWSMessage(t, connA, api.WSMessage{
 			Type:    "text",
-			To:      "user-bob_toke",
+			To:      "bob",
 			Payload: payload,
 		})
 	}
@@ -298,7 +298,7 @@ func TestWS_DisconnectAndReconnect(t *testing.T) {
 	defer cleanup()
 
 	// Connect
-	conn := wsConnect(t, ts.BaseURL, "alice_tok_1234")
+	conn := wsConnect(t, ts.BaseURL, ts.IssueTestToken("alice"))
 
 	// Disconnect
 	conn.Close()
@@ -306,7 +306,7 @@ func TestWS_DisconnectAndReconnect(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Reconnect
-	conn2 := wsConnect(t, ts.BaseURL, "alice_tok_1234")
+	conn2 := wsConnect(t, ts.BaseURL, ts.IssueTestToken("alice"))
 	defer conn2.Close()
 
 	// Should still work — send/receive a ping/pong

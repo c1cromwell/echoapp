@@ -2,6 +2,7 @@ package rewards
 
 import (
 	"math/big"
+	"strconv"
 	"time"
 )
 
@@ -40,13 +41,12 @@ func (rc *RewardCalculator) CalculateReward(rewardType int, multiplier float64) 
 
 // floatToBigInt converts float to big.Int with specified decimals
 func floatToBigInt(f float64, decimals int) string {
-	// Simple conversion for demonstration
 	multiplier := 1.0
 	for i := 0; i < decimals; i++ {
 		multiplier *= 10
 	}
 	intVal := int64(f * multiplier)
-	return string(rune(intVal))
+	return strconv.FormatInt(intVal, 10)
 }
 
 // RewardDistributor manages reward distribution

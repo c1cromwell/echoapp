@@ -18,6 +18,10 @@ type Config struct {
 	Cardano  CardanoConfig
 	Identity IdentityConfig
 	Database DatabaseConfig
+	Redis    RedisConfig
+	NATS     NATSConfig
+	Storage  StorageConfig
+	APNs     APNsConfig
 }
 
 // ServerConfig holds server-level configuration
@@ -154,6 +158,40 @@ type DatabaseConfig struct {
 	SSL      bool
 }
 
+// RedisConfig holds Redis configuration
+type RedisConfig struct {
+	Host     string
+	Port     string
+	Password string
+	DB       int
+}
+
+// NATSConfig holds NATS message bus configuration
+type NATSConfig struct {
+	URL       string
+	ClusterID string
+}
+
+// StorageConfig holds S3/Storj media storage configuration
+type StorageConfig struct {
+	Backend         string // "memory", "s3", "storj"
+	Endpoint        string
+	Region          string
+	Bucket          string
+	AccessKeyID     string
+	SecretAccessKey string
+	ForcePathStyle  bool
+}
+
+// APNsConfig holds Apple Push Notification service configuration
+type APNsConfig struct {
+	TeamID     string
+	KeyID      string
+	KeyFile    string // path to .p8 file
+	BundleID   string
+	Production bool
+}
+
 // LoadConfig loads configuration from environment variables with defaults
 func LoadConfig() *Config {
 	return &Config{
@@ -194,7 +232,7 @@ func LoadConfig() *Config {
 			Enabled:             true,
 			RequireAuth:         true,
 			TokenType:           "Bearer",
-			PasskeyVerification: false, // TODO: Enable with actual implementation
+			PasskeyVerification: true, // ES256 JWT validation via internal/auth.TokenService
 			SkipAuthPaths: []string{
 				"/health",
 				"/health/ready",
@@ -260,6 +298,32 @@ func LoadConfig() *Config {
 			User:     getEnv("DATABASE_USER", "postgres"),
 			Password: getEnv("DATABASE_PASSWORD", ""),
 			SSL:      getEnv("DATABASE_SSL", "false") == "true",
+		},
+		Redis: RedisConfig{
+			Host:     getEnv("REDIS_HOST", ""),
+			Port:     getEnv("REDIS_PORT", "6379"),
+			Password: getEnv("REDIS_PASSWORD", ""),
+			DB:       getIntOrDefault("REDIS_DB", 0),
+		},
+		NATS: NATSConfig{
+			URL:       getEnv("NATS_URL", ""),
+			ClusterID: getEnv("NATS_CLUSTER_ID", "echo-cluster"),
+		},
+		Storage: StorageConfig{
+			Backend:         getEnv("STORAGE_BACKEND", "memory"),
+			Endpoint:        getEnv("STORAGE_ENDPOINT", ""),
+			Region:          getEnv("STORAGE_REGION", "us-east-1"),
+			Bucket:          getEnv("STORAGE_BUCKET", "echo-media"),
+			AccessKeyID:     getEnv("STORAGE_ACCESS_KEY_ID", ""),
+			SecretAccessKey: getEnv("STORAGE_SECRET_ACCESS_KEY", ""),
+			ForcePathStyle:  getEnv("STORAGE_FORCE_PATH_STYLE", "true") == "true",
+		},
+		APNs: APNsConfig{
+			TeamID:     getEnv("APNS_TEAM_ID", ""),
+			KeyID:      getEnv("APNS_KEY_ID", ""),
+			KeyFile:    getEnv("APNS_KEY_FILE", ""),
+			BundleID:   getEnv("APNS_BUNDLE_ID", "com.echo.app"),
+			Production: getEnv("APNS_PRODUCTION", "false") == "true",
 		},
 	}
 }

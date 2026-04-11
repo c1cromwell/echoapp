@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -92,7 +93,7 @@ func TestV1GetUsers(t *testing.T) {
 	ts, cleanup := testutil.StartTestServer(t)
 	defer cleanup()
 
-	token := "testtoken1234"
+	token := ts.IssueTestToken("did:echo:testuser")
 	resp := ts.Get("/v1/users", token)
 	defer resp.Body.Close()
 
@@ -123,7 +124,7 @@ func TestV1GetProfile(t *testing.T) {
 	ts, cleanup := testutil.StartTestServer(t)
 	defer cleanup()
 
-	token := "testtoken1234"
+	token := ts.IssueTestToken("did:echo:testuser")
 	resp := ts.Get("/v1/users/profile", token)
 	defer resp.Body.Close()
 
@@ -134,8 +135,7 @@ func TestV1GetProfile(t *testing.T) {
 	var body map[string]interface{}
 	ts.DecodeJSON(resp, &body)
 
-	// Token "testtoken1234" -> user ID should be "user-testtoke"
-	expectedUserID := "user-testtoke"
+	expectedUserID := "did:echo:testuser"
 	if body["user_id"] != expectedUserID {
 		t.Errorf("expected user_id '%s', got %v", expectedUserID, body["user_id"])
 	}
@@ -150,7 +150,7 @@ func TestV2GetUsers(t *testing.T) {
 	ts, cleanup := testutil.StartTestServer(t)
 	defer cleanup()
 
-	token := "testtoken1234"
+	token := ts.IssueTestToken("did:echo:testuser")
 	resp := ts.Get("/v2/users", token)
 	defer resp.Body.Close()
 
@@ -187,7 +187,7 @@ func TestV2GetProfile(t *testing.T) {
 	ts, cleanup := testutil.StartTestServer(t)
 	defer cleanup()
 
-	token := "testtoken1234"
+	token := ts.IssueTestToken("did:echo:testuser")
 	resp := ts.Get("/v2/users/profile", token)
 	defer resp.Body.Close()
 
@@ -214,7 +214,7 @@ func TestNotFoundEndpoint(t *testing.T) {
 	ts, cleanup := testutil.StartTestServer(t)
 	defer cleanup()
 
-	resp := ts.Get("/v1/nonexistent", "testtoken1234")
+	resp := ts.Get("/v1/nonexistent", ts.IssueTestToken("did:echo:testuser"))
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNotFound {
@@ -228,11 +228,13 @@ func TestMethodNotAllowed(t *testing.T) {
 	ts, cleanup := testutil.StartTestServer(t)
 	defer cleanup()
 
-	resp := ts.Post("/v1/users", "testtoken1234", map[string]string{"name": "Charlie"})
+	resp := ts.Post("/v1/users", ts.IssueTestToken("did:echo:testuser"), map[string]string{"name": "Charlie"})
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusMethodNotAllowed {
-		t.Fatalf("expected 405, got %d", resp.StatusCode)
+		var body map[string]interface{}
+		json.NewDecoder(resp.Body).Decode(&body)
+		t.Fatalf("expected 405, got %d (body: %v)", resp.StatusCode, body)
 	}
 }
 

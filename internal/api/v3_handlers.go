@@ -18,7 +18,9 @@ import (
 	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
+	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
 	"github.com/thechadcromwell/echoapp/internal/services/contacts"
+	"github.com/thechadcromwell/echoapp/internal/services/groups"
 	"github.com/thechadcromwell/echoapp/internal/services/media"
 	"github.com/thechadcromwell/echoapp/internal/services/notification"
 	"github.com/thechadcromwell/echoapp/internal/services/rewards"
@@ -31,6 +33,8 @@ type V3Handlers struct {
 	Notification *notification.Service
 	Media        *media.Service
 	Rewards      *rewards.Service
+	Groups       *groups.GroupService
+	Broadcasts   *broadcast_channels.ChannelService
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.
@@ -70,6 +74,20 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 
 	// Message receipt endpoint
 	mux.HandleFunc("/v3/messages/", h.handleMessageReceipt)
+
+	// Group endpoints
+	mux.HandleFunc("/v3/groups/create", h.handleGroupCreate)
+	mux.HandleFunc("/v3/groups/members/add", h.handleGroupAddMember)
+	mux.HandleFunc("/v3/groups/members/remove", h.handleGroupRemoveMember)
+	mux.HandleFunc("/v3/groups/members", h.handleGroupMembers)
+	mux.HandleFunc("/v3/groups/", h.handleGroupGet)
+
+	// Broadcast channel endpoints
+	mux.HandleFunc("/v3/broadcasts/create", h.handleBroadcastCreate)
+	mux.HandleFunc("/v3/broadcasts/post", h.handleBroadcastPost)
+	mux.HandleFunc("/v3/broadcasts/subscribe", h.handleBroadcastSubscribe)
+	mux.HandleFunc("/v3/broadcasts/unsubscribe", h.handleBroadcastUnsubscribe)
+	mux.HandleFunc("/v3/broadcasts/", h.handleBroadcastGet)
 }
 
 // --- Helpers ---
@@ -696,4 +714,248 @@ func indexByte(s string, c byte) int {
 		}
 	}
 	return -1
+}
+
+// --- Group Handlers ---
+
+func (h *V3Handlers) handleGroupCreate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Groups == nil {
+		WriteError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Groups service not initialized", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		GroupID      string                          `json:"groupId"`
+		GroupType    groups.GroupType                `json:"groupType"`
+		Name         string                          `json:"name"`
+		Description  string                          `json:"description"`
+		Requirements groups.VerificationRequirements `json:"requirements"`
+	}
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	ownerDID := h.getDID(r)
+	profile := groups.GroupProfile{Name: req.Name, Description: req.Description}
+	group, err := h.Groups.CreateGroup(req.GroupID, ownerDID, req.GroupType, profile, req.Requirements)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "GROUP_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusCreated, group)
+}
+
+func (h *V3Handlers) handleGroupGet(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Groups == nil {
+		WriteError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Groups service not initialized", r.Header.Get("X-Request-ID"))
+		return
+	}
+	groupID := r.URL.Path[len("/v3/groups/"):]
+	group, err := h.Groups.GetGroup(groupID)
+	if err != nil {
+		WriteError(w, http.StatusNotFound, "GROUP_NOT_FOUND", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, group)
+}
+
+func (h *V3Handlers) handleGroupAddMember(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Groups == nil {
+		WriteError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Groups service not initialized", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		GroupID   string `json:"groupId"`
+		MemberDID string `json:"memberDid"`
+	}
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	member, err := h.Groups.AddMember(req.GroupID, req.MemberDID, 0, groups.TrustLevelNewcomer, false)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "MEMBER_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusCreated, member)
+}
+
+func (h *V3Handlers) handleGroupRemoveMember(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Groups == nil {
+		WriteError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Groups service not initialized", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		GroupID  string `json:"groupId"`
+		MemberID string `json:"memberId"`
+	}
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err := h.Groups.RemoveMember(req.GroupID, req.MemberID); err != nil {
+		WriteError(w, http.StatusNotFound, "MEMBER_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "removed"})
+}
+
+func (h *V3Handlers) handleGroupMembers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Groups == nil {
+		WriteError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Groups service not initialized", r.Header.Get("X-Request-ID"))
+		return
+	}
+	groupID := r.URL.Query().Get("groupId")
+	members, err := h.Groups.GetGroupMembers(groupID)
+	if err != nil {
+		WriteError(w, http.StatusNotFound, "GROUP_NOT_FOUND", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"groupId": groupID,
+		"members": members,
+		"count":   len(members),
+	})
+}
+
+// --- Broadcast Channel Handlers ---
+
+func (h *V3Handlers) handleBroadcastCreate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Broadcasts == nil {
+		WriteError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Broadcast service not initialized", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		Name        string                         `json:"name"`
+		Topic       string                         `json:"topic"`
+		ChannelType broadcast_channels.ChannelType `json:"channelType"`
+	}
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	creatorDID := h.getDID(r)
+	channel, err := h.Broadcasts.CreateChannel(req.Name, req.Topic, creatorDID, req.ChannelType)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "CHANNEL_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusCreated, channel)
+}
+
+func (h *V3Handlers) handleBroadcastGet(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Broadcasts == nil {
+		WriteError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Broadcast service not initialized", r.Header.Get("X-Request-ID"))
+		return
+	}
+	channelID := r.URL.Path[len("/v3/broadcasts/"):]
+	channel, err := h.Broadcasts.GetChannel(channelID)
+	if err != nil {
+		WriteError(w, http.StatusNotFound, "CHANNEL_NOT_FOUND", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, channel)
+}
+
+func (h *V3Handlers) handleBroadcastPost(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Broadcasts == nil {
+		WriteError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Broadcast service not initialized", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		ChannelID   string                         `json:"channelId"`
+		Content     string                         `json:"content"`
+		ContentType broadcast_channels.ContentType `json:"contentType"`
+	}
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	creatorDID := h.getDID(r)
+	post, err := h.Broadcasts.CreatePost(req.ChannelID, creatorDID, req.Content, req.ContentType)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "POST_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusCreated, post)
+}
+
+func (h *V3Handlers) handleBroadcastSubscribe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Broadcasts == nil {
+		WriteError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Broadcast service not initialized", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		ChannelID string `json:"channelId"`
+	}
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	subscriberDID := h.getDID(r)
+	sub, err := h.Broadcasts.Subscribe(req.ChannelID, subscriberDID)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "SUBSCRIBE_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusCreated, sub)
+}
+
+func (h *V3Handlers) handleBroadcastUnsubscribe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Broadcasts == nil {
+		WriteError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Broadcast service not initialized", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		ChannelID string `json:"channelId"`
+	}
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	subscriberDID := h.getDID(r)
+	if err := h.Broadcasts.Unsubscribe(req.ChannelID, subscriberDID); err != nil {
+		WriteError(w, http.StatusNotFound, "UNSUBSCRIBE_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "unsubscribed"})
 }

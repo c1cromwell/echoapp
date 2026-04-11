@@ -117,7 +117,7 @@ func TestContract_V1Users(t *testing.T) {
 	defer cleanup()
 
 	endpoint := "GET /v1/users"
-	resp := ts.Get("/v1/users", "testtoken1234")
+	resp := ts.Get("/v1/users", ts.IssueTestToken("did:echo:testuser"))
 
 	assertContentType(t, endpoint, resp, "application/json")
 	if resp.StatusCode != http.StatusOK {
@@ -158,7 +158,7 @@ func TestContract_V1Profile(t *testing.T) {
 	defer cleanup()
 
 	endpoint := "GET /v1/users/profile"
-	resp := ts.Get("/v1/users/profile", "testtoken1234")
+	resp := ts.Get("/v1/users/profile", ts.IssueTestToken("did:echo:testuser"))
 
 	assertContentType(t, endpoint, resp, "application/json")
 	if resp.StatusCode != http.StatusOK {
@@ -182,7 +182,7 @@ func TestContract_V2Users(t *testing.T) {
 	defer cleanup()
 
 	endpoint := "GET /v2/users"
-	resp := ts.Get("/v2/users", "testtoken1234")
+	resp := ts.Get("/v2/users", ts.IssueTestToken("did:echo:testuser"))
 
 	assertContentType(t, endpoint, resp, "application/json")
 	if resp.StatusCode != http.StatusOK {
@@ -221,7 +221,7 @@ func TestContract_V2Profile(t *testing.T) {
 	defer cleanup()
 
 	endpoint := "GET /v2/users/profile"
-	resp := ts.Get("/v2/users/profile", "testtoken1234")
+	resp := ts.Get("/v2/users/profile", ts.IssueTestToken("did:echo:testuser"))
 
 	assertContentType(t, endpoint, resp, "application/json")
 	if resp.StatusCode != http.StatusOK {
@@ -275,7 +275,7 @@ func TestContract_ErrorResponse_NotFound(t *testing.T) {
 	defer cleanup()
 
 	endpoint := "GET /v1/nonexistent"
-	resp := ts.Get("/v1/nonexistent", "testtoken1234")
+	resp := ts.Get("/v1/nonexistent", ts.IssueTestToken("did:echo:testuser"))
 
 	assertContentType(t, endpoint, resp, "application/json")
 	if resp.StatusCode != http.StatusNotFound {

@@ -5,11 +5,13 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/thechadcromwell/echoapp/internal/auth"
 )
 
 // contextKey is an unexported type for context keys to avoid collisions.
@@ -46,27 +48,48 @@ type Router struct {
 	StartTime       time.Time
 	TokenValidator  func(token string) bool
 	UserIDExtractor func(token string) string
-	WSHub           *Hub        // WebSocket hub for real-time messaging
-	V3              *V3Handlers // V3 API handlers (blueprint services)
+	WSHub           *Hub               // WebSocket hub for real-time messaging
+	V3              *V3Handlers        // V3 API handlers (blueprint services)
+	tokenService    *auth.TokenService // ES256 JWT token service
 }
 
-// NewRouter creates a Router with sensible defaults.
+// NewRouter creates a Router with production-grade ES256 JWT validation.
 // It also creates and starts a WebSocket hub.
 func NewRouter(allowedOrigins []string) *Router {
 	hub := NewHub()
 	go hub.Run()
 
-	return &Router{
+	tokenService, err := auth.NewTokenService()
+	if err != nil {
+		log.Fatalf("Failed to create token service: %v", err)
+	}
+
+	rt := &Router{
 		AllowedOrigins: allowedOrigins,
 		StartTime:      time.Now(),
-		TokenValidator: func(token string) bool {
-			return len(token) > 0
-		},
-		UserIDExtractor: func(token string) string {
-			return "user-" + token[:min(8, len(token))]
-		},
-		WSHub: hub,
+		WSHub:          hub,
+		tokenService:   tokenService,
 	}
+
+	// Wire up JWT-based validation
+	rt.TokenValidator = func(token string) bool {
+		_, err := tokenService.ValidateAccessToken(token)
+		return err == nil
+	}
+	rt.UserIDExtractor = func(token string) string {
+		claims, err := tokenService.ValidateAccessToken(token)
+		if err != nil {
+			return ""
+		}
+		return claims.Subject
+	}
+
+	return rt
+}
+
+// TokenService returns the router's JWT token service for issuing tokens.
+func (rt *Router) TokenService() *auth.TokenService {
+	return rt.tokenService
 }
 
 // Handler returns the fully wrapped http.Handler with all middleware applied.

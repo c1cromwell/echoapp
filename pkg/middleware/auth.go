@@ -185,16 +185,10 @@ func (v *DefaultPasskeyValidator) Verify(token string) (string, bool, error) {
 		}
 	}
 
-	// TODO: Implement actual passkey verification against your passkey store
-	// This would typically involve:
-	// 1. Looking up the token in your database/cache
-	// 2. Checking if it's expired
-	// 3. Verifying the signature/hash
-	// 4. Returning the associated user ID if valid
-
-	// For now, generate a user ID from the token for testing purposes
-	userID := "user-" + token[:16]
-	return userID, true, nil
+	// Production auth is handled by internal/auth.TokenService (ES256 JWT)
+	// and internal/auth.PasskeyVerifier (WebAuthn P-256 assertion).
+	// This legacy validator rejects all tokens — it exists as a safe fallback.
+	return "", false, nil
 }
 
 // isValidTokenChar checks if a character is valid in a token

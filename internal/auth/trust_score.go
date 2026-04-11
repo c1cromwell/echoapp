@@ -305,7 +305,7 @@ func calculateOnChainScore(ocp *OnChainPoints, config TrustScoreConfig) int {
 	score := 0
 	score += int(ocp.TransactionCount) * config.OnChainWeights.TransactionsPerTx
 	score += int(ocp.StakedAmount/100) * config.OnChainWeights.StakingPer100ECHO
-	score += int(ocp.GovernanceVoteCount) * config.OnChainWeights.GovernancePerVote
+	score += int(ocp.GovernanceVotes) * config.OnChainWeights.GovernancePerVote
 
 	if score > config.OnChainWeights.MaxOnChain {
 		score = config.OnChainWeights.MaxOnChain

@@ -30,12 +30,16 @@ type AuthService struct {
 	Audit       *AuditLogger
 
 	// In-memory user store (production: Postgres)
-	users       map[string]*User // key: user_id
-	usersByDID  map[string]*User // key: did
+	users        map[string]*User // key: user_id
+	usersByDID   map[string]*User // key: did
 	usersByPhone map[string]*User // key: phone_hash
 
 	// Credential store (production: Postgres)
 	credentials map[string]*CredentialRecord // key: credential_id
+
+	// Passkey verification
+	PasskeyVerifier *PasskeyVerifier
+	challenges      map[string]time.Time // challenge -> expiry (5 min)
 }
 
 // NewAuthService creates a fully initialized auth service.
@@ -46,17 +50,19 @@ func NewAuthService() (*AuthService, error) {
 	}
 
 	return &AuthService{
-		OTP:          NewOTPService(),
-		Tokens:       tokenService,
-		Devices:      NewDeviceService(),
-		RateLimiter:  NewAuthRateLimiter(),
-		StepUp:       NewStepUpService(),
-		Recovery:     NewRecoveryService(),
-		Audit:        NewAuditLogger(),
-		users:        make(map[string]*User),
-		usersByDID:   make(map[string]*User),
-		usersByPhone: make(map[string]*User),
-		credentials:  make(map[string]*CredentialRecord),
+		OTP:             NewOTPService(),
+		Tokens:          tokenService,
+		Devices:         NewDeviceService(),
+		RateLimiter:     NewAuthRateLimiter(),
+		StepUp:          NewStepUpService(),
+		Recovery:        NewRecoveryService(),
+		Audit:           NewAuditLogger(),
+		PasskeyVerifier: NewPasskeyVerifier("echo.app", "https://echo.app"),
+		users:           make(map[string]*User),
+		usersByDID:      make(map[string]*User),
+		usersByPhone:    make(map[string]*User),
+		credentials:     make(map[string]*CredentialRecord),
+		challenges:      make(map[string]time.Time),
 	}, nil
 }
 
@@ -111,7 +117,7 @@ func (s *AuthService) RegisterPhone(req PhoneRegistrationRequest, ip string) (*P
 
 	// 7. Audit
 	s.Audit.Log("", AuditEventRegister, AuditResultSuccess, ip, "", &req.DeviceInfo, "", map[string]interface{}{
-		"step": "phone_registration",
+		"step":       "phone_registration",
 		"phone_hash": phoneHash[:8] + "...",
 	})
 
@@ -199,11 +205,15 @@ func (s *AuthService) VerifyOTP(req OTPVerifyRequest, ip string) (*AuthResponse,
 		return nil, &AuthError{Code: "AUTH_INTERNAL", Message: "Internal error", HTTPStatus: 500}
 	}
 
-	// 7. Generate passkey challenge
+	// 7. Generate passkey challenge and store it
 	challenge, err := generateChallenge()
 	if err != nil {
 		return nil, &AuthError{Code: "AUTH_INTERNAL", Message: "Internal error", HTTPStatus: 500}
 	}
+
+	s.mu.Lock()
+	s.challenges[challenge] = time.Now().Add(5 * time.Minute)
+	s.mu.Unlock()
 
 	// 8. Audit
 	s.Audit.Log(userID, AuditEventRegister, AuditResultSuccess, ip, deviceHash, &req.DeviceInfo, "", map[string]interface{}{
@@ -234,8 +244,27 @@ func (s *AuthService) RegisterPasskey(userDID string, req PasskeyRegistrationReq
 		return nil, NewAuthError(ErrCodePasskeyFailed, 401)
 	}
 
-	// 3. In production: verify WebAuthn attestation via go-webauthn library
-	// For now, store the credential directly
+	// 3. Verify challenge exists and hasn't expired
+	s.mu.Lock()
+	expiry, challengeOK := s.challenges[req.Challenge]
+	if challengeOK {
+		delete(s.challenges, req.Challenge) // single-use
+	}
+	s.mu.Unlock()
+
+	if !challengeOK || time.Now().After(expiry) {
+		return nil, NewAuthError(ErrCodePasskeyFailed, 401)
+	}
+
+	// 4. Verify WebAuthn attestation and extract P-256 public key
+	pubKeyBytes, verifyErr := s.PasskeyVerifier.VerifyAttestation(req.AttestationResponse, req.Challenge)
+	if verifyErr != nil {
+		s.Audit.Log(user.ID, AuditEventRegister, AuditResultFailed, ip, "", &req.DeviceInfo, string(ErrCodePasskeyFailed), map[string]interface{}{
+			"error": verifyErr.Error(),
+		})
+		return nil, NewAuthError(ErrCodePasskeyFailed, 401)
+	}
+
 	deviceHash := ComputeDeviceHash(req.DeviceInfo)
 	credentialID := req.AttestationResponse.ID
 	if credentialID == "" {
@@ -246,7 +275,7 @@ func (s *AuthService) RegisterPasskey(userDID string, req PasskeyRegistrationReq
 		ID:           uuid.New().String(),
 		UserID:       user.ID,
 		CredentialID: credentialID,
-		PublicKey:    []byte(req.AttestationResponse.Response.AttestationObject),
+		PublicKey:    pubKeyBytes,
 		SignCount:    0,
 		DeviceID:     deviceHash,
 		FriendlyName: req.DeviceInfo.Model,
@@ -297,10 +326,16 @@ func (s *AuthService) LoginChallenge() (*LoginChallengeResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Store challenge with 5-minute expiry
+	s.mu.Lock()
+	s.challenges[challenge] = time.Now().Add(5 * time.Minute)
+	s.mu.Unlock()
+
 	return &LoginChallengeResponse{
 		Challenge: challenge,
 		Timeout:   300000, // 5 minutes in ms
-		RPID:      "echo.app",
+		RPID:      s.PasskeyVerifier.RPID,
 	}, nil
 }
 
@@ -347,11 +382,25 @@ func (s *AuthService) loginPasskey(req LoginRequest, ip string, deviceHash strin
 		return nil, NewAuthError(ErrCodePasskeyFailed, 401)
 	}
 
-	// In production: verify WebAuthn assertion signature
-	// For now: accept if credential exists
+	// Verify challenge exists and hasn't expired
+	s.mu.Lock()
+	expiry, challengeOK := s.challenges[req.Nonce]
+	if challengeOK {
+		delete(s.challenges, req.Nonce) // single-use
+	}
+	s.mu.Unlock()
 
-	// Check sign count (detect cloned passkeys)
-	// In production: parse authenticator data for actual sign count
+	if !challengeOK || time.Now().After(expiry) {
+		return nil, NewAuthError(ErrCodePasskeyFailed, 401)
+	}
+
+	// Verify WebAuthn assertion P-256 signature
+	if err := s.PasskeyVerifier.VerifyAssertion(*req.Credential, cred.PublicKey, req.Nonce); err != nil {
+		s.Audit.Log("", AuditEventLogin, AuditResultFailed, ip, deviceHash, &req.DeviceInfo, string(ErrCodePasskeyFailed), map[string]interface{}{
+			"error": err.Error(),
+		})
+		return nil, NewAuthError(ErrCodePasskeyFailed, 401)
+	}
 
 	// Device check
 	s.mu.RLock()

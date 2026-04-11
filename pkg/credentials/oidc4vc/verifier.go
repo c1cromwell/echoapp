@@ -3,6 +3,7 @@ package oidc4vc
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -174,11 +175,10 @@ func (v *Verifier) GetPresentationDefinition(c *gin.Context) {
 	definitionID := c.Param("definitionId")
 
 	// Create presentation definition based on ID
-	// Parse credential type from definitionID in production
+	// Parse credential type from definitionID using convention: "echo_<type>_v<version>"
 	var credentialType string
 	if definitionID != "" {
-		// TODO: Parse definitionID to extract credential type
-		credentialType = "ProofOfHumanity" // Default for now
+		credentialType = parseCredentialTypeFromDefinitionID(definitionID)
 	} else {
 		credentialType = "ProofOfHumanity"
 	}
@@ -273,4 +273,35 @@ func (v *Verifier) RespondToPresentation(presentationID string, isValid bool, de
 	}
 
 	return response
+}
+
+// parseCredentialTypeFromDefinitionID extracts the credential type from a
+// definition ID using the convention: "echo_<type>_v<version>".
+// Examples:
+//
+//	"echo_proof_of_humanity_v1" → "ProofOfHumanity"
+//	"echo_kyc_lite_v1"          → "KYCLite"
+//	"echo_org_verified_v1"      → "OrgVerified"
+//	unknown/empty               → "ProofOfHumanity" (default)
+func parseCredentialTypeFromDefinitionID(definitionID string) string {
+	knownTypes := map[string]string{
+		"proof_of_humanity": "ProofOfHumanity",
+		"kyc_lite":          "KYCLite",
+		"kyc_full":          "KYCFull",
+		"org_verified":      "OrgVerified",
+		"apple_digital_id":  "AppleDigitalID",
+		"phone_verified":    "PhoneVerified",
+		"email_verified":    "EmailVerified",
+	}
+
+	// Strip "echo_" prefix and "_v<N>" suffix
+	id := strings.TrimPrefix(definitionID, "echo_")
+	if idx := strings.LastIndex(id, "_v"); idx > 0 {
+		id = id[:idx]
+	}
+
+	if ct, ok := knownTypes[id]; ok {
+		return ct
+	}
+	return "ProofOfHumanity"
 }

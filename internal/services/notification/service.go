@@ -45,14 +45,25 @@ type SendResult struct {
 	Timestamp    time.Time `json:"timestamp"`
 }
 
+// PushSender abstracts the push notification delivery backend.
+type PushSender interface {
+	SendPush(ctx context.Context, deviceToken string, conversationID string, notifType string) error
+}
+
 // Service provides push notification operations.
 type Service struct {
-	db database.DB
+	db     database.DB
+	pusher PushSender
 }
 
 // NewService creates a notification service.
 func NewService(db database.DB) *Service {
 	return &Service{db: db}
+}
+
+// SetPushSender configures a real push delivery backend (e.g., APNs).
+func (s *Service) SetPushSender(p PushSender) {
+	s.pusher = p
 }
 
 // RegisterDevice registers a device for push notifications.
@@ -107,10 +118,15 @@ func (s *Service) Send(ctx context.Context, recipientDID string, payload PushPay
 	}
 
 	// In production, this would call APNs HTTP/2 API.
-	// For now, count successful "sends" to devices with valid tokens.
+	// When a PushSender is configured, use it for real delivery.
 	delivered := 0
 	for _, d := range devices {
 		if len(d.APNsToken) >= 8 {
+			if s.pusher != nil {
+				if err := s.pusher.SendPush(ctx, d.APNsToken, payload.ConversationID, string(payload.Type)); err != nil {
+					continue
+				}
+			}
 			delivered++
 		}
 	}
