@@ -1,0 +1,104 @@
+name: Metagraph CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'metagraph/**'
+      - '.github/workflows/metagraph-ci.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'metagraph/**'
+      - '.github/workflows/metagraph-ci.yml'
+
+jobs:
+  lint:
+    name: Scalafmt Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: metagraph
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: sbt
+
+      - name: Check formatting
+        run: sbt scalafmtCheckAll
+
+  compile:
+    name: Compile
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: metagraph
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: sbt
+
+      - name: Compile all modules
+        run: sbt compile
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: compile
+    defaults:
+      run:
+        working-directory: metagraph
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: sbt
+
+      - name: Run tests
+        run: sbt test
+
+  assembly:
+    name: Assembly JARs
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    defaults:
+      run:
+        working-directory: metagraph
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: sbt
+
+      - name: Build L0 assembly
+        run: sbt currencyL0/assembly
+
+      - name: Build Currency L1 assembly
+        run: sbt currencyL1/assembly
+
+      - name: Build Data L1 assembly
+        run: sbt dataL1/assembly
+
+      - name: Upload JARs
+        uses: actions/upload-artifact@v4
+        with:
+          name: metagraph-jars
+          path: |
+            metagraph/modules/l0/target/scala-2.13/*.jar
+            metagraph/modules/l1/target/scala-2.13/*.jar
+            metagraph/modules/data_l1/target/scala-2.13/*.jar
+          retention-days: 7

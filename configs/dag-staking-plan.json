@@ -1,0 +1,63 @@
+{
+  "dag_staking_plan": {
+    "requirement": "750,000 DAG total (250,000 per L0 hybrid node × 3 nodes)",
+    "purpose": "Mainnet Hypergraph L0 validator staking for Echo metagraph",
+
+    "nodes": [
+      {
+        "name": "echo-l0-node-1",
+        "stake_dag": 250000,
+        "role": "Global L0 + Metagraph L0",
+        "status": "pending_funding"
+      },
+      {
+        "name": "echo-l0-node-2",
+        "stake_dag": 250000,
+        "role": "Global L0 + Metagraph L0",
+        "status": "pending_funding"
+      },
+      {
+        "name": "echo-l0-node-3",
+        "stake_dag": 250000,
+        "role": "Global L0 + Metagraph L0",
+        "status": "pending_funding"
+      }
+    ],
+
+    "acquisition_options": [
+      {
+        "method": "Market purchase (CEX)",
+        "exchanges": ["KuCoin", "Gate.io", "MEXC", "Huobi"],
+        "notes": "DCA over 2-4 weeks to minimize slippage. Average daily volume ~$2-5M.",
+        "estimated_cost_usd": "Depends on DAG market price at time of purchase"
+      },
+      {
+        "method": "OTC deal",
+        "notes": "Contact Constellation Network foundation or large DAG holders for OTC block trade at discount. Typical 5-15% discount for 750K+ blocks.",
+        "contacts": ["Constellation Foundation", "Stardust Collective"]
+      },
+      {
+        "method": "Stardust Collective grant",
+        "notes": "Apply for Constellation ecosystem grant / incubation program. May provide DAG staking or subsidized node operation.",
+        "url": "https://constellationnetwork.io/ecosystem/"
+      },
+      {
+        "method": "Node operator partnership",
+        "notes": "Partner with existing Hypergraph node operator who has excess DAG capacity. Revenue-share on metagraph snapshot fees."
+      }
+    ],
+
+    "timeline": {
+      "testnet": "No DAG required — uses test tokens on Constellation testnet",
+      "mainnet_phase_2": "750K DAG must be acquired and staked before mainnet deployment",
+      "target_date": "Before Phase 2 launch (see tracker)"
+    },
+
+    "wallet": {
+      "type": "Stargazer Wallet",
+      "network": "Constellation Mainnet",
+      "address": "PENDING — create via Stargazer wallet for DAG custody",
+      "notes": "Use hardware wallet (Ledger) for production staking keys"
+    }
+  }
+}
