@@ -13,7 +13,7 @@ type WalletState struct {
 	PendingRewards int64           `json:"pendingRewards"`
 	Locks          []TokenLockPos  `json:"locks"`
 	Delegations    []DelegationPos `json:"delegations"`
-	DailyRewards   *DailyCapState  `json:"dailyRewards"`
+	DailyRewards   *AutoScaleState `json:"dailyRewards"`
 	Vesting        *VestingState   `json:"vesting,omitempty"`
 }
 
@@ -64,18 +64,16 @@ type VestingState struct {
 	ExplorerURL      string    `json:"explorerUrl"`
 }
 
-// DailyCapState tracks daily reward progress across all reward types.
-type DailyCapState struct {
-	Messaging   DailyCapEntry `json:"messaging"`
-	Referrals   DailyCapEntry `json:"referrals"`
-	Staking     DailyCapEntry `json:"staking"`
-	PaymentRail DailyCapEntry `json:"paymentRail"`
-}
-
-// DailyCapEntry is a single reward type's daily cap progress.
-type DailyCapEntry struct {
-	Earned int64 `json:"earned"`
-	Cap    int64 `json:"cap"`
+// AutoScaleState replaces DailyCapState.
+// Per PRD v2.5.1: auto-scaling model adopted, daily caps removed.
+type AutoScaleState struct {
+	CurrentRate          int64   `json:"currentRate"`          // Current per-message base rate (8 decimals)
+	DailyBudget          int64   `json:"dailyBudget"`          // Today's emission budget from annual curve
+	EffectiveDailyBudget int64   `json:"effectiveDailyBudget"` // Including rollover from low-activity days
+	BudgetUsedToday      int64   `json:"budgetUsedToday"`      // Total distributed today
+	RemainingToday       int64   `json:"remainingToday"`       // Budget remaining today
+	TotalActivityWeight  float64 `json:"totalActivityWeight"`  // Sum of tier-weighted messages today
+	LastUpdated          string  `json:"lastUpdated"`          // ISO timestamp of last rate recalculation
 }
 
 // StakeRequest is the input for staking ECHO via TokenLock.

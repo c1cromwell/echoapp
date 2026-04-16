@@ -66,17 +66,17 @@ type TokenLock struct {
 type StakingTierV3 struct {
 	Name         string   `json:"name"`
 	MinimumStake *big.Int `json:"minimum_stake"` // governance-adjustable
-	APRPercent   float64  `json:"apr_percent"`    // 5-15%
+	APRPercent   float64  `json:"apr_percent"`   // 5-15%
 	LockDays     int      `json:"lock_days"`
 }
 
 // DefaultStakingTiers returns the governance-initial staking tiers.
 func DefaultStakingTiers() []StakingTierV3 {
 	return []StakingTierV3{
-		{Name: "Tier 1", MinimumStake: big.NewInt(10000000000), APRPercent: 5.0, LockDays: 30},     // 100 ECHO
-		{Name: "Tier 2", MinimumStake: big.NewInt(100000000000), APRPercent: 8.0, LockDays: 90},    // 1,000 ECHO
-		{Name: "Tier 3", MinimumStake: big.NewInt(1000000000000), APRPercent: 10.0, LockDays: 180},  // 10,000 ECHO
-		{Name: "Tier 4", MinimumStake: big.NewInt(10000000000000), APRPercent: 12.0, LockDays: 270}, // 100,000 ECHO
+		{Name: "Tier 1", MinimumStake: big.NewInt(10000000000), APRPercent: 5.0, LockDays: 30},       // 100 ECHO
+		{Name: "Tier 2", MinimumStake: big.NewInt(100000000000), APRPercent: 8.0, LockDays: 90},      // 1,000 ECHO
+		{Name: "Tier 3", MinimumStake: big.NewInt(1000000000000), APRPercent: 10.0, LockDays: 180},   // 10,000 ECHO
+		{Name: "Tier 4", MinimumStake: big.NewInt(10000000000000), APRPercent: 12.0, LockDays: 270},  // 100,000 ECHO
 		{Name: "Tier 5", MinimumStake: big.NewInt(100000000000000), APRPercent: 15.0, LockDays: 365}, // 1,000,000 ECHO
 	}
 }
@@ -189,12 +189,13 @@ type AtomicAction struct {
 type AtomicOpType string
 
 const (
-	OpRewardClaim       AtomicOpType = "reward_claim"
-	OpTrustVerification AtomicOpType = "trust_verification"
-	OpDailyCapUpdate    AtomicOpType = "daily_cap_update"
-	OpGovernanceVote    AtomicOpType = "governance_vote"
-	OpStakeVerification AtomicOpType = "stake_verification"
-	OpBalanceUpdate     AtomicOpType = "balance_update"
+	OpRewardClaim         AtomicOpType = "reward_claim"
+	OpTrustVerification   AtomicOpType = "trust_verification"
+	OpDailyCapUpdate      AtomicOpType = "daily_cap_update"
+	OpAutoScaleRateUpdate AtomicOpType = "auto_scale_rate_update"
+	OpGovernanceVote      AtomicOpType = "governance_vote"
+	OpStakeVerification   AtomicOpType = "stake_verification"
+	OpBalanceUpdate       AtomicOpType = "balance_update"
 )
 
 // AtomicOperation is a single sub-operation within an AtomicAction.
@@ -313,10 +314,10 @@ func NewFeeTransaction(txID, treasuryDID, snapshotRef string, feeAmount *big.Int
 // MerkleCommitment represents a batch message integrity anchoring on Data L1.
 type MerkleCommitment struct {
 	BaseTx
-	MerkleRoot     string `json:"merkle_root"`
-	CommitmentCount int   `json:"commitment_count"`
-	BatchHash      string `json:"batch_hash"`
-	IPFSCid        string `json:"ipfs_cid,omitempty"`
+	MerkleRoot      string `json:"merkle_root"`
+	CommitmentCount int    `json:"commitment_count"`
+	BatchHash       string `json:"batch_hash"`
+	IPFSCid         string `json:"ipfs_cid,omitempty"`
 }
 
 // ComputeMerkleRoot computes a SHA-256 Merkle root from a set of commitment hashes.

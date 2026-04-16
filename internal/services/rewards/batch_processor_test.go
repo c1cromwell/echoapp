@@ -171,7 +171,7 @@ func TestBatchProcessor_AtomicActionStructure(t *testing.T) {
 	if tx.AtomicAction == nil {
 		t.Fatal("expected AtomicAction to be set")
 	}
-	// 1 claim → 1 reward_claim + 1 trust_verification + 1 daily_cap_update = 3 ops
+	// 1 claim → 1 reward_claim + 1 trust_verification + 1 auto_scale_rate_update = 3 ops
 	if len(tx.AtomicAction.Operations) != 3 {
 		t.Errorf("expected 3 operations, got %d", len(tx.AtomicAction.Operations))
 	}
@@ -183,8 +183,8 @@ func TestBatchProcessor_AtomicActionStructure(t *testing.T) {
 	if ops[1].Type != metagraph.OpTrustVerification {
 		t.Errorf("expected second op to be trust_verification, got %s", ops[1].Type)
 	}
-	if ops[2].Type != metagraph.OpDailyCapUpdate {
-		t.Errorf("expected third op to be daily_cap_update, got %s", ops[2].Type)
+	if ops[2].Type != metagraph.OpAutoScaleRateUpdate {
+		t.Errorf("expected third op to be auto_scale_rate_update, got %s", ops[2].Type)
 	}
 }
 

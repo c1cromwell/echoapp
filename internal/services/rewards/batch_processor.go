@@ -194,15 +194,16 @@ func (bp *BatchProcessor) submitBatch(claims []PendingClaim) BatchResult {
 		})
 	}
 
-	// Daily cap update operation
+	// Auto-scale rate update operation
 	capPayload, _ := json.Marshal(map[string]interface{}{
-		"batch_id":    batchID,
-		"total_echo":  totalECHO,
-		"claim_count": len(claims),
-		"timestamp":   time.Now().UTC(),
+		"batch_id":             batchID,
+		"total_echo":           totalECHO,
+		"claim_count":          len(claims),
+		"timestamp":            time.Now().UTC(),
+		"auto_scale_update_by": "batch_processor",
 	})
 	ops = append(ops, metagraph.AtomicOperation{
-		Type:    metagraph.OpDailyCapUpdate,
+		Type:    metagraph.OpAutoScaleRateUpdate,
 		Layer:   metagraph.CurrencyL1,
 		Payload: capPayload,
 	})

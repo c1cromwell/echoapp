@@ -27,7 +27,7 @@ type RewardClaim struct {
 type RewardsQuerier interface {
 	GetPending(ctx context.Context, did string) (int64, error)
 	GetPendingByType(ctx context.Context, did, rewardType string) (int64, error)
-	GetDailyCaps(ctx context.Context, did string) (*DailyCapState, error)
+	GetAutoScaleState(ctx context.Context, did string) (*AutoScaleState, error)
 	ClearPending(ctx context.Context, did string, types []string) error
 }
 
@@ -67,7 +67,7 @@ func (s *WalletService) GetWalletState(ctx context.Context, did string) (*Wallet
 		return nil, err
 	}
 
-	dailyCaps, err := s.rewards.GetDailyCaps(ctx, did)
+	autoScaleState, err := s.rewards.GetAutoScaleState(ctx, did)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (s *WalletService) GetWalletState(ctx context.Context, did string) (*Wallet
 		PendingRewards: pending,
 		Locks:          locks,
 		Delegations:    delegations,
-		DailyRewards:   dailyCaps,
+		DailyRewards:   autoScaleState,
 		Vesting:        vesting,
 	}, nil
 }

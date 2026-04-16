@@ -122,7 +122,7 @@ func TestClaim_AntiGaming_Velocity(t *testing.T) {
 	svc := newTestService()
 	ctx := context.Background()
 
-	// Make 10 claims (max per hour)
+	// Make 10 distinct messaging claims (max per hour)
 	for i := 0; i < 10; i++ {
 		req := ClaimRequest{
 			DID:          "did:alice",
@@ -132,7 +132,7 @@ func TestClaim_AntiGaming_Velocity(t *testing.T) {
 		}
 		_, err := svc.Claim(ctx, req)
 		if err != nil {
-			t.Fatalf("Claim %d: %v", i, err)
+			t.Fatalf("Claim %d: %v", i+1, err)
 		}
 	}
 
@@ -203,23 +203,23 @@ func TestGetDailyStats(t *testing.T) {
 func TestAutoScaleRate(t *testing.T) {
 	svc := newTestService()
 
-	// No messages: rate should be at base
+	// No messages: rate should be at the default initial rate
 	rate0 := svc.AutoScaleRate()
-	if rate0 != BaseRatePerMessage {
-		t.Errorf("expected base rate %d, got %d", BaseRatePerMessage, rate0)
+	if rate0 != InitialRatePerMessage {
+		t.Errorf("expected initial rate %d, got %d", InitialRatePerMessage, rate0)
 	}
 
-	// Record many messages to trigger decay
-	for i := 0; i < 200; i++ {
-		svc.RecordMessage()
-	}
+	// Simulate very high daily activity weight, so the auto-scaled rate decays below the initial rate.
+	svc.mu.Lock()
+	svc.todayActivityWeight = 2_000_000
+	svc.mu.Unlock()
 
-	rate200 := svc.AutoScaleRate()
-	if rate200 >= rate0 {
-		t.Errorf("expected decay: rate at 200 msgs (%d) should be less than base (%d)", rate200, rate0)
+	rateHighActivity := svc.AutoScaleRate()
+	if rateHighActivity >= rate0 {
+		t.Errorf("expected auto-scale decay: rate at high activity weight (%d) should be less than initial rate (%d)", rateHighActivity, rate0)
 	}
-	if rate200 <= 0 {
-		t.Errorf("rate should never reach zero (min floor), got %d", rate200)
+	if rateHighActivity <= 0 {
+		t.Errorf("rate should never reach zero, got %d", rateHighActivity)
 	}
 }
 
@@ -227,13 +227,12 @@ func TestAutoScaleRate_MinFloor(t *testing.T) {
 	svc := newTestService()
 
 	svc.mu.Lock()
-	svc.todayMessages = 100000
+	svc.todayActivityWeight = 100000
 	svc.mu.Unlock()
 
 	rate := svc.AutoScaleRate()
-	minRate := int64(float64(BaseRatePerMessage) * MinRateMultiplier)
-	if rate < minRate {
-		t.Errorf("rate %d should not go below min floor %d", rate, minRate)
+	if rate <= 0 {
+		t.Errorf("rate should remain positive, got %d", rate)
 	}
 }
 

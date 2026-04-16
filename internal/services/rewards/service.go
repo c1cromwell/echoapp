@@ -4,7 +4,6 @@ package rewards
 import (
 	"context"
 	"errors"
-	"math"
 	"sync"
 	"time"
 
@@ -15,10 +14,7 @@ import (
 )
 
 const (
-	BaseRatePerMessage = int64(1_00000000) // 1 ECHO per message (8 decimals)
-	DecayThreshold     = 100               // Messages before decay starts
-	DecayFactor        = 0.01              // 1% decay per message over threshold
-	MinRateMultiplier  = 0.01              // Floor: 1% of base rate
+	InitialRatePerMessage = int64(10_000_000) // 0.1 ECHO per message when no activity is recorded
 )
 
 // TrustMultiplier maps trust tiers to reward multipliers.
@@ -68,33 +64,39 @@ type PendingRewards struct {
 
 // DailyStats shows network-wide daily distribution statistics.
 type DailyStats struct {
-	Date             string    `json:"date"`
-	TotalDistributed int64     `json:"totalDistributed"`
-	DailyBudget      int64     `json:"dailyBudget"`
-	RemainingBudget  int64     `json:"remainingBudget"`
-	ClaimCount       int       `json:"claimCount"`
-	AutoScaleRate    int64     `json:"autoScaleRate"`
-	Timestamp        time.Time `json:"timestamp"`
+	Date                 string    `json:"date"`
+	TotalDistributed     int64     `json:"totalDistributed"`
+	DailyBudget          int64     `json:"dailyBudget"`
+	EffectiveDailyBudget int64     `json:"effectiveDailyBudget"`
+	RemainingBudget      int64     `json:"remainingBudget"`
+	ClaimCount           int       `json:"claimCount"`
+	AutoScaleRate        int64     `json:"autoScaleRate"`
+	Timestamp            time.Time `json:"timestamp"`
 }
 
 // Service manages reward operations.
 type Service struct {
-	db               database.DB
-	emission         *internalrewards.EmissionSchedule
-	antiGaming       *internalrewards.AntiGamingDetector
-	mu               sync.Mutex
-	todayDistributed int64
-	todayClaimCount  int
-	todayMessages    int
-	lastResetDate    string
+	db                  database.DB
+	emission            *internalrewards.EmissionSchedule
+	antiGaming          *internalrewards.AntiGamingDetector
+	mu                  sync.Mutex
+	todayDistributed    int64
+	todayClaimCount     int
+	todayActivityWeight float64
+	rolloverBudget      int64
+	lastResetDate       string
+	currentEmissionYear int
 }
 
 // NewService creates a reward service with emission schedule and anti-gaming protections.
 func NewService(db database.DB, emission *internalrewards.EmissionSchedule) *Service {
+	now := time.Now().UTC()
 	return &Service{
-		db:         db,
-		emission:   emission,
-		antiGaming: internalrewards.NewAntiGamingDetector(),
+		db:                  db,
+		emission:            emission,
+		antiGaming:          internalrewards.NewAntiGamingDetector(),
+		lastResetDate:       now.Format("2006-01-02"),
+		currentEmissionYear: emission.CurrentYear(),
 	}
 }
 
@@ -111,13 +113,13 @@ func (s *Service) Claim(ctx context.Context, req ClaimRequest) (*ClaimResult, er
 		return nil, ErrInsufficientTier
 	}
 
-	// Step 2: Calculate reward amount
+	// Step 2: Calculate reward amount.
 	amount := s.calculateReward(req, multiplier)
 	if amount <= 0 {
 		return nil, ErrNoPendingRewards
 	}
 
-	// Step 3: Check emission budget
+	// Step 3: Check emission budget.
 	remaining := s.emission.RemainingToday(s.todayDistributed)
 	if amount > remaining {
 		if remaining > 0 {
@@ -141,6 +143,13 @@ func (s *Service) Claim(ctx context.Context, req ClaimRequest) (*ClaimResult, er
 	// Step 5: Record claim (atomic)
 	s.todayDistributed += amount
 	s.todayClaimCount++
+	if req.RewardType == "messaging" {
+		messageCount := req.MessageCount
+		if messageCount <= 0 {
+			messageCount = 1
+		}
+		s.todayActivityWeight += multiplier * float64(messageCount)
+	}
 
 	return &ClaimResult{
 		ClaimID:    uuid.New().String(),
@@ -158,8 +167,12 @@ func (s *Service) Claim(ctx context.Context, req ClaimRequest) (*ClaimResult, er
 func (s *Service) GetPending(ctx context.Context, did string, trustTier int) (*PendingRewards, error) {
 	multiplier := TrustMultiplier[trustTier]
 
-	// Calculate pending messaging rewards based on auto-scale rate
+	// Calculate pending messaging rewards based on the current auto-scale rate,
+	// but do not pay above the target base rate when network activity is still low.
 	rate := s.AutoScaleRate()
+	if rate > InitialRatePerMessage {
+		rate = InitialRatePerMessage
+	}
 	pendingMessaging := int64(float64(rate) * multiplier)
 
 	pending := map[string]int64{
@@ -185,32 +198,45 @@ func (s *Service) GetDailyStats(ctx context.Context) (*DailyStats, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.resetDailyIfNeeded()
-
+	effectiveBudget := s.emission.DailyBudget() + s.rolloverBudget
 	return &DailyStats{
-		Date:             time.Now().UTC().Format("2006-01-02"),
-		TotalDistributed: s.todayDistributed,
-		DailyBudget:      s.emission.DailyBudget(),
-		RemainingBudget:  s.emission.RemainingToday(s.todayDistributed),
-		ClaimCount:       s.todayClaimCount,
-		AutoScaleRate:    s.AutoScaleRate(),
-		Timestamp:        time.Now(),
+		Date:                 time.Now().UTC().Format("2006-01-02"),
+		TotalDistributed:     s.todayDistributed,
+		DailyBudget:          s.emission.DailyBudget(),
+		EffectiveDailyBudget: effectiveBudget,
+		RemainingBudget:      s.emission.RemainingToday(s.todayDistributed) + s.rolloverBudget,
+		ClaimCount:           s.todayClaimCount,
+		AutoScaleRate:        s.autoScaleRateLocked(),
+		Timestamp:            time.Now(),
 	}, nil
 }
 
 // AutoScaleRate computes the current per-message reward rate.
-// Formula: base_rate * max(0.01, 1.0 - 0.01 * max(0, msgs_today - 100))
+// Formula: EffectiveDailyBudget ÷ TotalActivityWeight.
 func (s *Service) AutoScaleRate() int64 {
-	decayInput := float64(intMax(0, s.todayMessages-DecayThreshold))
-	decayMult := math.Max(MinRateMultiplier, 1.0-DecayFactor*decayInput)
-	return int64(float64(BaseRatePerMessage) * decayMult)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.autoScaleRateLocked()
 }
 
-// RecordMessage increments the daily message counter for auto-scaling.
+func (s *Service) autoScaleRateLocked() int64 {
+	if s.todayActivityWeight <= 0 {
+		return InitialRatePerMessage
+	}
+	effectiveBudget := float64(s.emission.DailyBudget() + s.rolloverBudget)
+	rate := int64(effectiveBudget / s.todayActivityWeight)
+	if rate <= 0 {
+		return InitialRatePerMessage
+	}
+	return rate
+}
+
+// RecordMessage increments the daily activity weight for auto-scaling.
 func (s *Service) RecordMessage() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.resetDailyIfNeeded()
-	s.todayMessages++
+	s.todayActivityWeight += 1.0
 }
 
 func (s *Service) calculateReward(req ClaimRequest, multiplier float64) int64 {
@@ -220,7 +246,10 @@ func (s *Service) calculateReward(req ClaimRequest, multiplier float64) int64 {
 		if count <= 0 {
 			count = 1
 		}
-		rate := s.AutoScaleRate()
+		rate := s.autoScaleRateLocked()
+		if rate > InitialRatePerMessage {
+			rate = InitialRatePerMessage
+		}
 		return int64(float64(rate) * multiplier * float64(count))
 	case "referral":
 		return int64(float64(50_00000000) * multiplier) // 50 ECHO base
@@ -233,13 +262,34 @@ func (s *Service) calculateReward(req ClaimRequest, multiplier float64) int64 {
 
 // resetDailyIfNeeded resets daily counters at UTC midnight.
 func (s *Service) resetDailyIfNeeded() {
-	today := time.Now().UTC().Format("2006-01-02")
-	if s.lastResetDate != today {
-		s.todayDistributed = 0
-		s.todayClaimCount = 0
-		s.todayMessages = 0
+	now := time.Now().UTC()
+	today := now.Format("2006-01-02")
+	currentYear := s.emission.CurrentYear()
+	if s.lastResetDate == "" {
 		s.lastResetDate = today
+		s.currentEmissionYear = currentYear
+		return
 	}
+	if s.lastResetDate == today {
+		return
+	}
+
+	if currentYear == s.currentEmissionYear {
+		effectiveBudget := s.emission.DailyBudget() + s.rolloverBudget
+		unused := effectiveBudget - s.todayDistributed
+		if unused < 0 {
+			unused = 0
+		}
+		s.rolloverBudget = unused
+	} else {
+		s.rolloverBudget = 0
+	}
+
+	s.todayDistributed = 0
+	s.todayClaimCount = 0
+	s.todayActivityWeight = 0
+	s.lastResetDate = today
+	s.currentEmissionYear = currentYear
 }
 
 func intMax(a, b int) int {

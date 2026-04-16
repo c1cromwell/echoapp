@@ -68,10 +68,10 @@ func (m *mockMetagraph) SubmitAtomicRewardClaim(_ context.Context, _ string, _ [
 // --- Mock RewardsQuerier ---
 
 type mockRewards struct {
-	pending    int64
-	pendingMap map[string]int64
-	dailyCaps  *DailyCapState
-	err        error
+	pending        int64
+	pendingMap     map[string]int64
+	autoScaleState *AutoScaleState
+	err            error
 }
 
 func (m *mockRewards) GetPending(_ context.Context, _ string) (int64, error) {
@@ -85,8 +85,8 @@ func (m *mockRewards) GetPendingByType(_ context.Context, _ string, rewardType s
 	return m.pending, nil
 }
 
-func (m *mockRewards) GetDailyCaps(_ context.Context, _ string) (*DailyCapState, error) {
-	return m.dailyCaps, m.err
+func (m *mockRewards) GetAutoScaleState(_ context.Context, _ string) (*AutoScaleState, error) {
+	return m.autoScaleState, m.err
 }
 
 func (m *mockRewards) ClearPending(_ context.Context, _ string, _ []string) error {
@@ -104,8 +104,14 @@ func TestGetWalletState(t *testing.T) {
 	}
 	rw := &mockRewards{
 		pending: 50_00000000,
-		dailyCaps: &DailyCapState{
-			Messaging: DailyCapEntry{Earned: 10_00000000, Cap: 100_00000000},
+		autoScaleState: &AutoScaleState{
+			CurrentRate:          10000000,     // 0.1 ECHO
+			DailyBudget:          100000000000, // 1000 ECHO
+			EffectiveDailyBudget: 100000000000,
+			BudgetUsedToday:      10000000000, // 100 ECHO
+			RemainingToday:       90000000000,
+			TotalActivityWeight:  1000.0,
+			LastUpdated:          "2024-01-01T12:00:00Z",
 		},
 	}
 
@@ -147,8 +153,8 @@ func TestGetWalletState_FounderVesting(t *testing.T) {
 		}},
 	}
 	rw := &mockRewards{
-		pending:   0,
-		dailyCaps: &DailyCapState{},
+		pending:        0,
+		autoScaleState: &AutoScaleState{},
 	}
 
 	svc := NewWalletService(mg, rw)
