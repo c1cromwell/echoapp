@@ -136,7 +136,7 @@ class WalletViewModel: ObservableObject {
 
     private func computeVesting(_ lock: TokenLockPosition) -> VestingState {
         let cliffMonths = 12
-        let vestMonths = 48
+        let vestMonths = 36  // 1/36th monthly vesting after cliff (per Tokenomics v2.0)
         let cliffDate = lock.cliffDate ?? lock.lockedUntil.addingTimeInterval(TimeInterval(-((vestMonths - cliffMonths) * 30 * 24 * 3600)))
         let cliffCompleted = Date() > cliffDate
 

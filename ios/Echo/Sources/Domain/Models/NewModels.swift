@@ -23,8 +23,8 @@ enum WalletDirection: String, Codable {
     case `in`, out
 }
 
-// Note: DailyRewards, RewardCapEntry, VestingInfo, and ValidatorInfo
-// are already defined in Core/Stargazer/WalletTypes.swift
+// Note: DailyRewardProgress, RewardEarningEntry, AutoScaleRewardState,
+// VestingState, and ValidatorInfo are defined in Core/Stargazer/WalletTypes.swift
 // Proposal and VotingPower are defined in Features/Governance/GovernanceModels.swift
 
 // MARK: - Search Index Entry (Local persistence)

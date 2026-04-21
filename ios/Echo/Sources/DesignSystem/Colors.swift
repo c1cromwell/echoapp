@@ -142,10 +142,11 @@ extension Color {
 private extension Color {
     init(light: Color, dark: Color) {
         #if os(iOS)
-        self.init(uiColor: UIColor(
-            light: UIColor(light),
-            dark: UIColor(dark)
-        ))
+        self.init(uiColor: UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark
+                ? UIColor(dark)
+                : UIColor(light)
+        })
         #else
         self = light
         #endif

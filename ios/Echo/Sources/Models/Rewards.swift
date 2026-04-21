@@ -33,32 +33,28 @@ public struct RewardEarning: Identifiable {
     }
 }
 
-/// Daily reward tracking
-public struct DailyRewardTracker {
+/// Network activity tracking (auto-scaling model — no per-user daily caps)
+/// Per PRD v2.5.1: auto-scaling model adopted, daily caps removed.
+/// Rate = Daily Budget / Total Daily Activity Weight
+/// Every message always earns; the per-message rate auto-scales based on network activity.
+public struct NetworkActivityTracker {
     public let userID: String
     public let date: Date
     public private(set) var messagesRewarded: Int = 0
     public private(set) var echoEarned: Decimal = 0
     public private(set) var totalActions: Int = 0
-    
+
     public init(userID: String) {
         self.userID = userID
         self.date = Date()
     }
-    
-    /// Check if daily limits are reached
-    public func isLimitReached() -> Bool {
-        return messagesRewarded >= 500
+
+    /// Every message always earns — no daily cap check needed
+    public mutating func recordActivity() {
+        messagesRewarded += 1
+        totalActions += 1
     }
-    
-    /// Increment message counter
-    public mutating func incrementMessages() {
-        if !isLimitReached() {
-            messagesRewarded += 1
-            totalActions += 1
-        }
-    }
-    
+
     /// Add earned amount
     public mutating func addEarnings(_ amount: Decimal) {
         echoEarned += amount
@@ -79,19 +75,20 @@ public struct RewardsTrustScore {
         self.updateLevel()
     }
     
-    /// Get reward multiplier based on trust score
+    /// Get reward multiplier based on trust tier (per Tokenomics v2.0)
+    /// Tier 1: 1.0x, Tier 2: 1.2x, Tier 3: 1.5x, Tier 4: 2.0x, Tier 5: 3.0x
     public func getMultiplier() -> Double {
         switch score {
         case 0..<20:
-            return 0.5     // Unverified
+            return 1.0     // Tier 1 — Unverified
         case 20..<40:
-            return 1.0     // Newcomer
+            return 1.2     // Tier 2 — Newcomer
         case 40..<60:
-            return 1.5     // Member
+            return 1.5     // Tier 3 — Member
         case 60..<80:
-            return 2.5     // Trusted
+            return 2.0     // Tier 4 — Trusted
         default:
-            return 5.0     // Verified
+            return 3.0     // Tier 5 — Verified
         }
     }
     

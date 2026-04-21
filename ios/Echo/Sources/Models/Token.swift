@@ -11,28 +11,37 @@ public struct TokenConfig {
     public init() {}
 }
 
-/// Allocation breakdown for token distribution
+/// Allocation breakdown for token distribution (per ECHO Tokenomics v2.0)
 public struct AllocationBreakdown {
-    public let userRewards: Decimal      // 40% - 400M
-    public let validatorRewards: Decimal // 25% - 250M
-    public let ecosystem: Decimal        // 20% - 200M
-    public let team: Decimal             // 8% - 80M
-    public let treasury: Decimal         // 5% - 50M
-    public let liquidity: Decimal        // 2% - 20M
-    
+    public let communityRewards: Decimal  // 40% - 400M (auto-scaling model, no daily caps)
+    public let treasury: Decimal          // 22% - 220M
+    public let founders: Decimal          // 18% - 180M (CEO 100M + 4 co-founders 20M each)
+    public let futureTeam: Decimal        // 10% - 100M
+    public let validatorRewards: Decimal  // 10% - 100M
+
     public init() {
         let total = Decimal(1_000_000_000)
-        self.userRewards = total * 0.40
-        self.validatorRewards = total * 0.25
-        self.ecosystem = total * 0.20
-        self.team = total * 0.08
-        self.treasury = total * 0.05
-        self.liquidity = total * 0.02
+        self.communityRewards = total * Decimal(string: "0.40")!
+        self.treasury = total * Decimal(string: "0.22")!
+        self.founders = total * Decimal(string: "0.18")!
+        self.futureTeam = total * Decimal(string: "0.10")!
+        self.validatorRewards = total * Decimal(string: "0.10")!
     }
-    
+
     /// Calculate total allocation to verify correctness
     public func totalAllocation() -> Decimal {
-        return userRewards + validatorRewards + ecosystem + team + treasury + liquidity
+        return communityRewards + treasury + founders + futureTeam + validatorRewards
+    }
+
+    /// Founder allocation detail (per Tokenomics v2.0)
+    public struct FounderAllocation {
+        public static let ceoAllocation: Decimal = 100_000_000      // 10% - CEO
+        public static let coFounderAllocation: Decimal = 20_000_000  // 2% each - 4 co-founders
+        public static let multiSigThreshold = 3                      // 3-of-5 founder multi-sig
+        public static let multiSigTotal = 5
+        public static let cliffMonths = 12
+        public static let vestingMonths = 36                         // 1/36th monthly after cliff
+        public static let withdrawCooldownDays = 14
     }
 }
 

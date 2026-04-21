@@ -137,9 +137,13 @@ struct DailyRewardsSection: View {
     var body: some View {
         GhostBorderCard {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Daily Rewards")
+                Text("Today's Rewards")
                     .font(Font.Echo.titleLarge)
                     .foregroundStyle(Color.Echo.onSurface)
+
+                if let autoScale = rewards.autoScaleState {
+                    AutoScaleRateRow(state: autoScale)
+                }
 
                 rewardRow("Messaging", entry: rewards.messaging)
                 rewardRow("Referrals", entry: rewards.referrals)
@@ -149,19 +153,45 @@ struct DailyRewardsSection: View {
         }
     }
 
-    private func rewardRow(_ label: String, entry: RewardCapEntry) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+    private func rewardRow(_ label: String, entry: RewardEarningEntry) -> some View {
+        HStack {
+            Text(label)
+                .font(Font.Echo.bodyMedium)
+                .foregroundStyle(Color.Echo.onSurfaceVariant)
+            Spacer()
+            Text("\(formatEcho(entry.earned)) ECHO (\(entry.count))")
+                .font(Font.Echo.labelMd)
+                .foregroundStyle(Color.Echo.onSurface)
+        }
+    }
+}
+
+// MARK: - Auto-Scale Rate Display
+
+struct AutoScaleRateRow: View {
+    let state: AutoScaleRewardState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(label)
+                Text("Current Rate")
                     .font(Font.Echo.bodyMedium)
                     .foregroundStyle(Color.Echo.onSurfaceVariant)
                 Spacer()
-                Text("\(formatEcho(entry.earned)) / \(formatEcho(entry.cap))")
+                Text("\(formatEcho(state.currentRate)) ECHO/msg")
                     .font(Font.Echo.labelMd)
-                    .foregroundStyle(Color.Echo.onSurfaceVariant)
+                    .foregroundStyle(Color.Echo.primaryContainer)
             }
-            ProgressView(value: entry.progress)
+
+            ProgressView(value: state.budgetUtilization)
                 .tint(Color.Echo.primaryContainer)
+
+            HStack {
+                Text("Budget: \(formatEcho(state.budgetUsedToday)) / \(formatEcho(state.effectiveDailyBudget))")
+                    .font(Font.Echo.bodySm)
+                    .foregroundStyle(Color.Echo.onSurfaceVariant)
+                Spacer()
+            }
         }
     }
 }

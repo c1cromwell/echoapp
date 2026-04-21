@@ -102,24 +102,38 @@ struct ValidatorInfo: Identifiable, Equatable {
     let estimatedAPR: Double
 }
 
-// MARK: - Daily Reward Cap
+// MARK: - Auto-Scale Reward State (replaces daily caps per PRD v2.5.1)
 
-struct DailyRewardProgress: Equatable {
-    let messaging: RewardCapEntry
-    let referrals: RewardCapEntry
-    let staking: RewardCapEntry
-    let paymentRail: RewardCapEntry
+/// Current auto-scaling reward rate and network activity state.
+/// No per-user daily caps — every message always earns.
+/// Rate = Daily Budget / Total Daily Activity Weight
+struct AutoScaleRewardState: Equatable {
+    let currentRate: Decimal               // Current per-message base rate
+    let dailyBudget: Decimal               // Today's emission budget
+    let effectiveDailyBudget: Decimal      // Including rollover from low-activity days
+    let budgetUsedToday: Decimal           // Total ECHO distributed today
+    let remainingToday: Decimal            // Budget remaining today
+    let totalActivityToday: Double         // Tier-weighted activity count
+    let lastUpdated: Date
+
+    var budgetUtilization: Double {
+        guard effectiveDailyBudget > 0 else { return 0 }
+        return NSDecimalNumber(decimal: budgetUsedToday / effectiveDailyBudget).doubleValue
+    }
 }
 
-struct RewardCapEntry: Equatable {
-    let earned: Decimal
-    let cap: Decimal
+/// Per-category reward earnings (no cap — just tracking what was earned today)
+struct DailyRewardProgress: Equatable {
+    let messaging: RewardEarningEntry
+    let referrals: RewardEarningEntry
+    let staking: RewardEarningEntry
+    let paymentRail: RewardEarningEntry
+    let autoScaleState: AutoScaleRewardState?
+}
 
-    var remaining: Decimal { max(cap - earned, 0) }
-    var progress: Double {
-        guard cap > 0 else { return 0 }
-        return NSDecimalNumber(decimal: earned / cap).doubleValue
-    }
+struct RewardEarningEntry: Equatable {
+    let earned: Decimal
+    let count: Int          // Number of rewarded actions today
 }
 
 // MARK: - Vesting State (Founders)
