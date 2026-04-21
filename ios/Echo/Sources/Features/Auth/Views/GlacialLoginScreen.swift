@@ -111,17 +111,11 @@ struct GlacialLoginScreen: View {
 
                     Spacer(minLength: 40)
 
-                    // Footer
-                    HStack(spacing: 4) {
-                        Text("New to ECHO?")
-                            .font(Font.Echo.bodyMedium)
-                            .foregroundStyle(Color.Echo.onSurfaceVariant)
-                        Button("Get Started") {
-                            onGetStarted()
-                        }
-                        .font(Font.Echo.bodyMedium.bold())
-                        .foregroundStyle(Color.Echo.primaryContainer)
+                    // Footer — credential-first enrollment card (v2.5.2)
+                    GetStartedCard {
+                        onGetStarted()
                     }
+                    .padding(.horizontal)
                     .padding(.bottom, 32)
                 }
             }

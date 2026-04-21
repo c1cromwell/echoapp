@@ -117,6 +117,19 @@
 		F87F0FFF3BDDDE670F5300DE /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 300AF0FDC279A0A6FCD7F651 /* KeychainManager.swift */; };
 		F995E8FAF2297AA73B9133FB /* DeliveryStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78A096DCD53AAA92D864E318 /* DeliveryStatus.swift */; };
 		FA8D3A76C5A6FA0B68E2B99F /* PasskeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F4610B4C101F03754584AB5 /* PasskeyManager.swift */; };
+		3D8F2C9D8576434687C61EFB /* EnrollmentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB69C436BF34F43830FA05F /* EnrollmentModels.swift */; };
+		020792C1A21341D690FC2FC9 /* EnrollmentCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6D5E0B0E1214C15BD5D3FBC /* EnrollmentCoordinator.swift */; };
+		45555B4C179043A5A2F39675 /* EnrollmentMethodPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69F70D6FF808445DB5221303 /* EnrollmentMethodPickerView.swift */; };
+		78E29DC064C047658075D698 /* EnrollmentComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE7A874934C84A25A9161CC5 /* EnrollmentComponents.swift */; };
+		94B430FCC9034E3195C55086 /* EnrollmentTailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51FB9CE0B1FF4E14A06BFCB6 /* EnrollmentTailView.swift */; };
+		A7619B765A8A4D828C3EE1C2 /* WalletCredentialEnrollmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DC00E28B5164B8B9DA4E352 /* WalletCredentialEnrollmentView.swift */; };
+		9B6C389AD8E24676BC2005F3 /* DriversLicenseEnrollmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56226F6D3CD046C8B7CB9E6F /* DriversLicenseEnrollmentView.swift */; };
+		E9FDF5F7D8814554911F5B47 /* AppleWalletMDLBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C953796E0DF4A36AD475D55 /* AppleWalletMDLBridge.swift */; };
+		BE99AFF9BA4741F9A524E434 /* MDLQRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75AF96E2B5D94D47A4FBDB1F /* MDLQRScannerView.swift */; };
+		398B86D655154B59BFE4F1DF /* MDLNFCSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A25BC26E37F6414788DCFDFC /* MDLNFCSession.swift */; };
+		8F84C2B6488D4171B3C8D2C5 /* MDLVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66230D2132A149C6B587B23D /* MDLVerifier.swift */; };
+		4BB6147F8F2347F5B9203BF8 /* IDVFallbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F430BD9642B4634AC3E2CEE /* IDVFallbackView.swift */; };
+		B444DA4634FB4733B776CF4D /* EnrollmentAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4175689B270449179AA3E446 /* EnrollmentAPIClient.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -231,6 +244,19 @@
 		FE74762315295D6ADAAB0325 /* WalletTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletTypes.swift; sourceTree = "<group>"; };
 		FF63CD1AB50EF7D840F6A9E1 /* CallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallView.swift; sourceTree = "<group>"; };
 		FF7FB602A9668C3DB15C779D /* TrustBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustBadge.swift; sourceTree = "<group>"; };
+		AEB69C436BF34F43830FA05F /* EnrollmentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentModels.swift; sourceTree = "<group>"; };
+		E6D5E0B0E1214C15BD5D3FBC /* EnrollmentCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentCoordinator.swift; sourceTree = "<group>"; };
+		69F70D6FF808445DB5221303 /* EnrollmentMethodPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentMethodPickerView.swift; sourceTree = "<group>"; };
+		BE7A874934C84A25A9161CC5 /* EnrollmentComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentComponents.swift; sourceTree = "<group>"; };
+		51FB9CE0B1FF4E14A06BFCB6 /* EnrollmentTailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentTailView.swift; sourceTree = "<group>"; };
+		5DC00E28B5164B8B9DA4E352 /* WalletCredentialEnrollmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCredentialEnrollmentView.swift; sourceTree = "<group>"; };
+		56226F6D3CD046C8B7CB9E6F /* DriversLicenseEnrollmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DriversLicenseEnrollmentView.swift; sourceTree = "<group>"; };
+		6C953796E0DF4A36AD475D55 /* AppleWalletMDLBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleWalletMDLBridge.swift; sourceTree = "<group>"; };
+		75AF96E2B5D94D47A4FBDB1F /* MDLQRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MDLQRScannerView.swift; sourceTree = "<group>"; };
+		A25BC26E37F6414788DCFDFC /* MDLNFCSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MDLNFCSession.swift; sourceTree = "<group>"; };
+		66230D2132A149C6B587B23D /* MDLVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MDLVerifier.swift; sourceTree = "<group>"; };
+		1F430BD9642B4634AC3E2CEE /* IDVFallbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IDVFallbackView.swift; sourceTree = "<group>"; };
+		4175689B270449179AA3E446 /* EnrollmentAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentAPIClient.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -270,10 +296,12 @@
 				C170891BE3D56A3B4727E7D9 /* APIClient.swift */,
 				B53E64017DF46F0C1D4DF28E /* Endpoints.swift */,
 				415CE72A39C18837771B8B2B /* WebSocketClient.swift */,
+				4175689B270449179AA3E446 /* EnrollmentAPIClient.swift */,
 			);
 			path = Networking;
 			sourceTree = "<group>";
 		};
+		
 		0B1E2E4AB7207DB76EFB239A /* Governance */ = {
 			isa = PBXGroup;
 			children = (
@@ -694,6 +722,7 @@
 				6DDC23D6C18993F0BA32E993 /* Services */,
 				3F88E003170996C124E4FC19 /* ViewModels */,
 				01293AF680C96CB1999FC469 /* Views */,
+				1CF32B147D324F60B9B4B7CC /* Enrollment */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -773,6 +802,49 @@
 				F974D75A7BFAAB48A95ED319 /* SearchView.swift */,
 			);
 			path = Search;
+			sourceTree = "<group>";
+		};
+		1CF32B147D324F60B9B4B7CC /* Enrollment */ = {
+			isa = PBXGroup;
+			children = (
+				AEB69C436BF34F43830FA05F /* EnrollmentModels.swift */,
+				E6D5E0B0E1214C15BD5D3FBC /* EnrollmentCoordinator.swift */,
+				69F70D6FF808445DB5221303 /* EnrollmentMethodPickerView.swift */,
+				AAFFD2CE2C7447ACAA1360D6 /* Shared */,
+				6504E1FF4AB84723823578E3 /* Wallet */,
+				6C83EDD0650D4E5B90DA56FE /* DriversLicense */,
+			);
+			path = Enrollment;
+			sourceTree = "<group>";
+		};
+		AAFFD2CE2C7447ACAA1360D6 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				BE7A874934C84A25A9161CC5 /* EnrollmentComponents.swift */,
+				51FB9CE0B1FF4E14A06BFCB6 /* EnrollmentTailView.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		6504E1FF4AB84723823578E3 /* Wallet */ = {
+			isa = PBXGroup;
+			children = (
+				5DC00E28B5164B8B9DA4E352 /* WalletCredentialEnrollmentView.swift */,
+			);
+			path = Wallet;
+			sourceTree = "<group>";
+		};
+		6C83EDD0650D4E5B90DA56FE /* DriversLicense */ = {
+			isa = PBXGroup;
+			children = (
+				56226F6D3CD046C8B7CB9E6F /* DriversLicenseEnrollmentView.swift */,
+				6C953796E0DF4A36AD475D55 /* AppleWalletMDLBridge.swift */,
+				75AF96E2B5D94D47A4FBDB1F /* MDLQRScannerView.swift */,
+				A25BC26E37F6414788DCFDFC /* MDLNFCSession.swift */,
+				66230D2132A149C6B587B23D /* MDLVerifier.swift */,
+				1F430BD9642B4634AC3E2CEE /* IDVFallbackView.swift */,
+			);
+			path = DriversLicense;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -943,6 +1015,19 @@
 				74A137D2A293DC915C725A1E /* WalletTypes.swift in Sources */,
 				3ADA25FCFF9B7B005460980F /* WalletViewModel.swift in Sources */,
 				ABE1805C939CE820FC9F4E6B /* WebSocketClient.swift in Sources */,
+				3D8F2C9D8576434687C61EFB /* EnrollmentModels.swift in Sources */,
+				020792C1A21341D690FC2FC9 /* EnrollmentCoordinator.swift in Sources */,
+				45555B4C179043A5A2F39675 /* EnrollmentMethodPickerView.swift in Sources */,
+				78E29DC064C047658075D698 /* EnrollmentComponents.swift in Sources */,
+				94B430FCC9034E3195C55086 /* EnrollmentTailView.swift in Sources */,
+				A7619B765A8A4D828C3EE1C2 /* WalletCredentialEnrollmentView.swift in Sources */,
+				9B6C389AD8E24676BC2005F3 /* DriversLicenseEnrollmentView.swift in Sources */,
+				E9FDF5F7D8814554911F5B47 /* AppleWalletMDLBridge.swift in Sources */,
+				BE99AFF9BA4741F9A524E434 /* MDLQRScannerView.swift in Sources */,
+				398B86D655154B59BFE4F1DF /* MDLNFCSession.swift in Sources */,
+				8F84C2B6488D4171B3C8D2C5 /* MDLVerifier.swift in Sources */,
+				4BB6147F8F2347F5B9203BF8 /* IDVFallbackView.swift in Sources */,
+				B444DA4634FB4733B776CF4D /* EnrollmentAPIClient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
