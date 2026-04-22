@@ -15,7 +15,7 @@ struct MainTabView: View {
         ZStack(alignment: .bottom) {
             TabView(selection: $selectedTab) {
                 NavigationStack {
-                    ConversationListView()
+                    MessagesTabView()
                 }
                 .tag(MainTab.messages)
 
