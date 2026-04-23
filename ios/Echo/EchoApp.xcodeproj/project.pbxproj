@@ -130,6 +130,23 @@
 		8F84C2B6488D4171B3C8D2C5 /* MDLVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66230D2132A149C6B587B23D /* MDLVerifier.swift */; };
 		4BB6147F8F2347F5B9203BF8 /* IDVFallbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F430BD9642B4634AC3E2CEE /* IDVFallbackView.swift */; };
 		B444DA4634FB4733B776CF4D /* EnrollmentAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4175689B270449179AA3E446 /* EnrollmentAPIClient.swift */; };
+		A9AEBE7CF49B513999CA64AE /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 361A9479EE275F3AB4E008C5 /* AppState.swift */; };
+		4B94414BE3E85E2B90D02894 /* MessagesEmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2828F1D275B51C2AB7DDFF3 /* MessagesEmptyStateView.swift */; };
+		2DAD74693C4F5DCEA3A45971 /* MessagesTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA8BA7064145573786E4E37E /* MessagesTabView.swift */; };
+		F576BF6AF2E85315B6D0A9A2 /* DisplayNameEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81E77649AB4959669BEBDC33 /* DisplayNameEntryView.swift */; };
+		21DD9950B1965786AB48E7A9 /* FirstRunCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C38397CFBC045B0F9A0ED630 /* FirstRunCoordinator.swift */; };
+		E2E63991B3645D30AA03A2B7 /* SilentProvisionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3B252903993564BB3B18850 /* SilentProvisionService.swift */; };
+		89054C2F237D5B1186D7E78B /* WelcomeCarouselView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2759D899F155146BB743524 /* WelcomeCarouselView.swift */; };
+		837FA63E6FFB593F90401603 /* EchoColorPalette+FirstRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCCD2194CE9756239F8DD7D1 /* EchoColorPalette+FirstRun.swift */; };
+		9D8014DC48C3536ABE3E72B2 /* TrustTierBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1632D9785E0B5F8D9E0BCA1F /* TrustTierBadge.swift */; };
+		49B8B01706FA5A25BF45A1AB /* BIP39Wordlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 183641A06AE95BA7B47F2CE4 /* BIP39Wordlist.swift */; };
+		0518B3355E095C1C88EC8CB8 /* RecoveryPhrase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2166D77ADB215E63BCBD4180 /* RecoveryPhrase.swift */; };
+		E3B96791E79D5F6093899C54 /* RecoveryCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C74AFFD72B45A09B9C4BAF5 /* RecoveryCoordinator.swift */; };
+		8AA0E19F2D445A21842B85C7 /* RecoveryPhraseConfirmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8410ED2CFAA2560AB72EF785 /* RecoveryPhraseConfirmView.swift */; };
+		0DABA9FCD1FE57EB8BC5CF64 /* RecoveryPhraseDisplayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89353A79980E5572AE89AC34 /* RecoveryPhraseDisplayView.swift */; };
+		7100A566F993515591E80885 /* RecoveryPromptScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E4124C434DF56B79D010258 /* RecoveryPromptScheduler.swift */; };
+		6D4E6DA7B382554493F0771B /* RecoveryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 273405E0A2945A159A43F42D /* RecoveryService.swift */; };
+		DE780B3318E65287A15DC9B7 /* RestoreFromPhraseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40BBDDA12147508FBF394529 /* RestoreFromPhraseView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -257,6 +274,23 @@
 		66230D2132A149C6B587B23D /* MDLVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MDLVerifier.swift; sourceTree = "<group>"; };
 		1F430BD9642B4634AC3E2CEE /* IDVFallbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IDVFallbackView.swift; sourceTree = "<group>"; };
 		4175689B270449179AA3E446 /* EnrollmentAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentAPIClient.swift; sourceTree = "<group>"; };
+		361A9479EE275F3AB4E008C5 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		F2828F1D275B51C2AB7DDFF3 /* MessagesEmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesEmptyStateView.swift; sourceTree = "<group>"; };
+		EA8BA7064145573786E4E37E /* MessagesTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesTabView.swift; sourceTree = "<group>"; };
+		81E77649AB4959669BEBDC33 /* DisplayNameEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayNameEntryView.swift; sourceTree = "<group>"; };
+		C38397CFBC045B0F9A0ED630 /* FirstRunCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstRunCoordinator.swift; sourceTree = "<group>"; };
+		B3B252903993564BB3B18850 /* SilentProvisionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SilentProvisionService.swift; sourceTree = "<group>"; };
+		E2759D899F155146BB743524 /* WelcomeCarouselView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeCarouselView.swift; sourceTree = "<group>"; };
+		DCCD2194CE9756239F8DD7D1 /* EchoColorPalette+FirstRun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoColorPalette+FirstRun.swift; sourceTree = "<group>"; };
+		1632D9785E0B5F8D9E0BCA1F /* TrustTierBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustTierBadge.swift; sourceTree = "<group>"; };
+		183641A06AE95BA7B47F2CE4 /* BIP39Wordlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BIP39Wordlist.swift; sourceTree = "<group>"; };
+		2166D77ADB215E63BCBD4180 /* RecoveryPhrase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPhrase.swift; sourceTree = "<group>"; };
+		2C74AFFD72B45A09B9C4BAF5 /* RecoveryCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryCoordinator.swift; sourceTree = "<group>"; };
+		8410ED2CFAA2560AB72EF785 /* RecoveryPhraseConfirmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPhraseConfirmView.swift; sourceTree = "<group>"; };
+		89353A79980E5572AE89AC34 /* RecoveryPhraseDisplayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPhraseDisplayView.swift; sourceTree = "<group>"; };
+		3E4124C434DF56B79D010258 /* RecoveryPromptScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPromptScheduler.swift; sourceTree = "<group>"; };
+		273405E0A2945A159A43F42D /* RecoveryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryService.swift; sourceTree = "<group>"; };
+		40BBDDA12147508FBF394529 /* RestoreFromPhraseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreFromPhraseView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -369,6 +403,7 @@
 			isa = PBXGroup;
 			children = (
 				5DDDE0CFA48EB34D85DBFEFA /* ProfileExpansion.swift */,
+				EBD4E82138A85BA08C703875 /* TrustBadge */,
 				6E033C9649007A73EAE2255B /* ProfileScreens.swift */,
 			);
 			path = Profile;
@@ -546,6 +581,7 @@
 			isa = PBXGroup;
 			children = (
 				88F7F96C356F9D51AC000DAD /* MessagingScreens.swift */,
+				AE6245D2069256648FAC96D5 /* EmptyState */,
 			);
 			path = Messaging;
 			sourceTree = "<group>";
@@ -677,6 +713,7 @@
 			children = (
 				7DA5734FC837B81E3AB437EA /* EchoApp.swift */,
 				3611A4DB2DD50E20ACB4AB02 /* MainTabView.swift */,
+				361A9479EE275F3AB4E008C5 /* AppState.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -792,6 +829,8 @@
 			isa = PBXGroup;
 			children = (
 				E97EA86EC1A0837D43A5EA61 /* AuthScreens.swift */,
+				8296146293355AF09B5AA3BE /* FirstRun */,
+				D202A600F70B5DE8B1252536 /* Recovery */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -845,6 +884,67 @@
 				1F430BD9642B4634AC3E2CEE /* IDVFallbackView.swift */,
 			);
 			path = DriversLicense;
+			sourceTree = "<group>";
+		};
+
+		0E668404A1B35A849E1BE2F5 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				361A9479EE275F3AB4E008C5 /* AppState.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		8296146293355AF09B5AA3BE /* FirstRun */ = {
+			isa = PBXGroup;
+			children = (
+				C38397CFBC045B0F9A0ED630 /* FirstRunCoordinator.swift */,
+				81E77649AB4959669BEBDC33 /* DisplayNameEntryView.swift */,
+				E2759D899F155146BB743524 /* WelcomeCarouselView.swift */,
+				B3B252903993564BB3B18850 /* SilentProvisionService.swift */,
+			);
+			path = FirstRun;
+			sourceTree = "<group>";
+		};
+		D202A600F70B5DE8B1252536 /* Recovery */ = {
+			isa = PBXGroup;
+			children = (
+				DF87F4DE193F51AAB1554ED1 /* Models */,
+				2C74AFFD72B45A09B9C4BAF5 /* RecoveryCoordinator.swift */,
+				89353A79980E5572AE89AC34 /* RecoveryPhraseDisplayView.swift */,
+				8410ED2CFAA2560AB72EF785 /* RecoveryPhraseConfirmView.swift */,
+				40BBDDA12147508FBF394529 /* RestoreFromPhraseView.swift */,
+				3E4124C434DF56B79D010258 /* RecoveryPromptScheduler.swift */,
+				273405E0A2945A159A43F42D /* RecoveryService.swift */,
+			);
+			path = Recovery;
+			sourceTree = "<group>";
+		};
+		DF87F4DE193F51AAB1554ED1 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				2166D77ADB215E63BCBD4180 /* RecoveryPhrase.swift */,
+				183641A06AE95BA7B47F2CE4 /* BIP39Wordlist.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		AE6245D2069256648FAC96D5 /* EmptyState */ = {
+			isa = PBXGroup;
+			children = (
+				F2828F1D275B51C2AB7DDFF3 /* MessagesEmptyStateView.swift */,
+				EA8BA7064145573786E4E37E /* MessagesTabView.swift */,
+			);
+			path = EmptyState;
+			sourceTree = "<group>";
+		};
+		EBD4E82138A85BA08C703875 /* TrustBadge */ = {
+			isa = PBXGroup;
+			children = (
+				DCCD2194CE9756239F8DD7D1 /* EchoColorPalette+FirstRun.swift */,
+				1632D9785E0B5F8D9E0BCA1F /* TrustTierBadge.swift */,
+			);
+			path = TrustBadge;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -905,6 +1005,24 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A9AEBE7CF49B513999CA64AE /* AppState.swift in Sources */,
+				4B94414BE3E85E2B90D02894 /* MessagesEmptyStateView.swift in Sources */,
+				2DAD74693C4F5DCEA3A45971 /* MessagesTabView.swift in Sources */,
+				F576BF6AF2E85315B6D0A9A2 /* DisplayNameEntryView.swift in Sources */,
+				21DD9950B1965786AB48E7A9 /* FirstRunCoordinator.swift in Sources */,
+				E2E63991B3645D30AA03A2B7 /* SilentProvisionService.swift in Sources */,
+				89054C2F237D5B1186D7E78B /* WelcomeCarouselView.swift in Sources */,
+				837FA63E6FFB593F90401603 /* EchoColorPalette+FirstRun.swift in Sources */,
+				9D8014DC48C3536ABE3E72B2 /* TrustTierBadge.swift in Sources */,
+				49B8B01706FA5A25BF45A1AB /* BIP39Wordlist.swift in Sources */,
+				0518B3355E095C1C88EC8CB8 /* RecoveryPhrase.swift in Sources */,
+				E3B96791E79D5F6093899C54 /* RecoveryCoordinator.swift in Sources */,
+				8AA0E19F2D445A21842B85C7 /* RecoveryPhraseConfirmView.swift in Sources */,
+				0DABA9FCD1FE57EB8BC5CF64 /* RecoveryPhraseDisplayView.swift in Sources */,
+				7100A566F993515591E80885 /* RecoveryPromptScheduler.swift in Sources */,
+				6D4E6DA7B382554493F0771B /* RecoveryService.swift in Sources */,
+				DE780B3318E65287A15DC9B7 /* RestoreFromPhraseView.swift in Sources */,
+
 				B3CAF0B450061EFD23000A1F /* APIClient.swift in Sources */,
 				290D1AF573B3832D2835A82B /* AccountLockedView.swift in Sources */,
 				D5BE1B2D78E207E4DED53DA7 /* AnchoringTracker.swift in Sources */,
