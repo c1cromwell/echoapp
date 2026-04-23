@@ -13,7 +13,7 @@ final class RecoveryService {
     static let shared = RecoveryService()
 
     private let secureEnclave = SecureEnclaveManager.shared
-    private let passkey = PasskeyManager.shared
+    private let passkey = PasskeyManager()
 
     private init() {}
 
@@ -33,7 +33,7 @@ final class RecoveryService {
 
         let (walletAddress, _) = try await StargazerBridgeForRecovery.shared.restoreWallet(from: phrase)
 
-        let sePublicKey = try secureEnclave.createIdentityKey()
+        let sePublicKey = try await secureEnclave.createIdentityKey()
 
         let response = try await callRestoreDID(
             walletAddress: walletAddress,
