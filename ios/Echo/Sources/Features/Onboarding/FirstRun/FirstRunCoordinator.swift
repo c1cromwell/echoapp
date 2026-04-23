@@ -11,21 +11,23 @@ final class FirstRunCoordinator {
     enum Route: Hashable {
         case welcome
         case displayName
+        case restore
     }
 
     var path: [Route] = []
     var displayName: String = ""
 
-    /// Called when the user finishes the two-page flow.
+    /// Called when the user finishes the two-page first-run flow.
     let onComplete: (String) -> Void
-    let onRestoreTapped: () -> Void
+    /// Called when account restore completes successfully.
+    let onRestoreComplete: (RestoredIdentity) -> Void
 
     init(
         onComplete: @escaping (String) -> Void,
-        onRestoreTapped: @escaping () -> Void
+        onRestoreComplete: @escaping (RestoredIdentity) -> Void
     ) {
         self.onComplete = onComplete
-        self.onRestoreTapped = onRestoreTapped
+        self.onRestoreComplete = onRestoreComplete
     }
 
     func welcomeContinueTapped() {
@@ -39,8 +41,9 @@ final class FirstRunCoordinator {
         onComplete(trimmed)
     }
 
+    // Navigates within the first-run NavigationStack to the restore flow (AC-MSG-003.8).
     func restoreTapped() {
-        onRestoreTapped()
+        path.append(.restore)
     }
 
     func back() {
@@ -63,6 +66,14 @@ struct FirstRunCoordinatorView: View {
                         WelcomeCarouselView(coordinator: coordinator)
                     case .displayName:
                         DisplayNameEntryView(coordinator: coordinator)
+                    case .restore:
+                        RestoreFromPhraseView(
+                            coordinator: RecoveryCoordinator(
+                                onExportComplete: { },
+                                onRestoreComplete: { coordinator.onRestoreComplete($0) },
+                                onCancel: { coordinator.back() }
+                            )
+                        )
                     }
                 }
         }

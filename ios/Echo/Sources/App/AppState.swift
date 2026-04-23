@@ -38,12 +38,14 @@ final class AppState {
         self.displayName = displayName
         provisionService.begin(displayName: displayName)
         UserDefaults.standard.set(true, forKey: "echo.hasCompletedFirstRun")
+        UserDefaults.standard.set(Date(), forKey: "echo.firstRunCompletedAt")
         UserDefaults.standard.set(displayName, forKey: "echo.displayName")
         root = .authenticated
     }
 
-    func firstRunRestoreTapped() {
-        // Placeholder — BIP-39 recovery flow (REQ-RECOVERY, pending spec)
+    func firstRunRestoreCompleted(_ identity: RestoredIdentity) {
+        self.displayName = identity.displayName
+        root = .authenticated
     }
 
     // MARK: - Auth intents
@@ -73,8 +75,8 @@ struct EchoRootView: View {
                         onComplete: { name in
                             appState.firstRunCompleted(displayName: name)
                         },
-                        onRestoreTapped: {
-                            appState.firstRunRestoreTapped()
+                        onRestoreComplete: { identity in
+                            appState.firstRunRestoreCompleted(identity)
                         }
                     )
                 )

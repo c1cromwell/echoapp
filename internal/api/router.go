@@ -130,10 +130,21 @@ func (rt *Router) requestIDMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// publicPaths are exempt from Bearer token authentication.
+// These are registration and restore endpoints that new devices call before they have a token.
+var publicPaths = map[string]bool{
+	"/v1/auth/register-did":      true,
+	"/v1/auth/restore-challenge": true,
+	"/v1/auth/restore-did":       true,
+	"/v1/enrollment/vc/start":    true,
+	"/v1/enrollment/mdl/start":   true,
+	"/v1/enrollment/idv/start":   true,
+}
+
 func (rt *Router) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Health check and WebSocket don't go through REST auth middleware
-		if r.URL.Path == "/health" || r.URL.Path == "/ws" {
+		// Health check, WebSocket, and public registration endpoints bypass auth.
+		if r.URL.Path == "/health" || r.URL.Path == "/ws" || publicPaths[r.URL.Path] {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -218,6 +229,25 @@ func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
 		rt.v1GetUsers(w, r)
 	case "/v1/users/profile":
 		rt.v1GetProfile(w, r)
+
+	// --- Auth endpoints (REQ-INFRA-004) ---
+	case "/v1/auth/register-did":
+		rt.handleRegisterDID(w, r)
+	case "/v1/auth/restore-challenge":
+		rt.handleRestoreChallenge(w, r)
+	case "/v1/auth/restore-did":
+		rt.handleRestoreDID(w, r)
+
+	// --- Enrollment tail endpoints (REQ-INFRA-004) ---
+	case "/v1/enrollment/passkey":
+		rt.handleRegisterPasskey(w, r)
+	case "/v1/enrollment/vc/start", "/v1/enrollment/vc/finish":
+		rt.handleEnrollmentVC(w, r)
+	case "/v1/enrollment/mdl/start", "/v1/enrollment/mdl/finish":
+		rt.handleEnrollmentMDL(w, r)
+	case "/v1/enrollment/idv/start", "/v1/enrollment/idv/await":
+		rt.handleEnrollmentIDV(w, r)
+
 	default:
 		WriteError(w, http.StatusNotFound, "ENDPOINT_NOT_FOUND", "Endpoint not found", r.Header.Get("X-Request-ID"))
 	}

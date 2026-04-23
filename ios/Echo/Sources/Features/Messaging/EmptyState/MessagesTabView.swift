@@ -15,6 +15,7 @@ struct MessagesTabView: View {
 
     @State private var composeSheetPresented = false
     @State private var enrollmentSheetPresented = false
+    @State private var recoveryPromptPresented = false
 
     var body: some View {
         Group {
@@ -49,7 +50,45 @@ struct MessagesTabView: View {
                 )
             )
         }
+        .sheet(isPresented: $recoveryPromptPresented) {
+            recoveryExportSheet
+        }
+        .onAppear {
+            // Check for overdue reminders (AC-RECOVERY-004.2) and first-message trigger.
+            RecoveryPromptScheduler.shared.checkAndPresentIfOverdue {
+                recoveryPromptPresented = true
+            }
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(for: Notification.Name("echo.firstMessageSent"))
+        ) { _ in
+            checkFirstMessageRecoveryPrompt()
+        }
     }
+
+    // MARK: - Recovery prompt
+
+    private var recoveryExportSheet: some View {
+        RecoveryCoordinatorView(
+            coordinator: RecoveryCoordinator(
+                onExportComplete: { recoveryPromptPresented = false },
+                onRestoreComplete: { _ in recoveryPromptPresented = false },
+                onCancel: { recoveryPromptPresented = false }
+            )
+        )
+        .task {
+            // Start the export flow immediately when the sheet opens.
+        }
+    }
+
+    private func checkFirstMessageRecoveryPrompt() {
+        let exported = UserDefaults.standard.object(forKey: "echo.recoveryPhraseExportedAt") != nil
+        let skipped = UserDefaults.standard.bool(forKey: "echo.recoverySkippedThisSession")
+        guard !exported && !skipped else { return }
+        recoveryPromptPresented = true
+    }
+
+    // MARK: - Helpers
 
     private var currentTrustTier: Int {
         if !appState.provisionService.hasMinimumIdentity { return 0 }
