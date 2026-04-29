@@ -5,6 +5,7 @@ object Dependencies {
     val tessellation    = "4.0.0-rc.0"
     val decline         = "2.4.1"
     val organizeImports = "0.5.0"
+    val scalatest       = "3.2.18"
   }
 
   def tessellation(artifact: String): ModuleID =
@@ -19,6 +20,7 @@ object Dependencies {
     val declineEffect   = decline("effect")
     val declineRefined  = decline("refined")
     val organizeImports = "com.github.liancheng" %% "organize-imports" % V.organizeImports
+    val scalatest       = "org.scalatest" %% "scalatest" % V.scalatest % Test
   }
 
   object CompilerPlugin {

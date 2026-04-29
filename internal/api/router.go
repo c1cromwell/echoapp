@@ -50,6 +50,7 @@ type Router struct {
 	UserIDExtractor func(token string) string
 	WSHub           *Hub               // WebSocket hub for real-time messaging
 	V3              *V3Handlers        // V3 API handlers (blueprint services)
+	DIDRegistry     DIDRegistry        // did:key binding store (WO-230 / WO-278)
 	tokenService    *auth.TokenService // ES256 JWT token service
 }
 
@@ -68,6 +69,7 @@ func NewRouter(allowedOrigins []string) *Router {
 		AllowedOrigins: allowedOrigins,
 		StartTime:      time.Now(),
 		WSHub:          hub,
+		DIDRegistry:    NewMemoryDIDRegistry(),
 		tokenService:   tokenService,
 	}
 
@@ -101,6 +103,11 @@ func (rt *Router) Handler() http.Handler {
 		case r.URL.Path == "/ws":
 			// WebSocket upgrade — handled before auth middleware wraps the response
 			ServeWS(rt.WSHub, rt.UserIDExtractor, w, r)
+		case r.URL.Path == "/identity/register":
+			rt.handleIdentityRegister(w, r)
+		case strings.HasPrefix(r.URL.Path, "/identity/"):
+			did := strings.TrimPrefix(r.URL.Path, "/identity/")
+			rt.handleIdentityResolve(w, r, did)
 		case strings.HasPrefix(r.URL.Path, "/v1/"):
 			rt.handleV1(w, r)
 		case strings.HasPrefix(r.URL.Path, "/v2/"):
@@ -139,12 +146,15 @@ var publicPaths = map[string]bool{
 	"/v1/enrollment/vc/start":    true,
 	"/v1/enrollment/mdl/start":   true,
 	"/v1/enrollment/idv/start":   true,
+	"/identity/register":         true,
 }
 
 func (rt *Router) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Health check, WebSocket, and public registration endpoints bypass auth.
-		if r.URL.Path == "/health" || r.URL.Path == "/ws" || publicPaths[r.URL.Path] {
+		// Health check, WebSocket, public registration endpoints, and
+		// did:key resolution (which is local-only and inherently public) bypass auth.
+		if r.URL.Path == "/health" || r.URL.Path == "/ws" || publicPaths[r.URL.Path] ||
+			strings.HasPrefix(r.URL.Path, "/identity/") {
 			next.ServeHTTP(w, r)
 			return
 		}

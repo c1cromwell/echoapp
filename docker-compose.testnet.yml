@@ -1,0 +1,163 @@
+services:
+  # =========================================================================
+  # Echo Go backend (testnet-aware) — connects to the local Euclid SDK
+  # metagraph cluster running on the host via `metagraph/scripts/setup-euclid.sh`
+  # plus `scripts/hydra start-genesis`.
+  #
+  # The metagraph containers are managed by `hydra` in a sibling directory
+  # (../euclid-development-environment), not by this compose file. This file
+  # owns the *backend stack*; the metagraph cluster is reached via
+  # host.docker.internal on the ports declared in metagraph/euclid.json.
+  # =========================================================================
+
+  echoapp:
+    build:
+      context: .
+      dockerfile: build/Dockerfile
+    container_name: echoapp-testnet
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - API_PORT=8000
+      - ENVIRONMENT=development
+      - LOG_LEVEL=debug
+      # Backing services (in-cluster)
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=echoapp
+      - DATABASE_USER=echoapp
+      - DATABASE_PASSWORD=echoapp_dev
+      - DATABASE_SSLMODE=disable
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - NATS_URL=nats://nats:4222
+      # Object storage (MinIO)
+      - STORAGE_BACKEND=s3
+      - STORAGE_ENDPOINT=http://minio:9000
+      - STORAGE_REGION=us-east-1
+      - STORAGE_BUCKET=echo-media
+      - STORAGE_ACCESS_KEY_ID=minioadmin
+      - STORAGE_SECRET_ACCESS_KEY=minioadmin
+      - STORAGE_FORCE_PATH_STYLE=true
+      # Constellation / Euclid SDK metagraph cluster (host-side, via hydra)
+      # Ports come from metagraph/euclid.json.
+      - GLOBAL_L0_URL=http://host.docker.internal:9000
+      - METAGRAPH_L0_URL=http://host.docker.internal:9200
+      - CURRENCY_L1_URL=http://host.docker.internal:9300
+      - DATA_L1_URL=http://host.docker.internal:9400
+      # Identity Metagraph endpoints (WO-276 skeleton; WO-272 validation logic)
+      - IDENTITY_L0_URL=http://host.docker.internal:9100
+      - IDENTITY_L1_URL=http://host.docker.internal:9500
+    volumes:
+      - ./migrations:/app/migrations:ro
+    networks:
+      - echo-testnet
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: echo-postgres-testnet
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: echoapp
+      POSTGRES_USER: echoapp
+      POSTGRES_PASSWORD: echoapp_dev
+    volumes:
+      - postgres-testnet-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U echoapp -d echoapp"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - echo-testnet
+
+  redis:
+    image: redis:7-alpine
+    container_name: echo-redis-testnet
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-testnet-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - echo-testnet
+
+  nats:
+    image: nats:2-alpine
+    container_name: echo-nats-testnet
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: --http_port 8222 -js
+    volumes:
+      - nats-testnet-data:/data
+    networks:
+      - echo-testnet
+
+  minio:
+    image: minio/minio:latest
+    container_name: echo-minio-testnet
+    ports:
+      - "9700:9000"
+      - "9701:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-testnet-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - echo-testnet
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: echo-minio-init-testnet
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 minioadmin minioadmin &&
+        mc mb --ignore-existing local/echo-media &&
+        echo 'Bucket echo-media ready'
+      "
+    networks:
+      - echo-testnet
+
+volumes:
+  postgres-testnet-data:
+  redis-testnet-data:
+  nats-testnet-data:
+  minio-testnet-data:
+
+networks:
+  echo-testnet:
+    name: echo-testnet
+    driver: bridge

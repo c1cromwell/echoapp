@@ -1,4 +1,5 @@
-.PHONY: help build run test clean install-deps lint fmt vet build-prod tls-cert
+.PHONY: help build run test clean install-deps lint fmt vet build-prod tls-cert \
+	dev dev-stop dev-status dev-logs dev-restart validate-phase1 testnet-up testnet-down
 
 # Variables
 BINARY_NAME=echoapp
@@ -9,22 +10,32 @@ PORT?=8000
 help:
 	@echo "EchoApp - REST API Framework"
 	@echo ""
-	@echo "Available commands:"
-	@echo "  make build          Build executable"
-	@echo "  make run            Run development server"
-	@echo "  make test           Run all tests"
-	@echo "  make test-endpoints Run endpoint tests"
-	@echo "  make clean          Remove build artifacts"
-	@echo "  make install-deps   Install/update dependencies"
-	@echo "  make lint           Run linter"
-	@echo "  make fmt            Format code"
-	@echo "  make vet            Run vet"
-	@echo "  make build-prod     Build production binary"
-	@echo "  make tls-cert       Generate self-signed TLS certificate"
+	@echo "Phase-1 testnet (WO-230):"
+	@echo "  make dev             Bring up full Phase-1 cluster (metagraph + backend + iOS deps)"
+	@echo "  make dev-status      Show status of all testnet components"
+	@echo "  make dev-logs        Tail backend stack logs"
+	@echo "  make dev-restart     Restart the backend stack only (keeps metagraph running)"
+	@echo "  make dev-stop        Tear down backend stack (metagraph stays up — use 'hydra stop' for that)"
+	@echo "  make validate-phase1 Run scripts/validate-phase1.sh go/no-go check"
+	@echo "  make testnet-up      Bring up backend stack only (assumes metagraph already running)"
+	@echo "  make testnet-down    Bring down backend stack only"
+	@echo ""
+	@echo "Application:"
+	@echo "  make build           Build executable"
+	@echo "  make run             Run development server"
+	@echo "  make test            Run all tests"
+	@echo "  make test-endpoints  Run endpoint tests"
+	@echo "  make clean           Remove build artifacts"
+	@echo "  make install-deps    Install/update dependencies"
+	@echo "  make lint            Run linter"
+	@echo "  make fmt             Format code"
+	@echo "  make vet             Run vet"
+	@echo "  make build-prod      Build production binary"
+	@echo "  make tls-cert        Generate self-signed TLS certificate"
 	@echo ""
 	@echo "Environment variables:"
-	@echo "  API_PORT=8080       Set API port (default: 8000)"
-	@echo "  ENVIRONMENT=prod    Set environment (default: development)"
+	@echo "  API_PORT=8080        Set API port (default: 8000)"
+	@echo "  ENVIRONMENT=prod     Set environment (default: development)"
 	@echo ""
 
 build:
@@ -162,5 +173,134 @@ info:
 	@echo "  ✓ Request tracking"
 	@echo "  ✓ Error handling"
 	@echo ""
+
+# =============================================================================
+# Phase-1 Testnet (WO-230)
+#
+# Brings up the full local development environment in a single command:
+#   1. Euclid SDK metagraph cluster (Global L0 + Metagraph L0 + Currency L1 +
+#      Data L1 + Identity L0/L1) via `hydra` in the sibling
+#      ../euclid-development-environment directory.
+#   2. Backend stack (Go API + Postgres + Redis + NATS + MinIO) via
+#      docker-compose.testnet.yml.
+#
+# After both are up, run `make validate-phase1` to execute the 6-step
+# go/no-go script defined in WO-230.
+# =============================================================================
+
+EUCLID_DIR ?= $(abspath ../euclid-development-environment)
+COMPOSE_TESTNET := docker compose -f docker-compose.testnet.yml
+HYDRA_HEALTH_TIMEOUT := 180
+
+dev: ## Bring up full Phase-1 cluster
+	@echo "===== Phase-1 Testnet Bring-up ====="
+	@echo ""
+	@echo "[1/4] Ensuring Euclid SDK is set up..."
+	@cd metagraph && ./scripts/setup-euclid.sh
+	@echo ""
+	@echo "[2/4] Starting metagraph cluster (hydra start-genesis)..."
+	@if [ ! -d "$(EUCLID_DIR)" ]; then \
+		echo "  ✗ Euclid directory not found: $(EUCLID_DIR)"; \
+		echo "    setup-euclid.sh should have cloned it. Re-run 'cd metagraph && ./scripts/setup-euclid.sh'"; \
+		exit 1; \
+	fi
+	@cd "$(EUCLID_DIR)" && scripts/hydra start-genesis || { \
+		echo "  ⚠ hydra start-genesis returned non-zero (cluster may already be running)"; \
+	}
+	@echo ""
+	@echo "[3/4] Waiting for metagraph endpoints to come up..."
+	@deadline=$$(( $$(date +%s) + $(HYDRA_HEALTH_TIMEOUT) )); \
+	for endpoint in \
+	  "Global L0=http://localhost:9000/node/info" \
+	  "Metagraph L0=http://localhost:9200/node/info" \
+	  "Currency L1=http://localhost:9300/node/info" \
+	  "Data L1=http://localhost:9400/node/info" \
+	  "Identity L0=http://localhost:9100/node/info" \
+	  "Identity L1=http://localhost:9500/node/info"; do \
+	  label=$${endpoint%%=*}; url=$${endpoint#*=}; \
+	  printf "  waiting for %-14s ... " "$$label"; \
+	  while [ $$(date +%s) -lt $$deadline ]; do \
+	    if curl -fsS --max-time 2 "$$url" >/dev/null 2>&1; then \
+	      echo "✓"; break; \
+	    fi; \
+	    sleep 2; \
+	  done; \
+	  if ! curl -fsS --max-time 2 "$$url" >/dev/null 2>&1; then \
+	    echo "✗ TIMEOUT"; \
+	    echo "    Check 'cd $(EUCLID_DIR) && scripts/hydra status'"; \
+	    exit 1; \
+	  fi; \
+	done
+	@echo ""
+	@echo "[4/4] Starting backend stack (Postgres + Redis + NATS + MinIO + echoapp)..."
+	@$(COMPOSE_TESTNET) up -d --build
+	@echo ""
+	@echo "Waiting for backend health..."
+	@deadline=$$(( $$(date +%s) + 60 )); \
+	while [ $$(date +%s) -lt $$deadline ]; do \
+	  if curl -fsS --max-time 2 http://localhost:8000/health >/dev/null 2>&1; then \
+	    echo "  ✓ backend healthy at http://localhost:8000"; break; \
+	  fi; \
+	  sleep 2; \
+	done
+	@echo ""
+	@echo "===== Phase-1 cluster up ====="
+	@echo "  Backend:        http://localhost:8000"
+	@echo "  Global L0:      http://localhost:9000"
+	@echo "  Metagraph L0:   http://localhost:9200"
+	@echo "  Currency L1:    http://localhost:9300"
+	@echo "  Data L1:        http://localhost:9400"
+	@echo "  Identity L0:    http://localhost:9100  (VC / trust tier / StatusList2021)"
+	@echo "  Identity L1:    http://localhost:9500  (issuance + revocation submissions)"
+	@echo ""
+	@echo "Next: make validate-phase1"
+
+testnet-up: ## Bring up backend stack only (assumes metagraph already running)
+	@$(COMPOSE_TESTNET) up -d --build
+
+testnet-down: ## Tear down backend stack
+	@$(COMPOSE_TESTNET) down
+
+dev-stop: testnet-down ## Tear down backend stack (does not stop metagraph)
+	@echo "Backend stack down. Metagraph still running — use:"
+	@echo "  cd $(EUCLID_DIR) && scripts/hydra stop"
+
+dev-restart: ## Restart backend stack
+	@$(COMPOSE_TESTNET) restart
+
+dev-logs: ## Tail backend stack logs
+	@$(COMPOSE_TESTNET) logs -f --tail=100
+
+dev-status: ## Show status of all testnet components
+	@echo "===== Backend stack ====="
+	@$(COMPOSE_TESTNET) ps || true
+	@echo ""
+	@echo "===== Metagraph cluster ====="
+	@if [ -d "$(EUCLID_DIR)" ]; then \
+	  cd "$(EUCLID_DIR)" && scripts/hydra status || true; \
+	else \
+	  echo "  Euclid directory not found: $(EUCLID_DIR)"; \
+	fi
+	@echo ""
+	@echo "===== Endpoint reachability ====="
+	@for ep in \
+	  "Backend=http://localhost:8000/health" \
+	  "Global L0=http://localhost:9000/node/info" \
+	  "Metagraph L0=http://localhost:9200/node/info" \
+	  "Currency L1=http://localhost:9300/node/info" \
+	  "Data L1=http://localhost:9400/node/info" \
+	  "Identity L0=http://localhost:9100/node/info" \
+	  "Identity L1=http://localhost:9500/node/info"; do \
+	  label=$${ep%%=*}; url=$${ep#*=}; \
+	  if curl -fsS --max-time 2 "$$url" >/dev/null 2>&1; then \
+	    printf "  ✓ %-15s %s\n" "$$label" "$$url"; \
+	  else \
+	    printf "  ✗ %-15s %s (unreachable)\n" "$$label" "$$url"; \
+	  fi; \
+	done
+
+validate-phase1: ## Run the WO-230 6-step go/no-go validation script
+	@chmod +x scripts/validate-phase1.sh
+	@./scripts/validate-phase1.sh
 
 .DEFAULT_GOAL := help

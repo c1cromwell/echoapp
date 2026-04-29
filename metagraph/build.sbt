@@ -24,7 +24,9 @@ lazy val commonSettings = Seq(
     "-Wconf:cat=unused:info",
     "-language:reflectiveCalls"
   ),
-  resolvers += Resolver.mavenLocal
+  resolvers += Resolver.mavenLocal,
+  // ScalaTest is added per-module so it is available everywhere we need it.
+  libraryDependencies += Libraries.scalatest
 ) ++ Defaults.itSettings
 
 lazy val buildInfoSettings = Seq(
@@ -35,7 +37,7 @@ lazy val buildInfoSettings = Seq(
 // Root project aggregates all modules
 lazy val root = (project in file("."))
   .settings(name := "echo-metagraph")
-  .aggregate(sharedData, currencyL0, currencyL1, dataL1)
+  .aggregate(sharedData, currencyL0, currencyL1, dataL1, identityL0, identityL1)
 
 // Shared types, validators, combiners used by all layers
 lazy val sharedData = (project in file("modules/shared_data"))
@@ -95,6 +97,43 @@ lazy val dataL1 = (project in file("modules/data_l1"))
     buildInfoSettings,
     commonSettings,
     name := "echo-data-l1",
+    libraryDependencies ++= Seq(
+      CompilerPlugin.kindProjector,
+      CompilerPlugin.betterMonadicFor,
+      CompilerPlugin.semanticDB,
+      Libraries.tessellationSdk
+    )
+  )
+
+// Identity Metagraph L0: dedicated consensus layer for identity state
+// (VC issuance, trust tier commitments, StatusList2021, OrgRoleCredentials).
+lazy val identityL0 = (project in file("modules/identity_l0"))
+  .enablePlugins(AshScriptPlugin, BuildInfoPlugin, JavaAppPackaging)
+  .dependsOn(sharedData)
+  .settings(
+    buildInfoSettings,
+    commonSettings,
+    name := "echo-identity-l0",
+    libraryDependencies ++= Seq(
+      CompilerPlugin.kindProjector,
+      CompilerPlugin.betterMonadicFor,
+      CompilerPlugin.semanticDB,
+      Libraries.declineRefined,
+      Libraries.declineCore,
+      Libraries.declineEffect,
+      Libraries.tessellationSdk
+    )
+  )
+
+// Identity Metagraph L1: receives VC issuance / trust tier / StatusList2021
+// updates from the Identity Service and applies pure validators.
+lazy val identityL1 = (project in file("modules/identity_l1"))
+  .enablePlugins(AshScriptPlugin, BuildInfoPlugin, JavaAppPackaging)
+  .dependsOn(sharedData)
+  .settings(
+    buildInfoSettings,
+    commonSettings,
+    name := "echo-identity-l1",
     libraryDependencies ++= Seq(
       CompilerPlugin.kindProjector,
       CompilerPlugin.betterMonadicFor,

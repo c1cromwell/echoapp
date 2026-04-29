@@ -1,21 +1,34 @@
 package com.echo.data_l1
 
+import com.echo.shared_data.cluster.ClusterIds
+import com.echo.shared_data.types._
+import com.echo.shared_data.validations.Validations
 import org.tessellation.currency.l1.CurrencyL1App
 
 /**
- * Echo Data L1 — custom data application layer.
+ * Echo Data L1 — anchors Merkle roots and trust-score commitments.
  *
- * Responsibilities:
- *   - Merkle root validation: structure, authorized sender DID (META-004)
- *   - Trust commitment validation: H(score||nonce) format (META-005)
+ * Validators wired:
+ *   - Merkle root      → Validations.validateMerkleRoot
+ *   - Trust commitment → Validations.validateTrustCommitment
  *
- * TODO: Override dataApplication with BaseDataApplicationL1Service
- * TODO: Implement MerkleRoot update validator
- * TODO: Implement TrustCommitment update validator
+ * Wiring is done through the `dispatch` helper, which is invoked from the
+ * Tessellation `BaseDataApplicationL1Service` override (or the equivalent
+ * mempool admission hook in the SDK). Keeping dispatch as a pure function
+ * lets us unit-test the wired behavior without booting the L1 cluster.
  */
 object Main extends CurrencyL1App(
-  name = "echo-data-l1",
-  header = "Echo Data L1",
-  clusterId = java.util.UUID.fromString("00000000-0000-0000-0000-000000000000"), // replace with real ID
-  version = "0.1.0"
-)
+  name      = "echo-data-l1",
+  header    = "Echo Data L1",
+  clusterId = ClusterIds.dataL1,
+  version   = "0.1.0"
+) {
+
+  /** Pure dispatch: runs the correct validator for each Data-L1 update. */
+  def dispatch(update: EchoUpdate): Either[String, Unit] = update match {
+    case u: MerkleRootUpdate      => Validations.validateMerkleRoot(u)
+    case u: TrustCommitmentUpdate => Validations.validateTrustCommitment(u)
+    case other =>
+      Left(s"Data L1 does not accept update type ${other.getClass.getSimpleName}")
+  }
+}

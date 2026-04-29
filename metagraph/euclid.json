@@ -11,7 +11,9 @@
     "modules": {
       "l0": "modules/l0",
       "l1": "modules/l1",
-      "data_l1": "modules/data_l1"
+      "data_l1": "modules/data_l1",
+      "identity_l0": "modules/identity_l0",
+      "identity_l1": "modules/identity_l1"
     }
   },
   "docker": {
@@ -19,7 +21,9 @@
       "global-l0",
       "metagraph-l0",
       "currency-l1",
-      "data-l1"
+      "data-l1",
+      "identity-l0",
+      "identity-l1"
     ]
   },
   "layers": {
@@ -49,6 +53,20 @@
         "public": 9400,
         "p2p": 9401,
         "cli": 9402
+      }
+    },
+    "identity_l0": {
+      "ports": {
+        "public": 9100,
+        "p2p": 9101,
+        "cli": 9102
+      }
+    },
+    "identity_l1": {
+      "ports": {
+        "public": 9500,
+        "p2p": 9501,
+        "cli": 9502
       }
     }
   }

@@ -1,22 +1,34 @@
 package com.echo.l1
 
+import com.echo.shared_data.cluster.ClusterIds
+import com.echo.shared_data.types._
+import com.echo.shared_data.validations.Validations
 import org.tessellation.currency.l1.CurrencyL1App
 
 /**
- * Echo Currency L1 — token transaction layer.
+ * Echo Currency L1 — token transactions (lock, delegate, withdraw, claim).
  *
- * Responsibilities:
- *   - TokenLock validation: tier minimums, lock durations (META-003)
- *   - Reward claim validation: tier multipliers, daily caps (META-002)
- *   - Stake delegation and withdrawal cooldown enforcement
+ * Validators wired:
+ *   - TokenLock   → Validations.validateTokenLock
+ *   - RewardClaim → Validations.validateRewardClaim
  *
- * TODO: Override CustomContextualTransactionValidator for TokenLock
- * TODO: Implement reward claim validation with auto-scaling multipliers
- * TODO: Enforce 14-day unstaking cooldown (governance-adjustable)
+ * StakeDelegationUpdate / WithdrawLockUpdate carry no per-update invariants
+ * yet (cooldowns and balance checks live at the L0 combiner stage); they
+ * pass through the dispatcher to keep the surface explicit.
  */
 object Main extends CurrencyL1App(
-  name = "echo-currency-l1",
-  header = "Echo Currency L1",
-  clusterId = java.util.UUID.fromString("00000000-0000-0000-0000-000000000000"), // replace with real ID
-  version = "0.1.0"
-)
+  name      = "echo-currency-l1",
+  header    = "Echo Currency L1",
+  clusterId = ClusterIds.currencyL1,
+  version   = "0.1.0"
+) {
+
+  def dispatch(update: EchoUpdate): Either[String, Unit] = update match {
+    case u: TokenLockUpdate       => Validations.validateTokenLock(u)
+    case u: RewardClaimUpdate     => Validations.validateRewardClaim(u)
+    case _: StakeDelegationUpdate => Right(())
+    case _: WithdrawLockUpdate    => Right(())
+    case other =>
+      Left(s"Currency L1 does not accept update type ${other.getClass.getSimpleName}")
+  }
+}
