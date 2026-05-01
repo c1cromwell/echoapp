@@ -108,7 +108,8 @@ paths:
               properties:
                 did:
                   type: string
-                  description: User's DID (did:prism:...)
+                  description: User's DID. Phase 1 (per ADR-0001) uses did:key (e.g. "did:key:z2dm…").
+                  example: "did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9KbrL2g"
       responses:
         "200":
           description: Challenge issued
@@ -662,11 +663,114 @@ paths:
           description: Account deletion initiated
 
   # ──────────────────────── IDENTITY ────────────────────────
+  /identity/register:
+    post:
+      tags: [Identity]
+      summary: Register a did:key with the local Identity Service
+      description: |
+        Phase-1 (per ADR-0001) DID registration endpoint. The client derives the
+        canonical `did:key:z…` from a P-256 public key (the
+        `pkg/didkey.DeriveFromPublicKeyHex` helper, or any W3C-compliant
+        did:key implementation) and posts both the DID and the underlying
+        public key for binding.
+
+        The handler re-derives the canonical DID from `public_key_hex` and
+        rejects the request if it does not match the supplied `did`. This
+        guarantees no caller can register a DID for a key they do not encode
+        correctly. Possession of the *private* key is proven later, during
+        passkey signing, and on every subsequent authenticated request.
+
+        Idempotent: re-posting the same `(did, public_key_hex)` pair returns
+        `200 OK` with `existing: true` instead of `409`.
+
+        No auth required — the DID *is* the public key, so registration is
+        a public bootstrap step (rate-limited).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdentityRegisterRequest"
+      responses:
+        "201":
+          description: DID newly registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityRegisterResponse"
+        "200":
+          description: DID already registered with the same public key (idempotent)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityRegisterResponse"
+        "400":
+          description: |
+            Validation error. Possible `code` values:
+            * `MISSING_DID` — `did` field empty
+            * `MISSING_PUBLIC_KEY` — `public_key_hex` empty
+            * `INVALID_PUBLIC_KEY` — `public_key_hex` is not a valid SEC1
+              uncompressed P-256 point
+            * `DID_KEY_MISMATCH` — `did` does not match the canonical
+              derivation from `public_key_hex`
+            * `MALFORMED_BODY` — request body is not valid JSON
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: |
+            DID is already registered with a *different* public key
+            (`code: DID_ALREADY_REGISTERED`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: "Registry not configured (`code: REGISTRY_NOT_CONFIGURED`)"
+
+  /identity/{did}:
+    get:
+      tags: [Identity]
+      summary: Resolve a previously registered did:key binding
+      description: |
+        Returns the `(did, public_key_hex, registered_at)` tuple stored at
+        registration time. No auth — the same key is encoded in the DID
+        itself, so this is a convenience read.
+      security: []
+      parameters:
+        - name: did
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9KbrL2g"
+      responses:
+        "200":
+          description: DID binding found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityRegisterResponse"
+        "404":
+          description: "DID has not been registered (`code: DID_NOT_REGISTERED`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ───── Legacy/Phase-0 DID anchor endpoints (retained for compatibility) ─────
   /identity/did:
     post:
       tags: [Identity]
-      summary: Create a new DID
-      description: Registers a DID on Cardano using the user's Secure Enclave public key.
+      summary: (Legacy Phase-0) Create a chain-anchored DID
+      description: |
+        Deprecated. Phase 1 (ADR-0001) replaced chain-anchored DIDs with
+        self-certifying did:key. New clients should use POST /identity/register.
+        This endpoint is retained for backward compatibility with pre-Phase-1
+        iOS builds and will be removed once WO-280 ships.
+      deprecated: true
       requestBody:
         required: true
         content:
@@ -681,7 +785,7 @@ paths:
                   description: P-256 public key from Secure Enclave
       responses:
         "202":
-          description: DID creation submitted to Cardano
+          description: DID creation submitted
           content:
             application/json:
               schema:
@@ -690,7 +794,9 @@ paths:
   /identity/did/{did}:
     get:
       tags: [Identity]
-      summary: Resolve a DID document
+      summary: (Legacy Phase-0) Resolve a chain-anchored DID document
+      description: Deprecated. Use GET /identity/{did} for did:key bindings.
+      deprecated: true
       parameters:
         - name: did
           in: path
@@ -1381,12 +1487,71 @@ components:
           nullable: true
           description: "null if privacy setting hides this"
 
+    Error:
+      type: object
+      description: |
+        Canonical error envelope returned by all Phase-1 endpoints. The
+        backend's WriteError helper guarantees this shape on any non-2xx
+        response.
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code (e.g. `INVALID_PUBLIC_KEY`).
+          example: "INVALID_PUBLIC_KEY"
+        message:
+          type: string
+          description: Human-readable diagnostic; safe to surface to end users.
+          example: "did_key_mismatch: supplied did does not match canonical derivation from public_key_hex"
+        request_id:
+          type: string
+          description: Echo of the X-Request-ID header for log correlation.
+
+    IdentityRegisterRequest:
+      type: object
+      required: [did, public_key_hex]
+      properties:
+        did:
+          type: string
+          description: W3C did:key identifier the client claims for this binding.
+          example: "did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9KbrL2g"
+        public_key_hex:
+          type: string
+          description: |
+            SEC1 uncompressed P-256 public key (65 bytes, `04` prefix) as
+            lowercase hex. Must derive to the supplied `did` via the W3C
+            did:key method (multicodec `p256-pub` 0x1200, multibase
+            base58btc); mismatches are rejected with 400 DID_KEY_MISMATCH.
+          pattern: "^04[0-9a-f]{128}$"
+          example: "04abcd…"
+
+    IdentityRegisterResponse:
+      type: object
+      required: [did, public_key_hex, registered_at, existing]
+      properties:
+        did:
+          type: string
+          example: "did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9KbrL2g"
+        public_key_hex:
+          type: string
+          pattern: "^04[0-9a-f]{128}$"
+        registered_at:
+          type: string
+          format: date-time
+          description: RFC3339 nano timestamp of the *first* time this DID was registered.
+        existing:
+          type: boolean
+          description: |
+            `true` when the (did, public_key_hex) pair was already present and
+            the server returned 200. `false` on a fresh 201.
+
     DIDDocument:
       type: object
       properties:
         did:
           type: string
-          description: "did:prism:..."
+          description: "W3C did:key identifier. Phase 1 — see ADR-0001."
+          example: "did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9KbrL2g"
         publicKeys:
           type: array
           items:

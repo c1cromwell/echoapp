@@ -22,8 +22,11 @@ type DIDBinding struct {
 // DIDRegistry is the storage contract used by POST /identity/register.
 //
 // Phase-1 (WO-230 + WO-278) ships an in-memory implementation suitable for
-// the local testnet. A Postgres-backed implementation will land alongside
-// WO-279 when the canonical identity service is extracted.
+// the local testnet. The canonical Postgres schema for the persistent
+// implementation is defined in migrations/007_did_registry.sql; the
+// did_registry table mirrors the (DID, PublicKeyHex, RegisteredAt) tuple
+// 1:1 so the same handler can be re-pointed at a pgx-backed registry by
+// swapping the rt.DIDRegistry field — no contract change required.
 type DIDRegistry interface {
 	// Register stores a (did, publicKeyHex) binding. If the DID is already
 	// bound to the same public key the operation is idempotent and returns
