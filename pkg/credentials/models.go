@@ -54,7 +54,7 @@ type VerificationClaim struct {
 // CredentialStatus represents revocation status
 type CredentialStatus struct {
 	ID     string `json:"id"`
-	Type   string `json:"type"`   // "CardanoRevocationRegistry2024"
+	Type   string `json:"type"`   // "StatusList2021Entry" — see ADR-0001 + WO-272
 	Status string `json:"status"` // "active", "revoked", "suspended"
 }
 
@@ -134,7 +134,7 @@ type RevocationStatus struct {
 	IsRevoked        bool       `json:"isRevoked"`
 	RevokedAt        *time.Time `json:"revokedAt,omitempty"`
 	RevocationReason string     `json:"revocationReason,omitempty"`
-	ChainIndex       uint64     `json:"chainIndex,omitempty"` // Position in Cardano revocation registry
+	StatusListIndex  uint64     `json:"statusListIndex,omitempty"` // Bit position in the issuer's StatusList2021 vector (WO-274)
 }
 
 // IssuanceProgress tracks credential issuance progress

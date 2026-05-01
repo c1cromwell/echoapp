@@ -880,7 +880,7 @@ func (ph *ProfileHandler) GetAccountInfo(w http.ResponseWriter, r *http.Request)
 	info := AccountInfoData{
 		Phone:                   "+15551234567",
 		Email:                   "",
-		DID:                     "did:cardano:abc1...xyz",
+		DID:                     "did:key:z6MkExampleProfileXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
 		PasskeyCount:            2,
 		TwoFactorEnabled:        true,
 		ActiveSessionCount:      3,

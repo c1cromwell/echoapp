@@ -160,8 +160,8 @@ func (v *Verifier) GetVerificationStatus(c *gin.Context) {
 		"verified":       true,
 		"claims": map[string]interface{}{
 			"credentialType": "ProofOfHumanity",
-			"issuer":         "did:prism:cardano:issuer",
-			"subject":        "did:prism:cardano:subject",
+			"issuer":         "did:key:z6MkExampleIssuerXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+			"subject":        "did:key:z6MkExampleSubjectXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
 		},
 	}
 
@@ -255,8 +255,8 @@ func (v *Verifier) ExtractClaimsFromPresentation(vpToken string) map[string]inte
 	// In production, parse VP token and extract claims
 	return map[string]interface{}{
 		"credentialType": "ProofOfHumanity",
-		"issuer":         "did:prism:cardano:issuer",
-		"subject":        "did:prism:cardano:subject",
+		"issuer":         "did:key:z6MkExampleIssuerXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+		"subject":        "did:key:z6MkExampleSubjectXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
 	}
 }
 

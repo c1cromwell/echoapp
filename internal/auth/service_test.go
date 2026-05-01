@@ -387,7 +387,7 @@ func TestAuthService_Logout(t *testing.T) {
 	svc := newTestAuthService(t)
 
 	claims := &TokenClaims{
-		Subject:   "did:prism:test",
+		Subject:   "did:key:z6MkServiceTestSubjectXXXXXXXXXXXXXXXXXXXXXXXX",
 		ExpiresAt: 9999999999,
 		TokenID:   "jti-logout-test",
 		DeviceID:  "device-1",

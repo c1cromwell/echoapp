@@ -396,11 +396,10 @@ func (h *Handlers) Health(c *gin.Context) {
 	healthy, err := h.service.Health(c.Request.Context())
 
 	response := &HealthCheckResponse{
-		Timestamp:           time.Now(),
-		AtalaPRISMConnected: true,
-		CardanoConnected:    true,
-		CacheStatus:         "healthy",
-		DatabaseConnected:   true,
+		Timestamp:                  time.Now(),
+		IdentityMetagraphConnected: true,
+		CacheStatus:                "healthy",
+		DatabaseConnected:          true,
 	}
 
 	if !healthy || err != nil {

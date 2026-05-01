@@ -177,9 +177,11 @@ func (s *AuthService) VerifyOTP(req OTPVerifyRequest, ip string) (*AuthResponse,
 		}, nil
 	}
 
-	// 5. Create new user
+	// 5. Create new user. The DID is a "pending:" sentinel (not a valid
+	// did:key) until passkey registration completes, at which point the
+	// passkey public key derives the canonical did:key (ADR-0001).
 	userID := "usr_" + uuid.New().String()[:12]
-	did := "did:prism:cardano:pending"
+	did := "pending:user:" + userID
 
 	user := &User{
 		ID:         userID,
@@ -287,7 +289,11 @@ func (s *AuthService) RegisterPasskey(userDID string, req PasskeyRegistrationReq
 	// Update user status and trust
 	user.Status = UserStatusActive
 	user.TrustScore = 5 // device-verified baseline
-	user.DID = "did:prism:cardano:" + uuid.New().String()[:12]
+	// TODO(WO-273): derive did:key from the passkey public key via
+	// pkg/didkey.DeriveFromPublicKeyHex once the passkey credential row
+	// is plumbed through here. For now use a "pending:" sentinel so no
+	// caller mistakes it for a real did:key.
+	user.DID = "pending:user:" + uuid.New().String()[:12]
 	user.UpdatedAt = time.Now()
 	s.usersByDID[user.DID] = user
 	s.mu.Unlock()

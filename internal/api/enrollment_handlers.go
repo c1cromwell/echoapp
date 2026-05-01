@@ -11,6 +11,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/uuid"
+
+	"github.com/thechadcromwell/echoapp/pkg/didkey"
 )
 
 // displayNameAllowed matches per PRD v3.1 AC-INFRA-004.4 and mirrors the iOS DisplayNameValidator.
@@ -95,8 +97,13 @@ func (rt *Router) handleRegisterDID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Mint a DID. Production wires to Cardano; here we generate a deterministic placeholder.
-	did := "did:prism:cardano:" + uuid.New().String()
+	// Derive the canonical did:key from the supplied P-256 public key (ADR-0001;
+	// did:key is the Phase-1 identity method, no chain transaction required).
+	did, err := didkey.DeriveFromPublicKeyHex(req.PublicKey)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_PUBLIC_KEY", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
 	mintedAt := time.Now().UTC()
 
 	// Trust tier starts at 0 — promoted to 1 on passkey webhook per AC-INFRA-004.5.
@@ -191,8 +198,12 @@ func (rt *Router) handleRestoreDID(w http.ResponseWriter, r *http.Request) {
 	// re-bind DID to new_device_public_key, return user record.
 	// Errors: 404 WALLET_NOT_ENROLLED, 401 WALLET_SIGNATURE_INVALID, 409 DEVICE_ALREADY_ENROLLED.
 
+	// TODO(WO-273): replace stub with real wallet-DID lookup against the
+	// identity store. The "pending:" sentinel is intentionally not a valid
+	// did:key so any consumer that performs proper DID validation will fail
+	// fast rather than silently treating the stub as authoritative.
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"did":            "did:prism:cardano:restored-placeholder",
+		"did":            "pending:wallet:" + req.WalletAddress,
 		"display_name":   "Restored User",
 		"trust_tier":     1,
 		"wallet_address": req.WalletAddress,

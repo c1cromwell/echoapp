@@ -7,12 +7,16 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/thechadcromwell/echoapp/internal/crypto"
+	"github.com/thechadcromwell/echoapp/pkg/didkey"
 )
 
-// Service provides core DID management operations
+// Service provides core DID management operations using the W3C did:key
+// method (P-256 / multicodec p256-pub / base58btc multibase). Phase 1
+// per ADR-0001: identifiers are self-certifying — the DID *is* the
+// public key, so there is no on-chain anchoring step.
 type Service struct {
-	client        *AtalaClient
 	resolver      *Resolver
 	deviceManager *DeviceManager
 	repo          Repository
@@ -23,7 +27,9 @@ type Service struct {
 	generation    map[string]*GenerationProgress
 }
 
-// GenerationProgress tracks DID generation progress
+// GenerationProgress tracks DID generation progress. The TransactionHash
+// field is retained for backward-compatibility with consumers and is
+// always empty for did:key (no on-chain anchor).
 type GenerationProgress struct {
 	DID             string
 	Status          string
@@ -33,9 +39,9 @@ type GenerationProgress struct {
 	TransactionHash string
 }
 
-// NewService creates a new DID service
+// NewService creates a new DID service backed by the canonical
+// pkg/didkey derivation library.
 func NewService(
-	client *AtalaClient,
 	resolver *Resolver,
 	deviceManager *DeviceManager,
 	repo Repository,
@@ -44,7 +50,6 @@ func NewService(
 	cryptoUtils *crypto.CryptoUtils,
 ) *Service {
 	return &Service{
-		client:        client,
 		resolver:      resolver,
 		deviceManager: deviceManager,
 		repo:          repo,
@@ -55,54 +60,45 @@ func NewService(
 	}
 }
 
-// CreateDID generates a new DID and anchors it to the blockchain
+// CreateDID derives a new did:key from the request's public key and
+// records the user/device mapping. did:key is self-certifying so there
+// is no separate "anchor" step — the DID exists as soon as the public
+// key is published off-chain in the issuance record (WO-272).
 func (s *Service) CreateDID(ctx context.Context, req *DIDCreationRequest) (*DIDCreationResponse, error) {
-	// Validate request
 	if err := s.validateDIDCreationRequest(req); err != nil {
 		return nil, err
 	}
 
-	// Create context with timeout
 	ctx, cancel := context.WithTimeout(ctx, s.config.GenerationTimeout)
 	defer cancel()
+	_ = ctx
 
-	// Generate unique identifier
-	uniqueID := uuid.New().String()
-	did := fmt.Sprintf("did:prism:cardano:%s", uniqueID)
+	publicKey := req.PublicKey
+	if publicKey == "" {
+		return nil, NewDIDError(ErrCodeInvalidPublicKey, "public_key is required for did:key derivation", nil)
+	}
 
-	// Track generation progress
+	did, err := didkey.DeriveFromPublicKeyHex(publicKey)
+	if err != nil {
+		return nil, NewDIDError(ErrCodeInvalidPublicKey, "Failed to derive did:key from public key", err)
+	}
+
 	progress := &GenerationProgress{
 		DID:          did,
-		Status:       "initializing",
-		Progress:     5,
+		Status:       "deriving",
+		Progress:     50,
 		StartedAt:    time.Now(),
 		EstimatedEnd: time.Now().Add(s.config.GenerationTimeout),
 	}
 	s.trackGenerationProgress(did, progress)
 	defer s.removeGenerationProgress(did)
 
-	// Generate public key if not provided
-	publicKey := req.PublicKey
-	if publicKey == "" {
-		keyPair, err := s.cryptoUtils.GenerateKey()
-		if err != nil {
-			return nil, NewDIDError(ErrCodeCryptoFailed, "Failed to generate key pair", err)
-		}
-		publicKey = keyPair.PublicKeyHex()
-		progress.Progress = 15
-	}
-
-	// Create DID document
 	document := s.createDIDDocument(did, publicKey, req)
-	progress.Progress = 30
 
-	// Verify document structure
 	if err := s.validateDIDDocument(document); err != nil {
 		return nil, NewDIDError(ErrCodeInvalidDocument, "Invalid DID document", err)
 	}
-	progress.Progress = 45
 
-	// Store DID mapping
 	mapping := &DIDMapping{
 		DID:           did,
 		UserID:        req.UserID,
@@ -123,34 +119,14 @@ func (s *Service) CreateDID(ctx context.Context, req *DIDCreationRequest) (*DIDC
 		},
 	}
 
-	if err := s.repo.CreateDIDMapping(ctx, mapping); err != nil {
+	if err := s.repo.CreateDIDMapping(context.Background(), mapping); err != nil {
 		return nil, err
 	}
-	progress.Progress = 60
 
-	// Store DID document
-	if err := s.repo.StoreDIDDocument(ctx, did, document); err != nil {
-		// Log but continue - not critical
+	if err := s.repo.StoreDIDDocument(context.Background(), did, document); err != nil {
 		fmt.Printf("[Service] Failed to store DID document: %v\n", err)
 	}
-	progress.Progress = 70
 
-	// Anchor to blockchain via Atala PRISM
-	txHash, err := s.client.AnchorDID(ctx, did, document)
-	if err != nil {
-		return nil, NewDIDError(ErrCodeAnchoringFailed, "Failed to anchor DID to blockchain", err)
-	}
-	progress.TransactionHash = txHash
-	progress.Progress = 85
-
-	// Record anchor
-	if err := s.repo.RecordAnchor(ctx, did, txHash, 0); err != nil {
-		// Log but continue - transaction is recorded on-chain
-		fmt.Printf("[Service] Failed to record anchor: %v\n", err)
-	}
-	progress.Progress = 95
-
-	// Cache the document
 	if err := s.cache.SetDID(did, document); err != nil {
 		fmt.Printf("[Service] Failed to cache DID document: %v\n", err)
 	}
@@ -161,9 +137,8 @@ func (s *Service) CreateDID(ctx context.Context, req *DIDCreationRequest) (*DIDC
 	return &DIDCreationResponse{
 		DID:              did,
 		Document:         document,
-		TransactionHash:  txHash,
 		AnchoredAt:       time.Now(),
-		ResolutionStatus: "anchored",
+		ResolutionStatus: "resolved",
 	}, nil
 }
 
@@ -177,26 +152,19 @@ func (s *Service) ResolveDIDWithMetadata(ctx context.Context, did string) (*DIDD
 	return s.resolver.ResolveWithMetadata(ctx, did)
 }
 
-// UpdateDID updates a DID document
+// UpdateDID updates a stored DID document. did:key documents are
+// immutable in W3C semantics (the DID *is* the key), so this only
+// updates the cached/persisted document — it never re-anchors.
 func (s *Service) UpdateDID(ctx context.Context, did string, document *DIDDocument) error {
-	// Validate document
 	if err := s.validateDIDDocument(document); err != nil {
 		return NewDIDError(ErrCodeInvalidDocument, "Invalid DID document", err)
 	}
 
-	// Update in Atala PRISM
-	if err := s.client.UpdateDID(ctx, did, document); err != nil {
-		return err
-	}
-
-	// Update in repository
 	if err := s.repo.UpdateDIDDocument(ctx, did, document); err != nil {
 		fmt.Printf("[Service] Failed to update DID in repository: %v\n", err)
 	}
 
-	// Invalidate cache
 	s.cache.InvalidateDID(did)
-
 	return nil
 }
 
@@ -240,9 +208,18 @@ func (s *Service) GetDIDMappingByUserID(ctx context.Context, userID string) (*DI
 	return s.repo.GetDIDByUserID(ctx, userID)
 }
 
-// VerifyDIDDocument verifies a DID document
+// VerifyDIDDocument verifies a DID document by re-deriving the did:key
+// from its embedded public key and comparing it to the document's id.
+// Returns true iff the embedded public key produces the document id.
 func (s *Service) VerifyDIDDocument(ctx context.Context, document *DIDDocument) (bool, error) {
-	return s.client.VerifyDIDDocument(ctx, document)
+	if document == nil || len(document.PublicKey) == 0 {
+		return false, NewDIDError(ErrCodeInvalidDocument, "DID document missing public key", nil)
+	}
+	derived, err := didkey.DeriveFromPublicKeyHex(document.PublicKey[0].PublicKeyBase64)
+	if err != nil {
+		return false, NewDIDError(ErrCodeInvalidPublicKey, "Failed to re-derive did:key", err)
+	}
+	return derived == document.ID, nil
 }
 
 // GetGenerationProgress returns the progress of DID generation
@@ -276,39 +253,40 @@ func (s *Service) Health(ctx context.Context) (bool, error) {
 	return s.resolver.Health(ctx)
 }
 
-// createDIDDocument creates a DID document from a creation request
+// createDIDDocument creates a W3C DID document from a creation request.
+// The verificationMethod is JsonWebKey2020 / Multibase per the did:key
+// spec (https://w3c-ccg.github.io/did-method-key/).
 func (s *Service) createDIDDocument(did, publicKey string, req *DIDCreationRequest) *DIDDocument {
 	now := time.Now()
 
-	keyID := fmt.Sprintf("%s#key-1", did)
-	verificationKeyID := fmt.Sprintf("%s#auth-key-1", did)
-	assertionKeyID := fmt.Sprintf("%s#assertion-key-1", did)
+	keyID := fmt.Sprintf("%s#%s", did, did[8:]) // did:key uses the multibase identifier as the fragment
 
 	return &DIDDocument{
 		Context: []string{
 			"https://www.w3.org/ns/did/v1",
-			"https://w3id.org/security/suites/ed25519-2018/v1",
+			"https://w3id.org/security/multikey/v1",
 		},
 		ID:         did,
 		Controller: []string{did},
 		PublicKey: []PublicKey{
 			{
-				ID:              keyID,
-				Type:            "Ed25519VerificationKey2018",
-				Controller:      did,
-				PublicKeyBase64: publicKey,
+				ID:                 keyID,
+				Type:               "JsonWebKey2020",
+				Controller:         did,
+				PublicKeyBase64:    publicKey,
+				PublicKeyMultibase: did[8:],
 			},
 		},
 		Authentication: []Authentication{
 			{
-				Type:      "Ed25519VerificationKey2018",
-				PublicKey: verificationKeyID,
+				Type:      "JsonWebKey2020",
+				PublicKey: keyID,
 			},
 		},
 		AssertionMethod: []AssertionMethod{
 			{
-				Type:      "Ed25519VerificationKey2018",
-				PublicKey: assertionKeyID,
+				Type:      "JsonWebKey2020",
+				PublicKey: keyID,
 			},
 		},
 		Service: []ServiceEndpoint{
@@ -359,15 +337,15 @@ func (s *Service) validateDIDDocument(doc *DIDDocument) error {
 	}
 
 	if len(doc.PublicKey) == 0 {
-		return fmt.Errorf("At least one public key is required")
+		return fmt.Errorf("at least one public key is required")
 	}
 
 	if len(doc.Authentication) == 0 {
-		return fmt.Errorf("At least one authentication method is required")
+		return fmt.Errorf("at least one authentication method is required")
 	}
 
 	if len(doc.AssertionMethod) == 0 {
-		return fmt.Errorf("At least one assertion method is required")
+		return fmt.Errorf("at least one assertion method is required")
 	}
 
 	return nil
@@ -391,10 +369,6 @@ func (s *Service) removeGenerationProgress(did string) {
 
 // Close gracefully shuts down the service
 func (s *Service) Close() error {
-	if err := s.client.Close(); err != nil {
-		return err
-	}
-
 	if err := s.cache.Stop(); err != nil {
 		return err
 	}

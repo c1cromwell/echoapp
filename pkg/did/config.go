@@ -5,14 +5,14 @@ import (
 	"time"
 )
 
-// Config holds the configuration for the DID service
+// Config holds the configuration for the DID service.
+//
+// Phase 1 (per ADR-0001): the DID method is did:key (P-256), which is
+// self-certifying — there is no Atala PRISM client and no Cardano node
+// to point at. Anchoring of issuance records / trust commitments / VC
+// status lives on the Constellation Identity Metagraph and is configured
+// via pkg/credentials.MetagraphConfig.
 type Config struct {
-	// Atala PRISM settings
-	AtalaPRISM AtalaPRISMConfig
-
-	// Cardano settings
-	Cardano CardanoConfig
-
 	// DID settings
 	DID DIDConfig
 
@@ -29,39 +29,13 @@ type Config struct {
 	Logging LoggingConfig
 }
 
-// AtalaPRISMConfig holds Atala PRISM specific configuration
-type AtalaPRISMConfig struct {
-	Endpoint       string
-	APIKey         string
-	APISecret      string
-	Timeout        time.Duration
-	MaxRetries     int
-	RetryBackoff   time.Duration
-	ConnectionPool int
-	VerifySSL      bool
-	ProxyURL       string
-}
-
-// CardanoConfig holds Cardano blockchain settings
-type CardanoConfig struct {
-	NetworkID             string // mainnet, testnet, preprod
-	NodeURL               string
-	NodeTimeout           time.Duration
-	ProtocolParameters    string
-	MaxTxSize             int
-	MinFee                int64
-	ConfirmationThreshold int
-	BlockPollingInterval  time.Duration
-	MaxBlockWaitTime      time.Duration
-}
-
 // DIDConfig holds DID specific settings
 type DIDConfig struct {
-	Method             string        // "prism"
-	Network            string        // "cardano"
+	Method             string        // "key"
+	Network            string        // unused for did:key (kept for forward-compatibility with did:web etc.)
 	GenerationTimeout  time.Duration // 30 seconds
 	ResolutionTimeout  time.Duration // 2 seconds
-	AnchoringTimeout   time.Duration // 60 seconds
+	AnchoringTimeout   time.Duration // unused for did:key
 	SupportedKeyTypes  []string
 	DIDDocumentVersion string
 }
@@ -122,30 +96,14 @@ type LoggingConfig struct {
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
 	return &Config{
-		AtalaPRISM: AtalaPRISMConfig{
-			Endpoint:       "https://prism.atalaprism.io",
-			Timeout:        30 * time.Second,
-			MaxRetries:     3,
-			RetryBackoff:   1 * time.Second,
-			ConnectionPool: 10,
-			VerifySSL:      true,
-		},
-		Cardano: CardanoConfig{
-			NetworkID:             "testnet",
-			NodeURL:               "https://cardano-testnet-node.example.com",
-			NodeTimeout:           30 * time.Second,
-			ConfirmationThreshold: 6,
-			BlockPollingInterval:  5 * time.Second,
-			MaxBlockWaitTime:      120 * time.Second,
-		},
 		DID: DIDConfig{
-			Method:             "prism",
-			Network:            "cardano",
+			Method:             "key",
+			Network:            "",
 			GenerationTimeout:  30 * time.Second,
 			ResolutionTimeout:  2 * time.Second,
 			AnchoringTimeout:   60 * time.Second,
-			SupportedKeyTypes:  []string{"Ed25519VerificationKey2018"},
-			DIDDocumentVersion: "2022-09",
+			SupportedKeyTypes:  []string{"JsonWebKey2020"},
+			DIDDocumentVersion: "2024-01",
 		},
 		Cache: CacheConfig{
 			Enabled:         true,
@@ -187,33 +145,10 @@ func DefaultConfig() *Config {
 
 // LoadConfig loads configuration from environment variables and config files
 func LoadConfig(configPath string) (*Config, error) {
-	// Start with default configuration
 	cfg := DefaultConfig()
 
-	// Load from environment variables
-	if apiKey := os.Getenv("DID_ATALA_PRISM_API_KEY"); apiKey != "" {
-		cfg.AtalaPRISM.APIKey = apiKey
-	}
-
-	if apiSecret := os.Getenv("DID_ATALA_PRISM_API_SECRET"); apiSecret != "" {
-		cfg.AtalaPRISM.APISecret = apiSecret
-	}
-
-	if endpoint := os.Getenv("DID_ATALA_PRISM_ENDPOINT"); endpoint != "" {
-		cfg.AtalaPRISM.Endpoint = endpoint
-	}
-
-	if nodeURL := os.Getenv("DID_CARDANO_NODE_URL"); nodeURL != "" {
-		cfg.Cardano.NodeURL = nodeURL
-	}
-
-	if networkID := os.Getenv("DID_CARDANO_NETWORK_ID"); networkID != "" {
-		cfg.Cardano.NetworkID = networkID
-	}
-
 	if portStr := os.Getenv("DID_SERVER_PORT"); portStr != "" {
-		// In production, parse the port number
-		// For now, keep default
+		_ = portStr // parsed elsewhere
 	}
 
 	if logLevel := os.Getenv("DID_LOGGING_LEVEL"); logLevel != "" {
@@ -231,12 +166,8 @@ func (c *Config) Validate() *ValidationErrors {
 		errors.Add("server.port", "port must be between 1 and 65535")
 	}
 
-	if c.AtalaPRISM.Endpoint == "" {
-		errors.Add("atala_prism.endpoint", "endpoint is required")
-	}
-
-	if c.DID.Method != "prism" {
-		errors.Add("did.method", "method must be 'prism'")
+	if c.DID.Method != "key" {
+		errors.Add("did.method", "method must be 'key' (Phase 1 — see ADR-0001)")
 	}
 
 	if c.DID.GenerationTimeout < 10*time.Second {

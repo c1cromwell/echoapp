@@ -11,8 +11,9 @@ type Config struct {
 	// Credential settings
 	CredentialConfig CredentialConfig
 
-	// Cardano blockchain settings
-	CardanoConfig CardanoConfig
+	// Identity Metagraph anchoring + StatusList2021 publishing settings
+	// (WO-272 / WO-274). Replaces the Phase-0 Cardano configuration block.
+	MetagraphConfig MetagraphConfig
 
 	// Issuer settings
 	IssuerConfig IssuerConfig
@@ -60,23 +61,31 @@ type CredentialConfig struct {
 	StoragePath string
 }
 
-// CardanoConfig contains Cardano blockchain settings
-type CardanoConfig struct {
-	NetworkID    string // "testnet", "mainnet", "sidechain"
-	NodeURL      string
-	APIKey       string
-	APISecret    string
+// MetagraphConfig contains Constellation Identity Metagraph settings used by
+// the credential issuer + StatusList2021 publisher. This struct replaces the
+// pre-ADR-0001 CardanoConfig (eliminated alongside the Atala PRISM client).
+type MetagraphConfig struct {
+	// L0 + L1 endpoints for the Identity Metagraph (env-overridable;
+	// see CONTRIBUTING.md and Makefile dev target).
+	IdentityL0URL string
+	IdentityL1URL string
+
+	// Authorized issuer DID — Phase 1 always equals the Identity Service
+	// did:key. Phase 4+ this expands to a per-org issuer registry proven
+	// by EchoOrgRoleCredentials anchored on the same metagraph.
+	IssuerDID string
+
+	// HTTP retry knobs for L1 submissions.
 	Timeout      time.Duration
 	MaxRetries   int
 	RetryBackoff time.Duration
 
-	// DID anchor settings
-	EnableAnchor        bool
-	AnchorConfirmations uint64
+	// Anchor settings (W3C VC 2.0 issuance records on Identity L1).
+	EnableAnchor bool
 
-	// Revocation registry settings
-	RevocationRegistryAddress string
-	RevocationIndexFile       string
+	// StatusList2021 publishing.
+	StatusListPublishInterval time.Duration // batch cadence; W3C recommends 5 min
+	RevocationIndexFile       string        // local cache of bit-vector positions
 }
 
 // IssuerConfig contains issuer settings
@@ -119,10 +128,13 @@ type OIDC4VCConfig struct {
 	RequireProofOfPossession   bool
 }
 
-// RevocationConfig contains revocation management settings
+// RevocationConfig contains revocation management settings.
+// Phase 1: registry type is "metagraph" (StatusList2021 anchored on the
+// Constellation Identity Metagraph). "postgres" / "in-memory" remain
+// supported for unit-test backends.
 type RevocationConfig struct {
 	Enabled           bool
-	RegistryType      string // "cardano", "postgres", "in-memory"
+	RegistryType      string // "metagraph", "postgres", "in-memory"
 	CacheTTL          time.Duration
 	SyncInterval      time.Duration
 	MaxCacheSize      int
@@ -168,13 +180,14 @@ func DefaultConfig() *Config {
 			EnableBlockchainStorage:   true,
 			StoragePath:               "/tmp/credentials",
 		},
-		CardanoConfig: CardanoConfig{
-			NetworkID:           "testnet",
-			Timeout:             30 * time.Second,
-			MaxRetries:          3,
-			RetryBackoff:        1 * time.Second,
-			EnableAnchor:        true,
-			AnchorConfirmations: 5,
+		MetagraphConfig: MetagraphConfig{
+			IdentityL0URL:             "http://localhost:9100",
+			IdentityL1URL:             "http://localhost:9500",
+			Timeout:                   30 * time.Second,
+			MaxRetries:                3,
+			RetryBackoff:              1 * time.Second,
+			EnableAnchor:              true,
+			StatusListPublishInterval: 5 * time.Minute,
 		},
 		IssuerConfig: IssuerConfig{
 			SigningAlgorithm:    "Ed25519",
@@ -205,7 +218,7 @@ func DefaultConfig() *Config {
 		},
 		RevocationConfig: RevocationConfig{
 			Enabled:           true,
-			RegistryType:      "cardano",
+			RegistryType:      "metagraph",
 			CacheTTL:          24 * time.Hour,
 			SyncInterval:      1 * time.Hour,
 			MaxCacheSize:      10000,
@@ -260,18 +273,15 @@ func LoadConfig() *Config {
 		config.CredentialConfig.StoragePath = val
 	}
 
-	// Cardano settings
-	if val := os.Getenv("CARDANO_NETWORK_ID"); val != "" {
-		config.CardanoConfig.NetworkID = val
+	// Identity Metagraph settings (replaces the Phase-0 CARDANO_* envvars).
+	if val := os.Getenv("IDENTITY_L0_URL"); val != "" {
+		config.MetagraphConfig.IdentityL0URL = val
 	}
-	if val := os.Getenv("CARDANO_NODE_URL"); val != "" {
-		config.CardanoConfig.NodeURL = val
+	if val := os.Getenv("IDENTITY_L1_URL"); val != "" {
+		config.MetagraphConfig.IdentityL1URL = val
 	}
-	if val := os.Getenv("CARDANO_API_KEY"); val != "" {
-		config.CardanoConfig.APIKey = val
-	}
-	if val := os.Getenv("CARDANO_API_SECRET"); val != "" {
-		config.CardanoConfig.APISecret = val
+	if val := os.Getenv("IDENTITY_SERVICE_DID"); val != "" {
+		config.MetagraphConfig.IssuerDID = val
 	}
 
 	// Issuer settings
@@ -339,9 +349,9 @@ func (c *Config) Validate() error {
 		errors.Add("verifier_did", "verifier DID is required", "MISSING_VERIFIER_DID")
 	}
 
-	// Validate Cardano settings
-	if c.CardanoConfig.NodeURL == "" {
-		errors.Add("cardano_node_url", "Cardano node URL is required", "MISSING_CARDANO_NODE_URL")
+	// Validate Identity Metagraph settings
+	if c.MetagraphConfig.IdentityL1URL == "" {
+		errors.Add("identity_l1_url", "Identity Metagraph L1 URL is required", "MISSING_IDENTITY_L1_URL")
 	}
 
 	// Validate OIDC4VC settings if enabled

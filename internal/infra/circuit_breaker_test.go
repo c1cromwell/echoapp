@@ -7,7 +7,7 @@ import (
 
 func TestNewCircuitBreaker_DefaultCircuits(t *testing.T) {
 	cb := NewCircuitBreaker()
-	expected := []string{"data_l1", "currency_l1", "cardano", "ipfs", "digital_evidence"}
+	expected := []string{"data_l1", "currency_l1", "identity_metagraph", "ipfs", "digital_evidence"}
 	for _, name := range expected {
 		state, ok := cb.GetState(name)
 		if !ok {
@@ -52,17 +52,18 @@ func TestCircuitBreaker_OpensAfterThreshold(t *testing.T) {
 	}
 }
 
-func TestCircuitBreaker_CardanoLowerThreshold(t *testing.T) {
+func TestCircuitBreaker_IdentityMetagraphLowerThreshold(t *testing.T) {
 	cb := NewCircuitBreaker()
 
-	// Cardano has threshold of 3
+	// Identity Metagraph has threshold of 3 (lower than Data/Currency L1
+	// because credential issuance + revocation must page-fault loud).
 	for i := 0; i < 3; i++ {
-		cb.RecordFailure("cardano")
+		cb.RecordFailure("identity_metagraph")
 	}
 
-	state, _ := cb.GetState("cardano")
+	state, _ := cb.GetState("identity_metagraph")
 	if state != CircuitOpen {
-		t.Errorf("cardano circuit should open after 3 failures, got %s", state)
+		t.Errorf("identity_metagraph circuit should open after 3 failures, got %s", state)
 	}
 }
 

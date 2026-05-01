@@ -2,14 +2,25 @@ package did
 
 import (
 	"context"
+	"crypto/elliptic"
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/thechadcromwell/echoapp/pkg/didkey"
 )
 
-// Resolver provides DID resolution with caching capabilities
+// Resolver provides DID resolution for did:key. did:key is self-resolving
+// (the public key is encoded in the identifier itself), so resolution is
+// a pure-function operation against pkg/didkey.Parse — no network call,
+// no chain query, no Atala PRISM dependency.
+//
+// The cache + repository remain to (a) hold pre-built DIDDocuments and
+// (b) let the wider service surface (controllers, multi-device records)
+// stay attached to a DID. They are entirely optional for the cryptographic
+// resolution path.
 type Resolver struct {
-	client   *AtalaClient
 	cache    *Cache
 	repo     Repository
 	config   *DIDConfig
@@ -25,10 +36,9 @@ type resolutionInFlight struct {
 	wg     sync.WaitGroup
 }
 
-// NewResolver creates a new DID resolver
-func NewResolver(client *AtalaClient, cache *Cache, repo Repository, config *DIDConfig) *Resolver {
+// NewResolver creates a new did:key resolver.
+func NewResolver(cache *Cache, repo Repository, config *DIDConfig) *Resolver {
 	return &Resolver{
-		client:   client,
 		cache:    cache,
 		repo:     repo,
 		config:   config,
@@ -36,47 +46,42 @@ func NewResolver(client *AtalaClient, cache *Cache, repo Repository, config *DID
 	}
 }
 
-// Resolve resolves a DID document with caching and concurrency control
+// Resolve resolves a did:key document. Hot path: cache hit. Cold path:
+// pkg/didkey.Parse rebuilds the key, then we synthesize a minimal W3C
+// document and cache it.
 func (r *Resolver) Resolve(ctx context.Context, did string) (*DIDDocument, error) {
-	// Validate DID format
 	if !isValidDIDFormat(did) {
 		return nil, NewDIDError(ErrCodeInvalidDID, fmt.Sprintf("Invalid DID format: %s", did), nil)
 	}
 
-	// Check cache first
 	if cachedDoc, _, found := r.cache.GetDID(did); found {
 		return cachedDoc, nil
 	}
 
-	// Check if resolution is already in-flight to avoid duplicate work
 	inf := r.getOrCreateInflight(did)
 	defer r.removeInflight(did)
 
-	// If another goroutine is resolving, wait for it
 	if inf.done != nil && inf != r.getOrCreateInflight(did) {
 		<-inf.done
 		return inf.result, inf.err
 	}
 
-	// Perform resolution with timeout
 	ctx, cancel := context.WithTimeout(ctx, r.config.ResolutionTimeout)
 	defer cancel()
+	_ = ctx
 
-	document, err := r.resolveFromBlockchain(ctx, did)
+	document, err := r.resolveFromKey(did)
 	if err != nil {
 		inf.err = err
 		close(inf.done)
 		return nil, err
 	}
 
-	// Cache the resolved document
 	if err := r.cache.SetDID(did, document); err != nil {
-		// Log but don't fail if caching fails
 		fmt.Printf("[Resolver] Failed to cache DID %s: %v\n", did, err)
 	}
 
-	// Also store in repository if available
-	if err := r.repo.StoreDIDDocument(ctx, did, document); err != nil {
+	if err := r.repo.StoreDIDDocument(context.Background(), did, document); err != nil {
 		fmt.Printf("[Resolver] Failed to store DID document %s in repository: %v\n", did, err)
 	}
 
@@ -85,11 +90,11 @@ func (r *Resolver) Resolve(ctx context.Context, did string) (*DIDDocument, error
 	return document, nil
 }
 
-// ResolveWithMetadata resolves a DID and returns metadata about the resolution
+// ResolveWithMetadata resolves a DID and returns metadata about the
+// resolution. BlockchainAnchored is always false for did:key.
 func (r *Resolver) ResolveWithMetadata(ctx context.Context, did string) (*DIDDocument, *ResolutionMetadata, error) {
 	startTime := time.Now()
 
-	// Check cache first
 	if cachedDoc, cached, found := r.cache.GetDID(did); found {
 		metadata := &ResolutionMetadata{
 			ResolutionTimestamp: startTime,
@@ -100,20 +105,15 @@ func (r *Resolver) ResolveWithMetadata(ctx context.Context, did string) (*DIDDoc
 		return cachedDoc, metadata, nil
 	}
 
-	// Resolve from blockchain
 	document, err := r.Resolve(ctx, did)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Get anchor information
-	txHash, _, _, anchErr := r.repo.GetAnchor(ctx, did)
-
 	metadata := &ResolutionMetadata{
 		ResolutionTimestamp: startTime,
 		CacheValid:          false,
-		BlockchainAnchored:  anchErr == nil,
-		TransactionHash:     txHash,
+		BlockchainAnchored:  false,
 	}
 
 	return document, metadata, nil
@@ -151,22 +151,55 @@ func (r *Resolver) ResolveMultiple(ctx context.Context, dids []string) (map[stri
 	return results, errors
 }
 
-// resolveFromBlockchain resolves a DID from the Cardano blockchain via Atala PRISM
-func (r *Resolver) resolveFromBlockchain(ctx context.Context, did string) (*DIDDocument, error) {
-	// Try to resolve via Atala PRISM first
-	document, err := r.client.ResolveDID(ctx, did)
+// resolveFromKey rebuilds the DIDDocument by re-deriving the public key
+// from the did:key identifier itself (pkg/didkey.Parse). On parse error
+// we fall back to the repository in case a multi-device controller
+// document exists for this DID.
+func (r *Resolver) resolveFromKey(did string) (*DIDDocument, error) {
+	pub, err := didkey.Parse(did)
 	if err == nil {
-		return document, nil
+		// SEC1 uncompressed encoding for the public key, hex-encoded so
+		// it round-trips cleanly through the existing PublicKeyBase64 field.
+		// (The field name is legacy; we now store hex per the didkey API.)
+		raw := elliptic.Marshal(pub.Curve, pub.X, pub.Y)
+		now := time.Now()
+		keyID := fmt.Sprintf("%s#%s", did, did[8:])
+		return &DIDDocument{
+			Context: []string{
+				"https://www.w3.org/ns/did/v1",
+				"https://w3id.org/security/multikey/v1",
+			},
+			ID:         did,
+			Controller: []string{did},
+			PublicKey: []PublicKey{
+				{
+					ID:                 keyID,
+					Type:               "JsonWebKey2020",
+					Controller:         did,
+					PublicKeyBase64:    hex.EncodeToString(raw),
+					PublicKeyMultibase: did[8:],
+				},
+			},
+			Authentication: []Authentication{
+				{Type: "JsonWebKey2020", PublicKey: keyID},
+			},
+			AssertionMethod: []AssertionMethod{
+				{Type: "JsonWebKey2020", PublicKey: keyID},
+			},
+			Created: now,
+			Updated: now,
+		}, nil
 	}
 
-	// Fallback: Try to retrieve from repository if available
-	repoDocs, repErr := r.repo.GetDIDDocument(ctx, did)
-	if repErr == nil && repoDocs != nil {
-		return repoDocs, nil
+	// Fallback: the DID is structurally valid (did:method:identifier) but
+	// not a did:key. Try the repository for any cached document (e.g. a
+	// multi-device controller record).
+	repoDoc, repErr := r.repo.GetDIDDocument(context.Background(), did)
+	if repErr == nil && repoDoc != nil {
+		return repoDoc, nil
 	}
 
-	// If both fail, return the original Atala error
-	return nil, err
+	return nil, NewDIDError(ErrCodeResolutionFailed, "Failed to resolve did:key and no repository fallback", err)
 }
 
 // InvalidateCache invalidates the cache for a specific DID
@@ -215,7 +248,6 @@ func (r *Resolver) removeInflight(did string) {
 
 // isValidDIDFormat validates DID format
 func isValidDIDFormat(did string) bool {
-	// Check for basic DID format: did:method:identifier
 	if len(did) < 7 {
 		return false
 	}
@@ -247,18 +279,12 @@ func (r *Resolver) BulkResolve(ctx context.Context, dids []string, timeout time.
 	return r.ResolveMultiple(ctx, dids)
 }
 
-// Health checks the resolver's dependencies
+// Health checks the resolver's dependencies. did:key resolution is a
+// pure function so the only thing to verify is the repository (used
+// for controller-document fallback).
 func (r *Resolver) Health(ctx context.Context) (bool, error) {
-	// Check Atala client connectivity
-	healthy, err := r.client.Health(ctx)
-	if !healthy || err != nil {
-		return false, fmt.Errorf("Atala PRISM client unhealthy: %w", err)
-	}
-
-	// Check repository connectivity
 	if err := r.repo.Health(ctx); err != nil {
-		return false, fmt.Errorf("Repository unhealthy: %w", err)
+		return false, fmt.Errorf("repository unhealthy: %w", err)
 	}
-
 	return true, nil
 }

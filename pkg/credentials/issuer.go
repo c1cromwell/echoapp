@@ -200,8 +200,12 @@ func (i *Issuer) createWC3VerifiableCredential(req *CredentialIssuanceRequest, c
 			VerificationClaims: req.VerificationClaims,
 		},
 		CredentialStatus: &CredentialStatus{
+			// W3C StatusList2021 — revocation lives on the Identity Metagraph
+			// (per ADR-0001 + WO-272). The full StatusListCredential URL is
+			// resolved by the StatusList publisher (WO-274) at
+			// https://identity-metagraph.echo.app/status/<list>#<index>.
 			ID:     fmt.Sprintf("urn:revocation:%s", credentialID),
-			Type:   "CardanoRevocationRegistry2024",
+			Type:   "StatusList2021Entry",
 			Status: "active",
 		},
 		Proof: i.createCredentialProof(credentialID),

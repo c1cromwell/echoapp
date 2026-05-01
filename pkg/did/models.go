@@ -174,19 +174,14 @@ type AnchorResponse struct {
 	Status          string // "confirmed", "pending", "failed"
 }
 
-// AtalaResponse represents a response from Atala PRISM
-type AtalaResponse struct {
-	Status  string                 `json:"status"`
-	Message string                 `json:"message,omitempty"`
-	Data    map[string]interface{} `json:"data,omitempty"`
-}
-
-// HealthCheckResponse represents the health status of the service
+// HealthCheckResponse represents the health status of the service.
+// IdentityMetagraphConnected reports reachability of the Constellation
+// Identity Metagraph L1 endpoint (where issuance / status / trust
+// commitments are anchored — see WO-272).
 type HealthCheckResponse struct {
-	Status              string    `json:"status"`
-	Timestamp           time.Time `json:"timestamp"`
-	AtalaPRISMConnected bool      `json:"atalaConnected"`
-	CardanoConnected    bool      `json:"cardanoConnected"`
-	CacheStatus         string    `json:"cacheStatus"`
-	DatabaseConnected   bool      `json:"databaseConnected"`
+	Status                     string    `json:"status"`
+	Timestamp                  time.Time `json:"timestamp"`
+	IdentityMetagraphConnected bool      `json:"identityMetagraphConnected"`
+	CacheStatus                string    `json:"cacheStatus"`
+	DatabaseConnected          bool      `json:"databaseConnected"`
 }

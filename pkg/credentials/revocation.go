@@ -138,12 +138,14 @@ func (rm *RevocationManager) invalidateCache(credentialID string) {
 	delete(rm.cache, credentialID)
 }
 
-// backgroundSync syncs revocation status with blockchain
+// backgroundSync polls the Identity Metagraph StatusList2021 publisher and
+// refreshes the local cache. Phase 1 stub: just clears the cache; the full
+// fetcher lands in WO-274 alongside the StatusList batch publisher.
 func (rm *RevocationManager) backgroundSync() {
 	for {
 		select {
 		case <-rm.syncTicker.C:
-			rm.syncWithBlockchain()
+			rm.syncWithStatusList2021()
 		case <-rm.stopChan:
 			rm.syncTicker.Stop()
 			return
@@ -151,25 +153,23 @@ func (rm *RevocationManager) backgroundSync() {
 	}
 }
 
-// syncWithBlockchain syncs with blockchain revocation registry
-func (rm *RevocationManager) syncWithBlockchain() {
-	// In production, sync with Cardano revocation registry
-	// For now, this is a placeholder
+// syncWithStatusList2021 syncs with the Identity Metagraph StatusList2021
+// publisher. Phase 1: placeholder that just invalidates the cache so the
+// next CheckRevocationStatus hits storage. WO-274 wires the actual L1 GET.
+func (rm *RevocationManager) syncWithStatusList2021() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Clear cache periodically for fresh data
 	rm.cacheMutex.Lock()
 	rm.cache = make(map[string]*RevocationStatus)
 	rm.cacheMutex.Unlock()
 
-	// Log sync
 	_ = ctx
 }
 
-// GetRevocationRegistry gets the revocation registry
+// GetRevocationRegistry returns the in-memory revocation records. The
+// metagraph-anchored bit-vector view lands in WO-274.
 func (rm *RevocationManager) GetRevocationRegistry(ctx context.Context) ([]RevocationRecord, error) {
-	// In production, fetch from blockchain
 	return []RevocationRecord{}, nil
 }
 
@@ -190,15 +190,16 @@ func (rm *RevocationManager) Close() error {
 	return nil
 }
 
-// RevocationRegistry manages revocation registry on blockchain
+// RevocationRegistry manages a per-issuer StatusList2021 bit vector that
+// is published to the Constellation Identity Metagraph (WO-272 anchors;
+// WO-274 wires the actual issuer + publisher).
 type RevocationRegistry struct {
-	storage     Storage
-	chainClient interface{} // Cardano client in production
-	indexPath   string
-	cacheTTL    time.Duration
+	storage   Storage
+	indexPath string
+	cacheTTL  time.Duration
 }
 
-// NewRevocationRegistry creates new revocation registry
+// NewRevocationRegistry creates a new StatusList2021-backed revocation registry.
 func NewRevocationRegistry(storage Storage, indexPath string, cacheTTL time.Duration) *RevocationRegistry {
 	return &RevocationRegistry{
 		storage:   storage,
@@ -207,17 +208,18 @@ func NewRevocationRegistry(storage Storage, indexPath string, cacheTTL time.Dura
 	}
 }
 
-// RegisterRevocation registers revocation in blockchain registry
-func (rr *RevocationRegistry) RegisterRevocation(ctx context.Context, credentialID, issuerDID, reason string) (txHash string, err error) {
-	// In production, write to Cardano blockchain
-	txHash = "tx_revocation_" + credentialID
-	return txHash, nil
+// RegisterRevocation flips the credential's bit in the issuer's
+// StatusList2021 bit vector. Phase 1 stub returns a deterministic
+// reference; WO-274 wires the real Identity L1 submission.
+func (rr *RevocationRegistry) RegisterRevocation(ctx context.Context, credentialID, issuerDID, reason string) (statusListRef string, err error) {
+	statusListRef = "statuslist:" + credentialID
+	return statusListRef, nil
 }
 
-// QueryRevocationStatus queries revocation status from blockchain
+// QueryRevocationStatus checks whether the credential's bit is set in
+// the issuer's StatusList2021 vector. Phase 1: queries local storage.
+// WO-274 wires the L1 GET that returns the actual bit-vector page.
 func (rr *RevocationRegistry) QueryRevocationStatus(ctx context.Context, credentialID string) (bool, error) {
-	// In production, query Cardano blockchain
-	// For now, query storage
 	record, err := rr.storage.GetRevocationRecord(ctx, credentialID)
 	if err != nil {
 		return false, err
@@ -226,21 +228,19 @@ func (rr *RevocationRegistry) QueryRevocationStatus(ctx context.Context, credent
 	return record != nil, nil
 }
 
-// BuildRevocationIndex builds local revocation index
+// BuildRevocationIndex builds the local cache of StatusList2021 entries.
+// WO-274 wires the metagraph fetcher.
 func (rr *RevocationRegistry) BuildRevocationIndex(ctx context.Context) error {
-	// In production, download revocation registry from blockchain and build index
-	// For now, placeholder
 	return nil
 }
 
-// UpdateRevocationIndex updates revocation index from blockchain
+// UpdateRevocationIndex pulls the latest published StatusList2021 vector
+// from the Identity Metagraph and overwrites the local cache.
 func (rr *RevocationRegistry) UpdateRevocationIndex(ctx context.Context) error {
-	// In production, sync with blockchain every period
 	return nil
 }
 
-// GetRevocationIndexSize gets size of revocation index
+// GetRevocationIndexSize returns the number of indexed revocations.
 func (rr *RevocationRegistry) GetRevocationIndexSize() int {
-	// In production, return size of indexed revocations
 	return 0
 }

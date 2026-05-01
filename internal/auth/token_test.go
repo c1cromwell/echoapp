@@ -17,7 +17,7 @@ func newTestTokenService(t *testing.T) *TokenService {
 func TestTokenService_IssueAndValidate(t *testing.T) {
 	ts := newTestTokenService(t)
 
-	token, claims, err := ts.IssueAccessToken("did:prism:abc", "device-hash-1", 2, "messaging payments")
+	token, claims, err := ts.IssueAccessToken("did:key:z6MkTokenTestSubjectXXXXXXXXXXXXXXXXXXXXXXXXXX", "device-hash-1", 2, "messaging payments")
 	if err != nil {
 		t.Fatalf("issue error: %v", err)
 	}
@@ -30,8 +30,8 @@ func TestTokenService_IssueAndValidate(t *testing.T) {
 		t.Fatalf("validate error: %v", err)
 	}
 
-	if validated.Subject != "did:prism:abc" {
-		t.Errorf("expected subject did:prism:abc, got %s", validated.Subject)
+	if validated.Subject != "did:key:z6MkTokenTestSubjectXXXXXXXXXXXXXXXXXXXXXXXXXX" {
+		t.Errorf("expected subject did:key:z6MkTokenTestSubjectXXXXXXXXXXXXXXXXXXXXXXXXXX, got %s", validated.Subject)
 	}
 	if validated.DeviceID != "device-hash-1" {
 		t.Errorf("expected device-hash-1, got %s", validated.DeviceID)
@@ -50,7 +50,7 @@ func TestTokenService_ExpiredToken(t *testing.T) {
 	// Issue token with immediate expiry
 	now := time.Now()
 	claims := &TokenClaims{
-		Subject:   "did:prism:abc",
+		Subject:   "did:key:z6MkTokenTestSubjectXXXXXXXXXXXXXXXXXXXXXXXXXX",
 		IssuedAt:  now.Add(-10 * time.Minute).Unix(),
 		ExpiresAt: now.Add(-5 * time.Minute).Unix(), // Expired 5 min ago
 		TokenID:   "test-jti",
@@ -73,7 +73,7 @@ func TestTokenService_ExpiredToken(t *testing.T) {
 func TestTokenService_BlocklistedToken(t *testing.T) {
 	ts := newTestTokenService(t)
 
-	token, claims, _ := ts.IssueAccessToken("did:prism:abc", "device-1", 0, "messaging")
+	token, claims, _ := ts.IssueAccessToken("did:key:z6MkTokenTestSubjectXXXXXXXXXXXXXXXXXXXXXXXXXX", "device-1", 0, "messaging")
 
 	// Blocklist it
 	ts.BlocklistToken(claims.TokenID, time.Now().Add(time.Hour))
@@ -87,7 +87,7 @@ func TestTokenService_BlocklistedToken(t *testing.T) {
 func TestTokenService_TamperedToken(t *testing.T) {
 	ts := newTestTokenService(t)
 
-	token, _, _ := ts.IssueAccessToken("did:prism:abc", "device-1", 0, "messaging")
+	token, _, _ := ts.IssueAccessToken("did:key:z6MkTokenTestSubjectXXXXXXXXXXXXXXXXXXXXXXXXXX", "device-1", 0, "messaging")
 
 	// Tamper with the payload
 	parts := splitToken(token)
@@ -102,7 +102,7 @@ func TestTokenService_TamperedToken(t *testing.T) {
 func TestTokenService_TempAccessToken(t *testing.T) {
 	ts := newTestTokenService(t)
 
-	token, claims, err := ts.IssueTempAccessToken("did:prism:pending", "device-1")
+	token, claims, err := ts.IssueTempAccessToken("did:key:z6MkTokenTestPendingXXXXXXXXXXXXXXXXXXXXXXXXXX", "device-1")
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestTokenService_TempAccessToken(t *testing.T) {
 func TestTokenService_ElevatedToken(t *testing.T) {
 	ts := newTestTokenService(t)
 
-	token, claims, err := ts.IssueElevatedToken("did:prism:abc", "device-1", 2, "revoke_device", 5*time.Minute)
+	token, claims, err := ts.IssueElevatedToken("did:key:z6MkTokenTestSubjectXXXXXXXXXXXXXXXXXXXXXXXXXX", "device-1", 2, "revoke_device", 5*time.Minute)
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}

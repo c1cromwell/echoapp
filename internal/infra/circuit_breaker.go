@@ -73,8 +73,8 @@ func NewCircuitBreaker() *CircuitBreaker {
 				ResetTimeout:     30 * time.Second,
 				LastStateChange:  time.Now(),
 			},
-			"cardano": {
-				Name:             "Cardano",
+			"identity_metagraph": {
+				Name:             "Constellation Identity Metagraph",
 				State:            CircuitClosed,
 				FailureThreshold: 3,
 				SuccessThreshold: 2,

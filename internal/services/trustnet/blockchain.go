@@ -8,15 +8,18 @@ import (
 	"time"
 )
 
-// BlockchainAnchor represents a trust event anchored to blockchain
+// BlockchainAnchor represents a trust event anchored to the Constellation
+// Data Metagraph. The "blockchain" name predates the Phase-1 architecture;
+// in Phase 1 these anchors land on Data L1 (Merkle roots) and the Identity
+// Metagraph (trust tier commitments) — see ADR-0001 + WO-272.
 type BlockchainAnchor struct {
 	ID              string     `json:"id"`
 	Type            string     `json:"type"` // "trust_score", "endorsement", "dispute_resolution"
 	UserDID         string     `json:"user_did"`
 	Timestamp       time.Time  `json:"timestamp"`
-	DataHash        string     `json:"data_hash"`                 // ZK-friendly hash of the data
-	CardanoTxHash   string     `json:"cardano_tx_hash,omitempty"` // Transaction hash when committed
-	MetagraphRef    string     `json:"metagraph_ref,omitempty"`   // Reference in metagraph L1/L0
+	DataHash        string     `json:"data_hash"`               // ZK-friendly hash of the data
+	MetagraphTxHash string     `json:"metagraph_tx_hash,omitempty"` // Identity / Data L1 submission ID
+	MetagraphRef    string     `json:"metagraph_ref,omitempty"`     // Reference in metagraph snapshot
 	ZKProofHash     string     `json:"zk_proof_hash,omitempty"`
 	CommittedAt     *time.Time `json:"committed_at,omitempty"`
 	VerificationURL string     `json:"verification_url,omitempty"` // URL to verify commitment
@@ -42,29 +45,30 @@ type ZKCommitment struct {
 	RevealSalt    string `json:"reveal_salt,omitempty"`    // To verify commitment
 }
 
-// CardanoConfig holds configuration for Cardano integration
-type CardanoConfig struct {
-	Enabled         bool
-	NetworkID       string // "mainnet", "testnet", "preview"
-	ContractAddress string
-	WalletAddress   string
-	APIEndpoint     string
-	MinFeeLovelace  int64
+// MetagraphConfig holds configuration for Constellation metagraph anchoring.
+// Replaces the Phase-0 CardanoConfig (eliminated alongside Atala PRISM).
+type MetagraphConfig struct {
+	Enabled       bool
+	NetworkID     string // "local", "testnet", "mainnet"
+	IdentityL1URL string
+	DataL1URL     string
+	IssuerDID     string
 }
 
-// BlockchainAnchorService manages trust event anchoring
+// BlockchainAnchorService manages trust event anchoring against the
+// Constellation Data + Identity metagraphs.
 type BlockchainAnchorService struct {
 	mu              sync.RWMutex
-	config          CardanoConfig
+	config          MetagraphConfig
 	anchors         map[string]*BlockchainAnchor // by ID
 	zkCommitments   map[string]*ZKCommitment     // by ID
 	userAnchors     map[string][]string          // userDID -> anchorIDs
-	pendingCommits  map[string]*BlockchainAnchor // waiting for blockchain confirmation
+	pendingCommits  map[string]*BlockchainAnchor // waiting for snapshot inclusion
 	commitmentQueue []string                     // queue of anchor IDs waiting to be committed
 }
 
-// NewBlockchainAnchorService creates a new blockchain anchor service
-func NewBlockchainAnchorService(config CardanoConfig) *BlockchainAnchorService {
+// NewBlockchainAnchorService creates a new metagraph-anchored trust service.
+func NewBlockchainAnchorService(config MetagraphConfig) *BlockchainAnchorService {
 	return &BlockchainAnchorService{
 		config:         config,
 		anchors:        make(map[string]*BlockchainAnchor),
@@ -77,7 +81,7 @@ func NewBlockchainAnchorService(config CardanoConfig) *BlockchainAnchorService {
 // CreateTrustScoreAnchor creates an anchor for a trust score update
 func (bas *BlockchainAnchorService) CreateTrustScoreAnchor(userDID string, score float64, previousScore float64) (*BlockchainAnchor, error) {
 	if !bas.config.Enabled {
-		return nil, fmt.Errorf("blockchain anchoring disabled")
+		return nil, fmt.Errorf("metagraph anchoring disabled")
 	}
 
 	bas.mu.Lock()
@@ -105,7 +109,7 @@ func (bas *BlockchainAnchorService) CreateTrustScoreAnchor(userDID string, score
 // CreateEndorsementAnchor creates an anchor for an endorsement
 func (bas *BlockchainAnchorService) CreateEndorsementAnchor(endorserDID, endorseeDID, endorsementID, category string, weight float64) (*BlockchainAnchor, error) {
 	if !bas.config.Enabled {
-		return nil, fmt.Errorf("blockchain anchoring disabled")
+		return nil, fmt.Errorf("metagraph anchoring disabled")
 	}
 
 	bas.mu.Lock()
@@ -135,7 +139,7 @@ func (bas *BlockchainAnchorService) CreateEndorsementAnchor(endorserDID, endorse
 // CreateDisputeResolutionAnchor creates an anchor for dispute resolution
 func (bas *BlockchainAnchorService) CreateDisputeResolutionAnchor(disputeID, userDID string, outcome string, scoreAdjustment float64) (*BlockchainAnchor, error) {
 	if !bas.config.Enabled {
-		return nil, fmt.Errorf("blockchain anchoring disabled")
+		return nil, fmt.Errorf("metagraph anchoring disabled")
 	}
 
 	bas.mu.Lock()
@@ -207,11 +211,13 @@ func (bas *BlockchainAnchorService) VerifyZKCommitment(commitmentID string, reve
 	return false, fmt.Errorf("commitment verification failed")
 }
 
-// CommitBatch simulates committing pending anchors to blockchain
-// In a real implementation, this would submit a Cardano transaction
+// CommitBatch flushes pending anchors. In Phase 1 production this submits
+// trust commitments to the Identity Metagraph (H(score||nonce)) and
+// endorsement Merkle roots to Data L1; this stub simulates the round-trip
+// so dependent services can be exercised in tests.
 func (bas *BlockchainAnchorService) CommitBatch() (map[string]string, error) {
 	if !bas.config.Enabled {
-		return nil, fmt.Errorf("blockchain anchoring disabled")
+		return nil, fmt.Errorf("metagraph anchoring disabled")
 	}
 
 	bas.mu.Lock()
@@ -223,22 +229,22 @@ func (bas *BlockchainAnchorService) CommitBatch() (map[string]string, error) {
 
 	results := make(map[string]string)
 
-	// In production, this would submit to Cardano
 	for _, anchorID := range bas.commitmentQueue {
 		anchor := bas.anchors[anchorID]
 		if anchor == nil {
 			continue
 		}
 
-		// Simulate blockchain commitment
-		txHash := fmt.Sprintf("tx_%s_%d", anchorID, time.Now().UnixNano())
+		// Simulated metagraph submission ID. The real submission ID will
+		// be the Identity / Data L1 transaction hash returned by hydra.
+		txHash := fmt.Sprintf("mg_%s_%d", anchorID, time.Now().UnixNano())
 		metagraphRef := fmt.Sprintf("mg_ref_%s", anchorID)
 
-		anchor.CardanoTxHash = txHash
+		anchor.MetagraphTxHash = txHash
 		anchor.MetagraphRef = metagraphRef
 		now := time.Now()
 		anchor.CommittedAt = &now
-		anchor.VerificationURL = fmt.Sprintf("https://cardano.example.com/tx/%s", txHash)
+		anchor.VerificationURL = fmt.Sprintf("http://localhost:9100/snapshots/%s", txHash)
 
 		results[anchorID] = txHash
 	}
@@ -295,7 +301,7 @@ func (bas *BlockchainAnchorService) GetUserAnchorsByType(userDID string, typee s
 	return result
 }
 
-// GetPendingCommits returns anchors waiting for blockchain commitment
+// GetPendingCommits returns anchors waiting for metagraph snapshot inclusion.
 func (bas *BlockchainAnchorService) GetPendingCommits() []*BlockchainAnchor {
 	bas.mu.RLock()
 	defer bas.mu.RUnlock()

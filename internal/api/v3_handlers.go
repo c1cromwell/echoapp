@@ -540,10 +540,14 @@ func (h *V3Handlers) handleAuthRegister(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Create user record
+	// Create user record. The DID is a "pending:" sentinel (not a valid
+	// did:key) until the user registers a passkey, at which point the
+	// passkey's public key derives the canonical did:key (ADR-0001).
+	// TODO(WO-273): wire the real did:key derivation here once the v3
+	// registration flow accepts a public key.
 	user := &database.User{
 		UserID:   "user-" + req.Username,
-		DID:      "did:prism:cardano:" + req.Username,
+		DID:      "pending:user:" + req.Username,
 		Username: req.Username,
 	}
 

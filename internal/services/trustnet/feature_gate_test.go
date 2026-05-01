@@ -153,7 +153,7 @@ func TestGetFeaturesForTier(t *testing.T) {
 // ========== BLOCKCHAIN ANCHOR TESTS ==========
 
 func TestCreateTrustScoreAnchor(t *testing.T) {
-	config := CardanoConfig{Enabled: true, NetworkID: "testnet"}
+	config := MetagraphConfig{Enabled: true, NetworkID: "testnet"}
 	bas := NewBlockchainAnchorService(config)
 
 	anchor, err := bas.CreateTrustScoreAnchor("user-1", 75.0, 70.0)
@@ -169,13 +169,13 @@ func TestCreateTrustScoreAnchor(t *testing.T) {
 		t.Errorf("expected score 75.0, got %.1f", anchor.TrustScore)
 	}
 
-	if anchor.CardanoTxHash != "" {
+	if anchor.MetagraphTxHash != "" {
 		t.Error("uncommitted anchor should not have tx hash")
 	}
 }
 
 func TestCreateEndorsementAnchor(t *testing.T) {
-	config := CardanoConfig{Enabled: true, NetworkID: "testnet"}
+	config := MetagraphConfig{Enabled: true, NetworkID: "testnet"}
 	bas := NewBlockchainAnchorService(config)
 
 	anchor, err := bas.CreateEndorsementAnchor("endorser-1", "endorsee-1", "endorse-1", "reliable", 10.0)
@@ -193,7 +193,7 @@ func TestCreateEndorsementAnchor(t *testing.T) {
 }
 
 func TestCreateDisputeResolutionAnchor(t *testing.T) {
-	config := CardanoConfig{Enabled: true, NetworkID: "testnet"}
+	config := MetagraphConfig{Enabled: true, NetworkID: "testnet"}
 	bas := NewBlockchainAnchorService(config)
 
 	anchor, err := bas.CreateDisputeResolutionAnchor("dispute-1", "user-1", "upheld", 10.0)
@@ -211,7 +211,7 @@ func TestCreateDisputeResolutionAnchor(t *testing.T) {
 }
 
 func TestCommitBatch(t *testing.T) {
-	config := CardanoConfig{Enabled: true, NetworkID: "testnet"}
+	config := MetagraphConfig{Enabled: true, NetworkID: "testnet"}
 	bas := NewBlockchainAnchorService(config)
 
 	// Create some anchors
@@ -241,7 +241,7 @@ func TestCommitBatch(t *testing.T) {
 
 	// Check committed anchor has tx hash
 	for _, anchor := range bas.GetUserAnchors("user-1") {
-		if anchor.CardanoTxHash == "" {
+		if anchor.MetagraphTxHash == "" {
 			t.Error("committed anchor should have tx hash")
 		}
 		if anchor.MetagraphRef == "" {
@@ -254,7 +254,7 @@ func TestCommitBatch(t *testing.T) {
 }
 
 func TestCreateZKCommitment(t *testing.T) {
-	config := CardanoConfig{Enabled: true}
+	config := MetagraphConfig{Enabled: true}
 	bas := NewBlockchainAnchorService(config)
 
 	zk, err := bas.CreateZKCommitment("user-1", "secret_value")
@@ -272,7 +272,7 @@ func TestCreateZKCommitment(t *testing.T) {
 }
 
 func TestVerifyZKCommitment(t *testing.T) {
-	config := CardanoConfig{Enabled: true}
+	config := MetagraphConfig{Enabled: true}
 	bas := NewBlockchainAnchorService(config)
 
 	zk, _ := bas.CreateZKCommitment("user-1", "secret_value")
@@ -288,7 +288,7 @@ func TestVerifyZKCommitment(t *testing.T) {
 }
 
 func TestGetUserAnchors(t *testing.T) {
-	config := CardanoConfig{Enabled: true}
+	config := MetagraphConfig{Enabled: true}
 	bas := NewBlockchainAnchorService(config)
 
 	// Create anchors for user-1
@@ -310,7 +310,7 @@ func TestGetUserAnchors(t *testing.T) {
 }
 
 func TestGetUserAnchorsByType(t *testing.T) {
-	config := CardanoConfig{Enabled: true}
+	config := MetagraphConfig{Enabled: true}
 	bas := NewBlockchainAnchorService(config)
 
 	// Create mixed anchors
