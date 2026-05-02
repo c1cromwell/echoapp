@@ -212,7 +212,8 @@ if curl -fsS --max-time 5 "$IDENTITY_L0_URL/node/info" >/dev/null 2>&1; then
   skip "VC issuance + anchor assertion deferred to WO-273 (Go issuer service)"
 else
   skip "Identity Metagraph not running — start with 'make dev' (WO-276 skeleton + WO-272 validators landed)"
-  info "Skeleton is built (cd metagraph && sbt compile); cluster boot requires Docker + hydra."
+  info "CI/static skeleton: run 'make metagraph-verify-skeleton' (jq). Full compile: cd metagraph && sbt compile;"
+  info "cluster boot requires Docker + Euclid sibling repo + hydra (see metagraph/scripts/setup-euclid.sh)."
 fi
 
 # -----------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 .PHONY: help build run test clean install-deps lint fmt vet build-prod tls-cert \
-	dev dev-stop dev-status dev-logs dev-restart validate-phase1 testnet-up testnet-down
+	dev dev-stop dev-status dev-logs dev-restart validate-phase1 metagraph-verify-skeleton \
+	testnet-up testnet-down
 
 # Variables
 BINARY_NAME=echoapp
@@ -17,6 +18,7 @@ help:
 	@echo "  make dev-restart     Restart the backend stack only (keeps metagraph running)"
 	@echo "  make dev-stop        Tear down backend stack (metagraph stays up — use 'hydra stop' for that)"
 	@echo "  make validate-phase1 Run scripts/validate-phase1.sh go/no-go check"
+	@echo "  make metagraph-verify-skeleton  Static WO-276 checks (euclid + build.sbt + sources; needs jq)"
 	@echo "  make testnet-up      Bring up backend stack only (assumes metagraph already running)"
 	@echo "  make testnet-down    Bring down backend stack only"
 	@echo ""
@@ -260,6 +262,9 @@ testnet-up: ## Bring up backend stack only (assumes metagraph already running)
 
 testnet-down: ## Tear down backend stack
 	@$(COMPOSE_TESTNET) down
+
+metagraph-verify-skeleton: ## WO-276: static verify Identity Metagraph skeleton (no sbt; needs jq)
+	@cd metagraph && ./scripts/verify-identity-skeleton.sh
 
 dev-stop: testnet-down ## Tear down backend stack (does not stop metagraph)
 	@echo "Backend stack down. Metagraph still running — use:"
