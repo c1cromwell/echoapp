@@ -105,6 +105,11 @@ func (rt *Router) Handler() http.Handler {
 			ServeWS(rt.WSHub, rt.UserIDExtractor, w, r)
 		case r.URL.Path == "/identity/register":
 			rt.handleIdentityRegister(w, r)
+		case r.URL.Path == "/identity/devices":
+			rt.handleIdentityAddDevice(w, r)
+		case strings.HasPrefix(r.URL.Path, "/identity/resolve/"):
+			did := strings.TrimPrefix(r.URL.Path, "/identity/resolve/")
+			rt.handleIdentityResolve(w, r, did)
 		case strings.HasPrefix(r.URL.Path, "/identity/"):
 			did := strings.TrimPrefix(r.URL.Path, "/identity/")
 			rt.handleIdentityResolve(w, r, did)
@@ -146,7 +151,8 @@ var publicPaths = map[string]bool{
 	"/v1/enrollment/vc/start":    true,
 	"/v1/enrollment/mdl/start":   true,
 	"/v1/enrollment/idv/start":   true,
-	"/identity/register":         true,
+	"/identity/register": true,
+	"/identity/devices":  true,
 }
 
 func (rt *Router) authMiddleware(next http.Handler) http.Handler {
@@ -203,7 +209,7 @@ func (rt *Router) corsMiddleware(next http.Handler) http.Handler {
 
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID, X-Identity-Signature")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Set("Access-Control-Max-Age", "3600")
 		}

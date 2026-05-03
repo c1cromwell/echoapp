@@ -133,16 +133,13 @@ func (h *Handlers) RevokeCredential(c *gin.Context) {
 		return
 	}
 
-	err := h.service.RevokeCredential(c.Request.Context(), credentialID, req.IssuerDID, req.SubjectDID, req.Reason)
+	result, err := h.service.RevokeCredential(c.Request.Context(), credentialID, req.IssuerDID, req.SubjectDID, req.Reason)
 	if err != nil {
 		h.handleError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"status":       "revoked",
-		"credentialId": credentialID,
-	})
+	c.JSON(http.StatusOK, result)
 }
 
 // GetCredentialStatus gets credential status

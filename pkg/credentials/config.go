@@ -59,6 +59,14 @@ type CredentialConfig struct {
 
 	// Storage path for local credentials
 	StoragePath string
+
+	// UseW3CVC2 emits VC 2.0 JSON-LD (validFrom/validUntil, DataIntegrityProof
+	// ecdsa-2019, StatusList2021Entry) per WO-274.
+	UseW3CVC2 bool
+
+	// StatusListCredentialBaseURL is the base URI for StatusList2021 credentials
+	// (index + fragment are derived per issued credential until a publisher assigns slots).
+	StatusListCredentialBaseURL string
 }
 
 // MetagraphConfig contains Constellation Identity Metagraph settings used by
@@ -170,7 +178,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		CredentialConfig: CredentialConfig{
 			ProofOfHumanityExpiration: 365 * 24 * time.Hour,
-			KYCLiteExpiration:         7 * 24 * time.Hour,
+			KYCLiteExpiration:         2 * 365 * 24 * time.Hour,
 			HighAssuranceExpiration:   5 * 365 * 24 * time.Hour,
 			ProfessionalExpiration:    2 * 365 * 24 * time.Hour,
 			IssuanceTimeout:           60 * time.Second,
@@ -179,6 +187,8 @@ func DefaultConfig() *Config {
 			DefaultFormat:             JSONLDFormat,
 			EnableBlockchainStorage:   true,
 			StoragePath:               "/tmp/credentials",
+			UseW3CVC2:                 true,
+			StatusListCredentialBaseURL: "https://identity-metagraph.echo.app/status",
 		},
 		MetagraphConfig: MetagraphConfig{
 			IdentityL0URL:             "http://localhost:9100",
@@ -272,6 +282,12 @@ func LoadConfig() *Config {
 	if val := os.Getenv("CRED_STORAGE_PATH"); val != "" {
 		config.CredentialConfig.StoragePath = val
 	}
+	if val := os.Getenv("CRED_USE_W3C_VC2"); val == "false" || val == "0" {
+		config.CredentialConfig.UseW3CVC2 = false
+	}
+	if val := os.Getenv("CRED_STATUS_LIST_BASE_URL"); val != "" {
+		config.CredentialConfig.StatusListCredentialBaseURL = val
+	}
 
 	// Identity Metagraph settings (replaces the Phase-0 CARDANO_* envvars).
 	if val := os.Getenv("IDENTITY_L0_URL"); val != "" {
@@ -282,6 +298,9 @@ func LoadConfig() *Config {
 	}
 	if val := os.Getenv("IDENTITY_SERVICE_DID"); val != "" {
 		config.MetagraphConfig.IssuerDID = val
+		if config.IssuerConfig.IssuerDID == "" {
+			config.IssuerConfig.IssuerDID = val
+		}
 	}
 
 	// Issuer settings

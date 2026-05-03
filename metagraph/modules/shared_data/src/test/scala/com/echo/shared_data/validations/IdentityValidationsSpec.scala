@@ -259,6 +259,49 @@ final class IdentityValidationsSpec extends AnyFunSpec with Matchers {
     }
   }
 
+  // -- Device key registration -------------------------------------------
+
+  private def validDeviceKey = DeviceKeyRegistrationUpdate(
+    subjectDID   = Subject,
+    publicKeyHex = "04" + ("a" * 128),
+    deviceLabel  = "ipad",
+    addedAt      = Now - 100L
+  )
+
+  describe("validateDeviceKeyRegistration") {
+    it("accepts a well-formed update from the authorized sender") {
+      IdentityValidations.validateDeviceKeyRegistration(
+        validDeviceKey, IdentitySvc, IdentitySvc, Now
+      ) shouldBe Right(())
+    }
+
+    it("rejects unauthorized senders") {
+      IdentityValidations.validateDeviceKeyRegistration(
+        validDeviceKey, UnauthSender, IdentitySvc, Now
+      ).isLeft shouldBe true
+    }
+
+    it("rejects a non-did:key subject") {
+      val u = validDeviceKey.copy(subjectDID = "did:web:example.com")
+      IdentityValidations.validateDeviceKeyRegistration(u, IdentitySvc, IdentitySvc, Now).isLeft shouldBe true
+    }
+
+    it("rejects wrong public key hex length") {
+      val u = validDeviceKey.copy(publicKeyHex = "04abcd")
+      IdentityValidations.validateDeviceKeyRegistration(u, IdentitySvc, IdentitySvc, Now).isLeft shouldBe true
+    }
+
+    it("rejects uppercase hex in public key") {
+      val u = validDeviceKey.copy(publicKeyHex = "04" + ("A" * 128))
+      IdentityValidations.validateDeviceKeyRegistration(u, IdentitySvc, IdentitySvc, Now).isLeft shouldBe true
+    }
+
+    it("rejects empty device label") {
+      val u = validDeviceKey.copy(deviceLabel = "")
+      IdentityValidations.validateDeviceKeyRegistration(u, IdentitySvc, IdentitySvc, Now).isLeft shouldBe true
+    }
+  }
+
   // -- TrustTier sanity ---------------------------------------------------
 
   describe("TrustTier") {

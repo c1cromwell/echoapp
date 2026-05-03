@@ -212,6 +212,34 @@ func (c *CryptoUtils) CreateJWSSignature(header, payload, privateKeyBase64 strin
 	return fmt.Sprintf("%s.%s", signatureInput, sigB64url), nil
 }
 
+// CreateJWS_ES256 builds a compact JWS using ECDSA P-256 + SHA-256 (JWA ES256).
+func (c *CryptoUtils) CreateJWS_ES256(headerJSON, payloadJSON string, priv *ecdsa.PrivateKey) (string, error) {
+	if priv == nil {
+		return "", NewCredentialError(ErrCodeInvalidCredential, "nil ES256 private key")
+	}
+	headerB64 := base64.RawURLEncoding.EncodeToString([]byte(headerJSON))
+	payloadB64 := base64.RawURLEncoding.EncodeToString([]byte(payloadJSON))
+	signingInput := headerB64 + "." + payloadB64
+	sigB64, err := c.SignES256P256(priv, signingInput)
+	if err != nil {
+		return "", err
+	}
+	return signingInput + "." + sigB64, nil
+}
+
+// SignES256P256 signs the UTF-8 JWS signing input with ES256 (raw R||S, 64 bytes, base64url).
+func (c *CryptoUtils) SignES256P256(priv *ecdsa.PrivateKey, signingInput string) (string, error) {
+	h := sha256.Sum256([]byte(signingInput))
+	r, s, err := ecdsa.Sign(c.randSource, priv, h[:])
+	if err != nil {
+		return "", NewCredentialErrorWithDetails(ErrCodeInvalidProof, "ES256 sign failed", err.Error())
+	}
+	var out [64]byte
+	r.FillBytes(out[:32])
+	s.FillBytes(out[32:])
+	return base64.RawURLEncoding.EncodeToString(out[:]), nil
+}
+
 // VerifyJWSSignature verifies a JWS signature
 func (c *CryptoUtils) VerifyJWSSignature(jws, publicKeyBase64 string) (bool, error) {
 	// Split JWS into parts

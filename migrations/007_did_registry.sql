@@ -49,3 +49,6 @@ COMMIT;
 -- DROP INDEX IF EXISTS idx_did_registry_public_key_hex;
 -- DROP TABLE IF EXISTS did_registry;
 -- COMMIT;
+--
+-- Note: migrations/008_identity_device.sql (WO-273) migrates from this table
+-- then drops it when upgrading an existing database.

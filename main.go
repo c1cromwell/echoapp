@@ -60,11 +60,12 @@ func (s *Server) setupTLS() *tls.Config {
 
 // Start starts the API server.
 func (s *Server) Start() error {
-	router := api.NewRouter(s.config.AllowedOrigins)
-
-	// Initialize database
 	db, pgDB := s.initDatabase()
-	_ = pgDB // stored for graceful shutdown if needed
+
+	router := api.NewRouter(s.config.AllowedOrigins)
+	if pgDB != nil {
+		router.DIDRegistry = api.NewPostgresDIDRegistry(pgDB.Pool())
+	}
 
 	// Initialize Redis (optional)
 	s.initRedis()

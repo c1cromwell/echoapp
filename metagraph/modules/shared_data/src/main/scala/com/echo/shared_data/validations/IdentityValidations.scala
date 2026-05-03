@@ -187,4 +187,42 @@ object IdentityValidations {
         s"expiry ${update.expiry} is already in the past (now=$nowMillis)"
       )
     } yield ()
+
+  /**
+   * Device key registration — multi-device mapping for one subject DID.
+   * Phase 1: only the Identity Service DID may anchor device rows.
+   */
+  def validateDeviceKeyRegistration(
+    update:           DeviceKeyRegistrationUpdate,
+    sender:           String,
+    authorizedSender: String,
+    nowMillis:        Long
+  ): Either[String, Unit] = {
+    val MaxDeviceLabelLen = 128
+    val PubKeyHexLen      = 130 // 04 + 64-byte point
+    for {
+      _ <- requireAuthorizedSender(sender, authorizedSender)
+      _ <- validateDidKey("subjectDID", update.subjectDID)
+      _ <- nonEmpty("publicKeyHex", update.publicKeyHex)
+      _ <- Either.cond(
+        update.publicKeyHex != null && update.publicKeyHex.length == PubKeyHexLen,
+        (),
+        s"publicKeyHex must be SEC1 uncompressed P-256 hex ($PubKeyHexLen lowercase chars)"
+      )
+      _ <- Either.cond(
+        update.publicKeyHex.startsWith("04"),
+        (),
+        "publicKeyHex must start with 04 (uncompressed point)"
+      )
+      _ <- Either.cond(isHexLower(update.publicKeyHex), (), "publicKeyHex must be lowercase hex (a-f, 0-9)")
+      _ <- nonEmpty("deviceLabel", update.deviceLabel)
+      _ <- boundedLen("deviceLabel", update.deviceLabel, MaxDeviceLabelLen)
+      _ <- Either.cond(update.addedAt > 0, (), "addedAt must be positive epoch millis")
+      _ <- Either.cond(
+        update.addedAt <= nowMillis + 300000L,
+        (),
+        s"addedAt ${update.addedAt} is too far in the future (now=$nowMillis)"
+      )
+    } yield ()
+  }
 }

@@ -1,6 +1,6 @@
 package com.echo.shared_data.types
 
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, DecodingFailure, Encoder, HCursor}
 import io.circe.generic.semiauto._
 
 /**
@@ -9,7 +9,7 @@ import io.circe.generic.semiauto._
  * The Identity Metagraph is a dedicated L1 (separate from Currency L1 and
  * Data L1) that anchors W3C VC 2.0 issuance records, trust tier commitments,
  * StatusList2021 revocation bit vectors, and EchoOrgRoleCredential org
- * membership metadata.
+ * membership metadata, and multi-device public-key registrations.
  *
  * Phase 1: project-operated validators only. Phase 4+: community validators.
  */
@@ -17,12 +17,13 @@ case class IdentityOnChainState(
   vcIssuances:        Map[String, VCIssuanceRecord],     // keyed by credentialId
   trustTierAnchors:   Map[String, TrustTierAnchor],      // keyed by subjectDID
   revocationLists:    Map[String, StatusList2021Vector], // keyed by issuerOrgDID
-  orgRoleCredentials: Map[String, EchoOrgRoleCredential] // keyed by credentialId
+  orgRoleCredentials: Map[String, EchoOrgRoleCredential], // keyed by credentialId
+  deviceKeys:         Map[String, DeviceKeyRecord]       // keyed by subjectDID#publicKeyHex
 )
 
 object IdentityOnChainState {
   val empty: IdentityOnChainState =
-    IdentityOnChainState(Map.empty, Map.empty, Map.empty, Map.empty)
+    IdentityOnChainState(Map.empty, Map.empty, Map.empty, Map.empty, Map.empty)
   implicit val encoder: Encoder[IdentityOnChainState] = deriveEncoder
   implicit val decoder: Decoder[IdentityOnChainState] = deriveDecoder
 }
@@ -130,6 +131,23 @@ object EchoOrgRoleCredential {
   implicit val decoder: Decoder[EchoOrgRoleCredential] = deriveDecoder
 }
 
+/**
+ * Device key anchored for a subject DID (multi-device did:key mapping).
+ * Rows are emitted when the Identity Service registers an additional device
+ * public key on-chain (Identity Service is the Phase-1 authorized sender).
+ */
+case class DeviceKeyRecord(
+  subjectDID:   String,
+  publicKeyHex: String,
+  deviceLabel:  String,
+  addedAt:      Long
+)
+
+object DeviceKeyRecord {
+  implicit val encoder: Encoder[DeviceKeyRecord] = deriveEncoder
+  implicit val decoder: Decoder[DeviceKeyRecord]  = deriveDecoder
+}
+
 // --- Update messages submitted to Identity L1 endpoints ---
 
 sealed trait IdentityUpdate
@@ -165,12 +183,62 @@ case class EchoOrgRoleCredentialUpdate(
   issuedAt:     Long
 ) extends IdentityUpdate
 
+/**
+ * Additional device key registration for an existing subject `did:key`.
+ *
+ * JSON wire format (Identity L1 `POST /transactions` body, Phase 1): a flat
+ * object with these four fields — discriminated from other [[IdentityUpdate]]
+ * variants by the presence of `publicKeyHex`, `deviceLabel`, and `addedAt`
+ * (mirrors `internal/metagraph.DeviceKeyRegistrationUpdate` in Go).
+ *
+ * Only the Identity Service DID may submit in Phase 1.
+ */
+case class DeviceKeyRegistrationUpdate(
+  subjectDID:   String,
+  publicKeyHex: String,
+  deviceLabel:  String,
+  addedAt:      Long
+) extends IdentityUpdate
+
+object DeviceKeyRegistrationUpdate {
+  implicit val encoder: Encoder[DeviceKeyRegistrationUpdate] = deriveEncoder
+  implicit val decoder: Decoder[DeviceKeyRegistrationUpdate] = deriveDecoder
+}
+
 object IdentityUpdate {
+
+  private val vcDec           = deriveDecoder[VCIssuanceUpdate]
+  private val trustDec        = deriveDecoder[TrustTierCommitmentUpdate]
+  private val statusDec       = deriveDecoder[StatusList2021BatchUpdate]
+  private val orgRoleDec      = deriveDecoder[EchoOrgRoleCredentialUpdate]
+  private val deviceKeyDec    = DeviceKeyRegistrationUpdate.decoder
+
+  /** Classify variant from JSON keys (no explicit `type` discriminator). */
+  implicit val decoder: Decoder[IdentityUpdate] = Decoder.instance { c: HCursor =>
+    val keys      = c.keys.map(_.toSet).getOrElse(Set.empty)
+    val bitVec    = keys.contains("bitVector")
+    val commitment = keys.contains("commitment")
+    val device    =
+      keys.contains("publicKeyHex") && keys.contains("deviceLabel") && keys.contains(
+        "addedAt"
+      )
+    val vc        = keys.contains("schemaVersion")
+    val orgRole   = keys.contains("role") && keys.contains("memberDID")
+
+    if (bitVec) statusDec(c)
+    else if (commitment) trustDec(c)
+    else if (device) deviceKeyDec(c)
+    else if (vc) vcDec(c)
+    else if (orgRole) orgRoleDec(c)
+    else Left(DecodingFailure("Unrecognized IdentityUpdate JSON shape", c.history))
+  }
+
   implicit val encoder: Encoder[IdentityUpdate] = Encoder.instance {
-    case u: VCIssuanceUpdate            => deriveEncoder[VCIssuanceUpdate].apply(u)
-    case u: TrustTierCommitmentUpdate   => deriveEncoder[TrustTierCommitmentUpdate].apply(u)
-    case u: StatusList2021BatchUpdate   => deriveEncoder[StatusList2021BatchUpdate].apply(u)
-    case u: EchoOrgRoleCredentialUpdate => deriveEncoder[EchoOrgRoleCredentialUpdate].apply(u)
+    case u: VCIssuanceUpdate              => deriveEncoder[VCIssuanceUpdate].apply(u)
+    case u: TrustTierCommitmentUpdate     => deriveEncoder[TrustTierCommitmentUpdate].apply(u)
+    case u: StatusList2021BatchUpdate     => deriveEncoder[StatusList2021BatchUpdate].apply(u)
+    case u: EchoOrgRoleCredentialUpdate   => deriveEncoder[EchoOrgRoleCredentialUpdate].apply(u)
+    case u: DeviceKeyRegistrationUpdate   => DeviceKeyRegistrationUpdate.encoder.apply(u)
   }
 }
 

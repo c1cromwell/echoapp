@@ -240,11 +240,13 @@ func TestIdentityResolve_RoundTrip(t *testing.T) {
 	if body["did"] != did {
 		t.Errorf("resolved did = %v, want %s", body["did"], did)
 	}
-	if body["public_key_hex"] != pubHex {
-		t.Errorf("resolved public_key_hex = %v, want %s", body["public_key_hex"], pubHex)
+	devices, ok := body["devices"].([]interface{})
+	if !ok || len(devices) != 1 {
+		t.Fatalf("expected devices array with 1 entry, got %v", body["devices"])
 	}
-	if body["existing"] != true {
-		t.Errorf("resolved existing = %v, want true", body["existing"])
+	d0 := devices[0].(map[string]interface{})
+	if d0["public_key_hex"] != pubHex {
+		t.Errorf("resolved public_key_hex = %v, want %s", d0["public_key_hex"], pubHex)
 	}
 }
 

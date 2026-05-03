@@ -1,6 +1,7 @@
 package com.echo.identity_l1
 
 import com.echo.shared_data.cluster.ClusterIds
+import com.echo.shared_data.state.IdentityRevocationSequences
 import com.echo.shared_data.types._
 import com.echo.shared_data.validations.IdentityValidations
 import org.tessellation.currency.l1.CurrencyL1App
@@ -44,18 +45,11 @@ object Main extends CurrencyL1App(
   /** Pluggable clock so tests can pin "now". */
   def now(): Long = System.currentTimeMillis()
 
-  /** Last-known StatusList2021 sequence per issuerOrgDID — populated by the
-   *  L0 snapshot reader on application start. In Phase 1 we keep this in
-   *  memory; persistence belongs to the Tessellation snapshot stream.
-   *  NOTE: tests inject sequences directly via `dispatch`. */
-  @volatile private var revocationSequences: Map[String, Long] = Map.empty.withDefaultValue(0L)
-
   /** Update the cached sequence after a successful StatusList2021 batch
-   *  is folded into a snapshot. Called from the L0 combiner. */
+   *  is folded into an L0 snapshot. Delegates to shared module state so
+   *  `identity_l0` can invoke the same hook without depending on L1. */
   def recordPublishedSequence(issuerOrgDID: String, sequence: Long): Unit =
-    synchronized {
-      revocationSequences = revocationSequences.updated(issuerOrgDID, sequence)
-    }
+    IdentityRevocationSequences.recordPublished(issuerOrgDID, sequence)
 
   /**
    * Single dispatch point: runs the correct pure validator for the update
@@ -78,10 +72,13 @@ object Main extends CurrencyL1App(
       IdentityValidations.validateTrustTierCommitment(u, sender, authorizedSenderDid, nowMs)
 
     case u: StatusList2021BatchUpdate =>
-      val prev = revocationSequences.getOrElse(u.issuerOrgDID, 0L)
+      val prev = IdentityRevocationSequences.previousFor(u.issuerOrgDID)
       IdentityValidations.validateStatusList2021(u, sender, authorizedSenderDid, prev, nowMs)
 
     case u: EchoOrgRoleCredentialUpdate =>
       IdentityValidations.validateEchoOrgRoleCredential(u, sender, authorizedSenderDid, nowMs)
+
+    case u: DeviceKeyRegistrationUpdate =>
+      IdentityValidations.validateDeviceKeyRegistration(u, sender, authorizedSenderDid, nowMs)
   }
 }

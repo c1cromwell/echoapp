@@ -733,11 +733,12 @@ paths:
   /identity/{did}:
     get:
       tags: [Identity]
-      summary: Resolve a previously registered did:key binding
+      summary: Resolve all device keys registered for a did:key subject
       description: |
-        Returns the `(did, public_key_hex, registered_at)` tuple stored at
-        registration time. No auth — the same key is encoded in the DID
-        itself, so this is a convenience read.
+        Returns every `(public_key_hex, device_label, registered_at)` row stored
+        for this subject DID (primary device from `POST /identity/register`,
+        plus devices added via `POST /identity/devices`). Same response shape as
+        `GET /identity/resolve/{did}`.
       security: []
       parameters:
         - name: did
@@ -745,20 +746,110 @@ paths:
           required: true
           schema:
             type: string
-            example: "did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9KbrL2g"
+          example: "did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9KbrL2g"
       responses:
         "200":
-          description: DID binding found
+          description: Subject found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/IdentityRegisterResponse"
+                $ref: "#/components/schemas/IdentityResolveResponse"
         "404":
           description: "DID has not been registered (`code: DID_NOT_REGISTERED`)"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+
+  /identity/resolve/{did}:
+    get:
+      tags: [Identity]
+      summary: Resolve all registered device public keys (WO-273)
+      description: |
+        Blueprint path for multi-device did:key resolution. Behavior matches
+        `GET /identity/{did}`.
+      security: []
+      parameters:
+        - name: did
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Subject found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityResolveResponse"
+        "404":
+          description: DID not registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /identity/devices:
+    post:
+      tags: [Identity]
+      summary: Register an additional device key (WO-273)
+      description: |
+        Adds a new P-256 device public key for an existing subject DID. The
+        request body must be signed with ECDSA P-256 over SHA-256: the signer
+        uses the private key for `signing_did`, which must already be a
+        registered device for `subject_did`. Send the signature as lowercase hex
+        in the `X-Identity-Signature` header (IEEE P1363 64-byte R||S or ASN.1
+        DER).
+
+        Constellation Identity Metagraph anchoring of device events is not yet
+        wired; persistence is PostgreSQL (or in-memory registry) only.
+      security: []
+      parameters:
+        - name: X-Identity-Signature
+          in: header
+          required: true
+          description: Hex-encoded ECDSA signature over the raw JSON body bytes
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdentityAddDeviceRequest"
+      responses:
+        "200":
+          description: Device added; returns updated device list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityResolveResponse"
+        "400":
+          description: Validation error (missing fields, malformed signature hex, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Unknown signing device or invalid signature
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: subject_did not registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Device public key already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Registry not configured
 
   # ───── Legacy/Phase-0 DID anchor endpoints (retained for compatibility) ─────
   /identity/did:
@@ -1544,6 +1635,49 @@ components:
           description: |
             `true` when the (did, public_key_hex) pair was already present and
             the server returned 200. `false` on a fresh 201.
+
+    IdentityDeviceRecord:
+      type: object
+      required: [public_key_hex, device_label, registered_at]
+      properties:
+        public_key_hex:
+          type: string
+          pattern: "^04[0-9a-f]{128}$"
+        device_label:
+          type: string
+          example: "primary"
+        registered_at:
+          type: string
+          format: date-time
+
+    IdentityResolveResponse:
+      type: object
+      required: [did, devices]
+      properties:
+        did:
+          type: string
+        devices:
+          type: array
+          items:
+            $ref: "#/components/schemas/IdentityDeviceRecord"
+
+    IdentityAddDeviceRequest:
+      type: object
+      required: [subject_did, new_public_key_hex, signing_did]
+      properties:
+        subject_did:
+          type: string
+        new_public_key_hex:
+          type: string
+          pattern: "^04[0-9a-f]{128}$"
+        device_label:
+          type: string
+          description: Optional label; defaults to `device` when omitted.
+        signing_did:
+          type: string
+          description: |
+            did:key of an already-registered device; the request body is
+            signed with that device's private key.
 
     DIDDocument:
       type: object

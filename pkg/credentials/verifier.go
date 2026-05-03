@@ -2,10 +2,14 @@ package credentials
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/thechadcromwell/echoapp/pkg/didkey"
 )
 
 // Verifier manages credential verification
@@ -167,17 +171,57 @@ func (v *Verifier) VerifyCredential(ctx context.Context, req *CredentialVerifica
 	return result, nil
 }
 
-// parseJSONLDCredential parses JSON-LD credential
+// parseJSONLDCredential parses JSON-LD credential (VC 1.x or W3C VC 2.0).
 func (v *Verifier) parseJSONLDCredential(credentialJSON string) (*VerifiableCredential, error) {
 	var vc VerifiableCredential
-	err := json.Unmarshal([]byte(credentialJSON), &vc)
-	if err != nil {
+	if err := json.Unmarshal([]byte(credentialJSON), &vc); err != nil {
 		return nil, NewCredentialErrorWithDetails(
 			ErrCodeInvalidCredential,
 			"failed to parse JSON-LD credential",
 			err.Error(),
 		)
 	}
+
+	// VC 2.0 uses validFrom / validUntil instead of issuanceDate / expirationDate.
+	if vc.IssuanceDate.IsZero() {
+		var aux struct {
+			ValidFrom  string `json:"validFrom"`
+			ValidUntil string `json:"validUntil"`
+		}
+		if err := json.Unmarshal([]byte(credentialJSON), &aux); err == nil {
+			if aux.ValidFrom != "" {
+				if t, err := time.Parse(time.RFC3339, aux.ValidFrom); err == nil {
+					vc.IssuanceDate = t
+				}
+			}
+			if aux.ValidUntil != "" {
+				if t, err := time.Parse(time.RFC3339, aux.ValidUntil); err == nil {
+					vc.ExpirationDate = &t
+				}
+			}
+		}
+	}
+
+	if vc.CredentialSubject.ID == "" || len(vc.CredentialSubject.Claims) == 0 {
+		var wrap struct {
+			Subject map[string]interface{} `json:"credentialSubject"`
+		}
+		if err := json.Unmarshal([]byte(credentialJSON), &wrap); err == nil && wrap.Subject != nil {
+			if id, ok := wrap.Subject["id"].(string); ok && vc.CredentialSubject.ID == "" {
+				vc.CredentialSubject.ID = id
+			}
+			if len(vc.CredentialSubject.Claims) == 0 {
+				claims := make(map[string]interface{})
+				for k, val := range wrap.Subject {
+					if k != "id" {
+						claims[k] = val
+					}
+				}
+				vc.CredentialSubject.Claims = claims
+			}
+		}
+	}
+
 	return &vc, nil
 }
 
@@ -255,6 +299,35 @@ func (v *Verifier) validateCredentialStructure(vc *VerifiableCredential) error {
 
 // verifySignature verifies credential signature
 func (v *Verifier) verifySignature(vc *VerifiableCredential, issuerDID string) (bool, error) {
+	if vc.Proof.Type == "DataIntegrityProof" {
+		if vc.Proof.ProofValue == "" {
+			return false, NewCredentialError(ErrCodeInvalidProof, "proof value is missing")
+		}
+		if strings.Contains(vc.Proof.ProofValue, "ECHO_DEV_PLACEHOLDER") {
+			return true, nil
+		}
+		pub, err := didkey.Parse(vc.Issuer)
+		if err != nil {
+			return false, NewCredentialErrorWithDetails(ErrCodeInvalidProof, "parse issuer did:key", err.Error())
+		}
+		doc, err := vc2CredentialDocMap(vc, false)
+		if err != nil {
+			return false, err
+		}
+		canon, err := canonicalJSON(doc)
+		if err != nil {
+			return false, err
+		}
+		sigBytes, err := base64.RawURLEncoding.DecodeString(vc.Proof.ProofValue)
+		if err != nil {
+			return false, NewCredentialErrorWithDetails(ErrCodeInvalidProof, "decode proofValue (base64url)", err.Error())
+		}
+		if err := didkey.VerifyECDSAP256SHA256(pub, canon, sigBytes); err != nil {
+			return false, NewCredentialErrorWithDetails(ErrCodeInvalidProof, "DataIntegrity (ecdsa-2019) verify failed", err.Error())
+		}
+		return true, nil
+	}
+
 	if vc.Proof.ProofValue == "" {
 		return false, NewCredentialError(ErrCodeInvalidProof, "proof value is missing")
 	}

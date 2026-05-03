@@ -12,6 +12,7 @@ type Service struct {
 	verifier            *Verifier
 	storage             Storage
 	revocationManager   *RevocationManager
+	statusPublisher     *StatusListPublisher
 	formatHandler       *FormatHandler
 	credentialFormatter *CredentialFormatter
 	cryptoUtils         *CryptoUtils
@@ -31,7 +32,12 @@ func NewService(config *Config) (*Service, error) {
 	formatHandler := NewFormatHandler(cryptoUtils)
 	credentialFormatter := NewCredentialFormatter(formatHandler, config)
 
-	issuer := NewIssuer(config, cryptoUtils, storage)
+	statusPub := NewStatusListPublisher(config.MetagraphConfig)
+	if statusPub != nil {
+		statusPub.Start()
+	}
+
+	issuer := NewIssuer(config, cryptoUtils, storage, statusPub)
 	verifier := NewVerifier(config, cryptoUtils, storage, revocationMgr)
 
 	return &Service{
@@ -40,6 +46,7 @@ func NewService(config *Config) (*Service, error) {
 		verifier:            verifier,
 		storage:             storage,
 		revocationManager:   revocationMgr,
+		statusPublisher:     statusPub,
 		formatHandler:       formatHandler,
 		credentialFormatter: credentialFormatter,
 		cryptoUtils:         cryptoUtils,
@@ -60,9 +67,24 @@ func (s *Service) VerifyCredential(ctx context.Context, req *CredentialVerificat
 	return s.verifier.VerifyCredential(ctx, req)
 }
 
-// RevokeCredential revokes a credential
-func (s *Service) RevokeCredential(ctx context.Context, credentialID, issuerDID, subjectDID, reason string) error {
-	return s.revocationManager.RevokeCredential(ctx, credentialID, issuerDID, subjectDID, reason)
+// RevokeCredential revokes a credential. Local revocation is durable via storage; Identity L1
+// StatusList2021 publish is asynchronous (coalesced + retries).
+func (s *Service) RevokeCredential(ctx context.Context, credentialID, issuerDID, subjectDID, reason string) (*RevokeCredentialResult, error) {
+	if err := s.revocationManager.RevokeCredential(ctx, credentialID, issuerDID, subjectDID, reason); err != nil {
+		return nil, err
+	}
+	result := &RevokeCredentialResult{
+		Status:       "revoked",
+		CredentialID: credentialID,
+	}
+	if s.statusPublisher != nil {
+		enqueued := s.statusPublisher.MarkRevoked(credentialID)
+		result.StatusList = &RevokeStatusListMeta{
+			PublishEnqueued:           enqueued,
+			MetagraphPublishPending:   s.statusPublisher.PublishPending(),
+		}
+	}
+	return result, nil
 }
 
 // CheckRevocationStatus checks if credential is revoked
@@ -107,6 +129,9 @@ func (s *Service) GetRevocationCacheStats() map[string]interface{} {
 
 // Close closes the service
 func (s *Service) Close() error {
+	if s.statusPublisher != nil {
+		s.statusPublisher.Stop()
+	}
 	if err := s.revocationManager.Close(); err != nil {
 		return fmt.Errorf("failed to close revocation manager: %w", err)
 	}
@@ -132,6 +157,10 @@ func (s *Service) GetComponentStatus(ctx context.Context) map[string]interface{}
 
 	status["issuance_timeout"] = fmt.Sprintf("%d seconds", int(s.config.CredentialConfig.IssuanceTimeout.Seconds()))
 	status["verification_timeout"] = fmt.Sprintf("%d seconds", int(s.config.CredentialConfig.VerificationTimeout.Seconds()))
+
+	if s.statusPublisher != nil {
+		status["status_list_publisher"] = s.statusPublisher.Stats()
+	}
 
 	return status
 }

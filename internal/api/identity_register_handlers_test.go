@@ -6,6 +6,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
@@ -210,12 +211,15 @@ func TestIdentityResolve_HappyPath(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200; body = %s", w.Code, w.Body.String())
 	}
-	var resp IdentityRegisterResponse
+	var resp IdentityResolveResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("decode body: %v", err)
 	}
-	if resp.DID != did || resp.PublicKeyHex != pubHex {
+	if resp.DID != did {
 		t.Fatalf("response mismatch: %+v", resp)
+	}
+	if len(resp.Devices) != 1 || resp.Devices[0].PublicKeyHex != pubHex {
+		t.Fatalf("devices mismatch: %+v", resp)
 	}
 }
 
@@ -229,5 +233,61 @@ func TestIdentityResolve_NotFound(t *testing.T) {
 	}
 	if !strings.Contains(w.Body.String(), "DID_NOT_REGISTERED") {
 		t.Fatalf("expected DID_NOT_REGISTERED, got %s", w.Body.String())
+	}
+}
+
+func TestIdentityAddDevice_HappyPath(t *testing.T) {
+	rt := newTestRouter()
+	subjectDID, pubHex1, priv1 := newTestKey(t)
+	_, pubHex2, _ := newTestKey(t)
+
+	if w := doRegister(t, rt, IdentityRegisterRequest{DID: subjectDID, PublicKeyHex: pubHex1}); w.Code != http.StatusCreated {
+		t.Fatalf("register: %d %s", w.Code, w.Body.String())
+	}
+
+	body := IdentityAddDeviceRequest{
+		SubjectDID:      subjectDID,
+		NewPublicKeyHex: pubHex2,
+		DeviceLabel:     "ipad",
+		SigningDID:      subjectDID,
+	}
+	raw, err := json.Marshal(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := sha256.Sum256(raw)
+	sig, err := ecdsa.SignASN1(rand.Reader, priv1, h[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/identity/devices", bytes.NewReader(raw))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(identitySignatureHeader, hex.EncodeToString(sig))
+	w := httptest.NewRecorder()
+	rt.Handler().ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("add device: %d %s", w.Code, w.Body.String())
+	}
+	var resp IdentityResolveResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Devices) != 2 {
+		t.Fatalf("want 2 devices, got %v", resp.Devices)
+	}
+}
+
+func TestIdentityResolve_PrefixedPath(t *testing.T) {
+	rt := newTestRouter()
+	did, pubHex, _ := newTestKey(t)
+	if w := doRegister(t, rt, IdentityRegisterRequest{DID: did, PublicKeyHex: pubHex}); w.Code != http.StatusCreated {
+		t.Fatalf("setup: %d", w.Code)
+	}
+	req := httptest.NewRequest(http.MethodGet, "/identity/resolve/"+did, nil)
+	w := httptest.NewRecorder()
+	rt.Handler().ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d", w.Code)
 	}
 }

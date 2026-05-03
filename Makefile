@@ -253,7 +253,7 @@ dev: ## Bring up full Phase-1 cluster
 	@echo "  Currency L1:    http://localhost:9300"
 	@echo "  Data L1:        http://localhost:9400"
 	@echo "  Identity L0:    http://localhost:9100  (VC / trust tier / StatusList2021)"
-	@echo "  Identity L1:    http://localhost:9500  (issuance + revocation submissions)"
+	@echo "  Identity L1:    http://localhost:9500  (VC / StatusList / org-role + device-key submissions)"
 	@echo ""
 	@echo "Next: make validate-phase1"
 

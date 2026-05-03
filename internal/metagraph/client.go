@@ -9,11 +9,12 @@ import (
 	"time"
 )
 
-// MetagraphConfig holds endpoint URLs for L0, Currency L1, and Data L1.
+// MetagraphConfig holds endpoint URLs for L0, L1 layers (currency, data, identity).
 type MetagraphConfig struct {
 	L0URL         string
 	CurrencyL1URL string
 	DataL1URL     string
+	IdentityL1URL string
 	Timeout       time.Duration
 }
 

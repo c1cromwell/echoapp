@@ -56,6 +56,10 @@ type CredentialStatus struct {
 	ID     string `json:"id"`
 	Type   string `json:"type"`   // "StatusList2021Entry" — see ADR-0001 + WO-272
 	Status string `json:"status"` // "active", "revoked", "suspended"
+	// VC 2.0 / WO-274 StatusList2021Entry fields
+	StatusPurpose        string `json:"statusPurpose,omitempty"`
+	StatusListIndex      string `json:"statusListIndex,omitempty"`
+	StatusListCredential string `json:"statusListCredential,omitempty"`
 }
 
 // Proof represents the cryptographic proof of a credential
@@ -65,6 +69,7 @@ type Proof struct {
 	VerificationMethod string    `json:"verificationMethod"`
 	ProofPurpose       string    `json:"proofPurpose"` // "assertionMethod"
 	SignatureAlgorithm string    `json:"signatureAlgorithm,omitempty"`
+	Cryptosuite        string    `json:"cryptosuite,omitempty"` // VC 2.0 DataIntegrityProof e.g. ecdsa-2019
 	ChallengeNonce     string    `json:"challengeNonce,omitempty"`
 	ProofValue         string    `json:"proofValue,omitempty"` // Signature in base64 or JWS format
 }
@@ -135,6 +140,21 @@ type RevocationStatus struct {
 	RevokedAt        *time.Time `json:"revokedAt,omitempty"`
 	RevocationReason string     `json:"revocationReason,omitempty"`
 	StatusListIndex  uint64     `json:"statusListIndex,omitempty"` // Bit position in the issuer's StatusList2021 vector (WO-274)
+}
+
+// RevokeCredentialResult is returned after a local revocation is recorded; metagraph publish is asynchronous.
+type RevokeCredentialResult struct {
+	Status       string                  `json:"status"`
+	CredentialID string                  `json:"credentialId"`
+	StatusList   *RevokeStatusListMeta   `json:"statusList,omitempty"`
+}
+
+// RevokeStatusListMeta describes async StatusList2021 batch publish to Identity L1.
+type RevokeStatusListMeta struct {
+	// PublishEnqueued is true when this revoke flipped a known status bit and a coalesced publish was signaled.
+	PublishEnqueued bool `json:"publishEnqueued"`
+	// MetagraphPublishPending is true while the local vector still needs a successful L1 ack (includes retries / ticker).
+	MetagraphPublishPending bool `json:"metagraphPublishPending"`
 }
 
 // IssuanceProgress tracks credential issuance progress

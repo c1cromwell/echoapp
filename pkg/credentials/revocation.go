@@ -209,8 +209,11 @@ func NewRevocationRegistry(storage Storage, indexPath string, cacheTTL time.Dura
 }
 
 // RegisterRevocation flips the credential's bit in the issuer's
-// StatusList2021 bit vector. Phase 1 stub returns a deterministic
-// reference; WO-274 wires the real Identity L1 submission.
+// StatusList2021 bit vector. Index assignment happens at issuance
+// ([StatusListPublisher.AllocateIndex]); [Service.RevokeCredential] calls
+// [StatusListPublisher.MarkRevoked] with the stored credential id. This
+// registry helper remains a stable string reference for callers that do not
+// use the service layer.
 func (rr *RevocationRegistry) RegisterRevocation(ctx context.Context, credentialID, issuerDID, reason string) (statusListRef string, err error) {
 	statusListRef = "statuslist:" + credentialID
 	return statusListRef, nil

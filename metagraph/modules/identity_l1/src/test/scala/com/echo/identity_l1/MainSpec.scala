@@ -104,5 +104,25 @@ final class MainSpec extends AnyFunSpec with Matchers {
       val u = TrustTierCommitmentUpdate(Subject, "a" * 64, Now - 100L)
       Main.dispatch(u, "did:key:zNOPE", Now).isLeft shouldBe true
     }
+
+    it("accepts a DeviceKeyRegistrationUpdate from the authorized sender") {
+      val u = DeviceKeyRegistrationUpdate(
+        subjectDID   = Subject,
+        publicKeyHex = "04" + ("b" * 128),
+        deviceLabel  = "phone",
+        addedAt      = Now - 50L
+      )
+      Main.dispatch(u, Sender, Now) shouldBe Right(())
+    }
+
+    it("rejects a DeviceKeyRegistrationUpdate with bad public key hex") {
+      val u = DeviceKeyRegistrationUpdate(
+        subjectDID   = Subject,
+        publicKeyHex = "deadbeef",
+        deviceLabel  = "x",
+        addedAt      = Now - 50L
+      )
+      Main.dispatch(u, Sender, Now).isLeft shouldBe true
+    }
   }
 }

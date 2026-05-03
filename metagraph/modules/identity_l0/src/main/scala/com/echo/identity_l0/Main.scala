@@ -1,6 +1,7 @@
 package com.echo.identity_l0
 
 import com.echo.shared_data.cluster.ClusterIds
+import com.echo.shared_data.state.IdentityRevocationSequences
 import org.tessellation.currency.l0.CurrencyL0App
 
 /**
@@ -37,5 +38,16 @@ object Main extends CurrencyL0App(
     "KYCCredential",
     "ProfessionalCredential"
   )
+
+  /**
+   * Tessellation L0 combiner hook (WO-272): invoke after a StatusList2021
+   * batch is finalized in a snapshot so Identity L1 mempool validation
+   * observes the updated monotonicity baseline.
+   *
+   * The real combiner integration plugs this into the data-application
+   * fold pipeline; the body forwards to shared JVM state consumed by L1.
+   */
+  def onStatusListSnapshotFinalized(issuerOrgDID: String, sequence: Long): Unit =
+    IdentityRevocationSequences.recordPublished(issuerOrgDID, sequence)
 }
 
