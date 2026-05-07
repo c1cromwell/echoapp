@@ -3,6 +3,8 @@ package credentials
 import (
 	"context"
 	"fmt"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Service orchestrates credential operations
@@ -18,8 +20,9 @@ type Service struct {
 	cryptoUtils         *CryptoUtils
 }
 
-// NewService creates new credentials service
-func NewService(config *Config) (*Service, error) {
+// NewService creates new credentials service. Optional pgPool enables durable StatusList2021
+// slots and L1 outbox (WO-274) when combined with Metagraph anchoring config.
+func NewService(config *Config, pgPool *pgxpool.Pool) (*Service, error) {
 	// Validate config
 	if err := config.Validate(); err != nil {
 		return nil, err
@@ -33,6 +36,9 @@ func NewService(config *Config) (*Service, error) {
 	credentialFormatter := NewCredentialFormatter(formatHandler, config)
 
 	statusPub := NewStatusListPublisher(config.MetagraphConfig)
+	if statusPub != nil && pgPool != nil {
+		statusPub.AttachPostgres(pgPool)
+	}
 	if statusPub != nil {
 		statusPub.Start()
 	}

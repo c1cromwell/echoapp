@@ -15,6 +15,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
@@ -24,6 +25,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/services/media"
 	"github.com/thechadcromwell/echoapp/internal/services/notification"
 	"github.com/thechadcromwell/echoapp/internal/services/rewards"
+	"github.com/thechadcromwell/echoapp/pkg/didkey"
 )
 
 // V3Handlers holds all service dependencies for v3 API routes.
@@ -540,14 +542,16 @@ func (h *V3Handlers) handleAuthRegister(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Create user record. The DID is a "pending:" sentinel (not a valid
-	// did:key) until the user registers a passkey, at which point the
-	// passkey's public key derives the canonical did:key (ADR-0001).
-	// TODO(WO-273): wire the real did:key derivation here once the v3
-	// registration flow accepts a public key.
+	pubHex := strings.TrimSpace(req.PublicKey)
+	did, derr := didkey.DeriveFromPublicKeyHex(pubHex)
+	if derr != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_PUBLIC_KEY", "publicKey must be SEC1 P-256 hex (uncompressed or compressed)", r.Header.Get("X-Request-ID"))
+		return
+	}
+
 	user := &database.User{
 		UserID:   "user-" + req.Username,
-		DID:      "pending:user:" + req.Username,
+		DID:      did,
 		Username: req.Username,
 	}
 

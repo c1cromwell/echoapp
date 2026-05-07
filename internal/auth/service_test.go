@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -215,6 +216,9 @@ func TestAuthService_FullRegistrationFlow(t *testing.T) {
 	}
 	if passkeyResp.User.TrustScore != 5 {
 		t.Errorf("expected trust score 5, got %d", passkeyResp.User.TrustScore)
+	}
+	if !strings.HasPrefix(passkeyResp.User.DID, "did:key:") {
+		t.Errorf("expected canonical did:key after passkey (WO-273), got %q", passkeyResp.User.DID)
 	}
 
 	// Verify user count

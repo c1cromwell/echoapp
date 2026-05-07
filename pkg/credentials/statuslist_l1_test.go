@@ -32,7 +32,9 @@ func TestStatusListMarkRevokedAsyncPublish(t *testing.T) {
 	p.Start()
 	defer p.Stop()
 
-	p.AllocateIndex("cred-1")
+	if _, err := p.AllocateIndex("cred-1"); err != nil {
+		t.Fatal(err)
+	}
 	if !p.MarkRevoked("cred-1") {
 		t.Fatal("expected MarkRevoked true")
 	}
@@ -74,8 +76,12 @@ func TestStatusListCoalescedSignalsSingleWorker(t *testing.T) {
 	p.Start()
 	defer p.Stop()
 
-	p.AllocateIndex("a")
-	p.AllocateIndex("b")
+	if _, err := p.AllocateIndex("a"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.AllocateIndex("b"); err != nil {
+		t.Fatal(err)
+	}
 	p.MarkRevoked("a")
 	p.MarkRevoked("b")
 

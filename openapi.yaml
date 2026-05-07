@@ -7,7 +7,7 @@ info:
     
     **Architecture**: Client-server relay with E2E encryption. The API server is a stateless
     relay and operational cache. It cannot read message content (E2E encrypted blobs only),
-    does not own user identities (Cardano DIDs), and does not control token balances
+    does not own user identities (holders use did:key), and does not control token balances
     (Constellation metagraph).
     
     **Authentication**: All endpoints except /v1/auth/* require a Bearer token in the
@@ -43,7 +43,7 @@ tags:
   - name: Users
     description: User profiles and contacts
   - name: Identity
-    description: Decentralized identity (Cardano DIDs) and verifiable credentials
+    description: Decentralized identity (did:key) and verifiable credentials (Identity Metagraph)
   - name: Tokens
     description: ECHO token balance, transfers, staking, and rewards
   - name: Groups
@@ -62,8 +62,8 @@ paths:
       summary: Register a new account
       description: |
         Creates a new ECHO account. The client generates a Secure Enclave key pair
-        and submits the public key. The server creates a DID registration request
-        on Cardano and returns a session token.
+        and submits the public key. The server registers did:key identity state and
+        returns a session token.
       security: []
       requestBody:
         required: true
@@ -655,9 +655,8 @@ paths:
       tags: [Users]
       summary: Delete account
       description: |
-        Permanently deletes the account. Revokes Cardano credentials, removes
-        relay data, and invalidates all tokens. DID remains on Cardano as a
-        revoked record (immutable).
+        Permanently deletes the account. Revokes verifiable credentials, removes
+        relay data, and invalidates all tokens.
       responses:
         "204":
           description: Account deletion initiated
@@ -986,10 +985,40 @@ paths:
               properties:
                 schemaId:
                   type: string
-                  description: Credential schema ID on Cardano
+                  description: Credential schema identifier (VC type)
       responses:
         "202":
-          description: Credential issuance submitted to Cardano
+          description: Credential issuance submitted
+
+  /identity/credentials/status/{credentialId}:
+    get:
+      tags: [Identity]
+      summary: StatusList2021 slot and revocation (WO-274)
+      description: Reads durable issuer slot state from Postgres when the API is deployed with a database.
+      parameters:
+        - name: credentialId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Slot state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  credential_id:
+                    type: string
+                  found:
+                    type: boolean
+                  status_list_index:
+                    type: integer
+                  revoked:
+                    type: boolean
+        "503":
+          description: Status store not configured (no Postgres)
 
   /identity/credentials/{credentialId}/verify:
     get:
@@ -1021,6 +1050,54 @@ paths:
                     format: date-time
                     nullable: true
 
+  /identity/trust-tier/commitment:
+    post:
+      tags: [Identity]
+      summary: Anchor H(tier ‖ nonce) trust-tier commitment (WO-274)
+      description: |
+        Submits TrustTierCommitmentUpdate to Identity L1 and caches the result in Redis (~60s TTL)
+        when Redis is configured. Requires Bearer token; subject_did must match the token principal.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tier, nonce]
+              properties:
+                subject_did:
+                  type: string
+                  description: Optional; defaults to the authenticated DID
+                tier:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                nonce:
+                  type: string
+      responses:
+        "200":
+          description: Commitment accepted by L1
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subject_did:
+                    type: string
+                  tier:
+                    type: integer
+                  commitment:
+                    type: string
+                    description: 64-char lowercase hex SHA-256 digest
+                  anchored_at:
+                    type: integer
+                    format: int64
+                    description: Unix time in milliseconds
+        "502":
+          description: L1 submit failed
+
   /identity/credentials/{credentialId}/revoke:
     delete:
       tags: [Identity]
@@ -1033,7 +1110,7 @@ paths:
             type: string
       responses:
         "202":
-          description: Revocation submitted to Cardano
+          description: Revocation recorded
 
   # ──────────────────────── TOKENS ────────────────────────
   /tokens/balance:
@@ -1636,6 +1713,19 @@ components:
             `true` when the (did, public_key_hex) pair was already present and
             the server returned 200. `false` on a fresh 201.
 
+    DIDRegisterRequest:
+      description: |
+        WO-280 alias for [IdentityRegisterRequest](#/components/schemas/IdentityRegisterRequest).
+        New documentation should prefer `IdentityRegisterRequest`.
+      allOf:
+        - $ref: "#/components/schemas/IdentityRegisterRequest"
+
+    DIDRegisterResponse:
+      description: |
+        WO-280 alias for [IdentityRegisterResponse](#/components/schemas/IdentityRegisterResponse).
+      allOf:
+        - $ref: "#/components/schemas/IdentityRegisterResponse"
+
     IdentityDeviceRecord:
       type: object
       required: [public_key_hex, device_label, registered_at]
@@ -1719,7 +1809,7 @@ components:
           format: date-time
         cardanoTxHash:
           type: string
-          description: Cardano transaction hash for on-chain verification
+          description: Optional anchor reference for verification (legacy field name; may be metagraph/L1)
 
     Verification:
       type: object
@@ -1758,6 +1848,7 @@ components:
           nullable: true
         cardanoTxHash:
           type: string
+          description: Optional anchor reference (legacy field name)
 
     TokenBalance:
       type: object

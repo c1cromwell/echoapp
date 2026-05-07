@@ -76,7 +76,7 @@ final class RecoveryService {
         // Stub: in production, first call /v1/auth/restore-challenge to get a nonce,
         // sign it with the wallet key, then POST to /v1/auth/restore-did.
         return RestoreDIDResponse(
-            did: "did:prism:cardano:restored-\(UUID().uuidString)",
+            did: "did:key:z6MkfThhVKtpeT52HiPfJT8oLjTJiEwPvY+zx9dp99V4RCHq",
             displayName: UserDefaults.standard.string(forKey: "echo.displayName") ?? "Restored User",
             trustTier: 1
         )

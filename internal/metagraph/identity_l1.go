@@ -20,6 +20,14 @@ type DeviceKeyRegistrationUpdate struct {
 	AddedAt      int64  `json:"addedAt"`
 }
 
+// TrustTierCommitmentUpdate is the Identity L1 wire shape for H(tier || nonce) commitments
+// (com.echo.shared_data.types.TrustTierCommitmentUpdate).
+type TrustTierCommitmentUpdate struct {
+	SubjectDID string `json:"subjectDID"`
+	Commitment string `json:"commitment"`
+	AnchoredAt int64  `json:"anchoredAt"`
+}
+
 // SubmitIdentityL1 posts an Identity Metagraph L1 transaction (e.g. device key
 // registration). The payload must encode as one of the Identity L1 update types;
 // most callers use [DeviceKeyRegistrationUpdate].

@@ -11,7 +11,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/thechadcromwell/echoapp/internal/auth"
+	"github.com/thechadcromwell/echoapp/internal/infra"
+	"github.com/thechadcromwell/echoapp/internal/metagraph"
 )
 
 // contextKey is an unexported type for context keys to avoid collisions.
@@ -51,7 +54,10 @@ type Router struct {
 	WSHub           *Hub               // WebSocket hub for real-time messaging
 	V3              *V3Handlers        // V3 API handlers (blueprint services)
 	DIDRegistry     DIDRegistry        // did:key binding store (WO-230 / WO-278)
-	tokenService    *auth.TokenService // ES256 JWT token service
+	CredentialStatusPool *pgxpool.Pool // WO-274 durable VC status list slots (optional)
+	Redis                *infra.RedisClient
+	IdentityL1           *metagraph.MetagraphClient // WO-274 trust-tier commitments
+	tokenService         *auth.TokenService         // ES256 JWT token service
 }
 
 // NewRouter creates a Router with production-grade ES256 JWT validation.
@@ -107,9 +113,13 @@ func (rt *Router) Handler() http.Handler {
 			rt.handleIdentityRegister(w, r)
 		case r.URL.Path == "/identity/devices":
 			rt.handleIdentityAddDevice(w, r)
+		case r.URL.Path == "/identity/trust-tier/commitment":
+			rt.handleTrustTierCommitment(w, r)
 		case strings.HasPrefix(r.URL.Path, "/identity/resolve/"):
 			did := strings.TrimPrefix(r.URL.Path, "/identity/resolve/")
 			rt.handleIdentityResolve(w, r, did)
+		case strings.HasPrefix(r.URL.Path, "/identity/credentials/status/"):
+			rt.handleCredentialVCStatus(w, r)
 		case strings.HasPrefix(r.URL.Path, "/identity/"):
 			did := strings.TrimPrefix(r.URL.Path, "/identity/")
 			rt.handleIdentityResolve(w, r, did)
@@ -151,8 +161,25 @@ var publicPaths = map[string]bool{
 	"/v1/enrollment/vc/start":    true,
 	"/v1/enrollment/mdl/start":   true,
 	"/v1/enrollment/idv/start":   true,
-	"/identity/register": true,
-	"/identity/devices":  true,
+	"/identity/register":         true,
+	"/identity/devices":          true,
+}
+
+// identityRequestExemptFromAuth lists unauthenticated Identity routes (did:key resolution, etc.).
+// Authenticated Identity routes such as POST /identity/trust-tier/commitment are not exempt.
+func identityRequestExemptFromAuth(path, method string) bool {
+	switch {
+	case path == "/identity/register" || path == "/identity/devices":
+		return true
+	case strings.HasPrefix(path, "/identity/resolve/"):
+		return true
+	case method == http.MethodGet && strings.HasPrefix(path, "/identity/credentials/status/"):
+		return true
+	case method == http.MethodGet && strings.HasPrefix(path, "/identity/"):
+		return true
+	default:
+		return false
+	}
 }
 
 func (rt *Router) authMiddleware(next http.Handler) http.Handler {
@@ -160,7 +187,7 @@ func (rt *Router) authMiddleware(next http.Handler) http.Handler {
 		// Health check, WebSocket, public registration endpoints, and
 		// did:key resolution (which is local-only and inherently public) bypass auth.
 		if r.URL.Path == "/health" || r.URL.Path == "/ws" || publicPaths[r.URL.Path] ||
-			strings.HasPrefix(r.URL.Path, "/identity/") {
+			identityRequestExemptFromAuth(r.URL.Path, r.Method) {
 			next.ServeHTTP(w, r)
 			return
 		}

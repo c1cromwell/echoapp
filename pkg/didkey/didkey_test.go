@@ -133,7 +133,7 @@ func TestParseRejectsBadPrefix(t *testing.T) {
 	for _, in := range []string{
 		"",
 		"did:example:123",
-		"did:prism:cardano:abc",
+		"did:web:example.com:user:alice",
 		"key:zABC",
 		"did:key:",
 	} {

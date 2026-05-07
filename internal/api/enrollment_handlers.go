@@ -197,11 +197,7 @@ func (rt *Router) handleRestoreDID(w http.ResponseWriter, r *http.Request) {
 	// Production: verify wallet signature against challenge, look up DID by wallet_address,
 	// re-bind DID to new_device_public_key, return user record.
 	// Errors: 404 WALLET_NOT_ENROLLED, 401 WALLET_SIGNATURE_INVALID, 409 DEVICE_ALREADY_ENROLLED.
-
-	// TODO(WO-273): replace stub with real wallet-DID lookup against the
-	// identity store. The "pending:" sentinel is intentionally not a valid
-	// did:key so any consumer that performs proper DID validation will fail
-	// fast rather than silently treating the stub as authoritative.
+	// WO-273: Persisted wallet→subject_did mapping is required before returning a canonical did:key.
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"did":            "pending:wallet:" + req.WalletAddress,
 		"display_name":   "Restored User",

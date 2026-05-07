@@ -11,7 +11,7 @@ class MockAuthService: AuthServiceProtocol {
         AuthResponse(
             token: "mock-token-123",
             refreshToken: "mock-refresh-456",
-            did: "did:prism:mock123",
+            did: "did:key:z6MkfThhVKtpeT52HiPfJT8oLjTJiEwPvY+zx9dp99V4RCHq",
             user: UserProfile(
                 id: "user-1",
                 phone: "+15550100",

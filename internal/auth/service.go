@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/thechadcromwell/echoapp/pkg/didkey"
 )
 
 // E.164 phone number validation pattern
@@ -286,16 +287,22 @@ func (s *AuthService) RegisterPasskey(userDID string, req PasskeyRegistrationReq
 
 	s.mu.Lock()
 	s.credentials[credentialID] = credential
-	// Update user status and trust
 	user.Status = UserStatusActive
 	user.TrustScore = 5 // device-verified baseline
-	// TODO(WO-273): derive did:key from the passkey public key via
-	// pkg/didkey.DeriveFromPublicKeyHex once the passkey credential row
-	// is plumbed through here. For now use a "pending:" sentinel so no
-	// caller mistakes it for a real did:key.
-	user.DID = "pending:user:" + uuid.New().String()[:12]
+	pubHex := hex.EncodeToString(pubKeyBytes)
+	canonicalDID, derr := didkey.DeriveFromPublicKeyHex(pubHex)
+	if derr != nil {
+		s.mu.Unlock()
+		s.Audit.Log(user.ID, AuditEventRegister, AuditResultFailed, ip, "", &req.DeviceInfo, string(ErrCodePasskeyFailed), map[string]interface{}{
+			"error": derr.Error(),
+		})
+		return nil, NewAuthError(ErrCodePasskeyFailed, 401)
+	}
+	oldDID := user.DID
+	user.DID = canonicalDID
 	user.UpdatedAt = time.Now()
-	s.usersByDID[user.DID] = user
+	delete(s.usersByDID, oldDID)
+	s.usersByDID[canonicalDID] = user
 	s.mu.Unlock()
 
 	// 4. Register device

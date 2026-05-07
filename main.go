@@ -16,6 +16,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/api"
 	"github.com/thechadcromwell/echoapp/internal/database"
 	"github.com/thechadcromwell/echoapp/internal/infra"
+	"github.com/thechadcromwell/echoapp/internal/metagraph"
 	"github.com/thechadcromwell/echoapp/internal/rewards"
 	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
 	"github.com/thechadcromwell/echoapp/internal/services/contacts"
@@ -61,14 +62,20 @@ func (s *Server) setupTLS() *tls.Config {
 // Start starts the API server.
 func (s *Server) Start() error {
 	db, pgDB := s.initDatabase()
+	redisClient := s.initRedis()
 
 	router := api.NewRouter(s.config.AllowedOrigins)
 	if pgDB != nil {
 		router.DIDRegistry = api.NewPostgresDIDRegistry(pgDB.Pool())
+		router.CredentialStatusPool = pgDB.Pool()
 	}
-
-	// Initialize Redis (optional)
-	s.initRedis()
+	router.Redis = redisClient
+	if l1 := os.Getenv("IDENTITY_L1_URL"); l1 != "" {
+		router.IdentityL1 = metagraph.NewMetagraphClient(metagraph.MetagraphConfig{
+			IdentityL1URL: l1,
+			Timeout:       30 * time.Second,
+		})
+	}
 
 	// Initialize NATS (optional)
 	s.initNATS()

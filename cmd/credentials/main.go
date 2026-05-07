@@ -7,10 +7,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/thechadcromwell/echoapp/internal/database"
 	"github.com/thechadcromwell/echoapp/pkg/credentials"
 	"github.com/thechadcromwell/echoapp/pkg/credentials/oidc4vc"
 )
@@ -31,12 +34,56 @@ func main() {
 
 	log.Printf("%s v%s starting", appName, version)
 
-	// Initialize credentials service
-	service, err := credentials.NewService(config)
+	var pgDB *database.PostgresDB
+	dbHost := os.Getenv("DATABASE_HOST")
+	if dbHost != "" {
+		dbPort := os.Getenv("DATABASE_PORT")
+		if dbPort == "" {
+			dbPort = "5432"
+		}
+		cfg := database.PostgresConfig{
+			Host:     dbHost,
+			Port:     dbPort,
+			Database: os.Getenv("DATABASE_NAME"),
+			User:     os.Getenv("DATABASE_USER"),
+			Password: os.Getenv("DATABASE_PASSWORD"),
+			SSLMode:  os.Getenv("DATABASE_SSLMODE"),
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		var err error
+		pgDB, err = database.NewPostgresDB(ctx, cfg)
+		cancel()
+		if err != nil {
+			log.Printf("Postgres unavailable for status list: %v", err)
+			pgDB = nil
+		} else {
+			migrationsDir := filepath.Join(".", "migrations")
+			if _, err := os.Stat(migrationsDir); err == nil {
+				mctx, mcancel := context.WithTimeout(context.Background(), 60*time.Second)
+				if err := database.Migrate(mctx, pgDB.Pool(), migrationsDir); err != nil {
+					log.Printf("Migration warning: %v", err)
+				}
+				mcancel()
+			}
+			log.Printf("Postgres connected at %s:%s/%s (WO-274 status list)", cfg.Host, cfg.Port, cfg.Database)
+		}
+	}
+
+	var pgxPool *pgxpool.Pool
+	if pgDB != nil {
+		pgxPool = pgDB.Pool()
+	}
+
+	service, err := credentials.NewService(config, pgxPool)
 	if err != nil {
 		log.Fatalf("Failed to initialize credentials service: %v", err)
 	}
-	defer service.Close()
+	defer func() {
+		_ = service.Close()
+		if pgDB != nil {
+			pgDB.Close()
+		}
+	}()
 
 	log.Println("Credentials service initialized successfully")
 

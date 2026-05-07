@@ -84,9 +84,14 @@ buck-out/
 # Watchman
 .watchmanconfig
 
-# Cardano keys (NEVER commit signing keys)
+# Legacy / unused signing material (prefer Metagraph + did:key per ADR-0001)
 *.skey
-configs/cardano-testnet/
+
+# Go binaries at repo root (WO-280 / ADR-0001 — do not commit build outputs)
+/echoapp
+/credentials
+/cardanoidentity
+*.exe
 
 # Metagraph build artifacts
 metagraph/modules/*/target/

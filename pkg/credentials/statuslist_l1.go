@@ -5,16 +5,19 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const statusListBitCount = 131072
 
-// StatusList2021BatchUpdate matches Scala StatusList2021BatchUpdate (Identity L1 POST /transactions).
+// statusList2021BatchWire matches Scala StatusList2021BatchUpdate (Identity L1 POST /transactions).
 type statusList2021BatchWire struct {
 	IssuerOrgDID string `json:"issuerOrgDID"`
 	BitVector    string `json:"bitVector"`
@@ -22,23 +25,24 @@ type statusList2021BatchWire struct {
 	Sequence     int64  `json:"sequence"`
 }
 
-// StatusListPublisher maintains an in-memory StatusList2021 bit vector. Revocations mark the
-// vector dirty and enqueue an asynchronous L1 publish (coalesced + retried); a periodic ticker
-// retries while dirty so failed pushes are not lost.
+// StatusListPublisher maintains an in-memory StatusList2021 bit vector, or persists slots in
+// Postgres when [StatusListPublisher.AttachPostgres] is used. Revocations mark state dirty / pending
+// and enqueue an asynchronous L1 publish (coalesced + retried).
 type StatusListPublisher struct {
-	mu        sync.Mutex
-	vec       []byte
-	credToIdx map[string]int
-	nextIdx   int
-	seq       int64
-	dirty     bool
-	cfg       MetagraphConfig
-	client    *http.Client
-	stop      chan struct{}
-	// publishTrigger coalesces: at most one pending wakeup (hybrid async publish).
+	mu             sync.Mutex
+	vec            []byte
+	credToIdx      map[string]int
+	nextIdx        int
+	seq            int64
+	dirty          bool
+	cfg            MetagraphConfig
+	client         *http.Client
+	stop           chan struct{}
 	publishTrigger chan struct{}
 	wg             sync.WaitGroup
 	stopOnce       sync.Once
+
+	pg *pgStatusList
 
 	statsMu              sync.RWMutex
 	lastPublishSuccessAt time.Time
@@ -62,6 +66,14 @@ func NewStatusListPublisher(cfg MetagraphConfig) *StatusListPublisher {
 		stop:           make(chan struct{}),
 		publishTrigger: make(chan struct{}, 1),
 	}
+}
+
+// AttachPostgres switches slot allocation, revocation tracking, and publish snapshots to Postgres (WO-274).
+func (p *StatusListPublisher) AttachPostgres(pool *pgxpool.Pool) {
+	if p == nil {
+		return
+	}
+	p.pg = newPGStatusList(pool, p.cfg.IssuerDID)
 }
 
 // Start begins a single worker: reacts to revoke-driven signals and a periodic dirty check.
@@ -110,14 +122,17 @@ func (p *StatusListPublisher) Stop() {
 }
 
 // AllocateIndex assigns the next status list index for a stored credential ID (internal UUID).
-func (p *StatusListPublisher) AllocateIndex(credentialStorageID string) int {
+func (p *StatusListPublisher) AllocateIndex(credentialStorageID string) (int, error) {
 	if p == nil {
-		return 0
+		return 0, nil
+	}
+	if p.pg != nil {
+		return p.pg.allocateIndex(context.Background(), credentialStorageID)
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if idx, ok := p.credToIdx[credentialStorageID]; ok {
-		return idx
+		return idx, nil
 	}
 	if p.nextIdx >= statusListBitCount {
 		p.nextIdx = statusListBitCount - 1
@@ -125,14 +140,25 @@ func (p *StatusListPublisher) AllocateIndex(credentialStorageID string) int {
 	idx := p.nextIdx
 	p.nextIdx++
 	p.credToIdx[credentialStorageID] = idx
-	return idx
+	return idx, nil
 }
 
 // MarkRevoked sets the revocation bit and enqueues an asynchronous L1 publish. Returns false
-// if this credential had no allocated status-list index.
+// if this credential had no allocated status-list index (or no row in Postgres).
 func (p *StatusListPublisher) MarkRevoked(credentialStorageID string) bool {
 	if p == nil {
 		return false
+	}
+	if p.pg != nil {
+		ok, err := p.pg.markRevoked(context.Background(), credentialStorageID)
+		if err != nil {
+			fmt.Printf("Warning: status list mark revoked (postgres): %v\n", err)
+			return false
+		}
+		if ok {
+			p.signalPublish()
+		}
+		return ok
 	}
 	p.mu.Lock()
 	idx, ok := p.credToIdx[credentialStorageID]
@@ -151,11 +177,18 @@ func (p *StatusListPublisher) MarkRevoked(credentialStorageID string) bool {
 	return true
 }
 
-// PublishPending is true when the local bit vector has not yet been successfully pushed to L1
-// after the last change (or a push is still catching up).
+// PublishPending is true when the local snapshot has not yet been successfully pushed to L1
+// after the last change.
 func (p *StatusListPublisher) PublishPending() bool {
 	if p == nil {
 		return false
+	}
+	if p.pg != nil {
+		pending, err := p.pg.publishPending(context.Background())
+		if err != nil {
+			return false
+		}
+		return pending
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -215,27 +248,10 @@ func (p *StatusListPublisher) runPublishWithRetry() {
 	}
 }
 
-// Publish posts one snapshot of the bit vector to Identity L1. On HTTP success, bumps sequence
-// and clears dirty if no concurrent revocation modified the vector during the round trip.
-func (p *StatusListPublisher) Publish(ctx context.Context) error {
-	if p == nil {
-		return nil
-	}
-
-	p.mu.Lock()
-	if !p.dirty {
-		// Nothing to push — avoid empty heartbeat writes
-		p.mu.Unlock()
-		return nil
-	}
-	vecCopy := append([]byte(nil), p.vec...)
-	seq := p.seq
-	issuer := p.cfg.IssuerDID
-	p.mu.Unlock()
-
+func (p *StatusListPublisher) postStatusListHTTP(ctx context.Context, vec []byte, seq int64) error {
 	body := statusList2021BatchWire{
-		IssuerOrgDID: issuer,
-		BitVector:    base64.StdEncoding.EncodeToString(vecCopy),
+		IssuerOrgDID: p.cfg.IssuerDID,
+		BitVector:    base64.StdEncoding.EncodeToString(vec),
 		PublishedAt:  time.Now().UnixMilli(),
 		Sequence:     seq,
 	}
@@ -265,6 +281,53 @@ func (p *StatusListPublisher) Publish(ctx context.Context) error {
 		p.statsMu.Lock()
 		p.lastPublishErr = err.Error()
 		p.statsMu.Unlock()
+		return err
+	}
+	return nil
+}
+
+// Publish posts one snapshot of the bit vector to Identity L1. On HTTP success, bumps sequence
+// and clears dirty if no concurrent revocation modified the vector during the round trip (memory),
+// or updates the Postgres outbox (durable).
+func (p *StatusListPublisher) Publish(ctx context.Context) error {
+	if p == nil {
+		return nil
+	}
+
+	if p.pg != nil {
+		vec, seq, wm, err := p.pg.buildBitVector(ctx)
+		if err != nil {
+			if errors.Is(err, errStatusListNothingToPublish) {
+				return nil
+			}
+			return err
+		}
+		if err := p.postStatusListHTTP(ctx, vec, seq); err != nil {
+			return err
+		}
+		if err := p.pg.afterPublishOK(ctx, seq, wm); err != nil {
+			return err
+		}
+		p.statsMu.Lock()
+		p.lastPublishSuccessAt = time.Now()
+		p.lastPublishErr = ""
+		p.statsMu.Unlock()
+		if p.PublishPending() {
+			p.signalPublish()
+		}
+		return nil
+	}
+
+	p.mu.Lock()
+	if !p.dirty {
+		p.mu.Unlock()
+		return nil
+	}
+	vecCopy := append([]byte(nil), p.vec...)
+	seq := p.seq
+	p.mu.Unlock()
+
+	if err := p.postStatusListHTTP(ctx, vecCopy, seq); err != nil {
 		return err
 	}
 

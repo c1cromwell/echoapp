@@ -79,10 +79,15 @@ func (i *Issuer) IssueCredential(ctx context.Context, req *CredentialIssuanceReq
 	progress.CurrentStep = "Generating credential"
 	i.setProgress(credentialID, progress)
 
-	statusIdxStr := "0"
+	statusIdx := 0
 	if i.statusList != nil {
-		statusIdxStr = strconv.Itoa(i.statusList.AllocateIndex(credentialID))
+		var err error
+		statusIdx, err = i.statusList.AllocateIndex(credentialID)
+		if err != nil {
+			return nil, NewCredentialErrorWithDetails(ErrCodeIssuanceFailed, "status list slot allocation failed", err.Error())
+		}
 	}
+	statusIdxStr := strconv.Itoa(statusIdx)
 
 	// Create credential
 	vc := i.createWC3VerifiableCredential(req, credentialID, statusIdxStr)
