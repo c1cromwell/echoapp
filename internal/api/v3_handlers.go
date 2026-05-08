@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
+	"github.com/thechadcromwell/echoapp/internal/infra"
 	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
 	"github.com/thechadcromwell/echoapp/internal/services/contacts"
 	"github.com/thechadcromwell/echoapp/internal/services/groups"
@@ -37,6 +38,7 @@ type V3Handlers struct {
 	Rewards      *rewards.Service
 	Groups       *groups.GroupService
 	Broadcasts   *broadcast_channels.ChannelService
+	RateLimiter  *infra.RateLimiter // optional; enforces per-DID claim velocity (WO-35)
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.
@@ -267,16 +269,28 @@ func (h *V3Handlers) handleRewardsClaim(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	did := h.getDID(r)
+	reqID := r.Header.Get("X-Request-ID")
+
+	// Anti-gaming: rate-limit reward claims at the HTTP layer (WO-35).
+	// The rewards service also runs velocity + duplicate checks internally.
+	if h.RateLimiter != nil {
+		if err := h.RateLimiter.Check(did, "reward_claim"); err != nil {
+			WriteError(w, http.StatusTooManyRequests, "RATE_LIMIT_EXCEEDED", "reward claim rate limit exceeded", reqID)
+			return
+		}
+	}
+
 	var req rewards.ClaimRequest
 	if err := h.readJSON(r, &req); err != nil {
-		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", reqID)
 		return
 	}
-	req.DID = h.getDID(r)
+	req.DID = did
 
 	result, err := h.Rewards.Claim(r.Context(), req)
 	if err != nil {
-		WriteError(w, http.StatusBadRequest, "CLAIM_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		WriteError(w, http.StatusBadRequest, "CLAIM_ERROR", err.Error(), reqID)
 		return
 	}
 
