@@ -16,7 +16,7 @@ CREATE INDEX idx_users_did ON users(did);
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_trust_tier ON users(trust_tier);
 
--- Cached trust scores (TTL: 60s, refreshed from Cardano + metagraph)
+-- Cached trust scores (TTL: 60s, refreshed from Identity Metagraph + relay aggregates)
 CREATE TABLE IF NOT EXISTS trust_scores (
     did         TEXT PRIMARY KEY,
     score       INT NOT NULL DEFAULT 0 CHECK (score BETWEEN 0 AND 100),
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS trust_scores (
 
 CREATE INDEX idx_trust_scores_expires ON trust_scores(expires_at);
 
--- Cached credential status from Cardano
+-- Cached credential status (issuer / relay; metagraph is source of truth for anchors)
 CREATE TABLE IF NOT EXISTS credentials (
     credential_id   TEXT PRIMARY KEY,
     did             TEXT NOT NULL,

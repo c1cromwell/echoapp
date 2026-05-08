@@ -21,17 +21,17 @@ A fully decentralized messaging platform that combines:
 
 | Layer | Technology | Decentralization Level |
 |-------|-----------|----------------------|
-| Identity & Auth | Cardano (Veridian/Atala PRISM), KERI | High |
+| Identity & Auth | W3C `did:key`, Identity Metagraph (VCs, StatusList2021), passkeys / Secure Enclave | High |
 | Messaging | libp2p, Constellation Hypergraph, Noise Protocol | High |
 | Storage | IPFS/Filecoin, OrbitDB | Medium-High |
-| Trust Engine | Cardano Smart Contracts | High |
+| Trust Engine | Identity Metagraph commitments; ECHO token logic on Currency metagraph (Phase 1–2) | High |
 | Frontend | React Native, Swift, WalletConnect | N/A |
 
 ### Key Technical Decisions
-- **DIDs on Cardano**: Self-sovereign identity without central auth servers
-- **P2P Messaging**: No central servers; users route via peers
-- **Blockchain Anchoring**: Message hashes stored for provability
-- **Zero-Knowledge Proofs**: Privacy-preserving authentication and verification
+- **DIDs (`did:key`)**: Self-certifying identifiers; registration and device bindings via `POST /identity/register` (Phase 1 per ADR-0001 — no pre-ADR-0001 external issuer integration).
+- **P2P Messaging**: Relay + E2E encrypted payloads; metagraph for proofs and rewards where applicable.
+- **Blockchain / metagraph anchoring**: Message and identity artifacts anchored on Constellation layers per phase roadmap.
+- **Zero-Knowledge Proofs**: Privacy-preserving authentication and verification (Phase 3+ evaluation).
 
 ## Key Features
 
@@ -73,7 +73,7 @@ A fully decentralized messaging platform that combines:
 
 ### Phase 1: Research & Prototype (1-2 months)
 - Validate IRON SPIDR parallels
-- Build PoC for Cardano DID + P2P chat
+- Build PoC for `did:key` + Identity Metagraph issuance and P2P / relay messaging
 - Security whitepaper
 
 ### Phase 2: Core Build (3-5 months)

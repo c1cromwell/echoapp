@@ -35,7 +35,7 @@ final class MainSpec extends AnyFunSpec with Matchers {
       val u = VCIssuanceUpdate(
         credentialId   = "urn:uuid:11111111-1111-1111-1111-111111111111",
         subjectDID     = Subject,
-        issuerDID      = Issuer,
+        issuerDID      = Sender,
         credentialType = "TrustTierCredential",
         issuedAt       = Now - 1000L,
         schemaVersion  = "v1.0.0"
@@ -47,6 +47,18 @@ final class MainSpec extends AnyFunSpec with Matchers {
       val u = VCIssuanceUpdate(
         credentialId   = "urn:uuid:bad",
         subjectDID     = "did:web:example.com",
+        issuerDID      = Sender,
+        credentialType = "TrustTierCredential",
+        issuedAt       = Now - 1000L,
+        schemaVersion  = "v1.0.0"
+      )
+      Main.dispatch(u, Sender, Now).isLeft shouldBe true
+    }
+
+    it("rejects VC issuance when issuerDID does not match Identity Service (wired, WO-272)") {
+      val u = VCIssuanceUpdate(
+        credentialId   = "urn:uuid:wrong-issuer",
+        subjectDID     = Subject,
         issuerDID      = Issuer,
         credentialType = "TrustTierCredential",
         issuedAt       = Now - 1000L,
@@ -121,6 +133,48 @@ final class MainSpec extends AnyFunSpec with Matchers {
         publicKeyHex = "deadbeef",
         deviceLabel  = "x",
         addedAt      = Now - 50L
+      )
+      Main.dispatch(u, Sender, Now).isLeft shouldBe true
+    }
+
+    it("rejects a StatusList2021 batch whose bitVector is the wrong length (wired, WO-277)") {
+      val u = StatusList2021BatchUpdate(
+        issuerOrgDID = Issuer,
+        bitVector    = "0" * (StatusList2021Vector.ExpectedHexLength - 1),
+        publishedAt  = Now - 100L,
+        sequence     = 1L
+      )
+      Main.dispatch(u, Sender, Now).isLeft shouldBe true
+    }
+
+    it("rejects a StatusList2021 batch whose bitVector is not hex (wired, WO-277)") {
+      val u = StatusList2021BatchUpdate(
+        issuerOrgDID = Issuer,
+        bitVector    = "z" + ("0" * (StatusList2021Vector.ExpectedHexLength - 1)),
+        publishedAt  = Now - 100L,
+        sequence     = 1L
+      )
+      Main.dispatch(u, Sender, Now).isLeft shouldBe true
+    }
+
+    it("rejects StatusList2021 from an unauthorized sender (wired)") {
+      val u = StatusList2021BatchUpdate(
+        issuerOrgDID = Issuer,
+        bitVector    = "0" * StatusList2021Vector.ExpectedHexLength,
+        publishedAt  = Now - 100L,
+        sequence     = 1L
+      )
+      Main.dispatch(u, "did:key:zUNAUTHSTATUSLISTL1TESTKEYXXXXXXXX", Now).isLeft shouldBe true
+    }
+
+    it("rejects EchoOrgRoleCredential with expiry in the past (wired)") {
+      val u = EchoOrgRoleCredentialUpdate(
+        credentialId = "urn:uuid:expired-role",
+        issuerOrgDID = OrgIssuer,
+        memberDID    = Member,
+        role         = "member",
+        expiry       = Now - 1L,
+        issuedAt     = Now - 86_400_000L
       )
       Main.dispatch(u, Sender, Now).isLeft shouldBe true
     }

@@ -330,6 +330,7 @@ func (h *V3Handlers) handleRewardsAutoScaleRate(w http.ResponseWriter, r *http.R
 
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"ratePerMessage": h.Rewards.AutoScaleRate(),
+		"decayFactor":    h.Rewards.MessagingDecayFactor(),
 		"timestamp":      time.Now().UTC().Format(time.RFC3339),
 	})
 }

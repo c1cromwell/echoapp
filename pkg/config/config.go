@@ -15,7 +15,6 @@ type Config struct {
 	TLS      TLSConfig
 	CORS     CORSConfig
 	Auth     AuthConfig
-	Cardano  CardanoConfig
 	Identity IdentityConfig
 	Database DatabaseConfig
 	Redis    RedisConfig
@@ -68,44 +67,6 @@ type AuthConfig struct {
 	TokenType           string // "Bearer", "Basic", "Custom"
 	SkipAuthPaths       []string
 	PasskeyVerification bool
-}
-
-// CardanoConfig holds Cardano blockchain configuration
-type CardanoConfig struct {
-	// Network configuration
-	Network   string // testnet, mainnet, custom
-	NodeURL   string // Cardano node RPC endpoint
-	WalletURL string // Cardano wallet API endpoint
-	NetworkID int    // Network ID (0 for testnet, 1 for mainnet)
-
-	// Wallet configuration
-	WalletName     string // Name of the wallet to use
-	WalletPassword string // Wallet password (from env)
-	WalletMnemonic string // Wallet seed phrase (from env, never logged)
-	PaymentAddress string // Payment address for transactions
-	StakingAddress string // Staking address
-
-	// Transaction configuration
-	TxTimeoutSeconds   int
-	ConfirmationBlocks int64
-	GasMultiplier      float64
-	MinFeeLovelace     int64 // Minimum fee in Lovelace
-
-	// Protocol configuration
-	ProtocolVersion string
-	EraString       string // Current Cardano era
-
-	// Connection settings
-	MaxConnections int
-	ConnectionPool int
-	RetryAttempts  int
-	RetryDelayMs   int
-	RequestTimeout time.Duration
-
-	// Feature flags
-	EnableSmartContracts bool
-	EnableMetadata       bool
-	EnableNFT            bool
 }
 
 // IdentityConfig holds identity service configuration
@@ -240,30 +201,6 @@ func LoadConfig() *Config {
 				"/v1/identity/health",
 			},
 		},
-		Cardano: CardanoConfig{
-			Network:              getEnv("CARDANO_NETWORK", "testnet"),
-			NodeURL:              getEnv("CARDANO_NODE_URL", "http://localhost:8090"),
-			WalletURL:            getEnv("CARDANO_WALLET_URL", "http://localhost:8091"),
-			NetworkID:            getIntOrDefault("CARDANO_NETWORK_ID", 0), // 0 for testnet, 1 for mainnet
-			WalletName:           getEnv("CARDANO_WALLET_NAME", "identity-wallet"),
-			WalletPassword:       getEnv("CARDANO_WALLET_PASSWORD", ""), // From env for security
-			PaymentAddress:       getEnv("CARDANO_PAYMENT_ADDRESS", ""),
-			StakingAddress:       getEnv("CARDANO_STAKING_ADDRESS", ""),
-			TxTimeoutSeconds:     getIntOrDefault("CARDANO_TX_TIMEOUT_SECONDS", 300),
-			ConfirmationBlocks:   getInt64OrDefault("CARDANO_CONFIRMATION_BLOCKS", 12),
-			GasMultiplier:        getFloatOrDefault("CARDANO_GAS_MULTIPLIER", 1.2),
-			MinFeeLovelace:       getInt64OrDefault("CARDANO_MIN_FEE_LOVELACE", 200000),
-			ProtocolVersion:      getEnv("CARDANO_PROTOCOL_VERSION", "8.0"),
-			EraString:            getEnv("CARDANO_ERA", "Babbage"),
-			MaxConnections:       getIntOrDefault("CARDANO_MAX_CONNECTIONS", 10),
-			ConnectionPool:       getIntOrDefault("CARDANO_CONNECTION_POOL", 5),
-			RetryAttempts:        getIntOrDefault("CARDANO_RETRY_ATTEMPTS", 3),
-			RetryDelayMs:         getIntOrDefault("CARDANO_RETRY_DELAY_MS", 1000),
-			RequestTimeout:       parseDurationOrDefault("CARDANO_REQUEST_TIMEOUT", 30*time.Second),
-			EnableSmartContracts: getEnv("CARDANO_ENABLE_SMART_CONTRACTS", "false") == "true",
-			EnableMetadata:       getEnv("CARDANO_ENABLE_METADATA", "true") == "true",
-			EnableNFT:            getEnv("CARDANO_ENABLE_NFT", "false") == "true",
-		},
 		Identity: IdentityConfig{
 			CacheTTL:                        parseDurationOrDefault("IDENTITY_CACHE_TTL", 5*time.Minute),
 			CacheMaxEntries:                 getIntOrDefault("IDENTITY_CACHE_MAX_ENTRIES", 10000),
@@ -346,26 +283,6 @@ func getIntOrDefault(key string, defaultValue int) int {
 	return defaultValue
 }
 
-// getInt64OrDefault retrieves an environment variable as int64 or returns a default value
-func getInt64OrDefault(key string, defaultValue int64) int64 {
-	if value := os.Getenv(key); value != "" {
-		if int64Val, err := strconv.ParseInt(value, 10, 64); err == nil {
-			return int64Val
-		}
-	}
-	return defaultValue
-}
-
-// getFloatOrDefault retrieves an environment variable as float64 or returns a default value
-func getFloatOrDefault(key string, defaultValue float64) float64 {
-	if value := os.Getenv(key); value != "" {
-		if floatVal, err := strconv.ParseFloat(value, 64); err == nil {
-			return floatVal
-		}
-	}
-	return defaultValue
-}
-
 // parseDurationOrDefault parses a duration from environment or returns a default value
 func parseDurationOrDefault(key string, defaultValue time.Duration) time.Duration {
 	if value := os.Getenv(key); value != "" {
@@ -378,24 +295,6 @@ func parseDurationOrDefault(key string, defaultValue time.Duration) time.Duratio
 
 // Validate validates the configuration
 func (c *Config) Validate() error {
-	// Validate Cardano configuration
-	if c.Cardano.Network == "" {
-		return fmt.Errorf("CARDANO_NETWORK is required")
-	}
-
-	validNetworks := map[string]bool{"testnet": true, "mainnet": true, "custom": true}
-	if !validNetworks[c.Cardano.Network] {
-		return fmt.Errorf("invalid CARDANO_NETWORK: %s", c.Cardano.Network)
-	}
-
-	if c.Cardano.NodeURL == "" {
-		return fmt.Errorf("CARDANO_NODE_URL is required")
-	}
-
-	if c.Cardano.WalletURL == "" {
-		return fmt.Errorf("CARDANO_WALLET_URL is required")
-	}
-
 	// Validate identity configuration
 	validTrustLevels := map[string]bool{
 		"unverified":            true,
@@ -412,30 +311,6 @@ func (c *Config) Validate() error {
 	}
 
 	return nil
-}
-
-// GetCardanoNetworkID returns the Cardano network ID as an integer
-func (c *CardanoConfig) GetNetworkID() int {
-	if c.Network == "mainnet" {
-		return 1
-	}
-	return 0 // testnet
-}
-
-// GetCardanoURL returns the appropriate Cardano URL based on network
-func (c *CardanoConfig) GetCardanoURL() string {
-	if c.NodeURL != "" {
-		return c.NodeURL
-	}
-
-	switch c.Network {
-	case "mainnet":
-		return "https://cardano-mainnet.blockfrost.io"
-	case "testnet":
-		return "https://cardano-testnet.blockfrost.io"
-	default:
-		return "http://localhost:8090"
-	}
 }
 
 // IsTLSEnabled returns whether TLS is enabled

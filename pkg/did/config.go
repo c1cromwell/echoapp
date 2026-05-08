@@ -8,8 +8,8 @@ import (
 // Config holds the configuration for the DID service.
 //
 // Phase 1 (per ADR-0001): the DID method is did:key (P-256), which is
-// self-certifying — there is no Atala PRISM client and no Cardano node
-// to point at. Anchoring of issuance records / trust commitments / VC
+// self-certifying — there is no external DID resolver RPC or proof-of-stake
+// chain client in the registration path. Anchoring of issuance records / trust commitments / VC
 // status lives on the Constellation Identity Metagraph and is configured
 // via pkg/credentials.MetagraphConfig.
 type Config struct {

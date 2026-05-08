@@ -53,9 +53,9 @@ object IdentityValidations {
 
   /**
    * VC Issuance Record validator.
-   * Only the registered Identity Service DID may anchor VC issuance records
-   * in Phase 1. All DID fields must be did:key. Issuance time must be in
-   * the past or near-future (small clock skew allowed).
+   * Phase 1: the transaction sender and `issuerDID` must both match the
+   * registered Identity Service DID. Subject must be did:key. Issuance
+   * time must be in the past or near-future (small clock skew allowed).
    */
   def validateVCIssuance(
     update:           VCIssuanceUpdate,
@@ -69,6 +69,11 @@ object IdentityValidations {
       _ <- boundedLen("credentialId", update.credentialId, MaxFieldLen)
       _ <- validateDidKey("subjectDID", update.subjectDID)
       _ <- validateDidKey("issuerDID", update.issuerDID)
+      _ <- Either.cond(
+        update.issuerDID == authorizedSender,
+        (),
+        "issuerDID must equal the Identity Service DID in Phase 1"
+      )
       _ <- nonEmpty("credentialType", update.credentialType)
       _ <- boundedLen("credentialType", update.credentialType, MaxCredTypeLen)
       _ <- nonEmpty("schemaVersion", update.schemaVersion)

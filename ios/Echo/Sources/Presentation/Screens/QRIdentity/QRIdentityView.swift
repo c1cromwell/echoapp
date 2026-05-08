@@ -160,7 +160,7 @@ class QRIdentityViewModel: ObservableObject {
     func loadIdentity() {
         // TODO: Load from identity service
         echoHandle = "echo:user"
-        did = "did:cardano:addr1q8example"
+        did = "did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9KbrL2g"
         trustScore = 72
         generateQRCode()
     }

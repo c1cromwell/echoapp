@@ -15,6 +15,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/auth"
 	"github.com/thechadcromwell/echoapp/internal/infra"
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/pkg/credentials"
 )
 
 // contextKey is an unexported type for context keys to avoid collisions.
@@ -47,16 +48,18 @@ type HealthCheckResponse struct {
 
 // Router holds the HTTP handler and configuration for the Echo API.
 type Router struct {
-	AllowedOrigins  []string
-	StartTime       time.Time
-	TokenValidator  func(token string) bool
-	UserIDExtractor func(token string) string
-	WSHub           *Hub               // WebSocket hub for real-time messaging
-	V3              *V3Handlers        // V3 API handlers (blueprint services)
-	DIDRegistry     DIDRegistry        // did:key binding store (WO-230 / WO-278)
+	AllowedOrigins       []string
+	StartTime            time.Time
+	TokenValidator       func(token string) bool
+	UserIDExtractor      func(token string) string
+	WSHub                *Hub          // WebSocket hub for real-time messaging
+	V3                   *V3Handlers   // V3 API handlers (blueprint services)
+	DIDRegistry          DIDRegistry   // did:key binding store (WO-230 / WO-278)
 	CredentialStatusPool *pgxpool.Pool // WO-274 durable VC status list slots (optional)
 	Redis                *infra.RedisClient
 	IdentityL1           *metagraph.MetagraphClient // WO-274 trust-tier commitments
+	DataL1               *metagraph.MetagraphClient // WO-230 Data L1 Merkle proxy (optional)
+	CredentialService    *credentials.Service       // WO-273 optional VC issuance (same stack as cmd/credentials)
 	tokenService         *auth.TokenService         // ES256 JWT token service
 }
 
@@ -120,6 +123,8 @@ func (rt *Router) Handler() http.Handler {
 			rt.handleIdentityResolve(w, r, did)
 		case strings.HasPrefix(r.URL.Path, "/identity/credentials/status/"):
 			rt.handleCredentialVCStatus(w, r)
+		case r.URL.Path == "/identity/credentials":
+			rt.handleIdentityCredentials(w, r)
 		case strings.HasPrefix(r.URL.Path, "/identity/"):
 			did := strings.TrimPrefix(r.URL.Path, "/identity/")
 			rt.handleIdentityResolve(w, r, did)
@@ -155,14 +160,17 @@ func (rt *Router) requestIDMiddleware(next http.Handler) http.Handler {
 // publicPaths are exempt from Bearer token authentication.
 // These are registration and restore endpoints that new devices call before they have a token.
 var publicPaths = map[string]bool{
-	"/v1/auth/register-did":      true,
-	"/v1/auth/restore-challenge": true,
-	"/v1/auth/restore-did":       true,
-	"/v1/enrollment/vc/start":    true,
-	"/v1/enrollment/mdl/start":   true,
-	"/v1/enrollment/idv/start":   true,
-	"/identity/register":         true,
-	"/identity/devices":          true,
+	"/v1/auth/register-did":            true,
+	"/v1/auth/restore-challenge":       true,
+	"/v1/auth/restore-did":             true,
+	"/v1/enrollment/vc/start":          true,
+	"/v1/enrollment/mdl/start":         true,
+	"/v1/enrollment/idv/start":         true,
+	"/v1/enrollment/idv/await":         true,
+	"/v1/data-l1/merkle-roots":         true,
+	"/v1/phase1/trust-tier-commitment": true,
+	"/identity/register":               true,
+	"/identity/devices":                true,
 }
 
 // identityRequestExemptFromAuth lists unauthenticated Identity routes (did:key resolution, etc.).
@@ -175,7 +183,7 @@ func identityRequestExemptFromAuth(path, method string) bool {
 		return true
 	case method == http.MethodGet && strings.HasPrefix(path, "/identity/credentials/status/"):
 		return true
-	case method == http.MethodGet && strings.HasPrefix(path, "/identity/"):
+	case method == http.MethodGet && path != "/identity/credentials" && strings.HasPrefix(path, "/identity/"):
 		return true
 	default:
 		return false
@@ -290,6 +298,10 @@ func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
 		rt.handleEnrollmentMDL(w, r)
 	case "/v1/enrollment/idv/start", "/v1/enrollment/idv/await":
 		rt.handleEnrollmentIDV(w, r)
+	case "/v1/data-l1/merkle-roots":
+		rt.handleDataL1MerkleRoots(w, r)
+	case "/v1/phase1/trust-tier-commitment":
+		rt.handlePhase1TrustTierCommitment(w, r)
 
 	default:
 		WriteError(w, http.StatusNotFound, "ENDPOINT_NOT_FOUND", "Endpoint not found", r.Header.Get("X-Request-ID"))

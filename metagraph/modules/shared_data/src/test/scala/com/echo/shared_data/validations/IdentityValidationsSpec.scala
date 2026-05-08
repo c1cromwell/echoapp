@@ -28,7 +28,7 @@ final class IdentityValidationsSpec extends AnyFunSpec with Matchers {
   private def validVC = VCIssuanceUpdate(
     credentialId   = "urn:uuid:11111111-1111-1111-1111-111111111111",
     subjectDID     = Subject,
-    issuerDID      = Issuer,
+    issuerDID      = IdentitySvc,
     credentialType = "TrustTierCredential",
     issuedAt       = Now - 1000L,
     schemaVersion  = "v1.0.0"
@@ -75,8 +75,15 @@ final class IdentityValidationsSpec extends AnyFunSpec with Matchers {
     }
 
     it("rejects a non-did:key issuer") {
-      val u = validVC.copy(issuerDID = "did:prism:cardano:abc")
+      val u = validVC.copy(issuerDID = "did:web:untrusted.example")
       IdentityValidations.validateVCIssuance(u, IdentitySvc, IdentitySvc, Now).isLeft shouldBe true
+    }
+
+    it("rejects issuerDID that is not the Identity Service DID (Phase 1)") {
+      val u = validVC.copy(issuerDID = Issuer)
+      val r = IdentityValidations.validateVCIssuance(u, IdentitySvc, IdentitySvc, Now)
+      r.isLeft shouldBe true
+      r.left.toOption.get should include("issuerDID must equal")
     }
 
     it("rejects empty credentialId") {

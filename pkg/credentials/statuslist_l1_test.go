@@ -1,6 +1,8 @@
 package credentials
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -10,9 +12,15 @@ import (
 
 func TestStatusListMarkRevokedAsyncPublish(t *testing.T) {
 	var posts atomic.Int32
+	var lastBody []byte
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/transactions" {
 			t.Errorf("path %s", r.URL.Path)
+		}
+		var err error
+		lastBody, err = io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("read body: %v", err)
 		}
 		posts.Add(1)
 		w.WriteHeader(http.StatusOK)
@@ -52,6 +60,20 @@ func TestStatusListMarkRevokedAsyncPublish(t *testing.T) {
 	}
 	if p.PublishPending() {
 		t.Fatal("expected dirty cleared after successful publish")
+	}
+	const wantHexLen = 32768
+	var payload statusList2021BatchWire
+	if err := json.Unmarshal(lastBody, &payload); err != nil {
+		t.Fatalf("decode posted JSON: %v", err)
+	}
+	if len(payload.BitVector) != wantHexLen {
+		t.Fatalf("bitVector len = %d, want %d", len(payload.BitVector), wantHexLen)
+	}
+	for _, c := range payload.BitVector {
+		if c >= '0' && c <= '9' || c >= 'a' && c <= 'f' {
+			continue
+		}
+		t.Fatalf("bitVector must be lowercase hex, bad rune %q in %s…", c, payload.BitVector[:16])
 	}
 }
 

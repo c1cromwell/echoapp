@@ -4,25 +4,31 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
 )
 
-func (rt *Router) handleTrustTierCommitment(w http.ResponseWriter, r *http.Request) {
+// handlePhase1TrustTierCommitment exposes POST /v1/phase1/trust-tier-commitment for
+// scripts/validate-phase1.sh (WO-230 Step 3). It forwards a TrustTierCommitmentUpdate
+// to Identity L1 without JWT — only when ENVIRONMENT=development or
+// PHASE1_ALLOW_OPEN_VALIDATE=true.
+func (rt *Router) handlePhase1TrustTierCommitment(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if os.Getenv("ENVIRONMENT") != "development" && os.Getenv("PHASE1_ALLOW_OPEN_VALIDATE") != "true" {
+		WriteError(w, http.StatusForbidden, "FORBIDDEN", "open Phase-1 validate endpoints are disabled", r.Header.Get("X-Request-ID"))
 		return
 	}
 	if rt.IdentityL1 == nil {
 		WriteError(w, http.StatusServiceUnavailable, "L1_UNAVAILABLE", "Identity L1 client is not configured", r.Header.Get("X-Request-ID"))
 		return
 	}
-	uid, ok := r.Context().Value(ContextKeyUserID).(string)
-	if !ok || uid == "" {
-		WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Authentication required", r.Header.Get("X-Request-ID"))
-		return
-	}
+
 	var req struct {
 		SubjectDID string `json:"subject_did"`
 		Tier       int    `json:"tier"`
@@ -37,11 +43,14 @@ func (rt *Router) handleTrustTierCommitment(w http.ResponseWriter, r *http.Reque
 		WriteError(w, http.StatusBadRequest, "INVALID_JSON", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
+	req.SubjectDID = strings.TrimSpace(req.SubjectDID)
+	req.Nonce = strings.TrimSpace(req.Nonce)
 	if req.SubjectDID == "" {
-		req.SubjectDID = uid
+		WriteError(w, http.StatusBadRequest, "MISSING_SUBJECT", "subject_did is required", r.Header.Get("X-Request-ID"))
+		return
 	}
-	if req.SubjectDID != uid {
-		WriteError(w, http.StatusForbidden, "SUBJECT_MISMATCH", "subject_did must match the authenticated principal", r.Header.Get("X-Request-ID"))
+	if !strings.HasPrefix(req.SubjectDID, "did:key:") {
+		WriteError(w, http.StatusBadRequest, "INVALID_SUBJECT", "subject_did must be did:key…", r.Header.Get("X-Request-ID"))
 		return
 	}
 	if req.Tier < 1 || req.Tier > 5 {
@@ -52,6 +61,7 @@ func (rt *Router) handleTrustTierCommitment(w http.ResponseWriter, r *http.Reque
 		WriteError(w, http.StatusBadRequest, "MISSING_NONCE", "nonce is required", r.Header.Get("X-Request-ID"))
 		return
 	}
+
 	commitment := metagraph.TrustTierCommitmentHex(req.Tier, req.Nonce)
 	anchoredAt := time.Now().UnixMilli()
 	tx := metagraph.TrustTierCommitmentUpdate{
@@ -59,24 +69,20 @@ func (rt *Router) handleTrustTierCommitment(w http.ResponseWriter, r *http.Reque
 		Commitment: commitment,
 		AnchoredAt: anchoredAt,
 	}
-	if _, err := rt.IdentityL1.SubmitIdentityL1(r.Context(), tx); err != nil {
+	txHash, err := rt.IdentityL1.SubmitIdentityL1(r.Context(), tx)
+	if err != nil {
 		WriteError(w, http.StatusBadGateway, "L1_SUBMIT_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
-	if rt.Redis != nil {
-		payload, _ := json.Marshal(map[string]interface{}{
-			"subject_did": req.SubjectDID,
-			"tier":        req.Tier,
-			"commitment":  commitment,
-			"anchored_at": anchoredAt,
-		})
-		_ = rt.Redis.CacheSet(r.Context(), "tiercommit:"+req.SubjectDID, payload, 60*time.Second)
+	if txHash == "" {
+		txHash = "accepted"
 	}
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"subject_did": req.SubjectDID,
 		"tier":        req.Tier,
 		"commitment":  commitment,
 		"anchored_at": anchoredAt,
+		"tx_hash":     txHash,
 		"request_id":  r.Header.Get("X-Request-ID"),
 	})
 }

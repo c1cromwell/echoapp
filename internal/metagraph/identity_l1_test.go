@@ -43,3 +43,23 @@ func TestSubmitIdentityL1RequiresURL(t *testing.T) {
 		t.Fatalf("expected IdentityL1URL error, got %v", err)
 	}
 }
+
+func TestTrustTierCommitmentHex(t *testing.T) {
+	got := TrustTierCommitmentHex(3, "phase1")
+	if len(got) != 64 {
+		t.Fatalf("want 64 hex chars, got %d", len(got))
+	}
+	for _, c := range got {
+		isHex := c >= '0' && c <= '9' || c >= 'a' && c <= 'f'
+		if !isHex {
+			t.Fatalf("non-hex in result: %q", got)
+		}
+	}
+	got2 := TrustTierCommitmentHex(3, "phase1")
+	if got != got2 {
+		t.Fatal("not deterministic")
+	}
+	if TrustTierCommitmentHex(4, "phase1") == got {
+		t.Fatal("tier should change digest")
+	}
+}

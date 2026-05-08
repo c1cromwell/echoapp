@@ -11,8 +11,7 @@ type Config struct {
 	// Credential settings
 	CredentialConfig CredentialConfig
 
-	// Identity Metagraph anchoring + StatusList2021 publishing settings
-	// (WO-272 / WO-274). Replaces the Phase-0 Cardano configuration block.
+	// Identity Metagraph anchoring + StatusList2021 publishing settings (WO-272 / WO-274).
 	MetagraphConfig MetagraphConfig
 
 	// Issuer settings
@@ -70,8 +69,7 @@ type CredentialConfig struct {
 }
 
 // MetagraphConfig contains Constellation Identity Metagraph settings used by
-// the credential issuer + StatusList2021 publisher. This struct replaces the
-// pre-ADR-0001 CardanoConfig (eliminated alongside the Atala PRISM client).
+// the credential issuer + StatusList2021 publisher (Phase 1; ADR-0001).
 type MetagraphConfig struct {
 	// L0 + L1 endpoints for the Identity Metagraph (env-overridable;
 	// see CONTRIBUTING.md and Makefile dev target).
@@ -289,7 +287,7 @@ func LoadConfig() *Config {
 		config.CredentialConfig.StatusListCredentialBaseURL = val
 	}
 
-	// Identity Metagraph settings (replaces the Phase-0 CARDANO_* envvars).
+	// Identity Metagraph settings (override defaults via IDENTITY_* env vars).
 	if val := os.Getenv("IDENTITY_L0_URL"); val != "" {
 		config.MetagraphConfig.IdentityL0URL = val
 	}

@@ -45,8 +45,8 @@ type ZKCommitment struct {
 	RevealSalt    string `json:"reveal_salt,omitempty"`    // To verify commitment
 }
 
-// MetagraphConfig holds configuration for Constellation metagraph anchoring.
-// Replaces the Phase-0 CardanoConfig (eliminated alongside Atala PRISM).
+// MetagraphConfig holds configuration for Constellation metagraph anchoring
+// (Phase 1; replaces pre–ADR-0001 external issuer integration).
 type MetagraphConfig struct {
 	Enabled       bool
 	NetworkID     string // "local", "testnet", "mainnet"

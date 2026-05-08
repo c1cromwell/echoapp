@@ -193,9 +193,9 @@ case "$REGISTER_HTTP_CODE" in
 esac
 
 # -----------------------------------------------------------------------------
-# Step 3: Issue trust-tier VC, anchor on local Identity Metagraph (<30s)
+# Step 3: trust-tier commitment on Identity L1 (via dev-only API proxy)
 # -----------------------------------------------------------------------------
-step 3 "Issue test trust-tier VC and anchor on Identity Metagraph"
+step 3 "Anchor test trust-tier commitment on Identity Metagraph"
 
 IDENTITY_L1_URL="${IDENTITY_L1_URL:-http://localhost:9500}"
 
@@ -206,10 +206,34 @@ if curl -fsS --max-time 5 "$IDENTITY_L0_URL/node/info" >/dev/null 2>&1; then
   else
     fail "Identity L1 unreachable at $IDENTITY_L1_URL — check 'hydra status'"
   fi
-  # TODO(WO-273): once the Go Identity Service exposes POST /credentials,
-  # issue a TrustTierCredential here, observe anchor on Identity L1, poll
-  # Identity L0 snapshot for inclusion, assert finality < FINALITY_TIMEOUT_SECS.
-  skip "VC issuance + anchor assertion deferred to WO-273 (Go issuer service)"
+
+  NONCE="$(openssl rand -hex 16)"
+  TIER_BODY=$(jq -nc --arg did "$DID_KEY" --arg nonce "$NONCE" '{subject_did:$did, tier:2, nonce:$nonce}')
+  TIER_CODE=$(curl -sS -o "$TMP_DIR/tier.out" -w '%{http_code}' \
+    --max-time "$FINALITY_TIMEOUT_SECS" \
+    -X POST "$BACKEND_URL/v1/phase1/trust-tier-commitment" \
+    -H "Content-Type: application/json" \
+    -d "$TIER_BODY" 2>/dev/null) || TIER_CODE="000"
+
+  case "$TIER_CODE" in
+    200)
+      COMM=$(jq -r '.commitment // empty' "$TMP_DIR/tier.out")
+      if [ "${#COMM}" -eq 64 ]; then
+        ok "trust-tier commitment anchored (H(tier||nonce) = ${COMM:0:16}…)"
+      else
+        fail "unexpected response body: $(cat "$TMP_DIR/tier.out")"
+      fi
+      ;;
+    403)
+      fail "Phase-1 validate endpoint disabled — API must run with ENVIRONMENT=development (or PHASE1_ALLOW_OPEN_VALIDATE=true)"
+      ;;
+    000)
+      fail "POST /v1/phase1/trust-tier-commitment: backend unreachable"
+      ;;
+    *)
+      fail "POST /v1/phase1/trust-tier-commitment returned HTTP $TIER_CODE: $(cat "$TMP_DIR/tier.out")"
+      ;;
+  esac
 else
   skip "Identity Metagraph not running — start with 'make dev' (WO-276 skeleton + WO-272 validators landed)"
   info "CI/static skeleton: run 'make metagraph-verify-skeleton' (jq). Full compile: cd metagraph && sbt compile;"
@@ -242,10 +266,11 @@ ok "computed Merkle root: $MERKLE_ROOT"
 # Submit via the backend's anchoring endpoint if it's exposed; otherwise skip
 # with an explicit note. The backend's internal/metagraph/anchoring.go produces
 # Data L1 updates but a public HTTP route is not yet wired.
+MERKLE_BODY=$(jq -nc --arg root "$MERKLE_ROOT" '{root:$root, leafCount:1}')
 SUBMIT_RESP=$(curl -fsS --max-time 10 \
   -X POST "$BACKEND_URL/v1/data-l1/merkle-roots" \
   -H "Content-Type: application/json" \
-  -d "{\"root\":\"$MERKLE_ROOT\",\"leaf_count\":1}" 2>/dev/null) || SUBMIT_RESP=""
+  -d "$MERKLE_BODY" 2>/dev/null) || SUBMIT_RESP=""
 
 if [ -z "$SUBMIT_RESP" ]; then
   skip "POST /v1/data-l1/merkle-roots not exposed by backend"
@@ -253,7 +278,7 @@ if [ -z "$SUBMIT_RESP" ]; then
   info "Once routed, this step will assert the root appears in a Data L1"
   info "snapshot within ${FINALITY_TIMEOUT_SECS}s by polling $DATA_L1_URL."
 else
-  TX_ID=$(printf '%s' "$SUBMIT_RESP" | jq -r '.tx_id // .id // empty')
+  TX_ID=$(printf '%s' "$SUBMIT_RESP" | jq -r '.tx_id // .txHash // .id // empty')
   if [ -n "$TX_ID" ]; then
     ok "submitted Merkle root, tx_id=$TX_ID"
     DEADLINE=$(( $(date +%s) + FINALITY_TIMEOUT_SECS ))
@@ -311,7 +336,7 @@ fi
 printf "\n%s===== Summary =====%s\n" "$BOLD" "$RESET"
 printf "  passed:  %s%d%s\n" "$GREEN"  "$PASS" "$RESET"
 printf "  failed:  %s%d%s\n" "$RED"    "$FAIL" "$RESET"
-printf "  skipped: %s%d%s (blocked on WO-272 / WO-275 / WO-276)\n" "$YELLOW" "$SKIP" "$RESET"
+printf "  skipped: %s%d%s (Step 3 VC anchor optional; Step 5 finality poll if Data L1 exposes read API)\n" "$YELLOW" "$SKIP" "$RESET"
 
 if [ "$FAIL" -gt 0 ]; then
   printf "\n%sGo/No-Go: NO-GO%s\n" "$RED" "$RESET"

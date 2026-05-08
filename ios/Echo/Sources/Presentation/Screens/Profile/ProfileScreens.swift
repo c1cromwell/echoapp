@@ -1453,7 +1453,7 @@ import SwiftUI
                                 .typographyStyle(.caption, color: .echoGray400)
 
                             HStack(spacing: Spacing.md.rawValue) {
-                                Label("Powered by Cardano", systemImage: "link")
+                                Label("Secured with Constellation", systemImage: "link")
                                     .typographyStyle(.caption, color: .echoGray400)
                             }
                         }

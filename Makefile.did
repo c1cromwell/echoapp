@@ -101,8 +101,9 @@ docker-build: ## Build Docker image
 docker-run: docker-build ## Build and run Docker container
 	@echo "$(BLUE)Running Docker container...$(NC)"
 	@docker run -p 8080:8080 \
-		-e DID_ATALA_PRISM_ENDPOINT=https://prism.atalaprism.io \
-		-e DID_CARDANO_NETWORK_ID=testnet \
+		-e IDENTITY_L0_URL=http://host.docker.internal:9100 \
+		-e IDENTITY_L1_URL=http://host.docker.internal:9110 \
+		-e IDENTITY_SERVICE_DID=did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9KbrL2g \
 		-e DID_LOGGING_LEVEL=info \
 		$(DOCKER_IMAGE)
 

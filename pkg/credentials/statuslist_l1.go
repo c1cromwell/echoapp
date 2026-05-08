@@ -3,7 +3,7 @@ package credentials
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,6 +18,7 @@ import (
 const statusListBitCount = 131072
 
 // statusList2021BatchWire matches Scala StatusList2021BatchUpdate (Identity L1 POST /transactions).
+// bitVector is lowercase hex (32768 chars = 16384 bytes) per IdentityValidations.validateStatusList2021.
 type statusList2021BatchWire struct {
 	IssuerOrgDID string `json:"issuerOrgDID"`
 	BitVector    string `json:"bitVector"`
@@ -251,7 +252,7 @@ func (p *StatusListPublisher) runPublishWithRetry() {
 func (p *StatusListPublisher) postStatusListHTTP(ctx context.Context, vec []byte, seq int64) error {
 	body := statusList2021BatchWire{
 		IssuerOrgDID: p.cfg.IssuerDID,
-		BitVector:    base64.StdEncoding.EncodeToString(vec),
+		BitVector:    hex.EncodeToString(vec),
 		PublishedAt:  time.Now().UnixMilli(),
 		Sequence:     seq,
 	}

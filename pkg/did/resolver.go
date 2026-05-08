@@ -14,7 +14,7 @@ import (
 // Resolver provides DID resolution for did:key. did:key is self-resolving
 // (the public key is encoded in the identifier itself), so resolution is
 // a pure-function operation against pkg/didkey.Parse — no network call,
-// no chain query, no Atala PRISM dependency.
+// no chain query for the cryptographic resolution path.
 //
 // The cache + repository remain to (a) hold pre-built DIDDocuments and
 // (b) let the wider service surface (controllers, multi-device records)

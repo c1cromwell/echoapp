@@ -497,7 +497,7 @@ func getStatusCodeForError(code string) int {
 		return http.StatusUnauthorized
 	case ErrCodeTimeout:
 		return http.StatusGatewayTimeout
-	case ErrCodeDatabaseError, ErrCodeAtalaPRISMError, ErrCodeBlockchainError, ErrCodeCacheError:
+	case ErrCodeDatabaseError, ErrCodeMetagraphError, ErrCodeBlockchainError, ErrCodeCacheError:
 		return http.StatusServiceUnavailable
 	case ErrCodeGenerationFailed, ErrCodeAnchoringFailed, ErrCodeResolutionFailed:
 		return http.StatusInternalServerError

@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// DIDDocument represents a W3C DID document following the PRISM specification
+// DIDDocument represents a W3C DID document (Phase 1 aligns with did:key usage; fields map to JSON-LD DID Core)
 type DIDDocument struct {
 	Context            []string           `json:"@context"`
 	ID                 string             `json:"id"`

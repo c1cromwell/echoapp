@@ -52,10 +52,6 @@ const (
 	ErrCodeDatabaseError          = "DATABASE_ERROR"
 	ErrCodeCacheError             = "CACHE_ERROR"
 	ErrCodeBlockchainError        = "BLOCKCHAIN_ERROR"
-	// Deprecated: did:key has no Atala PRISM dependency. Retained as an
-	// alias so existing callers in pkg/did/handlers.go keep compiling
-	// while we migrate the wider call graph (WO-274).
-	ErrCodeAtalaPRISMError        = "METAGRAPH_ERROR"
 	ErrCodeMetagraphError         = "METAGRAPH_ERROR"
 	ErrCodeTimeout                = "TIMEOUT"
 	ErrCodeInvalidRequest         = "INVALID_REQUEST"
@@ -81,8 +77,6 @@ var (
 	ErrDatabaseError          = NewDIDError(ErrCodeDatabaseError, "Database operation failed", nil)
 	ErrCacheError             = NewDIDError(ErrCodeCacheError, "Cache operation failed", nil)
 	ErrBlockchainError        = NewDIDError(ErrCodeBlockchainError, "Blockchain operation failed", nil)
-	// Deprecated: see ErrCodeAtalaPRISMError. Use ErrMetagraphError instead.
-	ErrAtalaPRISMError        = NewDIDError(ErrCodeAtalaPRISMError, "Identity Metagraph operation failed", nil)
 	ErrMetagraphError         = NewDIDError(ErrCodeMetagraphError, "Identity Metagraph operation failed", nil)
 	ErrTimeout                = NewDIDError(ErrCodeTimeout, "Operation timed out", nil)
 	ErrInvalidRequest         = NewDIDError(ErrCodeInvalidRequest, "Invalid request", nil)

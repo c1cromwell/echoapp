@@ -11,6 +11,7 @@ import (
 
 	"github.com/thechadcromwell/echoapp/internal/database"
 	internalrewards "github.com/thechadcromwell/echoapp/internal/rewards"
+	"github.com/thechadcromwell/echoapp/internal/validation"
 )
 
 const (
@@ -34,10 +35,12 @@ var (
 
 // ClaimRequest represents a reward claim.
 type ClaimRequest struct {
-	DID          string `json:"did"`
-	RewardType   string `json:"rewardType"`
-	TrustTier    int    `json:"trustTier"`
-	MessageCount int    `json:"messageCount,omitempty"`
+	DID             string   `json:"did"`
+	RewardType      string   `json:"rewardType"`
+	TrustTier       int      `json:"trustTier"`
+	MessageCount    int      `json:"messageCount,omitempty"`
+	TrustMultiplier *float64 `json:"trustMultiplier,omitempty"`
+	DecayFactor     *float64 `json:"decayFactor,omitempty"`
 }
 
 // ClaimResult contains the result of a claim.
@@ -111,6 +114,17 @@ func (s *Service) Claim(ctx context.Context, req ClaimRequest) (*ClaimResult, er
 	multiplier, ok := TrustMultiplier[req.TrustTier]
 	if !ok || multiplier == 0 {
 		return nil, ErrInsufficientTier
+	}
+
+	if req.TrustMultiplier != nil {
+		if err := validation.ValidateTrustMultiplier(*req.TrustMultiplier, multiplier); err != nil {
+			return nil, err
+		}
+	}
+	if req.DecayFactor != nil && req.RewardType == "messaging" {
+		if err := validation.ValidateRewardDecay(*req.DecayFactor, s.messagingDecayFactorLocked()); err != nil {
+			return nil, err
+		}
 	}
 
 	// Step 2: Calculate reward amount.
@@ -211,6 +225,14 @@ func (s *Service) GetDailyStats(ctx context.Context) (*DailyStats, error) {
 	}, nil
 }
 
+// MessagingDecayFactor returns the messaging auto-scale ratio (WO-35); same definition as claim pre-check.
+func (s *Service) MessagingDecayFactor() float64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.resetDailyIfNeeded()
+	return s.messagingDecayFactorLocked()
+}
+
 // AutoScaleRate computes the current per-message reward rate.
 // Formula: EffectiveDailyBudget ÷ TotalActivityWeight.
 func (s *Service) AutoScaleRate() int64 {
@@ -229,6 +251,16 @@ func (s *Service) autoScaleRateLocked() int64 {
 		return InitialRatePerMessage
 	}
 	return rate
+}
+
+// messagingDecayFactorLocked returns the ratio applied to InitialRatePerMessage for messaging
+// rewards (same cap as calculateReward). Caller must hold s.mu.
+func (s *Service) messagingDecayFactorLocked() float64 {
+	rate := s.autoScaleRateLocked()
+	if rate > InitialRatePerMessage {
+		rate = InitialRatePerMessage
+	}
+	return float64(rate) / float64(InitialRatePerMessage)
 }
 
 // RecordMessage increments the daily activity weight for auto-scaling.

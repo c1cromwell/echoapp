@@ -3,7 +3,7 @@
 // Shared tail of every enrollment path. Once a branch produces a
 // VerifiedIdentityBundle, this view animates the user through:
 //   1. Secure Enclave P-256 key generation (biometric gate)
-//   2. Cardano DID registration (backend-paid tx)
+//   2. did:key registration with Echo API (POST /identity/register)
 //   3. Constellation wallet creation via Stargazer SDK
 //   4. WebAuthn passkey registration
 // and then hands control back to AppState via `onComplete`.
@@ -18,7 +18,7 @@ final class EnrollmentTailViewModel {
     var error: EnrollmentError?
 
     enum Step: Int, CaseIterable {
-        case creatingIdentity   // Secure Enclave key + Cardano DID
+        case creatingIdentity   // Secure Enclave key + did:key
         case creatingWallet     // Stargazer
         case registeringPasskey // WebAuthn
         case done
@@ -34,7 +34,7 @@ final class EnrollmentTailViewModel {
         var subtitle: String {
             switch self {
             case .creatingIdentity:
-                return "Minting a decentralized identifier on Cardano and linking it to your verified credential."
+                return "Registering your did:key with Echo and linking it to your verified credential."
             case .creatingWallet:
                 return "Generating your Constellation wallet via Stargazer SDK. Your keys never leave this device."
             case .registeringPasskey:

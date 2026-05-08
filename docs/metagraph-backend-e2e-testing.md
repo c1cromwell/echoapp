@@ -95,9 +95,9 @@ make validate-phase1
 What it covers:
 
 - **Step 1–2:** Local `did:key` derivation (`cmd/didkey`) and `POST /identity/register`, `GET /identity/{did}` on the backend.
-- **Step 3:** Identity L0/L1 reachability; VC anchor assertion is tied to WO-274 / issuer wiring when enabled.
+- **Step 3:** Identity L0/L1 reachability plus **`POST /v1/phase1/trust-tier-commitment`** (development only) to anchor `H(tier||nonce)` for the Step 2 `did:key`. Requires `ENVIRONMENT=development` on the API (default in `docker-compose.testnet.yml`) and Identity L1 wired with the same **`IDENTITY_SERVICE_DID`** as the Hydra/L1 wallet sender.
 - **Step 4:** Relay E2E (`go test` integration).
-- **Step 5–6:** Data L1 Merkle submission (when routed) and Global L0 ordinal advancement.
+- **Step 5–6:** Data L1 Merkle submission via `POST /v1/data-l1/merkle-roots` (proxies to Data L1) and Global L0 ordinal advancement. Finality polling against Data L1 may skip if the read API path differs by SDK version.
 
 Env overrides: `BACKEND_URL`, `GLOBAL_L0_URL`, `IDENTITY_L1_URL`, `FINALITY_TIMEOUT_SECS`, etc. (see script header).
 
@@ -159,13 +159,17 @@ Fields: `subjectDID`, `publicKeyHex`, `deviceLabel`, `addedAt` (epoch millis). S
 
 ### 6.3 StatusList2021, trust tier, org role
 
-See `IdentityValidations.scala` and WO-272 descriptions for field shapes (`bitVector` length, `commitment` hex, etc.).
+See `IdentityValidations.scala` for authoritative rules. Summary:
+
+- **`StatusList2021BatchUpdate`:** `issuerOrgDID` (did:key), `bitVector` (**exactly 32,768 lowercase hex chars**, 131,072 bits), `publishedAt`, monotonic `sequence`.
+- **`TrustTierCommitmentUpdate`:** `subjectDID`, `commitment` (64 lowercase hex), `anchoredAt` (epoch ms).
+- The Go credentials service posts batches via `pkg/credentials/statuslist_l1.go`, encoding the raw bit vector with **`hex.EncodeToString`** so it matches the Scala validator (not base64).
 
 ## 7. Data L1 — Merkle / governance-style payloads
 
-The backend’s `internal/metagraph` client uses `POST {DATA_L1_URL}/transactions`. `scripts/validate-phase1.sh` step 5 attempts `POST /v1/data-l1/merkle-roots` on the API when implemented.
+The backend’s `internal/metagraph` client uses `POST {DATA_L1_URL}/transactions`. For WO-230 validation, the API also exposes **`POST /v1/data-l1/merkle-roots`** (JSON: `root`, `leafCount`), which forwards a `MerkleRootUpdate` to Data L1 when `DATA_L1_URL` is set.
 
-For raw experimentation, mirror the JSON shapes used in `internal/governance/service.go` (`SubmitDataL1`).
+`scripts/validate-phase1.sh` step 5 attempts this route first. For raw experimentation, mirror the JSON shapes used in `internal/governance/service.go` (`SubmitDataL1`).
 
 ## 8. Currency L1 — token operations
 
@@ -177,6 +181,8 @@ From `metagraph/`:
 
 ```bash
 sbt "sharedData/test" "identityL0/test" "identityL1/test"
+# or from echoapp repo root:
+make metagraph-test
 ```
 
 CI-friendly static check (no cluster):
@@ -200,5 +206,5 @@ The `pkg/credentials` issuer can emit **W3C VC 2.0**-shaped JSON-LD (when `UseW3
 |--------|--------|
 | Identity L1 rejects submissions | `IDENTITY_SERVICE_DID` on L1 matches `issuerDID` / `ISSUER_DID` in Go; see `identity_l1/Main.scala`. |
 | Docker cannot reach metagraph | `extra_hosts: host.docker.internal:host-gateway` in compose; URLs use `host.docker.internal`. |
-| Step 3 skipped in validate-phase1 | Identity nodes not running or VC/anchor path not yet asserted by script. |
+| Step 3 fails (502 L1_SUBMIT_FAILED) | Identity L1 `IDENTITY_SERVICE_DID` must match the Tessellation sender DID for HTTP `/transactions` in your Hydra/Euclid setup; same as VC issuance. |
 | `hydra` not found | Run `setup-euclid.sh` and use the **absolute** path to `scripts/hydra` inside Euclid. |

@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/thechadcromwell/echoapp/internal/api"
 	"github.com/thechadcromwell/echoapp/internal/database"
 	"github.com/thechadcromwell/echoapp/internal/infra"
@@ -24,6 +25,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/services/media"
 	"github.com/thechadcromwell/echoapp/internal/services/notification"
 	rewardsSvc "github.com/thechadcromwell/echoapp/internal/services/rewards"
+	"github.com/thechadcromwell/echoapp/pkg/credentials"
 )
 
 // ServerConfig holds the server configuration.
@@ -75,6 +77,29 @@ func (s *Server) Start() error {
 			IdentityL1URL: l1,
 			Timeout:       30 * time.Second,
 		})
+	}
+	if d1 := os.Getenv("DATA_L1_URL"); d1 != "" {
+		router.DataL1 = metagraph.NewMetagraphClient(metagraph.MetagraphConfig{
+			DataL1URL: d1,
+			Timeout:   30 * time.Second,
+		})
+	}
+
+	credCfg := credentials.LoadConfig()
+	if err := credCfg.Validate(); err != nil {
+		log.Printf("Credential issuance disabled: %v", err)
+	} else {
+		var credPool *pgxpool.Pool
+		if pgDB != nil {
+			credPool = pgDB.Pool()
+		}
+		credSvc, err := credentials.NewService(credCfg, credPool)
+		if err != nil {
+			log.Printf("Credential service failed to start: %v", err)
+		} else {
+			router.CredentialService = credSvc
+			log.Println("Credential issuance enabled (POST /identity/credentials)")
+		}
 	}
 
 	// Initialize NATS (optional)

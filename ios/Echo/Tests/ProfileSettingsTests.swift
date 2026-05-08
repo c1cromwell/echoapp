@@ -600,7 +600,7 @@ final class EnhancedSettingsModelTests: XCTestCase {
         var info = AccountInfo()
         info.phone = "+15551234567"
         info.email = "test@echo.dev"
-        info.did = "did:cardano:abc123"
+        info.did = "did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9KbrL2g"
         info.passkeyCount = 2
         info.twoFactorEnabled = true
 
@@ -609,7 +609,7 @@ final class EnhancedSettingsModelTests: XCTestCase {
 
         XCTAssertEqual(decoded.phone, "+15551234567")
         XCTAssertEqual(decoded.email, "test@echo.dev")
-        XCTAssertEqual(decoded.did, "did:cardano:abc123")
+        XCTAssertEqual(decoded.did, "did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9KbrL2g")
         XCTAssertEqual(decoded.passkeyCount, 2)
         XCTAssertTrue(decoded.twoFactorEnabled)
     }

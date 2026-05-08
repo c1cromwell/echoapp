@@ -118,6 +118,49 @@ func TestClaim_Tier5DoubleMultiplier(t *testing.T) {
 	}
 }
 
+func TestClaim_RejectsMismatchedTrustMultiplier(t *testing.T) {
+	svc := newTestService()
+	ctx := context.Background()
+	bad := 2.0
+	_, err := svc.Claim(ctx, ClaimRequest{
+		DID:             "did:alice",
+		RewardType:      "messaging",
+		TrustTier:       3,
+		MessageCount:    1,
+		TrustMultiplier: &bad,
+	})
+	if err == nil {
+		t.Fatal("expected validation error for trust multiplier mismatch")
+	}
+}
+
+func TestClaim_MessagingDecayFactorValidatedWhenProvided(t *testing.T) {
+	svc := newTestService()
+	ctx := context.Background()
+	wrong := 0.1
+	_, err := svc.Claim(ctx, ClaimRequest{
+		DID:          "did:alice",
+		RewardType:   "messaging",
+		TrustTier:    3,
+		MessageCount: 1,
+		DecayFactor:  &wrong,
+	})
+	if err == nil {
+		t.Fatal("expected validation error for decay mismatch")
+	}
+	ok := svc.MessagingDecayFactor()
+	_, err = svc.Claim(ctx, ClaimRequest{
+		DID:          "did:alice",
+		RewardType:   "messaging",
+		TrustTier:    3,
+		MessageCount: 1,
+		DecayFactor:  &ok,
+	})
+	if err != nil {
+		t.Fatalf("Claim with server decay factor: %v", err)
+	}
+}
+
 func TestClaim_AntiGaming_Velocity(t *testing.T) {
 	svc := newTestService()
 	ctx := context.Background()

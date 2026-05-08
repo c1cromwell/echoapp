@@ -1,5 +1,5 @@
 .PHONY: help build run test clean install-deps lint fmt vet build-prod tls-cert \
-	dev dev-stop dev-status dev-logs dev-restart validate-phase1 metagraph-verify-skeleton \
+	dev dev-stop dev-status dev-logs dev-restart validate-phase1 metagraph-verify-skeleton metagraph-test \
 	testnet-up testnet-down
 
 # Variables
@@ -19,6 +19,7 @@ help:
 	@echo "  make dev-stop        Tear down backend stack (metagraph stays up — use 'hydra stop' for that)"
 	@echo "  make validate-phase1 Run scripts/validate-phase1.sh go/no-go check"
 	@echo "  make metagraph-verify-skeleton  Static WO-276 checks (euclid + build.sbt + sources; needs jq)"
+	@echo "  make metagraph-test     Scala tests: sharedData + identity metagraph layers (WO-272/277; sbt + JDK)"
 	@echo "  make testnet-up      Bring up backend stack only (assumes metagraph already running)"
 	@echo "  make testnet-down    Bring down backend stack only"
 	@echo ""
@@ -265,6 +266,9 @@ testnet-down: ## Tear down backend stack
 
 metagraph-verify-skeleton: ## WO-276: static verify Identity Metagraph skeleton (no sbt; needs jq)
 	@cd metagraph && ./scripts/verify-identity-skeleton.sh
+
+metagraph-test: ## WO-272/277: run validators + Identity L1 wiring tests (sbt)
+	@cd metagraph && sbt "sharedData/test" "identityL0/test" "identityL1/test"
 
 dev-stop: testnet-down ## Tear down backend stack (does not stop metagraph)
 	@echo "Backend stack down. Metagraph still running — use:"

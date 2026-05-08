@@ -1,6 +1,7 @@
 package metagraph
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -128,14 +129,27 @@ func (c *MetagraphClient) submitTransaction(ctx context.Context, url string, pay
 		return "", fmt.Errorf("submit tx failed: status %d, body: %s", resp.StatusCode, string(respBody))
 	}
 
-	var result struct {
-		TxHash string `json:"txHash"`
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read tx response: %w", err)
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", fmt.Errorf("decode tx response: %w", err)
+	if len(bytes.TrimSpace(bodyBytes)) == 0 {
+		return "", nil
 	}
 
-	return result.TxHash, nil
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(bodyBytes, &raw); err != nil {
+		return "", fmt.Errorf("decode tx response: %w", err)
+	}
+	for _, key := range []string{"txHash", "tx_id", "hash", "id"} {
+		if v, ok := raw[key]; ok {
+			var s string
+			if err := json.Unmarshal(v, &s); err == nil && s != "" {
+				return s, nil
+			}
+		}
+	}
+	return "", nil
 }
 
 type byteReaderCloser struct {

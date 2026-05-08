@@ -218,6 +218,7 @@ sbt 'sharedData/test'              # fastest feedback (pure validators)
 sbt 'identityL1/test'              # wired-validator integration spec
 sbt test                            # everything
 sbt scalafmtAll                     # formatter
+# Or from repo root:  make metagraph-test   # sharedData + identityL0 + identityL1 (WO-272/277)
 
 # Iterate on iOS
 open ios/Echo/EchoApp.xcodeproj
@@ -250,7 +251,7 @@ echoapp/
 │   └── ...
 ├── pkg/                   # Reusable Go packages
 │   ├── didkey/            # Canonical W3C did:key derivation (P-256)
-│   ├── did/               # Legacy DID glue (Cardano paths deprecated per ADR-0001)
+│   ├── did/               # DID HTTP glue + errors (Phase 1: did:key; see ADR-0001)
 │   └── identity/          # Identity service (legacy gin handlers)
 ├── metagraph/             # Scala / Tessellation 4.0.0-rc.0 modules
 │   ├── build.sbt          # 6 sub-projects (sharedData + 5 layers)

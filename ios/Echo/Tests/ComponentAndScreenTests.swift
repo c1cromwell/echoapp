@@ -378,7 +378,7 @@ final class ProfileScreenTests: XCTestCase {
         let account = AccountInfo(
             phone: "+15551234567",
             email: "test@echo.dev",
-            did: "did:cardano:abc123xyz",
+            did: "did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9KbrL2g",
             passkeyCount: 2,
             twoFactorEnabled: true,
             activeSessionCount: 3,

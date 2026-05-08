@@ -661,6 +661,122 @@ paths:
         "204":
           description: Account deletion initiated
 
+  # ──────────────────────── DATA L1 (Phase 1) ────────────────────────
+  /data-l1/merkle-roots:
+    post:
+      tags: [Identity]
+      summary: Submit a Merkle root to local Data L1 (testnet)
+      description: |
+        Proxies a `MerkleRootUpdate` to the Constellation Data L1 (`DATA_L1_URL`).
+        Used by `scripts/validate-phase1.sh` (WO-230). Server-side pre-validation (WO-35)
+        runs before the L1 submit when optional batch metadata is supplied.
+        No auth on local testnet; do not expose publicly without network controls.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [root, leafCount]
+              properties:
+                root:
+                  type: string
+                  description: 64-character lowercase hex SHA-256 Merkle root
+                  pattern: "^[0-9a-f]{64}$"
+                leafCount:
+                  type: integer
+                  minimum: 1
+                leaf_count:
+                  type: integer
+                  minimum: 1
+                  description: Alternative to leafCount (accepted by the API for shell convenience)
+                timeFrom:
+                  type: string
+                  format: date-time
+                  description: RFC3339 batch window start (optional; requires `timeTo`)
+                timeTo:
+                  type: string
+                  format: date-time
+                  description: RFC3339 batch window end (optional; requires `timeFrom`)
+                schemaVersion:
+                  type: integer
+                  minimum: 0
+                  description: Client schema version; must not exceed server max (WO-35)
+      responses:
+        "201":
+          description: Accepted and forwarded to Data L1
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tx_id:
+                    type: string
+                  txHash:
+                    type: string
+        "400":
+          $ref: "#/components/schemas/Error"
+        "502":
+          description: Data L1 returned an error
+        "503":
+          description: DATA_L1_URL not configured
+
+  # ──────────────────────── Phase 1 validation (local dev) ────────────────────────
+  /phase1/trust-tier-commitment:
+    post:
+      tags: [Identity]
+      summary: Anchor H(tier||nonce) on Identity L1 (WO-230 dev script only)
+      description: |
+        Forwards `TrustTierCommitmentUpdate` to Identity Metagraph L1. Enabled only when
+        `ENVIRONMENT=development` or `PHASE1_ALLOW_OPEN_VALIDATE=true`. Do not expose in production.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject_did, tier, nonce]
+              properties:
+                subject_did:
+                  type: string
+                  description: Holder did:key (e.g. from Step 2)
+                tier:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                nonce:
+                  type: string
+                  description: Random nonce (commitment = SHA256(byte(tier) || nonce))
+      responses:
+        "200":
+          description: Submitted to Identity L1
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subject_did:
+                    type: string
+                  tier:
+                    type: integer
+                  commitment:
+                    type: string
+                  anchored_at:
+                    type: integer
+                    format: int64
+                  tx_hash:
+                    type: string
+        "400":
+          $ref: "#/components/schemas/Error"
+        "403":
+          description: Not allowed outside development
+        "502":
+          description: Identity L1 reject or transport error
+        "503":
+          description: Identity L1 client not configured
+
   # ──────────────────────── IDENTITY ────────────────────────
   /identity/register:
     post:
@@ -959,6 +1075,9 @@ paths:
     get:
       tags: [Identity]
       summary: List verifiable credentials
+      description: Returns credentials for the authenticated subject (WO-273). Requires issuer stack and same env as `cmd/credentials`.
+      security:
+        - BearerAuth: []
       responses:
         "200":
           description: Credential list
@@ -971,10 +1090,16 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Credential"
-
+        "503":
+          description: Credential service not configured
     post:
       tags: [Identity]
       summary: Request a new credential
+      description: |
+        Issues a VC for the authenticated subject via `pkg/credentials` (WO-273).
+        `subjectDid` defaults to the JWT `sub`; if set, it must equal `sub`.
+      security:
+        - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -985,10 +1110,33 @@ paths:
               properties:
                 schemaId:
                   type: string
-                  description: Credential schema identifier (VC type)
+                  description: VC type / schema id (`ProofOfHumanity`, `KYCLite`, `HighAssurance`, `Professional`)
+                credentialType:
+                  type: string
+                  description: Optional alias for schemaId
+                subjectDid:
+                  type: string
+                  description: Optional; must match Bearer principal when set
+                claims:
+                  type: object
+                  additionalProperties: true
+                verificationClaims:
+                  type: array
+                  items:
+                    type: object
+                preferredFormat:
+                  type: string
+                  enum: [json-ld, jwt, sd-jwt]
+                expirationYears:
+                  type: integer
+                  minimum: 1
       responses:
         "202":
-          description: Credential issuance submitted
+          description: Credential issued (sync completion; 202 for OpenAPI contract)
+        "400":
+          $ref: "#/components/schemas/Error"
+        "503":
+          description: Credential service not configured (missing issuer keys, verifier DID, Identity L1 URL, or OIDC4VC base URLs when OIDC is enabled)
 
   /identity/credentials/status/{credentialId}:
     get:
@@ -1807,9 +1955,9 @@ components:
         updatedAt:
           type: string
           format: date-time
-        cardanoTxHash:
+        l1TxHash:
           type: string
-          description: Optional anchor reference for verification (legacy field name; may be metagraph/L1)
+          description: Optional Identity Metagraph L1 anchor / transaction reference for verification
 
     Verification:
       type: object
@@ -1846,9 +1994,9 @@ components:
           type: string
           format: date-time
           nullable: true
-        cardanoTxHash:
+        l1TxHash:
           type: string
-          description: Optional anchor reference (legacy field name)
+          description: Optional Identity Metagraph L1 anchor reference for this credential
 
     TokenBalance:
       type: object

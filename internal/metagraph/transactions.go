@@ -309,6 +309,15 @@ func NewFeeTransaction(txID, treasuryDID, snapshotRef string, feeAmount *big.Int
 	}
 }
 
+// --- Data L1 MerkleRootUpdate (Scala shared_data MerkleRootUpdate) ---
+
+// DataL1MerkleRootUpdate is the JSON body for a Merkle root anchor on Echo Data L1.
+// Field names match circe generic encoding (camelCase).
+type DataL1MerkleRootUpdate struct {
+	Root      string `json:"root"`
+	LeafCount int    `json:"leafCount"`
+}
+
 // --- MerkleCommitment (Data L1) ---
 
 // MerkleCommitment represents a batch message integrity anchoring on Data L1.
