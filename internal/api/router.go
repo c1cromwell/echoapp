@@ -224,26 +224,52 @@ func (rt *Router) authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
+		reqID := r.Header.Get("X-Request-ID")
+
+		// --- Passkey auth (WO-1): X-Sender-DID + X-Signature over SHA-256(body) ---
+		// Primary auth mechanism. Falls through to JWT only when X-Sender-DID is absent,
+		// allowing backward-compat with service tokens during the Phase 1 transition.
+		if senderDID := r.Header.Get(headerSenderDID); senderDID != "" {
+			keys, err := rt.resolveDeviceKeys(r.Context(), senderDID)
+			if err != nil {
+				WriteError(w, http.StatusUnauthorized, "AUTH_UNKNOWN_DID", "no device keys found for DID", reqID)
+				return
+			}
+			if err := verifyPasskeyAuth(r, keys); err != nil {
+				if pke, ok := err.(*passkeyAuthError); ok {
+					WriteError(w, http.StatusUnauthorized, pke.code, pke.msg, reqID)
+				} else {
+					WriteError(w, http.StatusUnauthorized, "AUTH_INVALID_SIGNATURE", err.Error(), reqID)
+				}
+				return
+			}
+			ctx := context.WithValue(r.Context(), ContextKeyUserID, senderDID)
+			ctx = context.WithValue(ctx, ContextKeyRequestID, reqID)
+			next.ServeHTTP(w, r.WithContext(ctx))
+			return
+		}
+
+		// --- JWT auth (backward compat / server tokens) ---
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
-			WriteError(w, http.StatusUnauthorized, "MISSING_AUTH", "Authorization header required", r.Header.Get("X-Request-ID"))
+			WriteError(w, http.StatusUnauthorized, "MISSING_AUTH", "Authorization header or X-Sender-DID required", reqID)
 			return
 		}
 
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			WriteError(w, http.StatusUnauthorized, "INVALID_AUTH_FORMAT", "Authorization must be Bearer token", r.Header.Get("X-Request-ID"))
+			WriteError(w, http.StatusUnauthorized, "INVALID_AUTH_FORMAT", "Authorization must be Bearer token", reqID)
 			return
 		}
 
 		token := parts[1]
 		if !rt.TokenValidator(token) {
-			WriteError(w, http.StatusUnauthorized, "INVALID_TOKEN", "Invalid or expired token", r.Header.Get("X-Request-ID"))
+			WriteError(w, http.StatusUnauthorized, "INVALID_TOKEN", "Invalid or expired token", reqID)
 			return
 		}
 
 		ctx := context.WithValue(r.Context(), ContextKeyUserID, rt.UserIDExtractor(token))
-		ctx = context.WithValue(ctx, ContextKeyRequestID, r.Header.Get("X-Request-ID"))
+		ctx = context.WithValue(ctx, ContextKeyRequestID, reqID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

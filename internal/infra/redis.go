@@ -144,3 +144,36 @@ func (r *RedisClient) SessionGet(ctx context.Context, sessionID string) ([]byte,
 func (r *RedisClient) SessionDelete(ctx context.Context, sessionID string) error {
 	return r.client.Del(ctx, "session:"+sessionID).Err()
 }
+
+// --- DID Device Key Cache (WO-1 passkey auth) ---
+
+const didKeyPrefix = "did:keys:"
+const DIDKeyCacheTTL = 60 * time.Second
+
+// GetDIDDeviceKeys returns the cached hex-encoded P-256 public keys for a DID,
+// or nil if the entry is not cached.
+func (r *RedisClient) GetDIDDeviceKeys(ctx context.Context, did string) ([]string, error) {
+	val, err := r.client.LRange(ctx, didKeyPrefix+did, 0, -1).Result()
+	if err == redis.Nil || len(val) == 0 {
+		return nil, nil
+	}
+	return val, err
+}
+
+// SetDIDDeviceKeys caches the hex-encoded P-256 public keys for a DID with a 60s TTL.
+func (r *RedisClient) SetDIDDeviceKeys(ctx context.Context, did string, keys []string) error {
+	key := didKeyPrefix + did
+	pipe := r.client.Pipeline()
+	pipe.Del(ctx, key)
+	for _, k := range keys {
+		pipe.RPush(ctx, key, k)
+	}
+	pipe.Expire(ctx, key, DIDKeyCacheTTL)
+	_, err := pipe.Exec(ctx)
+	return err
+}
+
+// DeleteDIDDeviceKeys removes the DID key cache entry, forcing re-population on next auth.
+func (r *RedisClient) DeleteDIDDeviceKeys(ctx context.Context, did string) error {
+	return r.client.Del(ctx, didKeyPrefix+did).Err()
+}

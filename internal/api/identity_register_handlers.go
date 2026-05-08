@@ -384,6 +384,11 @@ func (rt *Router) handleIdentityAddDevice(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Invalidate the passkey auth Redis cache so the new device key is picked up immediately.
+	if rt.Redis != nil {
+		_ = rt.Redis.DeleteDIDDeviceKeys(r.Context(), req.SubjectDID)
+	}
+
 	if rt.CredentialService != nil {
 		if deviceDID, derr := didkey.DeriveFromPublicKeyHex(req.NewPublicKeyHex); derr == nil {
 			_, _ = rt.CredentialService.IssueCredential(r.Context(), &credentials.CredentialIssuanceRequest{
