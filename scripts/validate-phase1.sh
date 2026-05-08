@@ -263,9 +263,8 @@ step 5 "Commit Merkle root to local Data L1 and verify finality"
 MERKLE_ROOT=$(printf 'phase1-validation-%s' "$DID_KEY" | openssl dgst -sha256 | awk '{print $2}')
 ok "computed Merkle root: $MERKLE_ROOT"
 
-# Submit via the backend's anchoring endpoint if it's exposed; otherwise skip
-# with an explicit note. The backend's internal/metagraph/anchoring.go produces
-# Data L1 updates but a public HTTP route is not yet wired.
+# Submit via POST /v1/data-l1/merkle-roots (public route, no auth required).
+# Falls back to skip when the backend is unreachable or DataL1 client not configured.
 MERKLE_BODY=$(jq -nc --arg root "$MERKLE_ROOT" '{root:$root, leafCount:1}')
 SUBMIT_RESP=$(curl -fsS --max-time 10 \
   -X POST "$BACKEND_URL/v1/data-l1/merkle-roots" \
@@ -273,10 +272,8 @@ SUBMIT_RESP=$(curl -fsS --max-time 10 \
   -d "$MERKLE_BODY" 2>/dev/null) || SUBMIT_RESP=""
 
 if [ -z "$SUBMIT_RESP" ]; then
-  skip "POST /v1/data-l1/merkle-roots not exposed by backend"
-  info "internal/metagraph/anchoring.go has the logic but no public route yet."
-  info "Once routed, this step will assert the root appears in a Data L1"
-  info "snapshot within ${FINALITY_TIMEOUT_SECS}s by polling $DATA_L1_URL."
+  skip "POST /v1/data-l1/merkle-roots returned no response (backend down or DATA_L1_URL not configured)"
+  info "Ensure DATA_L1_URL is set in .env.local and the backend DataL1 client is initialised."
 else
   TX_ID=$(printf '%s' "$SUBMIT_RESP" | jq -r '.tx_id // .txHash // .id // empty')
   if [ -n "$TX_ID" ]; then
