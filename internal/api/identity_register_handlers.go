@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thechadcromwell/echoapp/pkg/credentials"
 	"github.com/thechadcromwell/echoapp/pkg/didkey"
 )
 
@@ -167,10 +168,10 @@ type IdentityResolveResponse struct {
 
 // IdentityAddDeviceRequest is the JSON body for POST /identity/devices.
 type IdentityAddDeviceRequest struct {
-	SubjectDID       string `json:"subject_did"`
-	NewPublicKeyHex  string `json:"new_public_key_hex"`
-	DeviceLabel      string `json:"device_label"`
-	SigningDID       string `json:"signing_did"`
+	SubjectDID      string `json:"subject_did"`
+	NewPublicKeyHex string `json:"new_public_key_hex"`
+	DeviceLabel     string `json:"device_label"`
+	SigningDID      string `json:"signing_did"`
 }
 
 const identitySignatureHeader = "X-Identity-Signature"
@@ -381,6 +382,21 @@ func (rt *Router) handleIdentityAddDevice(w http.ResponseWriter, r *http.Request
 			WriteError(w, http.StatusInternalServerError, "REGISTRY_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		}
 		return
+	}
+
+	if rt.CredentialService != nil {
+		if deviceDID, derr := didkey.DeriveFromPublicKeyHex(req.NewPublicKeyHex); derr == nil {
+			_, _ = rt.CredentialService.IssueCredential(r.Context(), &credentials.CredentialIssuanceRequest{
+				SubjectDID:     deviceDID,
+				CredentialType: credentials.DeviceAttestationCredential,
+				Claims: map[string]interface{}{
+					"controller":  req.SubjectDID,
+					"deviceLabel": deviceLabel,
+					"attestedAt":  time.Now().UTC().Format(time.RFC3339Nano),
+				},
+				PreferredFormat: credentials.JSONLDFormat,
+			})
+		}
 	}
 
 	updated, err := rt.DIDRegistry.ListDevices(r.Context(), req.SubjectDID)

@@ -40,6 +40,8 @@ func parseCredentialTypeFromSchemaID(schemaID string) (credentials.CredentialTyp
 		return credentials.HighAssurance, nil
 	case string(credentials.Professional):
 		return credentials.Professional, nil
+	case string(credentials.DeviceAttestationCredential):
+		return credentials.DeviceAttestationCredential, nil
 	default:
 		return "", credentials.NewCredentialError(credentials.ErrCodeInvalidRequest, "unsupported schemaId / credentialType")
 	}

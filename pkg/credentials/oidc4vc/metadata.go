@@ -2,6 +2,7 @@ package oidc4vc
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -27,15 +28,16 @@ func NewMetadataManager(issuerDID, verifierDID, issuerBaseURL, verifierBaseURL s
 	}
 }
 
-// GenerateIssuerMetadata generates OIDC4VC issuer metadata
+// GenerateIssuerMetadata generates OIDC4VCI issuer metadata (URLs use issuerBaseURL).
 func (m *MetadataManager) GenerateIssuerMetadata() *IssuerMetadata {
+	base := strings.TrimSuffix(m.issuerBaseURL, "/")
 	return &IssuerMetadata{
-		CredentialIssuer:                  m.issuerDID,
-		AuthorizationServers:              []string{m.issuerBaseURL},
-		TokenEndpoint:                     fmt.Sprintf("%s/token", m.issuerBaseURL),
-		CredentialEndpoint:                fmt.Sprintf("%s/credential", m.issuerBaseURL),
-		DeferredCredentialEndpoint:        fmt.Sprintf("%s/deferred_credential", m.issuerBaseURL),
-		NotificationEndpoint:              fmt.Sprintf("%s/notification", m.issuerBaseURL),
+		CredentialIssuer:                  base,
+		AuthorizationServers:              []string{base},
+		TokenEndpoint:                     base + "/oauth/token",
+		CredentialEndpoint:                base + "/credential",
+		DeferredCredentialEndpoint:        base + "/credential/deferred",
+		NotificationEndpoint:              base + "/notification",
 		CredentialConfigurationsSupported: m.buildCredentialConfigs(),
 		AuthDisplay: []AuthDisplay{
 			{
@@ -55,6 +57,7 @@ func (m *MetadataManager) buildCredentialConfigs() map[string]CredentialConfig {
 		"KYCLite",
 		"HighAssurance",
 		"Professional",
+		"DeviceAttestationCredential",
 	}
 
 	for _, credType := range credentialTypes {
@@ -102,6 +105,10 @@ func (m *MetadataManager) buildClaimsInfo(credType string) map[string]ClaimInfo 
 		claims["profession"] = ClaimInfo{Mandatory: true, ValueType: "string"}
 		claims["employer"] = ClaimInfo{Mandatory: false, ValueType: "string"}
 		claims["credentials"] = ClaimInfo{Mandatory: true, ValueType: "array"}
+	case "DeviceAttestationCredential":
+		claims["controller"] = ClaimInfo{Mandatory: true, ValueType: "string"}
+		claims["attestedAt"] = ClaimInfo{Mandatory: true, ValueType: "string"}
+		claims["deviceLabel"] = ClaimInfo{Mandatory: false, ValueType: "string"}
 	}
 
 	// Add common claims
@@ -135,6 +142,7 @@ func (m *MetadataManager) GenerateVerifierMetadata() *VerifierMetadata {
 			"KYCLite",
 			"HighAssurance",
 			"Professional",
+			"DeviceAttestationCredential",
 		},
 		ProofTypesSupported: m.supportedProofTypes,
 		FormatSupported:     m.supportedFormats,

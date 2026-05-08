@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,12 +23,13 @@ func NewVerifier(verifierDID, issuerDID, verifierBaseURL, issuerBaseURL string) 
 	metadata := metadataManager.GenerateVerifierMetadata()
 
 	flowConfig := &Config{
-		IssuerDID:            verifierDID,
-		IssuerBaseURL:        verifierBaseURL,
-		AuthorizationCodeTTL: 10 * 60 * 1000,
-		PreAuthorizedCodeTTL: 15 * 60 * 1000,
-		AccessTokenTTL:       3600 * 1000,
-		EnablePKCE:           true,
+		IssuerDID:                verifierDID,
+		IssuerBaseURL:            verifierBaseURL,
+		AuthorizationCodeTTL:     10 * time.Minute,
+		PreAuthorizedCodeTTL:     15 * time.Minute,
+		AccessTokenTTL:           1 * time.Hour,
+		EnablePKCE:               true,
+		RequireProofOfPossession: false,
 	}
 
 	flowManager := NewFlowManager(flowConfig)

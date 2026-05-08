@@ -117,6 +117,7 @@ func main() {
 			config.OIDC4VCConfig.IssuerBaseURL,
 			config.OIDC4VCConfig.VerifierBaseURL,
 		)
+		issuer.SetCredentialService(service)
 		issuer.RegisterRoutes(router)
 
 		// Create OIDC4VC verifier

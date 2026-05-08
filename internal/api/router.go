@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/thechadcromwell/echoapp/internal/auth"
@@ -59,7 +60,8 @@ type Router struct {
 	Redis                *infra.RedisClient
 	IdentityL1           *metagraph.MetagraphClient // WO-274 trust-tier commitments
 	DataL1               *metagraph.MetagraphClient // WO-230 Data L1 Merkle proxy (optional)
-	CredentialService    *credentials.Service       // WO-273 optional VC issuance (same stack as cmd/credentials)
+	CredentialService    *credentials.Service       // WO-274 VC issuance (optional)
+	OIDC                 *gin.Engine                // OpenID4VCI issuer mount (optional)
 	tokenService         *auth.TokenService         // ES256 JWT token service
 }
 
@@ -103,9 +105,30 @@ func (rt *Router) TokenService() *auth.TokenService {
 	return rt.tokenService
 }
 
+func isOpenIDCredentialIssuerPath(path string) bool {
+	switch {
+	case path == "/notification":
+		return true
+	case strings.HasPrefix(path, "/.well-known/openid-credential-issuer"):
+		return true
+	case strings.HasPrefix(path, "/.well-known/oauth-authorization-server"):
+		return true
+	case strings.HasPrefix(path, "/oauth/"):
+		return true
+	case path == "/credential" || strings.HasPrefix(path, "/credential/"):
+		return true
+	default:
+		return false
+	}
+}
+
 // Handler returns the fully wrapped http.Handler with all middleware applied.
 func (rt *Router) Handler() http.Handler {
 	core := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if rt.OIDC != nil && isOpenIDCredentialIssuerPath(r.URL.Path) {
+			rt.OIDC.ServeHTTP(w, r)
+			return
+		}
 		switch {
 		case r.URL.Path == "/health":
 			rt.handleHealth(w, r)
@@ -195,7 +218,8 @@ func (rt *Router) authMiddleware(next http.Handler) http.Handler {
 		// Health check, WebSocket, public registration endpoints, and
 		// did:key resolution (which is local-only and inherently public) bypass auth.
 		if r.URL.Path == "/health" || r.URL.Path == "/ws" || publicPaths[r.URL.Path] ||
-			identityRequestExemptFromAuth(r.URL.Path, r.Method) {
+			identityRequestExemptFromAuth(r.URL.Path, r.Method) ||
+			isOpenIDCredentialIssuerPath(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}

@@ -12,6 +12,8 @@ const (
 	KYCLite         CredentialType = "KYCLite"
 	HighAssurance   CredentialType = "HighAssurance"
 	Professional    CredentialType = "Professional"
+	// DeviceAttestationCredential links a secondary device did:key to a controller (WO-274).
+	DeviceAttestationCredential CredentialType = "DeviceAttestationCredential"
 )
 
 // CredentialFormat represents supported credential formats
@@ -144,9 +146,9 @@ type RevocationStatus struct {
 
 // RevokeCredentialResult is returned after a local revocation is recorded; metagraph publish is asynchronous.
 type RevokeCredentialResult struct {
-	Status       string                  `json:"status"`
-	CredentialID string                  `json:"credentialId"`
-	StatusList   *RevokeStatusListMeta   `json:"statusList,omitempty"`
+	Status       string                `json:"status"`
+	CredentialID string                `json:"credentialId"`
+	StatusList   *RevokeStatusListMeta `json:"statusList,omitempty"`
 }
 
 // RevokeStatusListMeta describes async StatusList2021 batch publish to Identity L1.

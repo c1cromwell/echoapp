@@ -3,8 +3,12 @@ package oidc4vc
 import (
 	"fmt"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/thechadcromwell/echoapp/pkg/credentials"
 )
 
 // Issuer represents OIDC4VC Credential Issuer
@@ -12,7 +16,7 @@ type Issuer struct {
 	metadata          *IssuerMetadata
 	metadataManager   *MetadataManager
 	flowManager       *FlowManager
-	credentialService interface{} // Will be credential service
+	credentialService *credentials.Service
 }
 
 // NewIssuer creates new OIDC4VC issuer
@@ -21,12 +25,13 @@ func NewIssuer(issuerDID, verifierDID, issuerBaseURL, verifierBaseURL string) *I
 	metadata := metadataManager.GenerateIssuerMetadata()
 
 	flowConfig := &Config{
-		IssuerDID:            issuerDID,
-		IssuerBaseURL:        issuerBaseURL,
-		AuthorizationCodeTTL: 10 * 60 * 1000, // 10 minutes in milliseconds
-		PreAuthorizedCodeTTL: 15 * 60 * 1000, // 15 minutes
-		AccessTokenTTL:       3600 * 1000,    // 1 hour
-		EnablePKCE:           true,
+		IssuerDID:                issuerDID,
+		IssuerBaseURL:            issuerBaseURL,
+		AuthorizationCodeTTL:     10 * time.Minute,
+		PreAuthorizedCodeTTL:     15 * time.Minute,
+		AccessTokenTTL:           1 * time.Hour,
+		EnablePKCE:               true,
+		RequireProofOfPossession: false,
 	}
 
 	flowManager := NewFlowManager(flowConfig)
@@ -36,6 +41,11 @@ func NewIssuer(issuerDID, verifierDID, issuerBaseURL, verifierBaseURL string) *I
 		metadataManager: metadataManager,
 		flowManager:     flowManager,
 	}
+}
+
+// SetCredentialService wires W3C VC issuance (OpenID4VCI credential endpoint).
+func (i *Issuer) SetCredentialService(svc *credentials.Service) {
+	i.credentialService = svc
 }
 
 // RegisterRoutes registers OIDC4VC issuer routes
@@ -69,9 +79,10 @@ func (i *Issuer) GetMetadata(c *gin.Context) {
 // @GET /.well-known/oauth-authorization-server
 // @Produce json
 func (i *Issuer) GetOAuthMetadata(c *gin.Context) {
+	base := strings.TrimSuffix(i.metadata.CredentialIssuer, "/")
 	metadata := map[string]interface{}{
-		"issuer":                   i.metadata.CredentialIssuer,
-		"authorization_endpoint":   fmt.Sprintf("%s/oauth/authorization", i.metadata.TokenEndpoint[:len(i.metadata.TokenEndpoint)-6]),
+		"issuer":                   base,
+		"authorization_endpoint":   base + "/oauth/authorization",
 		"token_endpoint":           i.metadata.TokenEndpoint,
 		"credential_endpoint":      i.metadata.CredentialEndpoint,
 		"response_types_supported": []string{"code"},
@@ -207,7 +218,7 @@ func (i *Issuer) CredentialEndpoint(c *gin.Context) {
 	}
 
 	// Validate token
-	_, err := i.flowManager.ValidateAccessToken(token)
+	at, err := i.flowManager.ValidateAccessToken(token)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "invalid_token",
@@ -233,20 +244,89 @@ func (i *Issuer) CredentialEndpoint(c *gin.Context) {
 		return
 	}
 
-	// In production, call credential service to issue credential
-	// For now, return mock response
-	credential := "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJ2YyI6eyJAY29udGV4dCI6WyJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy92MSJdLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIl0sImNyZWRlbnRpYWxTdWJqZWN0Ijp7fX0sImlzcyI6ImRpZDpwcmlzbTpjb3JkYXJvOmNvbnRyb2xsZXIifQ.signature"
+	nonce, err := i.flowManager.GenerateCNonce(token)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_token"})
+		return
+	}
 
-	// Generate new c_nonce
-	nonce, _ := i.flowManager.GenerateCNonce(token)
+	if i.credentialService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error":             "server_error",
+			"error_description": "credential issuance not configured",
+		})
+		return
+	}
+
+	subjectDID := strings.TrimSpace(at.SubjectDID)
+	if req.CredentialSubject != nil {
+		if id, ok := req.CredentialSubject["id"].(string); ok && strings.TrimSpace(id) != "" {
+			if subjectDID != "" && strings.TrimSpace(id) != subjectDID {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_credential_request",
+					"error_description": "credential_subject.id does not match issuance session",
+				})
+				return
+			}
+			if subjectDID == "" {
+				subjectDID = strings.TrimSpace(id)
+			}
+		}
+	}
+	if subjectDID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":             "invalid_credential_request",
+			"error_description": "holder DID missing (bind pre-authorized code with subject or send credentialSubject.id)",
+		})
+		return
+	}
+
+	credType := credentials.CredentialType(req.CredentialType[0])
+	claims := map[string]interface{}{}
+	for k, v := range req.Claims {
+		claims[k] = v
+	}
+	for k, v := range req.CredentialSubject {
+		if k == "id" {
+			continue
+		}
+		claims[k] = v
+	}
+
+	issueReq := &credentials.CredentialIssuanceRequest{
+		SubjectDID:      subjectDID,
+		CredentialType:  credType,
+		Claims:          claims,
+		PreferredFormat: oidcFormatToCredentialFormat(req.Format),
+	}
+
+	issued, err := i.credentialService.IssueCredential(c.Request.Context(), issueReq)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":             "issuance_failed",
+			"error_description": err.Error(),
+		})
+		return
+	}
 
 	resp := &CredentialResponse{
 		Format:     req.Format,
-		Credential: credential,
+		Credential: issued.VerifiableCredential,
 		CNonc:      nonce,
 	}
 
 	c.JSON(http.StatusOK, resp)
+}
+
+func oidcFormatToCredentialFormat(f string) credentials.CredentialFormat {
+	switch strings.ToLower(strings.TrimSpace(f)) {
+	case "jwt_vc_json", "jwt":
+		return credentials.JWTFormat
+	case "sd-jwt", "sdjwt":
+		return credentials.SDJWTFormat
+	default:
+		return credentials.JSONLDFormat
+	}
 }
 
 // DeferredCredentialEndpoint handles deferred credential requests

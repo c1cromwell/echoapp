@@ -281,13 +281,13 @@ func (i *Issuer) createCredentialProof(credentialID string) Proof {
 
 	if i.config.CredentialConfig.UseW3CVC2 {
 		return Proof{
-			Type:                 "DataIntegrityProof",
-			Cryptosuite:          "ecdsa-2019",
-			Created:              time.Now().UTC(),
-			VerificationMethod:   i.verificationMethodForIssuer(),
-			ProofPurpose:         "assertionMethod",
-			ChallengeNonce:       nonce,
-			ProofValue:           "",
+			Type:               "DataIntegrityProof",
+			Cryptosuite:        "ecdsa-2019",
+			Created:            time.Now().UTC(),
+			VerificationMethod: i.verificationMethodForIssuer(),
+			ProofPurpose:       "assertionMethod",
+			ChallengeNonce:     nonce,
+			ProofValue:         "",
 		}
 	}
 
@@ -452,6 +452,8 @@ func getExpirationYears(credType CredentialType) int {
 		return 5
 	case Professional:
 		return 2
+	case DeviceAttestationCredential:
+		return 10
 	default:
 		return 1
 	}

@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/thechadcromwell/echoapp/internal/api"
 	"github.com/thechadcromwell/echoapp/internal/database"
@@ -26,6 +27,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/services/notification"
 	rewardsSvc "github.com/thechadcromwell/echoapp/internal/services/rewards"
 	"github.com/thechadcromwell/echoapp/pkg/credentials"
+	"github.com/thechadcromwell/echoapp/pkg/credentials/oidc4vc"
 )
 
 // ServerConfig holds the server configuration.
@@ -99,6 +101,20 @@ func (s *Server) Start() error {
 		} else {
 			router.CredentialService = credSvc
 			log.Println("Credential issuance enabled (POST /identity/credentials)")
+			if credCfg.OIDC4VCConfig.Enabled {
+				oidcIss := oidc4vc.NewIssuer(
+					credCfg.IssuerConfig.IssuerDID,
+					credCfg.VerifierConfig.VerifierDID,
+					credCfg.OIDC4VCConfig.IssuerBaseURL,
+					credCfg.OIDC4VCConfig.VerifierBaseURL,
+				)
+				oidcIss.SetCredentialService(credSvc)
+				g := gin.New()
+				g.Use(gin.Recovery())
+				oidcIss.RegisterRoutes(g)
+				router.OIDC = g
+				log.Println("OpenID4VCI issuer mounted at /.well-known/openid-credential-issuer, /oauth/*, /credential")
+			}
 		}
 	}
 

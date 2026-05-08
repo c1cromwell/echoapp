@@ -113,6 +113,7 @@ func (fm *FlowManager) ExchangeAuthorizationCode(code, clientID, codeVerifier, r
 		ExpiresAt:       time.Now().Add(fm.config.AccessTokenTTL),
 		CNonce:          cnonce,
 		CNonceExpiresAt: time.Now().Add(5 * time.Minute),
+		SubjectDID:      "",
 	}
 
 	// Remove authorization code
@@ -128,8 +129,13 @@ func (fm *FlowManager) ExchangeAuthorizationCode(code, clientID, codeVerifier, r
 	}, nil
 }
 
-// CreatePreAuthorizedCode creates pre-authorized code for direct issuance
+// CreatePreAuthorizedCode creates pre-authorized code for direct issuance (no bound subject).
 func (fm *FlowManager) CreatePreAuthorizedCode(credentialType string, pinRequired bool, pinLength int) (string, error) {
+	return fm.CreatePreAuthorizedCodeForSubject(credentialType, "", pinRequired, pinLength)
+}
+
+// CreatePreAuthorizedCodeForSubject binds optional holder DID to the pre-authorized code (OpenID4VCI).
+func (fm *FlowManager) CreatePreAuthorizedCodeForSubject(credentialType, subjectDID string, pinRequired bool, pinLength int) (string, error) {
 	code, err := generateRandomCode(32)
 	if err != nil {
 		return "", err
@@ -141,6 +147,7 @@ func (fm *FlowManager) CreatePreAuthorizedCode(credentialType string, pinRequire
 	fm.preAuthorizedCodes[code] = &PreAuthorizedCode{
 		Code:           code,
 		CredentialType: credentialType,
+		SubjectDID:     subjectDID,
 		ExpiresAt:      time.Now().Add(fm.config.PreAuthorizedCodeTTL),
 		PINRequired:    pinRequired,
 		PINLength:      pinLength,
@@ -185,6 +192,7 @@ func (fm *FlowManager) ExchangePreAuthorizedCode(code string, txCode string) (*T
 		ExpiresAt:       time.Now().Add(fm.config.AccessTokenTTL),
 		CNonce:          cnonce,
 		CNonceExpiresAt: time.Now().Add(5 * time.Minute),
+		SubjectDID:      preAuthCode.SubjectDID,
 	}
 
 	// Remove pre-authorized code

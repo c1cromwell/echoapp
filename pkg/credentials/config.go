@@ -175,17 +175,17 @@ type LoggingConfig struct {
 func DefaultConfig() *Config {
 	return &Config{
 		CredentialConfig: CredentialConfig{
-			ProofOfHumanityExpiration: 365 * 24 * time.Hour,
-			KYCLiteExpiration:         2 * 365 * 24 * time.Hour,
-			HighAssuranceExpiration:   5 * 365 * 24 * time.Hour,
-			ProfessionalExpiration:    2 * 365 * 24 * time.Hour,
-			IssuanceTimeout:           60 * time.Second,
-			VerificationTimeout:       5 * time.Second,
-			SupportedFormats:          []CredentialFormat{JSONLDFormat, JWTFormat, SDJWTFormat},
-			DefaultFormat:             JSONLDFormat,
-			EnableBlockchainStorage:   true,
-			StoragePath:               "/tmp/credentials",
-			UseW3CVC2:                 true,
+			ProofOfHumanityExpiration:   365 * 24 * time.Hour,
+			KYCLiteExpiration:           2 * 365 * 24 * time.Hour,
+			HighAssuranceExpiration:     5 * 365 * 24 * time.Hour,
+			ProfessionalExpiration:      2 * 365 * 24 * time.Hour,
+			IssuanceTimeout:             60 * time.Second,
+			VerificationTimeout:         5 * time.Second,
+			SupportedFormats:            []CredentialFormat{JSONLDFormat, JWTFormat, SDJWTFormat},
+			DefaultFormat:               JSONLDFormat,
+			EnableBlockchainStorage:     true,
+			StoragePath:                 "/tmp/credentials",
+			UseW3CVC2:                   true,
 			StatusListCredentialBaseURL: "https://identity-metagraph.echo.app/status",
 		},
 		MetagraphConfig: MetagraphConfig{
@@ -318,6 +318,9 @@ func LoadConfig() *Config {
 	}
 
 	// OIDC4VC settings
+	if val := os.Getenv("OIDC4VC_ENABLED"); val == "false" || val == "0" {
+		config.OIDC4VCConfig.Enabled = false
+	}
 	if val := os.Getenv("OIDC4VC_ISSUER_BASE_URL"); val != "" {
 		config.OIDC4VCConfig.IssuerBaseURL = val
 	}

@@ -404,6 +404,8 @@ func (v *Verifier) calculateTrustScore(input TrustScoreInput) float64 {
 		score *= 1.0
 	case Professional:
 		score *= 0.9
+	case DeviceAttestationCredential:
+		score *= 0.95
 	}
 
 	// Adjust based on age (older credentials are less trustworthy)
