@@ -96,6 +96,7 @@ buck-out/
 # Metagraph build artifacts
 metagraph/modules/*/target/
 metagraph/project/target/
+metagraph/project/project/
 metagraph/target/
 
 # Terraform
