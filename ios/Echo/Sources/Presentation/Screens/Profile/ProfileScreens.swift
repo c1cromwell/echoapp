@@ -846,6 +846,32 @@ import SwiftUI
                             )
                         }
 
+                        // Presence & last seen (WO-208)
+                        SettingsSectionView(title: "Presence") {
+                            SettingsListItem(
+                                icon: Image(systemName: "clock.fill"),
+                                title: "Show last seen",
+                                subtitle: "Others can see when you were last active",
+                                hasToggle: true,
+                                toggleValue: $settings.showLastSeen
+                            )
+
+                            SettingsListItem(
+                                icon: Image(systemName: "photo.circle.fill"),
+                                title: "Show profile picture",
+                                subtitle: "Your avatar is visible to contacts",
+                                hasToggle: true,
+                                toggleValue: $settings.showProfilePicture
+                            )
+
+                            SettingsListItem(
+                                icon: Image(systemName: "text.bubble.fill"),
+                                title: "Show status message",
+                                hasToggle: true,
+                                toggleValue: $settings.showStatusMessage
+                            )
+                        }
+
                         // Calls
                         SettingsSectionView(title: "Calls") {
                             SettingsListItem(
@@ -872,6 +898,17 @@ import SwiftUI
                             )
                         }
 
+                        // Discovery (WO-208)
+                        SettingsSectionView(title: "Discovery") {
+                            SettingsListItem(
+                                icon: Image(systemName: "person.2.fill"),
+                                title: "Contact discovery",
+                                subtitle: "Allow others to find you via phone number",
+                                hasToggle: true,
+                                toggleValue: $settings.contactDiscoveryOptIn
+                            )
+                        }
+
                         // Security
                         SettingsSectionView(title: "Security") {
                             SettingsListItem(
@@ -892,6 +929,15 @@ import SwiftUI
                                 title: "Screenshot notifications",
                                 hasToggle: true,
                                 toggleValue: $settings.screenshotNotifications
+                            )
+
+                            // WO-208: encryption indicator toggle
+                            SettingsListItem(
+                                icon: Image(systemName: "lock.shield.fill"),
+                                title: "Show encryption indicator",
+                                subtitle: "Display end-to-end encryption status in conversations",
+                                hasToggle: true,
+                                toggleValue: $settings.showEncryptionIndicator
                             )
                         }
                     }

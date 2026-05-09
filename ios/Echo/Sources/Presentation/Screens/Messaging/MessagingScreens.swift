@@ -150,7 +150,7 @@ public struct ChatView: View {
     public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
-            
+
             VStack(spacing: 0) {
                 EchoNavBar(
                     title: contactName,
@@ -159,7 +159,10 @@ public struct ChatView: View {
                     trailingAction: {},
                     trailingIcon: Image(systemName: "info.circle")
                 )
-                
+
+                // WO-208: Encryption indicator — 2px pulsing line confirms E2E
+                SecureThreadIndicator()
+
                 // Messages List
                 ScrollViewReader { proxy in
                     List {

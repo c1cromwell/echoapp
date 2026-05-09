@@ -1,17 +1,45 @@
 import Foundation
+import CryptoKit
 import SwiftData
 
-/// Local database manager using SwiftData
+/// Local database manager using SwiftData.
+///
+/// WO-224 storage key integration:
+///   - Call `unlock(storageKey:)` on app foreground — call `deriveStorageKey(keyId:)` on
+///     `SecureEnclaveManager` first, then hand the result here.
+///   - Call `lockStorage()` on app background — zeros the in-memory key reference.
+///   - `isLocked` is `true` whenever no valid storage key is held.
+///     The app should show `StorageLockedView` when this is true.
 actor LocalDatabase {
-    
+
     // MARK: - Singleton
     static let shared = LocalDatabase()
-    
+
+    // MARK: - Storage key (WO-224)
+
+    /// In-memory storage encryption key. Never persisted — derived on each unlock.
+    /// T1 data: zeroed on background, re-derived on foreground.
+    private var activeStorageKey: SymmetricKey?
+
+    /// True when no storage key is held (app just launched or returned from background).
+    var isLocked: Bool { activeStorageKey == nil }
+
+    /// Provide the HKDF-derived storage key to unlock DB access.
+    /// Call from the scene foreground handler after `SecureEnclaveManager.deriveStorageKey(keyId:)`.
+    func unlock(storageKey: SymmetricKey) {
+        activeStorageKey = storageKey
+    }
+
+    /// Zero the in-memory key — call from the scene background handler (WO-223/224).
+    func lockStorage() {
+        activeStorageKey = nil
+    }
+
     // MARK: - Properties
-    
+
     @MainActor
     private static var modelContainer: ModelContainer?
-    
+
     private let modelTypes: [any PersistentModel.Type] = [
         LocalUser.self,
         LocalConversation.self,
@@ -22,13 +50,13 @@ actor LocalDatabase {
         LocalToken.self,
         LocalAchievement.self
     ]
-    
+
     // MARK: - Initialization
-    
+
     @MainActor
     static func setup() throws {
         guard modelContainer == nil else { return }
-        
+
         let schema = Schema(LocalDatabase.shared.modelTypes)
         let config = ModelConfiguration(
             isStoredInMemoryOnly: false,
@@ -39,10 +67,10 @@ actor LocalDatabase {
             for: schema,
             configurations: config
         )
-        
+
         modelContainer = container
     }
-    
+
     private init() {}
     
     @MainActor

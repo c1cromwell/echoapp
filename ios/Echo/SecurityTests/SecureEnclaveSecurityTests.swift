@@ -195,3 +195,118 @@ final class BackgroundPurgeTests: XCTestCase {
         await manager.purgeOnBackground()
     }
 }
+
+// MARK: - WO-224: LocalDatabase storage key lifecycle
+
+final class LocalDatabaseStorageKeyTests: XCTestCase {
+
+    func testUnlock_clearsIsLocked() async {
+        // Use shared instance; lock first to ensure clean state for this test
+        await LocalDatabase.shared.lockStorage()
+        let key = SecureEnclaveManager().deriveStorageKey(keyId: "test-key-unlock")
+        await LocalDatabase.shared.unlock(storageKey: key)
+        let locked = await LocalDatabase.shared.isLocked
+        XCTAssertFalse(locked, "After unlock(), isLocked must be false")
+        // Restore: lock for other tests
+        await LocalDatabase.shared.lockStorage()
+    }
+
+    func testLockStorage_setsIsLocked() async {
+        let key = SecureEnclaveManager().deriveStorageKey(keyId: "test-key-lock")
+        await LocalDatabase.shared.unlock(storageKey: key)
+        await LocalDatabase.shared.lockStorage()
+        let locked = await LocalDatabase.shared.isLocked
+        XCTAssertTrue(locked, "After lockStorage(), isLocked must be true")
+    }
+
+    func testUnlockLockCycle_isIdempotent() async {
+        for _ in 0..<3 {
+            let key = SecureEnclaveManager().deriveStorageKey(keyId: "test-cycle")
+            await LocalDatabase.shared.unlock(storageKey: key)
+            await LocalDatabase.shared.lockStorage()
+        }
+        let locked = await LocalDatabase.shared.isLocked
+        XCTAssertTrue(locked)
+    }
+}
+
+// MARK: - WO-211: BiometricLockState additional edge cases
+
+final class BiometricLockStateEdgeCaseTests: XCTestCase {
+
+    func testAllowed_isNotLocked() {
+        XCTAssertFalse(BiometricLockState.allowed(failureCount: 0).isLocked)
+        XCTAssertFalse(BiometricLockState.allowed(failureCount: 4).isLocked)
+    }
+
+    func testRequiresPasscode_isLocked() {
+        XCTAssertTrue(BiometricLockState.requiresPasscode(failureCount: 5).isLocked)
+    }
+
+    func testHardLocked_futureDate_isLocked() {
+        let state = BiometricLockState.hardLocked(until: Date().addingTimeInterval(300))
+        XCTAssertTrue(state.isLocked)
+    }
+
+    func testHardLocked_pastDate_isNotLocked() {
+        let state = BiometricLockState.hardLocked(until: Date().addingTimeInterval(-1))
+        XCTAssertFalse(state.isLocked, "Expired hard lockout must not be locked")
+    }
+
+    func testRemainingLockout_positive_for_future() {
+        let state = BiometricLockState.hardLocked(until: Date().addingTimeInterval(300))
+        guard let remaining = state.remainingLockout else {
+            XCTFail("hardLocked must have a remaining lockout")
+            return
+        }
+        XCTAssertGreaterThan(remaining, 0)
+        XCTAssertLessThanOrEqual(remaining, 301)
+    }
+
+    func testRemainingLockout_zero_for_expired() {
+        let state = BiometricLockState.hardLocked(until: Date().addingTimeInterval(-1))
+        XCTAssertEqual(state.remainingLockout, 0)
+    }
+}
+
+// MARK: - WO-208: EnhancedPrivacySettings new fields
+
+final class EnhancedPrivacySettingsTests: XCTestCase {
+
+    func testDefaultsForNewWO208Fields() {
+        let s = EnhancedPrivacySettings()
+        XCTAssertTrue(s.showLastSeen)
+        XCTAssertTrue(s.showProfilePicture)
+        XCTAssertTrue(s.showStatusMessage)
+        XCTAssertTrue(s.contactDiscoveryOptIn)
+        XCTAssertTrue(s.showEncryptionIndicator)
+    }
+
+    func testAllWO208FieldsToggleable() {
+        var s = EnhancedPrivacySettings()
+        s.showLastSeen = false
+        s.showProfilePicture = false
+        s.showStatusMessage = false
+        s.contactDiscoveryOptIn = false
+        s.showEncryptionIndicator = false
+
+        XCTAssertFalse(s.showLastSeen)
+        XCTAssertFalse(s.showProfilePicture)
+        XCTAssertFalse(s.showStatusMessage)
+        XCTAssertFalse(s.contactDiscoveryOptIn)
+        XCTAssertFalse(s.showEncryptionIndicator)
+    }
+
+    func testCodableRoundTrip() throws {
+        var s = EnhancedPrivacySettings()
+        s.showLastSeen = false
+        s.showEncryptionIndicator = true
+
+        let data = try JSONEncoder().encode(s)
+        let decoded = try JSONDecoder().decode(EnhancedPrivacySettings.self, from: data)
+
+        XCTAssertEqual(decoded.showLastSeen, false)
+        XCTAssertEqual(decoded.showEncryptionIndicator, true)
+        XCTAssertEqual(decoded.contactDiscoveryOptIn, true)
+    }
+}

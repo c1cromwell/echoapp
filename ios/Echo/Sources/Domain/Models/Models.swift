@@ -759,6 +759,12 @@ struct EnhancedPrivacySettings: Codable {
     var screenLockTimeout: String = "immediately"
     var hideMessagePreviews: Bool = true
     var screenshotNotifications: Bool = true
+    // WO-208 additions
+    var showLastSeen: Bool = true
+    var showProfilePicture: Bool = true
+    var showStatusMessage: Bool = true
+    var contactDiscoveryOptIn: Bool = true
+    var showEncryptionIndicator: Bool = true
 }
 
 struct AppearanceSettings: Codable {

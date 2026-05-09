@@ -77,68 +77,84 @@ actor SecureEnclaveManager {
   
   // MARK: - Initialization
   
-  nonisolated init() {
+  init() {
     // Configure biometric context
     context.localizedReason = "Authenticate to access your cryptographic keys"
   }
   
   // MARK: - Key Generation
   
-  /// Generate a new biometric-protected key for the user
-  /// - Parameter keyId: Unique identifier for the key
-  /// - Returns: Public key (for verification)
+  /// Generate a new Secure Enclave–bound P-256 key with full WO-223 lifecycle controls:
+  ///   - `.biometryCurrentSet`: key is invalidated on biometric re-enrollment (Face/Touch ID change)
+  ///   - `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`: prevents iCloud backup and device transfer
+  ///   - `kSecAttrSynchronizable = false`: never synced via iCloud Keychain
+  ///   - `kSecAttrTokenIDSecureEnclave`: private key bytes never leave the Secure Enclave
+  ///
+  /// - Parameter keyId: Unique label for the key (e.g. "echo-identity-signing")
+  /// - Returns: Base64-encoded uncompressed P-256 public key for DID registration
   func generateBiometricProtectedKey(id keyId: String) async throws -> String {
-    // Check biometric availability
-    var error: NSError?
-    guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
-      throw SecureEnclaveError.biometricFailed(
-        error?.localizedDescription ?? "Biometric authentication not available"
-      )
+    var cfError: Unmanaged<CFError>?
+
+    // Build access control: require biometric, invalidate on re-enrollment,
+    // device-only (no backup / no device transfer). WO-223.
+    guard let access = SecAccessControlCreateWithFlags(
+      kCFAllocatorDefault,
+      kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+      [.privateKeyUsage, .biometryCurrentSet],
+      &cfError
+    ) else {
+      let reason = cfError?.takeRetainedValue().localizedDescription ?? "unknown"
+      throw SecureEnclaveError.keyGenerationFailed("SecAccessControl: \(reason)")
     }
-    
-    do {
-      // Generate Secure Enclave private key (P-256)
-      let privateKey = try P256.Signing.PrivateKey(compactRepresentable: false)
-      let publicKey = privateKey.publicKey
-      
-      // Serialize public key for storage
-      let publicKeyData = publicKey.rawRepresentation
-      let publicKeyBase64 = publicKeyData.base64EncodedString()
-      
-      // Store private key in Secure Enclave via Keychain
-      let attributes: [String: Any] = [
-        kSecClass as String: kSecClassKey,
-        kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
-        kSecAttrKeyClass as String: kSecAttrKeyClassPrivate,
-        kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
-        kSecAttrLabel as String: keyId,
-        kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-        kSecReturnRef as String: true
-      ]
-      
-      var ref: CFTypeRef?
-      let status = SecItemAdd(attributes as CFDictionary, &ref)
-      
-      guard status == errSecSuccess else {
-        throw SecureEnclaveError.keyGenerationFailed("SecItem error: \(status)")
-      }
-      
-      // Store metadata
-      try await keychain.store(
-        key: "key_metadata_\(keyId)",
-        value: KeyMetadata(
-          keyId: keyId,
-          createdAt: Date(),
-          rotatedAt: Date(),
-          algorithm: "P-256",
-          publicKey: publicKeyBase64
-        )
-      )
-      
-      return publicKeyBase64
-    } catch {
-      throw SecureEnclaveError.keyGenerationFailed(error.localizedDescription)
+
+    let attributes: [String: Any] = [
+      kSecClass as String:              kSecClassKey,
+      kSecAttrKeyType as String:        kSecAttrKeyTypeECSECPrimeRandom,
+      kSecAttrKeySizeInBits as String:  256,
+      kSecAttrKeyClass as String:       kSecAttrKeyClassPrivate,
+      kSecAttrTokenID as String:        kSecAttrTokenIDSecureEnclave,
+      kSecAttrLabel as String:          keyId,
+      kSecAttrAccessControl as String:  access,
+      // Explicit device-only: never synced across devices via iCloud Keychain
+      kSecAttrSynchronizable as String: false,
+      kSecReturnRef as String:          true,
+    ]
+
+    // First delete any stale key with the same label
+    let deleteQuery: [String: Any] = [
+      kSecClass as String:     kSecClassKey,
+      kSecAttrLabel as String: keyId,
+    ]
+    SecItemDelete(deleteQuery as CFDictionary)
+
+    var ref: CFTypeRef?
+    let status = SecItemAdd(attributes as CFDictionary, &ref)
+
+    guard status == errSecSuccess, let secKey = ref as! SecKey? else {
+      throw SecureEnclaveError.keyGenerationFailed("SecItemAdd: OSStatus \(status)")
     }
+
+    // Extract public key and serialize as uncompressed P-256 (04 || X || Y)
+    guard let pubSecKey = SecKeyCopyPublicKey(secKey),
+          let pubData = SecKeyCopyExternalRepresentation(pubSecKey, &cfError) as Data? else {
+      let reason = cfError?.takeRetainedValue().localizedDescription ?? "could not export"
+      throw SecureEnclaveError.keyGenerationFailed("Public key export: \(reason)")
+    }
+
+    let publicKeyBase64 = pubData.base64EncodedString()
+
+    try await keychain.store(
+      key: "key_metadata_\(keyId)",
+      value: KeyMetadata(
+        keyId: keyId,
+        createdAt: Date(),
+        rotatedAt: Date(),
+        algorithm: "P-256-SE",   // "SE" marks Secure Enclave–bound key
+        publicKey: publicKeyBase64
+      )
+    )
+
+    return publicKeyBase64
   }
   
   // MARK: - Key Derivation
@@ -165,7 +181,7 @@ actor SecureEnclaveManager {
     
     do {
       // Get master key from Secure Enclave
-      guard let masterKeyRef = try await getKeyReference(masterKeyId) else {
+      guard let _ = try await getKeyReference(masterKeyId) else {
         throw SecureEnclaveError.keyNotFound(masterKeyId)
       }
       
@@ -507,7 +523,7 @@ actor SecureEnclaveManager {
   /// Returns the updated `BiometricLockState`.
   nonisolated func recordBiometricFailure() -> BiometricLockState {
     let defaults = UserDefaults.standard
-    var count = defaults.integer(forKey: Self.lockoutCounterKey) + 1
+    let count = defaults.integer(forKey: Self.lockoutCounterKey) + 1
     defaults.set(count, forKey: Self.lockoutCounterKey)
 
     if count >= Self.maxFailuresHard {
