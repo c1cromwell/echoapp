@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Onboarding/Recovery/RecoveryService.swift
 
 import Foundation
@@ -99,3 +100,5 @@ private extension SecureEnclaveManager {
         return Data(count: 65)
     }
 }
+
+#endif

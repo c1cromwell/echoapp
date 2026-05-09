@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Auth/Enrollment/Wallet/WalletCredentialEnrollmentView.swift
 //
 // Mobile wallet credential (OIDC4VC / OID4VP) enrollment branch.
@@ -234,3 +235,4 @@ struct WalletCredentialEnrollmentView: View {
         }
     }
 }
+#endif

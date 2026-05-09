@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Onboarding/FirstRun/WelcomeCarouselView.swift
 // Page 1 of the first-run flow: ECHO logo + rotating privacy-first copy lines.
 // Auto-advances every 3.5 s; user can swipe or tap dots to drive manually.
@@ -165,3 +166,4 @@ struct WelcomeCarouselView: View {
 
     private func restartAutoAdvance() { startAutoAdvance() }
 }
+#endif

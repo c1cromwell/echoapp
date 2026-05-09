@@ -19,7 +19,7 @@ final class SecureEnclaveManagerTests: XCTestCase {
   
   override func tearDown() async throws {
     try? await manager.deleteKey(id: testKeyId)
-    manager.lockStorage()
+    await manager.lockStorage()
     try await super.tearDown()
   }
   
@@ -162,7 +162,7 @@ final class SecureEnclaveManagerTests: XCTestCase {
     
     // Verify signature
     let isValid = manager.verify(
-      signature: Data(signature),
+      signature: signature.rawRepresentation,
       data: testData,
       publicKey: testKey.publicKey
     )
@@ -178,7 +178,7 @@ final class SecureEnclaveManagerTests: XCTestCase {
     
     // Verify with wrong data
     let isValid = manager.verify(
-      signature: Data(signature),
+      signature: signature.rawRepresentation,
       data: wrongData,
       publicKey: testKey.publicKey
     )
@@ -263,7 +263,7 @@ final class SecureEnclaveManagerTests: XCTestCase {
     _ = try await manager.generateBiometricProtectedKey(id: testKeyId)
     
     // Lock should clear cached keys
-    manager.lockStorage()
+    await manager.lockStorage()
     
     // After locking, subsequent derivations should require biometric again
     // This behavior is tested indirectly through cache invalidation
@@ -290,12 +290,15 @@ final class SecureEnclaveManagerTests: XCTestCase {
   
   func testKeyMetadataStored() async throws {
     let publicKey = try await manager.generateBiometricProtectedKey(id: testKeyId)
-    
+
     // Metadata should be accessible
     let exported = try await manager.getPublicKey(id: testKeyId)
     XCTAssertEqual(Data(base64Encoded: publicKey), exported)
   }
 }
+
+// WO-208/211/223/224 tests live in SecurityTests/ (EchoSecurityTests target)
+// to keep them isolated from pre-existing EchoTests compilation issues.
 
 // MARK: - Helper Extensions
 

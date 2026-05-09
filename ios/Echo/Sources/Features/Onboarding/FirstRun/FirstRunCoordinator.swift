@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Onboarding/FirstRun/FirstRunCoordinator.swift
 // Session-style cold-start coordinator.
 // Routes: 1. Welcome carousel  2. Display name entry  3. Silent provisioning (background)
@@ -94,3 +95,5 @@ enum DisplayNameValidator {
         return trimmed.unicodeScalars.allSatisfy { allowed.contains($0) }
     }
 }
+
+#endif

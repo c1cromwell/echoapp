@@ -70,12 +70,12 @@ final class TypographyTests: XCTestCase {
     
     func testDisplayHeadingSize() {
         let style = TypographyStyle.display
-        XCTAssertEqual(style.font.pointSize, 36)
+        XCTAssertEqual(style.fontSize, 36)
     }
     
     func testBodyTextSize() {
         let style = TypographyStyle.body
-        XCTAssertEqual(style.font.pointSize, 14)
+        XCTAssertEqual(style.fontSize, 14)
     }
     
     func testLetterSpacing() {
@@ -428,23 +428,23 @@ final class ProfileScreenTests: XCTestCase {
             Persona(id: "2", type: .personal, name: "Personal", displayName: "Al",
                     isDefault: false, createdAt: Date(), updatedAt: Date())
         ]
-        let view = PersonaSwitcherView(personas: personas, activePersonaId: .constant("1"))
+        let view = PersonaSwitcherView(personas: personas, activePersonaId: "1")
         XCTAssertNotNil(view)
     }
 
     func testVisibilityMatrixViewInitialization() {
-        let view = VisibilityMatrixView(entries: [])
+        let view = VisibilityMatrixView(matrixEntries: [])
         XCTAssertNotNil(view)
     }
 
     func testVisibilityMatrixViewWithEntries() {
         let entries = [
             VisibilityMatrixEntry(
-                contactId: "c1", contactName: "John",
+                id: "entry-1", contactId: "c1", contactName: "John",
                 personaVisibility: ["p1": true, "p2": false]
             )
         ]
-        let view = VisibilityMatrixView(entries: entries)
+        let view = VisibilityMatrixView(matrixEntries: entries)
         XCTAssertNotNil(view)
     }
 
@@ -478,7 +478,7 @@ final class ProfileScreenTests: XCTestCase {
             id: "1", type: .professional, name: "Pro", displayName: "Alex",
             isDefault: true, createdAt: Date(), updatedAt: Date(),
             badges: [
-                PersonaBadge(type: .identityVerified, issuer: "EchoVerify", verifiable: true)
+                PersonaBadge(type: .photoVerified, issuer: "EchoVerify", verifiable: true)
             ]
         )
         let view = PersonaBadgesView(persona: persona)
@@ -497,7 +497,7 @@ final class ProfileScreenTests: XCTestCase {
                 isRecoverable: true
             )
         )
-        let view = PersonaRecoveryBanner(persona: persona)
+        let view = PersonaRecoveryBanner(persona: persona, onRecover: {})
         XCTAssertNotNil(view)
     }
 
@@ -510,7 +510,7 @@ final class ProfileScreenTests: XCTestCase {
             requiresConfirmation: true,
             warningMessage: "This may reveal your identity"
         )
-        let view = PersonaSwitchWarningView(context: context)
+        let view = PersonaSwitchWarningView(context: context, onConfirm: {}, onCancel: {})
         XCTAssertNotNil(view)
     }
 }
@@ -828,13 +828,13 @@ final class RewardsScreenTests: XCTestCase {
 final class AuthViewModelUnitTests: XCTestCase {
     
     var authViewModel: AuthViewModel!
-    var mockAuthService: MockAuthService!
-    var mockKeychainManager: MockKeychainManager!
+    var mockAuthService: CSMockAuthService!
+    var mockKeychainManager: CSMockKeychainManager!
     
     override func setUp() {
         super.setUp()
-        mockAuthService = MockAuthService()
-        mockKeychainManager = MockKeychainManager()
+        mockAuthService = CSMockAuthService()
+        mockKeychainManager = CSMockKeychainManager()
         authViewModel = AuthViewModel(
             authService: mockAuthService,
             keychainManager: mockKeychainManager
@@ -868,11 +868,11 @@ final class AuthViewModelUnitTests: XCTestCase {
 final class MessagingViewModelUnitTests: XCTestCase {
     
     var messagingViewModel: MessagingViewModel!
-    var mockMessagingService: MockMessagingService!
+    var mockMessagingService: CSMockMessagingService!
     
     override func setUp() {
         super.setUp()
-        mockMessagingService = MockMessagingService()
+        mockMessagingService = CSMockMessagingService()
         messagingViewModel = MessagingViewModel(messagingService: mockMessagingService)
     }
     
@@ -887,11 +887,11 @@ final class MessagingViewModelUnitTests: XCTestCase {
 final class TrustViewModelUnitTests: XCTestCase {
     
     var trustViewModel: TrustViewModel!
-    var mockTrustService: MockTrustService!
+    var mockTrustService: CSMockTrustService!
     
     override func setUp() {
         super.setUp()
-        mockTrustService = MockTrustService()
+        mockTrustService = CSMockTrustService()
         trustViewModel = TrustViewModel(trustService: mockTrustService)
     }
     
@@ -906,11 +906,11 @@ final class TrustViewModelUnitTests: XCTestCase {
 final class RewardsViewModelUnitTests: XCTestCase {
     
     var rewardsViewModel: RewardsViewModel!
-    var mockRewardsService: MockRewardsService!
+    var mockRewardsService: CSMockRewardsService!
     
     override func setUp() {
         super.setUp()
-        mockRewardsService = MockRewardsService()
+        mockRewardsService = CSMockRewardsService()
         rewardsViewModel = RewardsViewModel(rewardsService: mockRewardsService)
     }
     
@@ -923,7 +923,7 @@ final class RewardsViewModelUnitTests: XCTestCase {
 
 // MARK: - Mock Services for Testing
 
-class MockAuthService: AuthServiceProtocol {
+class CSMockAuthService: AuthServiceProtocol {
     func requestOTP(phone: String) async throws -> OTPResponse {
         OTPResponse(expiresIn: 300, phone: phone)
     }
@@ -953,7 +953,7 @@ class MockAuthService: AuthServiceProtocol {
     }
 }
 
-class MockKeychainManager: KeychainManagerProtocol {
+class CSMockKeychainManager: TokenKeychainProtocol {
     private var storage: [String: String] = [:]
     
     func saveToken(_ token: String) throws {
@@ -969,7 +969,7 @@ class MockKeychainManager: KeychainManagerProtocol {
     }
 }
 
-class MockMessagingService: MessagingServiceProtocol {
+class CSMockMessagingService: MessagingServiceProtocol {
     func fetchConversations() async throws -> [ConversationModel] {
         [
             ConversationModel(
@@ -1001,7 +1001,7 @@ class MockMessagingService: MessagingServiceProtocol {
     func markAsRead(conversationId: String) async throws {}
 }
 
-class MockTrustService: TrustServiceProtocol {
+class CSMockTrustService: TrustServiceProtocol {
     func fetchTrustScore(userId: String) async throws -> TrustScoreResult {
         TrustScoreResult(
             score: 65,
@@ -1015,7 +1015,7 @@ class MockTrustService: TrustServiceProtocol {
     func updateTrustCircle(contactId: String, tier: String) async throws {}
 }
 
-class MockRewardsService: RewardsServiceProtocol {
+class CSMockRewardsService: RewardsServiceProtocol {
     func fetchBalance() async throws -> Double {
         1250.50
     }

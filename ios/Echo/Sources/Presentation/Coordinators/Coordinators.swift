@@ -343,7 +343,7 @@ class DeepLinkHandler {
     
     private let appCoordinator: AppCoordinator
     
-    private init(appCoordinator: AppCoordinator) {
+    init(appCoordinator: AppCoordinator) {
         self.appCoordinator = appCoordinator
     }
     

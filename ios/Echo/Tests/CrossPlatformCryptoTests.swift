@@ -51,8 +51,8 @@ final class CrossPlatformCryptoTests: XCTestCase {
             "../../test/crypto_vectors/vectors.json",
             // When running from project root
             "test/crypto_vectors/vectors.json",
-            // Absolute fallback
-            Bundle.module.path(forResource: "vectors", ofType: "json"),
+            // Bundle.module path (only available with SPM resource bundles)
+            Bundle(for: CrossPlatformCryptoTests.self).path(forResource: "vectors", ofType: "json"),
         ].compactMap { $0 }
 
         var data: Data?

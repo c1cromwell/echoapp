@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Auth/Enrollment/EnrollmentMethodPickerView.swift
 //
 // First screen of the new enrollment journey. Promoted from login screen.
@@ -150,3 +151,4 @@ struct EnrollmentMethodPickerView: View {
         }
     }
 }
+#endif

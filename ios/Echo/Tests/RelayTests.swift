@@ -327,7 +327,7 @@ final class DigitalEvidenceBridgeTests: XCTestCase {
         let apiClient = APIClient(configuration: .init(
             baseURL: URL(string: "https://api.echo.local")!,
             timeout: 30,
-            defaultHeaders: [:]
+            headers: [:]
         ))
         let bridge = DigitalEvidenceBridge(apiClient: apiClient)
 
@@ -342,7 +342,7 @@ final class DigitalEvidenceBridgeTests: XCTestCase {
         let apiClient = APIClient(configuration: .init(
             baseURL: URL(string: "https://api.echo.local")!,
             timeout: 30,
-            defaultHeaders: [:]
+            headers: [:]
         ))
         let bridge = DigitalEvidenceBridge(apiClient: apiClient)
 
@@ -354,24 +354,24 @@ final class DigitalEvidenceBridgeTests: XCTestCase {
         let apiClient = APIClient(configuration: .init(
             baseURL: URL(string: "https://api.echo.local")!,
             timeout: 30,
-            defaultHeaders: [:]
+            headers: [:]
         ))
         let bridge = DigitalEvidenceBridge(apiClient: apiClient)
 
         let eligible = await bridge.isSmartCheckmarkEligible(
-            deliveryStatus: .verified,
+            deliveryStatus: DeliveryStatus.verified,
             evidenceEventId: "evt-123"
         )
         XCTAssertTrue(eligible)
 
         let notEligibleNoId = await bridge.isSmartCheckmarkEligible(
-            deliveryStatus: .verified,
-            evidenceEventId: nil
+            deliveryStatus: DeliveryStatus.verified,
+            evidenceEventId: Optional<String>.none
         )
         XCTAssertFalse(notEligibleNoId)
 
         let notEligibleWrongStatus = await bridge.isSmartCheckmarkEligible(
-            deliveryStatus: .anchored,
+            deliveryStatus: DeliveryStatus.anchored,
             evidenceEventId: "evt-123"
         )
         XCTAssertFalse(notEligibleWrongStatus)
@@ -381,7 +381,7 @@ final class DigitalEvidenceBridgeTests: XCTestCase {
         let apiClient = APIClient(configuration: .init(
             baseURL: URL(string: "https://api.echo.local")!,
             timeout: 30,
-            defaultHeaders: [:]
+            headers: [:]
         ))
         let bridge = DigitalEvidenceBridge(apiClient: apiClient)
 

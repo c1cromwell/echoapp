@@ -1,3 +1,4 @@
+#if os(iOS)
 // App/AppState.swift
 // v2.5.3 — routes .firstRun / .login / .authenticated
 
@@ -95,3 +96,5 @@ struct EchoRootView: View {
         }
     }
 }
+
+#endif

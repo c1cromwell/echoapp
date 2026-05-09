@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Auth/Enrollment/DriversLicense/MDLVerifier.swift
 //
 // ISO 18013-5 reader-side operations. Wraps a third-party SDK such as
@@ -10,7 +11,9 @@
 // See MISSING_FEATURES_GAP_ANALYSIS.md §1 for integration steps.
 
 import Foundation
+#if canImport(CoreNFC)
 import CoreNFC
+#endif
 import CryptoKit
 
 // MARK: - Verifier Protocol
@@ -95,3 +98,4 @@ func mapToClaimNames(_ request: EnrollmentClaimsRequest) -> [String: Bool] {
     if request.portrait      { map["portrait"]         = true }
     return map
 }
+#endif

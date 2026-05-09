@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Onboarding/Recovery/RecoveryPhraseConfirmView.swift
 
 import SwiftUI
@@ -126,3 +127,4 @@ struct RecoveryPhraseConfirmView: View {
         }
     }
 }
+#endif

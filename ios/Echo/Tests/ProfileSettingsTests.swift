@@ -7,11 +7,11 @@ import XCTest
 final class ProfileViewModelUnitTests: XCTestCase {
 
     var profileViewModel: ProfileViewModel!
-    var mockProfileService: MockProfileService!
+    var mockProfileService: PSMockProfileService!
 
     override func setUp() {
         super.setUp()
-        mockProfileService = MockProfileService()
+        mockProfileService = PSMockProfileService()
         profileViewModel = ProfileViewModel(profileService: mockProfileService)
     }
 
@@ -367,14 +367,14 @@ final class PerPersonaSettingsTests: XCTestCase {
 
     func testPersonaBadgeCreation() {
         let badge = PersonaBadge(
-            type: .professionalCertified,
+            type: .professionalCredential,
             issuedAt: Date(),
             issuer: "EchoVerify",
             verifiable: true,
             proof: "proof-hash"
         )
 
-        XCTAssertEqual(badge.type, .professionalCertified)
+        XCTAssertEqual(badge.type, .professionalCredential)
         XCTAssertEqual(badge.issuer, "EchoVerify")
         XCTAssertTrue(badge.verifiable)
         XCTAssertFalse(badge.id.isEmpty)
@@ -383,10 +383,10 @@ final class PerPersonaSettingsTests: XCTestCase {
     func testPersonaBadgeTypeAllCases() {
         let types = PersonaBadgeType.allCases
         XCTAssertEqual(types.count, 15)
-        XCTAssertTrue(types.contains(.identityVerified))
-        XCTAssertTrue(types.contains(.professionalCertified))
-        XCTAssertTrue(types.contains(.gamerRank))
-        XCTAssertTrue(types.contains(.creativePortfolio))
+        XCTAssertTrue(types.contains(.photoVerified))
+        XCTAssertTrue(types.contains(.professionalCredential))
+        XCTAssertTrue(types.contains(.gameAchievement))
+        XCTAssertTrue(types.contains(.portfolioVerified))
         XCTAssertTrue(types.contains(.communityModerator))
     }
 
@@ -448,6 +448,7 @@ final class PerPersonaSettingsTests: XCTestCase {
 
     func testVisibilityMatrixEntry() {
         let entry = VisibilityMatrixEntry(
+            id: "entry-1",
             contactId: "contact-1",
             contactName: "John",
             personaVisibility: ["persona-1": true, "persona-2": false]
@@ -710,7 +711,7 @@ final class ProfileSettingsTests: XCTestCase {
 
 // MARK: - Mock Profile Service
 
-class MockProfileService: ProfileServiceProtocol {
+class PSMockProfileService: ProfileServiceProtocol {
     var profileToReturn = ProfileData(
         displayName: "Alex Echo",
         username: "alexecho",

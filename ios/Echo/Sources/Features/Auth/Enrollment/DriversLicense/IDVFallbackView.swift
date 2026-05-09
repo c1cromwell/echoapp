@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Auth/Enrollment/DriversLicense/IDVFallbackView.swift
 //
 // IAL2 identity verification fallback for users without a mobile driver's
@@ -210,3 +211,4 @@ struct IDVFallbackView: View {
         .buttonStyle(SpringPressStyle())
     }
 }
+#endif

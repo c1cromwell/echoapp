@@ -1,3 +1,4 @@
+#if os(iOS)
 // App/MainTabView.swift
 // Main tab view with 3 tabs: Messages, Wallet, Me
 // Per Tokenomics v2 §4.2 — restructured from 5 tabs
@@ -102,3 +103,5 @@ struct WalletAPIClientStub: WalletAPIClient {
     func submitWithdrawLock(stakeId: String, amount: Decimal) async throws -> String { "" }
     func submitRewardClaim(rewardTypes: [String]) async throws -> String { "" }
 }
+
+#endif

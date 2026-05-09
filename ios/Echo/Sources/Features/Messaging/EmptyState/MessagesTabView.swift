@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Messaging/EmptyState/MessagesTabView.swift
 // Wraps the Messages tab with empty-state branching per v2.5.3:
 //
@@ -130,3 +131,4 @@ struct PostFirstMessageEmptyState: View {
         }
     }
 }
+#endif

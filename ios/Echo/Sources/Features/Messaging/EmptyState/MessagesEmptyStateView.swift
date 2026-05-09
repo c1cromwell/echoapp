@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Messaging/EmptyState/MessagesEmptyStateView.swift
 // Shown in the Messages pane when the user has zero conversations after first run.
 //
@@ -172,3 +173,5 @@ struct ComposeFAB: View {
         .accessibilityLabel("Start a new conversation")
     }
 }
+
+#endif

@@ -17,12 +17,12 @@ final class TokenTests: XCTestCase {
         let allocation = AllocationBreakdown()
         
         // Verify percentages
-        XCTAssertEqual(allocation.userRewards, 400_000_000)
-        XCTAssertEqual(allocation.validatorRewards, 250_000_000)
-        XCTAssertEqual(allocation.ecosystem, 200_000_000)
-        XCTAssertEqual(allocation.team, 80_000_000)
-        XCTAssertEqual(allocation.treasury, 50_000_000)
-        XCTAssertEqual(allocation.liquidity, 20_000_000)
+        XCTAssertEqual(allocation.communityRewards, Decimal(400_000_000))
+        XCTAssertEqual(allocation.validatorRewards, Decimal(100_000_000))
+        XCTAssertEqual(allocation.futureTeam, Decimal(100_000_000))
+        XCTAssertEqual(allocation.founders, Decimal(180_000_000))
+        XCTAssertEqual(allocation.treasury, Decimal(220_000_000))
+        XCTAssertEqual(allocation.validatorRewards, 20_000_000)
     }
     
     func testAllocationTotal() {

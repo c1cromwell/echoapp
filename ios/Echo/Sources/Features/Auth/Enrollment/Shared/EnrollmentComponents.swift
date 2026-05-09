@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Auth/Enrollment/Shared/EnrollmentComponents.swift
 //
 // Small reusable SwiftUI components shared by the enrollment screens.
@@ -312,3 +313,4 @@ final class AuthPresentationContextProvider: NSObject, ASWebAuthenticationPresen
             ?? ASPresentationAnchor()
     }
 }
+#endif

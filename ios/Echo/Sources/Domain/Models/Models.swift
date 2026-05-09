@@ -279,6 +279,13 @@ struct PrivacySettings: Codable {
     var showOnlineStatus: Bool = true
     var allowDirectMessages: Bool = true
     var allowGroupInvites: Bool = true
+    // WO-208 additions
+    var showLastSeen: Bool = true
+    var showProfilePicture: Bool = true
+    var showStatusMessage: Bool = true
+    var allowCalls: Bool = true
+    var contactDiscoveryOptIn: Bool = true
+    var showEncryptionIndicator: Bool = true
 }
 
 struct SecuritySettings: Codable {

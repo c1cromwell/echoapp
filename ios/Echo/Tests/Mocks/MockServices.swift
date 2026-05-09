@@ -60,10 +60,12 @@ class MockAuthService: AuthServiceProtocol {
 
 // MARK: - Mock Keychain Manager
 
-class MockKeychainManager: TokenKeychainProtocol {
+class MockKeychainManager: TokenKeychainProtocol, DataKeychainProtocol {
     var storedToken: String?
     var saveTokenCallCount = 0
     var clearAllCallCount = 0
+    // DataKeychainProtocol backing store
+    private var dataStore: [String: Data] = [:]
 
     func saveToken(_ token: String) throws {
         saveTokenCallCount += 1
@@ -77,7 +79,13 @@ class MockKeychainManager: TokenKeychainProtocol {
     func clearAll() {
         clearAllCallCount += 1
         storedToken = nil
+        dataStore.removeAll()
     }
+
+    // DataKeychainProtocol
+    func save(_ data: Data, for key: String) throws { dataStore[key] = data }
+    func load(for key: String) throws -> Data? { dataStore[key] }
+    func delete(for key: String) throws { dataStore.removeValue(forKey: key) }
 }
 
 // MARK: - Mock Messaging Service

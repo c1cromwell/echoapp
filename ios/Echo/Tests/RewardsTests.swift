@@ -1,6 +1,18 @@
 import XCTest
 @testable import Echo
 
+// Test-local stub for DailyRewardTracker (removed from source in favour of rewards service layer).
+struct DailyRewardTracker {
+    let userID: String
+    private(set) var messagesRewarded: Int = 0
+    private(set) var echoEarned: Double = 0.0
+    private let messageLimit = 500
+
+    mutating func incrementMessages() { messagesRewarded += 1 }
+    mutating func addEarnings(_ amount: Double) { echoEarned += amount }
+    func isLimitReached() -> Bool { messagesRewarded >= messageLimit }
+}
+
 final class RewardsTests: XCTestCase {
     
     func testRewardTypes() {

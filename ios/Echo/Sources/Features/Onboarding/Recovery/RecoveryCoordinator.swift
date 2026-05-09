@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Onboarding/Recovery/RecoveryCoordinator.swift
 
 import SwiftUI
@@ -135,3 +136,5 @@ actor StargazerBridgeForRecovery {
         return (address: "DAG_restored_placeholder", publicKey: "se_pubkey_placeholder")
     }
 }
+
+#endif

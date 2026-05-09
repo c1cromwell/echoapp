@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Onboarding/FirstRun/DisplayNameEntryView.swift
 // Page 2 of the first-run flow: single display-name field, privacy helper card,
 // gradient "Start messaging" CTA, and a muted "Restore" link.
@@ -198,3 +199,4 @@ struct DisplayNameEntryView: View {
         }
     }
 }
+#endif

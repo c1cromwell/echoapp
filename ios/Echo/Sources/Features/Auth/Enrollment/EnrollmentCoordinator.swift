@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Auth/Enrollment/EnrollmentCoordinator.swift
 //
 // Navigation root for the credential-first enrollment journey.
@@ -134,3 +135,5 @@ struct PhoneHandoffShim: View {
             }
     }
 }
+
+#endif

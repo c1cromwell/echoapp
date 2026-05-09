@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Auth/Enrollment/Shared/EnrollmentTailView.swift
 //
 // Shared tail of every enrollment path. Once a branch produces a
@@ -205,3 +206,4 @@ struct EnrollmentTailView: View {
         )
     }
 }
+#endif

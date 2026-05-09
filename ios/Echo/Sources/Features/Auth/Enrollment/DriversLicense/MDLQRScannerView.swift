@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Auth/Enrollment/DriversLicense/MDLQRScannerView.swift
 //
 // Scans an ISO 18013-5 §8.2 device engagement QR code and hands it off to
@@ -346,3 +347,4 @@ private extension MDLQRScannerViewModel.State {
         return false
     }
 }
+#endif

@@ -13,7 +13,7 @@ actor KinnamiEncryption {
     // MARK: - Key Agreement
     
     /// Generate a new ephemeral key pair for key agreement
-    func generateEphemeralKeyPair() -> (privateKey: P256.KeyAgreement.PrivateKey, publicKey: Data) {
+    nonisolated func generateEphemeralKeyPair() -> (privateKey: P256.KeyAgreement.PrivateKey, publicKey: Data) {
         let privateKey = P256.KeyAgreement.PrivateKey()
         let publicKey = privateKey.publicKey.rawRepresentation
         return (privateKey, publicKey)

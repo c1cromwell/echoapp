@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Onboarding/Recovery/RecoveryPhraseDisplayView.swift
 
 import SwiftUI
@@ -137,3 +138,4 @@ struct RecoveryPhraseDisplayView: View {
         .background(Color.Echo.surface, in: RoundedRectangle(cornerRadius: 20))
     }
 }
+#endif

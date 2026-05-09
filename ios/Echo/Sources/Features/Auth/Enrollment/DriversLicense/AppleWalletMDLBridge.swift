@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Auth/Enrollment/DriversLicense/AppleWalletMDLBridge.swift
 //
 // Apple Wallet mDL presentation branch.
@@ -254,3 +255,4 @@ struct AppleWalletMDLBridgeView: View {
         .buttonStyle(SpringPressStyle())
     }
 }
+#endif

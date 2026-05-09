@@ -1,9 +1,12 @@
+#if os(iOS)
 // Features/Auth/Enrollment/DriversLicense/MDLNFCSession.swift
 //
 // ISO 18013-5 §8.3 NFC device engagement.
 
 import SwiftUI
+#if canImport(CoreNFC)
 import CoreNFC
+#endif
 
 // MARK: - ViewModel
 
@@ -290,3 +293,4 @@ struct MDLNFCSessionView: View {
         .buttonStyle(SpringPressStyle())
     }
 }
+#endif

@@ -60,13 +60,13 @@ final class AuthCoordinatorVMTests: XCTestCase {
     }
 
     func testLoginSucceededFromAnyState() {
-        let user = UserProfile(id: "u1", did: "did:dag:u1", displayName: "Test", username: "test", trustScore: 50, trustTier: 2)
+        let user = AuthUserProfile(id: "u1", did: "did:dag:u1", displayName: "Test", username: "test", trustScore: 50, trustTier: 2)
         coordinator.handle(.loginSucceeded(user))
         XCTAssertEqual(coordinator.state, .authenticated(user: user))
     }
 
     func testSessionExpiredClearsTokens() {
-        let user = UserProfile(id: "u1", did: "did:dag:u1", displayName: "Test", username: "test", trustScore: 50, trustTier: 2)
+        let user = AuthUserProfile(id: "u1", did: "did:dag:u1", displayName: "Test", username: "test", trustScore: 50, trustTier: 2)
         coordinator.handle(.loginSucceeded(user))
 
         // Store a refresh token first
@@ -78,7 +78,7 @@ final class AuthCoordinatorVMTests: XCTestCase {
     }
 
     func testLoggedOutClearsTokens() {
-        let user = UserProfile(id: "u1", did: "did:dag:u1", displayName: "Test", username: "test", trustScore: 50, trustTier: 2)
+        let user = AuthUserProfile(id: "u1", did: "did:dag:u1", displayName: "Test", username: "test", trustScore: 50, trustTier: 2)
         coordinator.handle(.loginSucceeded(user))
         coordinator.handle(.loggedOut)
         XCTAssertEqual(coordinator.state, .unauthenticated)
@@ -421,7 +421,7 @@ final class LoginViewModelTests: XCTestCase {
     }
 
     func testLoginWithPasskeySuccess() async {
-        let expectedUser = UserProfile(
+        let expectedUser = AuthUserProfile(
             id: "user-1", did: "did:dag:u1", displayName: "Test",
             username: "testuser", trustScore: 50, trustTier: 2
         )
@@ -738,14 +738,14 @@ final class MockKeychainManagerTests: XCTestCase {
 final class UserProfileTests: XCTestCase {
 
     func testCodableRoundTrip() throws {
-        let profile = UserProfile(
+        let profile = AuthUserProfile(
             id: "u1", did: "did:dag:u1", displayName: "Test User",
             username: "testuser", trustScore: 75, trustTier: 3
         )
 
         let encoder = JSONEncoder()
         let data = try encoder.encode(profile)
-        let decoded = try JSONDecoder().decode(UserProfile.self, from: data)
+        let decoded = try JSONDecoder().decode(AuthUserProfile.self, from: data)
 
         XCTAssertEqual(decoded.id, "u1")
         XCTAssertEqual(decoded.did, "did:dag:u1")
@@ -756,9 +756,9 @@ final class UserProfileTests: XCTestCase {
     }
 
     func testEquality() {
-        let user1 = UserProfile(id: "u1", did: "did:dag:u1", displayName: "A", username: "a", trustScore: 1, trustTier: 1)
-        let user2 = UserProfile(id: "u1", did: "did:dag:u1", displayName: "B", username: "b", trustScore: 2, trustTier: 2)
-        let user3 = UserProfile(id: "u2", did: "did:dag:u2", displayName: "A", username: "a", trustScore: 1, trustTier: 1)
+        let user1 = AuthUserProfile(id: "u1", did: "did:dag:u1", displayName: "A", username: "a", trustScore: 1, trustTier: 1)
+        let user2 = AuthUserProfile(id: "u1", did: "did:dag:u1", displayName: "B", username: "b", trustScore: 2, trustTier: 2)
+        let user3 = AuthUserProfile(id: "u2", did: "did:dag:u2", displayName: "A", username: "a", trustScore: 1, trustTier: 1)
 
         // Equality based on ID only
         XCTAssertEqual(user1, user2)

@@ -4,7 +4,8 @@ import PackageDescription
 let package = Package(
     name: "Echo",
     platforms: [
-        .iOS(.v17)
+        .iOS(.v17),
+        .macOS(.v14)
     ],
     products: [
         .library(
@@ -23,6 +24,14 @@ let package = Package(
             name: "EchoTests",
             dependencies: ["Echo"],
             path: "Tests"
+        ),
+        // Isolated security tests (WO-208/211/223/224) that compile cleanly.
+        // Kept separate from EchoTests because EchoTests has pre-existing
+        // compilation issues unrelated to these work orders.
+        .testTarget(
+            name: "EchoSecurityTests",
+            dependencies: ["Echo"],
+            path: "SecurityTests"
         ),
     ]
 )

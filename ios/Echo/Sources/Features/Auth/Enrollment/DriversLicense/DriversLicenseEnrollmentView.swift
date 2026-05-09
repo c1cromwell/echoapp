@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Auth/Enrollment/DriversLicense/DriversLicenseEnrollmentView.swift
 //
 // Hub screen that offers four ways to present a mobile driver's license:
@@ -10,7 +11,9 @@
 // (no NFC hardware, camera denied, no mDL provisioned in Wallet).
 
 import SwiftUI
+#if canImport(CoreNFC)
 import CoreNFC
+#endif
 import AVFoundation
 
 @MainActor
@@ -198,3 +201,4 @@ struct DriversLicenseEnrollmentView: View {
         .padding(.top, 8)
     }
 }
+#endif

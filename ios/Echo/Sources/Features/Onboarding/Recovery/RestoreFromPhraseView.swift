@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Onboarding/Recovery/RestoreFromPhraseView.swift
 
 import SwiftUI
@@ -164,3 +165,4 @@ struct RestoreFromPhraseView: View {
         }
     }
 }
+#endif
