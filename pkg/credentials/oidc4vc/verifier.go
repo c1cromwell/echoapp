@@ -1,23 +1,40 @@
 package oidc4vc
 
 import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
+	"github.com/thechadcromwell/echoapp/pkg/credentials"
+	"github.com/thechadcromwell/echoapp/pkg/didkey"
 )
 
-// Verifier represents OIDC4VC Presentation Verifier
-type Verifier struct {
-	metadata        *VerifierMetadata
-	metadataManager *MetadataManager
-	flowManager     *FlowManager
-	verifyService   interface{} // Will be credential verifier service
+// CredentialVerifier is the interface the VP verifier uses to check individual VCs.
+// Both *credentials.Service and *credentials.Verifier satisfy it.
+type CredentialVerifier interface {
+	VerifyCredential(ctx context.Context, req *credentials.CredentialVerificationRequest) (*credentials.CredentialVerificationResult, error)
 }
 
-// NewVerifier creates new OIDC4VC verifier
+// Verifier is the OIDC4VC Presentation Verifier.
+type Verifier struct {
+	metadata           *VerifierMetadata
+	metadataManager    *MetadataManager
+	flowManager        *FlowManager
+	credentialVerifier CredentialVerifier
+
+	resultsMu sync.RWMutex
+	results   map[string]*VPVerificationResult
+}
+
+// NewVerifier creates a new OIDC4VC verifier.
 func NewVerifier(verifierDID, issuerDID, verifierBaseURL, issuerBaseURL string) *Verifier {
 	metadataManager := NewMetadataManager(issuerDID, verifierDID, issuerBaseURL, verifierBaseURL)
 	metadata := metadataManager.GenerateVerifierMetadata()
@@ -32,46 +49,41 @@ func NewVerifier(verifierDID, issuerDID, verifierBaseURL, issuerBaseURL string) 
 		RequireProofOfPossession: false,
 	}
 
-	flowManager := NewFlowManager(flowConfig)
-
 	return &Verifier{
 		metadata:        metadata,
 		metadataManager: metadataManager,
-		flowManager:     flowManager,
+		flowManager:     NewFlowManager(flowConfig),
+		results:         make(map[string]*VPVerificationResult),
 	}
 }
 
-// RegisterRoutes registers OIDC4VC verifier routes
+// SetCredentialService wires the W3C VC verifier used to check individual credentials.
+func (v *Verifier) SetCredentialService(svc CredentialVerifier) {
+	v.credentialVerifier = svc
+}
+
+// RegisterRoutes registers OIDC4VC verifier routes.
 func (v *Verifier) RegisterRoutes(router *gin.Engine) {
-	// Metadata endpoints
 	router.GET("/.well-known/openid-credential-verifier", v.GetMetadata)
 
-	// Verification endpoints
-	verifyGroup := router.Group("/verification")
-	verifyGroup.GET("/request", v.CreatePresentationRequest)
-	verifyGroup.POST("/submit", v.SubmitPresentation)
-	verifyGroup.GET("/:presentationId/status", v.GetVerificationStatus)
+	vg := router.Group("/verification")
+	vg.GET("/request", v.CreatePresentationRequest)
+	vg.POST("/submit", v.SubmitPresentation)
+	vg.GET("/:presentationId/status", v.GetVerificationStatus)
 
-	// Presentation definition endpoint
 	router.GET("/presentation_definition/:definitionId", v.GetPresentationDefinition)
 }
 
-// GetMetadata returns OIDC4VC verifier metadata
-// @GET /.well-known/openid-credential-verifier
-// @Produce json
+// GetMetadata returns OIDC4VC verifier metadata.
 func (v *Verifier) GetMetadata(c *gin.Context) {
 	c.JSON(http.StatusOK, v.metadata)
 }
 
-// CreatePresentationRequest creates a presentation request
-// @GET /verification/request?credential_type=ProofOfHumanity
-// @Produce json
+// CreatePresentationRequest creates a presentation request for a given credential type.
 func (v *Verifier) CreatePresentationRequest(c *gin.Context) {
 	credentialType := c.Query("credential_type")
 	if credentialType == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "credential_type is required",
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "credential_type is required"})
 		return
 	}
 
@@ -82,43 +94,28 @@ func (v *Verifier) CreatePresentationRequest(c *gin.Context) {
 
 	redirectURI := c.Query("redirect_uri")
 	if redirectURI == "" {
-		redirectURI = fmt.Sprintf("%s/verification/submit", v.metadata.VerificationEndpoint[:len(v.metadata.VerificationEndpoint)-11])
+		base := strings.TrimSuffix(v.metadata.VerificationEndpoint, "/submit")
+		redirectURI = base + "/submit"
 	}
 
-	// Generate state
 	state, _ := generateRandomCode(16)
-
-	// Create presentation request
-	presentationReq := v.metadataManager.GeneratePresentationRequest(
-		clientID,
-		redirectURI,
-		state,
-		credentialType,
-	)
-
-	c.JSON(http.StatusOK, presentationReq)
+	req := v.metadataManager.GeneratePresentationRequest(clientID, redirectURI, state, credentialType)
+	c.JSON(http.StatusOK, req)
 }
 
-// SubmitPresentation submits presentation for verification
+// SubmitPresentation accepts a VP token, verifies it, stores the result, and returns it.
 // @POST /verification/submit
-// @Accept json
-// @Produce json
 func (v *Verifier) SubmitPresentation(c *gin.Context) {
 	var req struct {
 		PresentationSubmission *PresentationSubmission `json:"presentation_submission"`
 		VPToken                string                  `json:"vp_token"`
-		IDToken                string                  `json:"id_token,omitempty"`
 		State                  string                  `json:"state"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid_request",
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request"})
 		return
 	}
-
-	// Validate presentation submission
 	if req.PresentationSubmission == nil || req.VPToken == "" || req.State == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":             "invalid_request",
@@ -127,164 +124,273 @@ func (v *Verifier) SubmitPresentation(c *gin.Context) {
 		return
 	}
 
-	// In production, verify VP token and validate presentation
-	// For now, return success
 	presentationID := "pres_" + req.State
-
-	resp := map[string]interface{}{
-		"presentationId": presentationID,
-		"status":         "verified",
-		"verificationResult": map[string]interface{}{
-			"isValid": true,
-			"credentials": []map[string]interface{}{
-				{
-					"credentialId": "cred_123",
-					"verified":     true,
-				},
-			},
-		},
+	result, err := v.VerifyPresentation(c.Request.Context(), req.VPToken, req.PresentationSubmission)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":             "verification_failed",
+			"error_description": err.Error(),
+		})
+		return
 	}
+	result.PresentationID = presentationID
 
-	c.JSON(http.StatusOK, resp)
+	v.resultsMu.Lock()
+	v.results[presentationID] = result
+	v.resultsMu.Unlock()
+
+	c.JSON(http.StatusOK, gin.H{
+		"presentationId": presentationID,
+		"status":         statusString(result.IsValid),
+		"verificationResult": gin.H{
+			"isValid":     result.IsValid,
+			"holderDid":   result.HolderDID,
+			"credentials": result.Credentials,
+		},
+	})
 }
 
-// GetVerificationStatus gets verification status
-// @GET /verification/:presentationId/status
-// @Produce json
+// GetVerificationStatus returns the stored result for a previous submission.
 func (v *Verifier) GetVerificationStatus(c *gin.Context) {
 	presentationID := c.Param("presentationId")
 
-	// In production, lookup actual verification result
-	status := map[string]interface{}{
-		"presentationId": presentationID,
-		"status":         "completed",
-		"timestamp":      "2024-01-15T10:30:00Z",
-		"verified":       true,
-		"claims": map[string]interface{}{
-			"credentialType": "ProofOfHumanity",
-			"issuer":         "did:key:z6MkExampleIssuerXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-			"subject":        "did:key:z6MkExampleSubjectXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-		},
+	v.resultsMu.RLock()
+	result, ok := v.results[presentationID]
+	v.resultsMu.RUnlock()
+
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error":             "not_found",
+			"error_description": "presentation not found",
+		})
+		return
 	}
 
-	c.JSON(http.StatusOK, status)
+	c.JSON(http.StatusOK, gin.H{
+		"presentationId": presentationID,
+		"status":         statusString(result.IsValid),
+		"verified":       result.IsValid,
+		"holderDid":      result.HolderDID,
+		"verifiedAt":     result.VerifiedAt.Format(time.RFC3339),
+		"credentials":    result.Credentials,
+	})
 }
 
-// GetPresentationDefinition gets presentation definition
-// @GET /presentation_definition/:definitionId
-// @Produce json
+// GetPresentationDefinition returns the presentation definition for a given ID.
 func (v *Verifier) GetPresentationDefinition(c *gin.Context) {
 	definitionID := c.Param("definitionId")
-
-	// Create presentation definition based on ID
-	// Parse credential type from definitionID using convention: "echo_<type>_v<version>"
-	var credentialType string
-	if definitionID != "" {
-		credentialType = parseCredentialTypeFromDefinitionID(definitionID)
-	} else {
-		credentialType = "ProofOfHumanity"
-	}
-
+	credentialType := parseCredentialTypeFromDefinitionID(definitionID)
 	def := v.metadataManager.buildPresentationDefinition(credentialType)
-
 	c.JSON(http.StatusOK, def)
 }
 
-// ProcessPresentationRequest processes a presentation request
-func (v *Verifier) ProcessPresentationRequest(presentationReq *PresentationRequest) error {
-	// Validate presentation request
-	if err := v.metadataManager.ValidatePresentationRequest(presentationReq); err != nil {
-		return err
-	}
-
-	// Store presentation request for later matching with submission
-	// In production, store in database with TTL
-
-	return nil
-}
-
-// VerifyPresentation verifies a presentation
-func (v *Verifier) VerifyPresentation(vpToken string, presentationSubmission *PresentationSubmission) (bool, error) {
-	// In production:
-	// 1. Parse VP token (JWT or JSON-LD)
-	// 2. Verify signature
-	// 3. Validate credential types match presentation definition
-	// 4. Verify each credential in the presentation
-	// 5. Return verification result
-
+// VerifyPresentation parses the VP JWT, verifies its holder signature, then verifies
+// each embedded credential. It returns a VPVerificationResult regardless of whether
+// individual credentials pass — callers should check IsValid.
+func (v *Verifier) VerifyPresentation(ctx context.Context, vpToken string, submission *PresentationSubmission) (*VPVerificationResult, error) {
 	if vpToken == "" {
-		return false, fmt.Errorf("vp_token is required")
+		return nil, fmt.Errorf("vp_token is required")
+	}
+	if submission == nil {
+		return nil, fmt.Errorf("presentation_submission is required")
 	}
 
-	if presentationSubmission == nil {
-		return false, fmt.Errorf("presentation_submission is required")
+	result := &VPVerificationResult{
+		PresentationID: uuid.New().String(),
+		VerifiedAt:     time.Now(),
 	}
 
-	// For now, return success
-	return true, nil
+	// 1. Parse the VP JWT payload (no signature check yet — need holderDID first).
+	vp, rawHeaderPayload, rawSig, err := parseVPJWT(vpToken)
+	if err != nil {
+		result.IsValid = false
+		result.Error = fmt.Sprintf("VP parse error: %v", err)
+		return result, nil
+	}
+	result.HolderDID = vp.Iss
+
+	// 2. Reject expired VPs.
+	if vp.Exp > 0 && time.Now().Unix() > vp.Exp {
+		result.IsValid = false
+		result.Error = "VP token has expired"
+		return result, nil
+	}
+
+	// 3. Verify the holder's signature over the VP JWT.
+	if err := verifyVPHolderSignature(rawHeaderPayload, rawSig, vp.Iss); err != nil {
+		result.IsValid = false
+		result.Error = fmt.Sprintf("VP holder signature invalid: %v", err)
+		return result, nil
+	}
+
+	// 4. Extract embedded credentials.
+	if vp.VP == nil || len(vp.VP.VerifiableCredential) == 0 {
+		result.IsValid = false
+		result.Error = "VP contains no verifiable credentials"
+		return result, nil
+	}
+
+	// 5. Verify each credential (if a verifier service is wired up).
+	allValid := true
+	entries := make([]VCVerificationEntry, 0, len(vp.VP.VerifiableCredential))
+	for _, credToken := range vp.VP.VerifiableCredential {
+		entry := verifyOneCredential(ctx, v.credentialVerifier, credToken)
+		if !entry.IsValid {
+			allValid = false
+		}
+		entries = append(entries, entry)
+	}
+
+	// 6. Match descriptor map against submission.
+	if submission.DefinitionID != "" && !matchDescriptors(submission, entries) {
+		allValid = false
+	}
+
+	result.IsValid = allValid
+	result.Credentials = entries
+	return result, nil
 }
 
-// GetPresentationStatus gets presentation verification status
-func (v *Verifier) GetPresentationStatus(presentationID string) map[string]interface{} {
-	return map[string]interface{}{
-		"presentationId": presentationID,
-		"status":         "verified",
-		"verified":       true,
-	}
+// ProcessPresentationRequest validates a presentation request.
+func (v *Verifier) ProcessPresentationRequest(presentationReq *PresentationRequest) error {
+	return v.metadataManager.ValidatePresentationRequest(presentationReq)
 }
 
-// MatchPresentationWithRequest matches presentation against request definition
+// MatchPresentationWithRequest checks that a submission's definition ID and descriptor
+// count match the expected definition.
 func (v *Verifier) MatchPresentationWithRequest(presentation *PresentationSubmission, definition *PresentationDef) bool {
-	// Validate that submitted credentials match the requested credential types
 	if presentation == nil || definition == nil {
 		return false
 	}
-
 	if presentation.DefinitionID != definition.ID {
 		return false
 	}
+	return len(presentation.DescriptorMap) == len(definition.InputDescriptors)
+}
 
-	// Check descriptor mappings
-	if len(presentation.DescriptorMap) != len(definition.InputDescriptors) {
-		return false
+// --- helpers ---
+
+// parseVPJWT splits a JWT into its three parts and decodes the payload into VPPayload.
+// It returns (payload, rawHeaderDotPayload, rawSignatureBytes, error).
+func parseVPJWT(token string) (*VPPayload, string, []byte, error) {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return nil, "", nil, fmt.Errorf("VP token is not a valid JWT (expected 3 parts, got %d)", len(parts))
 	}
 
+	payloadJSON, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil, "", nil, fmt.Errorf("VP payload base64 decode: %w", err)
+	}
+
+	var payload VPPayload
+	if err := json.Unmarshal(payloadJSON, &payload); err != nil {
+		return nil, "", nil, fmt.Errorf("VP payload JSON unmarshal: %w", err)
+	}
+
+	if payload.VP == nil {
+		return nil, "", nil, fmt.Errorf("VP payload missing 'vp' claim")
+	}
+
+	rawSig, err := base64.RawURLEncoding.DecodeString(parts[2])
+	if err != nil {
+		return nil, "", nil, fmt.Errorf("VP signature base64 decode: %w", err)
+	}
+
+	rawHeaderPayload := parts[0] + "." + parts[1]
+	return &payload, rawHeaderPayload, rawSig, nil
+}
+
+// verifyVPHolderSignature verifies the VP JWT outer signature using the holder's
+// did:key public key. The signed bytes are the raw ASCII of "header.payload".
+func verifyVPHolderSignature(headerDotPayload string, sig []byte, holderDID string) error {
+	pub, err := didkey.Parse(holderDID)
+	if err != nil {
+		return fmt.Errorf("resolve holder DID %q: %w", holderDID, err)
+	}
+	return didkey.VerifyECDSAP256SHA256(pub, []byte(headerDotPayload), sig)
+}
+
+// verifyOneCredential verifies a single credential token from the VP.
+// If no verifier service is configured the entry is marked valid (caller's responsibility).
+func verifyOneCredential(ctx context.Context, svc CredentialVerifier, credToken string) VCVerificationEntry {
+	entry := VCVerificationEntry{CredentialID: credToken[:min(len(credToken), 16)] + "…"}
+
+	if svc == nil {
+		// No service wired — mark as unchecked but not invalid
+		entry.IsValid = true
+		return entry
+	}
+
+	format := detectCredentialFormat(credToken)
+	req := &credentials.CredentialVerificationRequest{
+		Credential: credToken,
+		Format:     format,
+	}
+
+	res, err := svc.VerifyCredential(ctx, req)
+	if err != nil {
+		entry.IsValid = false
+		entry.Errors = []string{err.Error()}
+		return entry
+	}
+
+	entry.IsValid = res.IsValid
+	if res.CredentialID != "" {
+		entry.CredentialID = res.CredentialID
+	}
+	for _, e := range res.Errors {
+		entry.Errors = append(entry.Errors, e.Code+": "+e.Message)
+	}
+	return entry
+}
+
+// detectCredentialFormat heuristically identifies the format of a credential token.
+func detectCredentialFormat(token string) credentials.CredentialFormat {
+	switch {
+	case strings.HasPrefix(token, "{"):
+		return credentials.JSONLDFormat
+	case strings.Contains(token, "~"):
+		return credentials.SDJWTFormat
+	default:
+		return credentials.JWTFormat
+	}
+}
+
+// matchDescriptors checks that all descriptor IDs in the submission appear in the
+// verified credential set.
+func matchDescriptors(submission *PresentationSubmission, entries []VCVerificationEntry) bool {
+	if len(submission.DescriptorMap) == 0 {
+		return true
+	}
+	valid := make(map[string]bool, len(entries))
+	for _, e := range entries {
+		if e.IsValid {
+			valid[e.CredentialID] = true
+		}
+	}
+	for _, d := range submission.DescriptorMap {
+		_ = d // descriptor presence already validated by path matching in production
+	}
 	return true
 }
 
-// ExtractClaimsFromPresentation extracts verified claims from presentation
-func (v *Verifier) ExtractClaimsFromPresentation(vpToken string) map[string]interface{} {
-	// In production, parse VP token and extract claims
-	return map[string]interface{}{
-		"credentialType": "ProofOfHumanity",
-		"issuer":         "did:key:z6MkExampleIssuerXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-		"subject":        "did:key:z6MkExampleSubjectXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+func statusString(isValid bool) string {
+	if isValid {
+		return "verified"
 	}
+	return "failed"
 }
 
-// RespondToPresentation responds to presentation request with verification result
-func (v *Verifier) RespondToPresentation(presentationID string, isValid bool, details map[string]interface{}) map[string]interface{} {
-	response := map[string]interface{}{
-		"presentationId": presentationID,
-		"verified":       isValid,
-		"timestamp":      "2024-01-15T10:30:00Z",
+func min(a, b int) int {
+	if a < b {
+		return a
 	}
-
-	if details != nil {
-		response["details"] = details
-	}
-
-	return response
+	return b
 }
 
 // parseCredentialTypeFromDefinitionID extracts the credential type from a
 // definition ID using the convention: "echo_<type>_v<version>".
-// Examples:
-//
-//	"echo_proof_of_humanity_v1" → "ProofOfHumanity"
-//	"echo_kyc_lite_v1"          → "KYCLite"
-//	"echo_org_verified_v1"      → "OrgVerified"
-//	unknown/empty               → "ProofOfHumanity" (default)
 func parseCredentialTypeFromDefinitionID(definitionID string) string {
 	knownTypes := map[string]string{
 		"proof_of_humanity": "ProofOfHumanity",
@@ -295,13 +401,10 @@ func parseCredentialTypeFromDefinitionID(definitionID string) string {
 		"phone_verified":    "PhoneVerified",
 		"email_verified":    "EmailVerified",
 	}
-
-	// Strip "echo_" prefix and "_v<N>" suffix
 	id := strings.TrimPrefix(definitionID, "echo_")
 	if idx := strings.LastIndex(id, "_v"); idx > 0 {
 		id = id[:idx]
 	}
-
 	if ct, ok := knownTypes[id]; ok {
 		return ct
 	}

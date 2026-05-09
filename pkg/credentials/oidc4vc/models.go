@@ -280,6 +280,40 @@ type PreAuthorizedCode struct {
 	MaxAttempts    int       `json:"max_attempts"`
 }
 
+// VPPayload is the decoded JWT payload of a Verifiable Presentation (OID4VP).
+type VPPayload struct {
+	Iss   string    `json:"iss"`   // holder DID
+	Aud   string    `json:"aud"`   // verifier DID (string; wallets sometimes use []string)
+	Iat   int64     `json:"iat"`
+	Exp   int64     `json:"exp"`
+	Nonce string    `json:"nonce,omitempty"`
+	VP    *VPClaims `json:"vp"`
+}
+
+// VPClaims holds the vp claim inside a VP JWT payload.
+type VPClaims struct {
+	Context              []string `json:"@context"`
+	Type                 []string `json:"type"`
+	VerifiableCredential []string `json:"verifiableCredential"`
+}
+
+// VPVerificationResult is returned by VerifyPresentation.
+type VPVerificationResult struct {
+	PresentationID string                `json:"presentationId"`
+	IsValid        bool                  `json:"isValid"`
+	HolderDID      string                `json:"holderDid"`
+	Credentials    []VCVerificationEntry `json:"credentials"`
+	Error          string                `json:"error,omitempty"`
+	VerifiedAt     time.Time             `json:"verifiedAt"`
+}
+
+// VCVerificationEntry is the per-credential result inside a VP verification.
+type VCVerificationEntry struct {
+	CredentialID string   `json:"credentialId"`
+	IsValid      bool     `json:"isValid"`
+	Errors       []string `json:"errors,omitempty"`
+}
+
 // WalletInfo represents wallet capabilities and supported formats
 type WalletInfo struct {
 	ID                        string   `json:"id"`
