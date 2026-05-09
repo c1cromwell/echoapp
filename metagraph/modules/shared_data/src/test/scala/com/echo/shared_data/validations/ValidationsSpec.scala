@@ -156,8 +156,8 @@ final class ValidationsSpec extends AnyFunSpec with Matchers {
     it("scales amounts and durations monotonically across tiers") {
       val ordered = Seq("Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5")
         .map(Validations.StakingTiers)
-      ordered.map(_._1).sliding(2).foreach { case Seq(a, b) => a should be < b }
-      ordered.map(_._2).sliding(2).foreach { case Seq(a, b) => a should be < b }
+      ordered.map(_._1).sliding(2).foreach { case Seq(a, b) => a should be < b; case _ => () }
+      ordered.map(_._2).sliding(2).foreach { case Seq(a, b) => a should be < b; case _ => () }
     }
   }
 }

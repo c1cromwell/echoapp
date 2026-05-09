@@ -2,7 +2,8 @@ package com.echo.identity_l0
 
 import com.echo.shared_data.cluster.ClusterIds
 import com.echo.shared_data.state.IdentityRevocationSequences
-import org.tessellation.currency.l0.CurrencyL0App
+import io.constellationnetwork.currency.l0.CurrencyL0App
+import io.constellationnetwork.schema.semver.{TessellationVersion, MetagraphVersion}
 
 /**
  * Echo Identity Metagraph L0 — consensus layer for the Identity Metagraph.
@@ -28,7 +29,8 @@ object Main extends CurrencyL0App(
   name      = "echo-identity-l0",
   header    = "Echo Identity Metagraph L0",
   clusterId = ClusterIds.identityL0,
-  version   = "0.1.0"
+  tessellationVersion = TessellationVersion.unsafeFrom("4.0.0-rc.0"),
+  metagraphVersion    = MetagraphVersion.unsafeFrom("0.1.0")
 ) {
 
   /** Allowed VC types the Identity Metagraph accepts in Phase 1. */

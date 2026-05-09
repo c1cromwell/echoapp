@@ -4,7 +4,8 @@ import com.echo.shared_data.cluster.ClusterIds
 import com.echo.shared_data.state.IdentityRevocationSequences
 import com.echo.shared_data.types._
 import com.echo.shared_data.validations.IdentityValidations
-import org.tessellation.currency.l1.CurrencyL1App
+import io.constellationnetwork.currency.l1.CurrencyL1App
+import io.constellationnetwork.schema.semver.{TessellationVersion, MetagraphVersion}
 
 /**
  * Echo Identity Metagraph L1 — receives identity-update submissions from
@@ -32,7 +33,8 @@ object Main extends CurrencyL1App(
   name      = "echo-identity-l1",
   header    = "Echo Identity Metagraph L1",
   clusterId = ClusterIds.identityL1,
-  version   = "0.1.0"
+  tessellationVersion = TessellationVersion.unsafeFrom("4.0.0-rc.0"),
+  metagraphVersion    = MetagraphVersion.unsafeFrom("0.1.0")
 ) {
 
   /**

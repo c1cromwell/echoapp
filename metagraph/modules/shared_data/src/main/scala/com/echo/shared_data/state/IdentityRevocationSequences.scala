@@ -24,7 +24,7 @@ object IdentityRevocationSequences {
     }
 
   /** Test-only reset (not for production use). */
-  private[shared_data] def resetForTests(): Unit =
+  private[echo] def resetForTests(): Unit =
     synchronized {
       sequences = Map.empty.withDefaultValue(0L)
     }

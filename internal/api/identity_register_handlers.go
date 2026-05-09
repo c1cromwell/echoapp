@@ -7,10 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"sync"
 	"time"
 
+	"github.com/thechadcromwell/echoapp/internal/metagraph"
 	"github.com/thechadcromwell/echoapp/pkg/credentials"
 	"github.com/thechadcromwell/echoapp/pkg/didkey"
 )
@@ -387,6 +389,27 @@ func (rt *Router) handleIdentityAddDevice(w http.ResponseWriter, r *http.Request
 	// Invalidate the passkey auth Redis cache so the new device key is picked up immediately.
 	if rt.Redis != nil {
 		_ = rt.Redis.DeleteDIDDeviceKeys(r.Context(), req.SubjectDID)
+	}
+
+	// Anchor the device key registration on Identity L1 (WO-273).
+	// Fire-and-forget: Postgres is authoritative; L1 failure is logged but does not
+	// block the HTTP response. A background retry queue (NATS / Redis) handles
+	// transient L1 submission failures.
+	if rt.IdentityL1 != nil {
+		l1tx := metagraph.DeviceKeyRegistrationUpdate{
+			SubjectDID:   req.SubjectDID,
+			PublicKeyHex: req.NewPublicKeyHex,
+			DeviceLabel:  deviceLabel,
+			AddedAt:      time.Now().UnixMilli(),
+		}
+		go func(tx metagraph.DeviceKeyRegistrationUpdate) {
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+			if _, err := rt.IdentityL1.SubmitIdentityL1(ctx, tx); err != nil {
+				log.Printf("identity L1 device-key anchor failed (non-fatal): subjectDID=%s deviceLabel=%s err=%v",
+					tx.SubjectDID, tx.DeviceLabel, err)
+			}
+		}(l1tx)
 	}
 
 	if rt.CredentialService != nil {

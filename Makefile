@@ -267,8 +267,13 @@ testnet-down: ## Tear down backend stack
 metagraph-verify-skeleton: ## WO-276: static verify Identity Metagraph skeleton (no sbt; needs jq)
 	@cd metagraph && ./scripts/verify-identity-skeleton.sh
 
-metagraph-test: ## WO-272/277: run validators + Identity L1 wiring tests (sbt)
-	@cd metagraph && sbt "sharedData/test" "identityL0/test" "identityL1/test"
+metagraph-test: ## WO-272/277: run validators + Identity L1 wiring tests (sbt + JDK 21)
+	@JDK21=$$(ls -d /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home 2>/dev/null || ls -d /usr/lib/jvm/java-21* 2>/dev/null | head -1 || echo ""); \
+	if [ -n "$$JDK21" ]; then \
+	  cd metagraph && JAVA_HOME=$$JDK21 PATH=$$JDK21/bin:$$PATH SBT_OPTS="-Xss8m -Xmx2g" sbt "sharedData/test" "identityL0/test" "identityL1/test"; \
+	else \
+	  cd metagraph && SBT_OPTS="-Xss8m -Xmx2g" sbt "sharedData/test" "identityL0/test" "identityL1/test"; \
+	fi
 
 dev-stop: testnet-down ## Tear down backend stack (does not stop metagraph)
 	@echo "Backend stack down. Metagraph still running — use:"

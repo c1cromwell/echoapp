@@ -3,7 +3,8 @@ package com.echo.l1
 import com.echo.shared_data.cluster.ClusterIds
 import com.echo.shared_data.types._
 import com.echo.shared_data.validations.Validations
-import org.tessellation.currency.l1.CurrencyL1App
+import io.constellationnetwork.currency.l1.CurrencyL1App
+import io.constellationnetwork.schema.semver.{TessellationVersion, MetagraphVersion}
 
 /**
  * Echo Currency L1 — token transactions (lock, delegate, withdraw, claim).
@@ -20,7 +21,8 @@ object Main extends CurrencyL1App(
   name      = "echo-currency-l1",
   header    = "Echo Currency L1",
   clusterId = ClusterIds.currencyL1,
-  version   = "0.1.0"
+  tessellationVersion = TessellationVersion.unsafeFrom("4.0.0-rc.0"),
+  metagraphVersion    = MetagraphVersion.unsafeFrom("0.1.0")
 ) {
 
   def dispatch(update: EchoUpdate): Either[String, Unit] = update match {

@@ -3,7 +3,7 @@ import sbt._
 import sbt.Keys._
 
 ThisBuild / organization := "com.echo"
-ThisBuild / scalaVersion := "2.13.10"
+ThisBuild / scalaVersion := "2.13.12"
 ThisBuild / evictionErrorLevel := Level.Warn
 ThisBuild / scalafixDependencies += Libraries.organizeImports
 

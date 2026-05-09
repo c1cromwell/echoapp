@@ -1,8 +1,9 @@
 package com.echo.l0
 
 import com.echo.shared_data.cluster.ClusterIds
-import org.tessellation.currency.l0.CurrencyL0App
-import org.tessellation.schema.balance.Amount
+import io.constellationnetwork.currency.l0.CurrencyL0App
+import io.constellationnetwork.schema.balance.Amount
+import io.constellationnetwork.schema.semver.{TessellationVersion, MetagraphVersion}
 
 /**
  * Echo Metagraph L0 — consensus layer.
@@ -20,7 +21,8 @@ object Main extends CurrencyL0App(
   name = "echo-metagraph-l0",
   header = "Echo Metagraph L0",
   clusterId = ClusterIds.metagraphL0,
-  version = "0.1.0"
+  tessellationVersion = TessellationVersion.unsafeFrom("4.0.0-rc.0"),
+  metagraphVersion    = MetagraphVersion.unsafeFrom("0.1.0")
 ) {
 
   /**
