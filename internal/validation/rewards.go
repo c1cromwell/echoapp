@@ -1,3 +1,7 @@
+// T0–T7: Reward claim pre-validation operates on T5/T6 data only.
+// DecayFactor and TrustMultiplier are numeric parameters — no PII.
+// The calling handler must authenticate the DID separately (T7 public data)
+// and must NOT pass message content or key material into these functions.
 package validation
 
 import (

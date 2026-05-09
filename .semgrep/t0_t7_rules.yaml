@@ -1,0 +1,269 @@
+rules:
+
+  # ---------------------------------------------------------------------------
+  # T0 — Secret data must NEVER leave memory
+  # Catches: logging plaintext message content, private key bytes, or raw
+  # decrypted data that must stay in memory only.
+  # ---------------------------------------------------------------------------
+
+  - id: t0-no-log-plaintext-content
+    patterns:
+      - pattern-either:
+          - pattern: log.$FUNC(..., $VAR, ...)
+          - pattern: log.$FUNC($VAR)
+          - pattern: fmt.Printf(..., $VAR, ...)
+          - pattern: fmt.Println($VAR, ...)
+    pattern-where-either:
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: (?i)(plaintext|plain_text|messageContent|message_content|msgContent|decrypted|rawMessage|rawMsg|bodyPlain)
+    message: |
+      [T0 violation] Logging T0 secret data. Message plaintext, decrypted content, and
+      private key material must NEVER appear in logs. T0 data is memory-only.
+      Reference: docs/data-classification.md §T0
+    languages: [go]
+    severity: ERROR
+    metadata:
+      category: security
+      tier: T0
+      cwe: CWE-532
+
+  - id: t0-no-db-private-key
+    patterns:
+      - pattern-either:
+          - pattern: $DB.QueryRow($CTX, ..., $VAR, ...)
+          - pattern: $DB.Exec($CTX, ..., $VAR, ...)
+          - pattern: $DB.Query($CTX, ..., $VAR, ...)
+    pattern-where-either:
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: (?i)(privateKey|private_key|secretKey|secret_key|signingKey|signing_key|rawKey|keyBytes|keyMaterial)
+    message: |
+      [T0 violation] Writing T0 private key material to the database. Private keys are
+      T0 secrets — memory-only, never persisted. Use Secure Enclave (iOS) or HSM instead.
+      Reference: docs/data-classification.md §T0
+    languages: [go]
+    severity: ERROR
+    metadata:
+      category: security
+      tier: T0
+      cwe: CWE-312
+
+  - id: t0-no-http-response-plaintext
+    patterns:
+      - pattern: json.Marshal($STRUCT)
+      - pattern-inside: |
+          func $HANDLER(w http.ResponseWriter, r *http.Request) {
+            ...
+          }
+    pattern-where-either:
+      - metavariable-regex:
+          metavariable: $STRUCT
+          regex: (?i)(plaintext|plain_text|decrypted|rawMsg|msgContent)
+    message: |
+      [T0 violation] Serialising T0 plaintext data in an HTTP response. Clients must
+      receive only encrypted ciphertext (T2) or commitment hashes (T5/T6).
+      Reference: docs/data-classification.md §T0
+    languages: [go]
+    severity: ERROR
+    metadata:
+      category: security
+      tier: T0
+
+  # ---------------------------------------------------------------------------
+  # T1 — Device-local secrets (derived keys, biometric templates)
+  # Must stay in Secure Enclave. Flag writes to DB, network, or plain files.
+  # ---------------------------------------------------------------------------
+
+  - id: t1-no-db-derived-key
+    patterns:
+      - pattern-either:
+          - pattern: $DB.QueryRow($CTX, ..., $VAR, ...)
+          - pattern: $DB.Exec($CTX, ..., $VAR, ...)
+    pattern-where-either:
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: (?i)(derivedKey|derived_key|hkdfKey|hkdf_key|storageKey|storage_key|sessionKey|session_key|symmetricKey)
+    message: |
+      [T1 violation] Writing T1 derived symmetric key to the database. Derived keys are
+      T1 device-local secrets — they should only exist in memory during active use,
+      derived on demand from the Secure Enclave, and never persisted.
+      Reference: docs/data-classification.md §T1
+    languages: [go]
+    severity: ERROR
+    metadata:
+      category: security
+      tier: T1
+      cwe: CWE-312
+
+  - id: t1-no-log-derived-key
+    patterns:
+      - pattern-either:
+          - pattern: log.$FUNC(..., $VAR, ...)
+          - pattern: fmt.Printf(..., $VAR, ...)
+    pattern-where-either:
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: (?i)(derivedKey|derived_key|hkdfKey|storageKey|symmetricKey|biometricTemplate)
+    message: |
+      [T1 violation] Logging T1 derived key or biometric template. T1 secrets must
+      never appear in logs, monitoring systems, or audit trails.
+      Reference: docs/data-classification.md §T1
+    languages: [go]
+    severity: ERROR
+    metadata:
+      category: security
+      tier: T1
+
+  # ---------------------------------------------------------------------------
+  # T2 — Encrypted-local data (message ciphertext)
+  # Must not go on-chain or be sent unencrypted over the network.
+  # ---------------------------------------------------------------------------
+
+  - id: t2-no-onchain-ciphertext
+    patterns:
+      - pattern-either:
+          - pattern: metagraph.$FUNC($CTX, $TX)
+          - pattern: $CLIENT.SubmitIdentityL1($CTX, $TX)
+          - pattern: $CLIENT.submitTransaction($CTX, ...)
+    pattern-where-either:
+      - metavariable-regex:
+          metavariable: $TX
+          regex: (?i)(ciphertext|cipher_text|encryptedContent|encrypted_content|encryptedMsg)
+    message: |
+      [T2 violation] Sending T2 message ciphertext to the metagraph. Ciphertext is
+      device-local encrypted data — only T5 Merkle roots and T6/T7 commitments are
+      allowed on-chain. The metagraph must receive hash commitments, not payload content.
+      Reference: docs/data-classification.md §T2
+    languages: [go]
+    severity: ERROR
+    metadata:
+      category: security
+      tier: T2
+
+  # ---------------------------------------------------------------------------
+  # T3 — Relay-transient data (offline queue blobs)
+  # Allowed in ephemeral Postgres with TTL but must not go on-chain.
+  # ---------------------------------------------------------------------------
+
+  - id: t3-no-onchain-queue-blob
+    patterns:
+      - pattern: metagraph.$FUNC($CTX, $VAR)
+    pattern-where-either:
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: (?i)(queueBlob|queue_blob|offlineBlob|offline_blob|relayBlob)
+    message: |
+      [T3 violation] Sending T3 relay-transient queue blob to the metagraph. T3 data
+      is allowed in Postgres with ephemeral TTL only — never on-chain.
+      Reference: docs/data-classification.md §T3
+    languages: [go]
+    severity: WARNING
+    metadata:
+      category: security
+      tier: T3
+
+  # ---------------------------------------------------------------------------
+  # PII patterns — zero PII on any blockchain (hard invariant)
+  # These patterns catch email addresses, phone numbers, and plain DID strings
+  # in on-chain submission payloads. Apply to both Go and Scala.
+  # ---------------------------------------------------------------------------
+
+  - id: pii-no-email-in-onchain-submission
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $STRUCT{
+                ...,
+                $FIELD: $EMAIL,
+                ...,
+              }
+          - pattern: $STRUCT.$FIELD = $EMAIL
+    pattern-where-either:
+      - metavariable-regex:
+          metavariable: $EMAIL
+          regex: '[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}'
+      - metavariable-regex:
+          metavariable: $FIELD
+          regex: (?i)(email|emailAddress|email_address|userEmail)
+    message: |
+      [PII violation] Email address found in an on-chain submission struct. Zero PII
+      on any blockchain is a hard system invariant. Strip all PII before building
+      DataL1Submission or any metagraph transaction type.
+      Reference: docs/data-classification.md §PII-invariant
+    languages: [go]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: CWE-359
+
+  - id: pii-no-phone-in-onchain-submission
+    patterns:
+      - pattern-either:
+          - pattern: $STRUCT.$FIELD = $PHONE
+          - pattern: |
+              $STRUCT{
+                ...,
+                $FIELD: $PHONE,
+                ...,
+              }
+    pattern-where-either:
+      - metavariable-regex:
+          metavariable: $FIELD
+          regex: (?i)(phone|phoneNumber|phone_number|mobile|mobileNumber)
+    message: |
+      [PII violation] Phone number field found in an on-chain submission struct.
+      Phone numbers are T0 personal identifiers — strip before Data L1 submission.
+      Reference: docs/data-classification.md §PII-invariant
+    languages: [go]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: CWE-359
+
+  - id: pii-no-did-in-data-payload
+    patterns:
+      - pattern-either:
+          - pattern: DataL1Submission{..., SenderDID: $DID, ...}
+          - pattern: DataL1Submission{..., RecipientDID: $DID, ...}
+          - pattern: DataL1Submission{..., UserDID: $DID, ...}
+    message: |
+      [PII violation] DID appears as a named field inside DataL1Submission payload.
+      Sender/recipient DIDs are T0 personal identifiers for metagraph data submissions.
+      Only T5 Merkle roots and T6 trust commitments belong in DataL1Submission.
+      The authenticated sender DID travels as a transaction envelope field, not a
+      data payload field.
+      Reference: docs/data-classification.md §T5-T6-invariant
+    languages: [go]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: CWE-359
+
+  # ---------------------------------------------------------------------------
+  # Structural integrity checks (catch common mistakes)
+  # ---------------------------------------------------------------------------
+
+  - id: t5-merkle-root-must-be-32-bytes
+    patterns:
+      - pattern: |
+          DataL1Submission{
+            ...,
+            MerkleRoot: $ROOT,
+            ...,
+          }
+      - pattern-not: |
+          DataL1Submission{
+            ...,
+            MerkleRoot: make([]byte, 32),
+            ...,
+          }
+    message: |
+      [T5 check] DataL1Submission.MerkleRoot should be a 32-byte SHA-256 hash.
+      Ensure the value is not a raw string or variable-length byte slice.
+      Reference: docs/data-classification.md §T5
+    languages: [go]
+    severity: WARNING
+    metadata:
+      category: correctness
+      tier: T5

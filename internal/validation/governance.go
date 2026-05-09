@@ -1,3 +1,7 @@
+// T0–T7: Governance pre-validation receives T7 public chain data (proposal IDs,
+// trust tiers) and T6 vote values. No message content, DIDs, or PII should be
+// passed to these functions — the proposal and voter DIDs live in the transaction
+// envelope (T7), not the governance data payload.
 package validation
 
 // Governance pre-validation (WO-35).

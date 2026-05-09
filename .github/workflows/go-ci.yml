@@ -44,6 +44,40 @@ jobs:
           version: latest
         continue-on-error: true
 
+  t0-t7-classification:
+    name: T0–T7 Data Classification (WO-217)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run T0–T7 classification rules (Go)
+        # ERROR-severity findings fail the job; WARNING findings are advisory.
+        # Rules live in .semgrep/t0_t7_rules.yaml — add new patterns there.
+        run: |
+          semgrep \
+            --config .semgrep/t0_t7_rules.yaml \
+            --error \
+            --severity ERROR \
+            --include="*.go" \
+            --exclude-dir=vendor \
+            --exclude-dir=.git \
+            . || (echo "::error::T0–T7 classification violations found. See docs/data-classification.md for remediation." && exit 1)
+
+      - name: Run T0–T7 classification rules (advisory warnings)
+        # Warnings are reported but do not fail the build.
+        run: |
+          semgrep \
+            --config .semgrep/t0_t7_rules.yaml \
+            --severity WARNING \
+            --include="*.go" \
+            --exclude-dir=vendor \
+            --exclude-dir=.git \
+            . 2>&1 | sed 's/^/::warning::/' || true
+        continue-on-error: true
+
   test:
     name: Test
     runs-on: ubuntu-latest

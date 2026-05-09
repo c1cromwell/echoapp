@@ -78,8 +78,8 @@ final class ValidationsSpec extends AnyFunSpec with Matchers {
       Validations.validateTrustCommitment(valid) shouldBe Right(())
     }
 
-    it("accepts uppercase hex (validator is case-insensitive on hex chars)") {
-      Validations.validateTrustCommitment(valid.copy(commitment = "A" * 64)) shouldBe Right(())
+    it("rejects uppercase hex — submission must be normalised to lowercase before sending (WO-217)") {
+      Validations.validateTrustCommitment(valid.copy(commitment = "A" * 64)).isLeft shouldBe true
     }
 
     it("rejects commitments shorter than 64 chars") {
@@ -158,6 +158,100 @@ final class ValidationsSpec extends AnyFunSpec with Matchers {
         .map(Validations.StakingTiers)
       ordered.map(_._1).sliding(2).foreach { case Seq(a, b) => a should be < b; case _ => () }
       ordered.map(_._2).sliding(2).foreach { case Seq(a, b) => a should be < b; case _ => () }
+    }
+  }
+
+  // -- WO-217: T0–T7 PII rejection (rejectPII) --------------------------------
+
+  describe("Validations.rejectPII (WO-217)") {
+
+    it("accepts clean hex-only fields") {
+      Validations.rejectPII("root", "a" * 64) shouldBe Right(())
+    }
+
+    it("rejects email addresses") {
+      val result = Validations.rejectPII("data", "user@example.com")
+      result shouldBe a [Left[_, _]]
+      result.swap.getOrElse("") should include ("email")
+    }
+
+    it("rejects phone numbers — E.164 format") {
+      val result = Validations.rejectPII("data", "+14155551234")
+      result shouldBe a [Left[_, _]]
+      result.swap.getOrElse("") should include ("phone")
+    }
+
+    it("rejects embedded DID strings") {
+      val result = Validations.rejectPII("data", "did:key:zDnmrTest123")
+      result shouldBe a [Left[_, _]]
+      result.swap.getOrElse("") should include ("DID")
+    }
+
+    it("rejects did:prism strings") {
+      val result = Validations.rejectPII("payload", "did:prism:abc123")
+      result shouldBe a [Left[_, _]]
+    }
+
+    it("accepts normal alphanumeric free-form values") {
+      Validations.rejectPII("tier", "Tier 3") shouldBe Right(())
+    }
+  }
+
+  // -- WO-217: requireHex64 --------------------------------------------------
+
+  describe("Validations.requireHex64 (WO-217)") {
+
+    it("accepts a valid 64-char lowercase hex SHA-256") {
+      val hash = "0" * 32 + "a" * 32
+      Validations.requireHex64("root", hash) shouldBe Right(())
+    }
+
+    it("rejects a value that is too short") {
+      Validations.requireHex64("root", "abc123") shouldBe a [Left[_, _]]
+    }
+
+    it("rejects a value with uppercase hex chars (normalisation required before submission)") {
+      Validations.requireHex64("root", "A" * 64) shouldBe a [Left[_, _]]
+    }
+
+    it("rejects a value with non-hex characters") {
+      Validations.requireHex64("root", "g" * 64) shouldBe a [Left[_, _]]
+    }
+  }
+
+  // -- WO-217: rejectUpdatePII -----------------------------------------------
+
+  describe("Validations.rejectUpdatePII (WO-217)") {
+
+    it("rejects MerkleRootUpdate whose root embeds PII") {
+      val bad = MerkleRootUpdate(root = "did:key:zBadPII", leafCount = 1)
+      Validations.rejectUpdatePII(bad) shouldBe a [Left[_, _]]
+    }
+
+    it("accepts MerkleRootUpdate with clean hex root") {
+      val good = MerkleRootUpdate(root = "b" * 64, leafCount = 5)
+      Validations.rejectUpdatePII(good) shouldBe Right(())
+    }
+
+    it("rejects TrustCommitmentUpdate whose commitment embeds PII") {
+      val bad = TrustCommitmentUpdate(commitment = "user@example.com", epoch = 1)
+      Validations.rejectUpdatePII(bad) shouldBe a [Left[_, _]]
+    }
+
+    it("accepts TrustCommitmentUpdate with clean hex commitment") {
+      val good = TrustCommitmentUpdate(commitment = "f" * 64, epoch = 42)
+      Validations.rejectUpdatePII(good) shouldBe Right(())
+    }
+
+    it("rejects StakeDelegationUpdate with DID embedded in validatorDid field as data") {
+      // validatorDid is expected to be an opaque identifier, not a PII DID in a data payload
+      val bad = StakeDelegationUpdate(tokenLockTxId = "tx-001", validatorDid = "did:key:zBad", amount = 1000)
+      Validations.rejectUpdatePII(bad) shouldBe a [Left[_, _]]
+    }
+
+    it("passes WithdrawLockUpdate unconditionally (no string fields to check)") {
+      val ok = WithdrawLockUpdate(tokenLockTxId = "tx-001", amount = 500)
+      Validations.rejectUpdatePII(ok) shouldBe Right(())
     }
   }
 }

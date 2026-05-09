@@ -1,3 +1,14 @@
+// T0–T7 classifications for on-chain Identity Metagraph submissions:
+//
+//   DeviceKeyRegistrationUpdate — T7 (public chain data):
+//     SubjectDID, PublicKeyHex, DeviceLabel are public identity data.
+//     Caller must NOT include plaintext messages, private keys, or PII.
+//
+//   TrustTierCommitmentUpdate — T6 (trust commitment):
+//     Commitment = H(tier || nonce) — a hash, never the raw tier + nonce.
+//     AnchoredAt is epoch millis — no PII.
+//
+// See docs/data-classification.md for full T0–T7 policy.
 package metagraph
 
 import (
