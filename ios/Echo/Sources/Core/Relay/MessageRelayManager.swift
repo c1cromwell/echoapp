@@ -88,7 +88,7 @@ actor MessageRelayManager {
 
         // 1. Verify sender signature (P-256)
         let senderKey = try P256.Signing.PublicKey(x963Representation: relayMsg.senderPublicKey)
-        let isValid = await secureEnclave.verify(
+        let isValid = secureEnclave.verify(
             signature: relayMsg.signature,
             data: relayMsg.encryptedPayload,
             publicKey: senderKey
@@ -147,7 +147,7 @@ actor MessageRelayManager {
         switch wsMessage.type {
         case .message, .queueDrain:
             // Decrypt and process (same flow for live and queued messages)
-            try? await handleIncomingMessage(wsMessage.payload)
+            _ = try? await handleIncomingMessage(wsMessage.payload)
 
         case .confirmation:
             // On-chain anchoring confirmed

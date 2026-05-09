@@ -55,11 +55,12 @@ class AppCoordinator: Coordinator {
     private let container: DIContainer
     private let authRepository: AuthRepository
     
-    init(container: DIContainer = .shared) {
-        self.container = container
-        self.authRepository = container.resolveAuthRepository() ?? ConcreteAuthRepository()
+    init(container: DIContainer? = nil) {
+        let resolved = container ?? DIContainer.shared
+        self.container = resolved
+        self.authRepository = resolved.resolveAuthRepository() ?? ConcreteAuthRepository()
     }
-    
+
     func start() {
         // Check if user is authenticated
         Task {
@@ -113,11 +114,12 @@ class AuthCoordinator: Coordinator {
     private let authRepository: AuthRepository
     var onAuthenticationComplete: (() -> Void)?
     
-    init(container: DIContainer = .shared) {
-        self.container = container
-        self.authRepository = container.resolveAuthRepository() ?? ConcreteAuthRepository()
+    init(container: DIContainer? = nil) {
+        let resolved = container ?? DIContainer.shared
+        self.container = resolved
+        self.authRepository = resolved.resolveAuthRepository() ?? ConcreteAuthRepository()
     }
-    
+
     func start() {
         navigationPath = [.authentication]
     }
@@ -158,10 +160,10 @@ class MainCoordinator: Coordinator {
         case conversations, contacts, profile, wallet
     }
     
-    init(container: DIContainer = .shared) {
-        self.container = container
+    init(container: DIContainer? = nil) {
+        self.container = container ?? DIContainer.shared
     }
-    
+
     func start() {
         navigationPath = [.main]
     }
@@ -211,10 +213,10 @@ class SettingsCoordinator: Coordinator {
     private let container: DIContainer
     var onLogout: (() -> Void)?
     
-    init(container: DIContainer = .shared) {
-        self.container = container
+    init(container: DIContainer? = nil) {
+        self.container = container ?? DIContainer.shared
     }
-    
+
     func start() {
         navigationPath = [.settings]
     }
@@ -251,9 +253,9 @@ class ChatCoordinator: Coordinator {
     let conversationId: String
     private let container: DIContainer
     
-    init(conversationId: String, container: DIContainer = .shared) {
+    init(conversationId: String, container: DIContainer? = nil) {
         self.conversationId = conversationId
-        self.container = container
+        self.container = container ?? DIContainer.shared
     }
     
     func start() {

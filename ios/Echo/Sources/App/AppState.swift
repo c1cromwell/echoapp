@@ -86,7 +86,7 @@ struct EchoRootView: View {
                     GlacialLoginScreen(
                         onPasskeyLogin: { appState.loginSucceeded() },
                         onSMSLogin: { _ in appState.loginSucceeded() },
-                        onGetStarted: { appState.loginSucceeded() }
+                        onGetStarted: { appState.root = .firstRun }
                     )
                 }
             case .authenticated:

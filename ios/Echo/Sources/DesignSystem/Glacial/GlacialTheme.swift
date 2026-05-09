@@ -80,28 +80,19 @@ extension LinearGradient {
     )
 }
 
-// MARK: - Typography (Inter — Editorial Voice)
+// MARK: - Typography
 
 extension Font {
     enum Echo {
-        /// Display-LG: 56px — "Hello" moments, empty states
-        static let displayLarge = Font.custom("Inter", size: 56).weight(.bold)
-        /// Display-MD: 45px
-        static let displayMedium = Font.custom("Inter", size: 45).weight(.bold)
-        /// Headline-SM: 24px — Screen titles
-        static let headlineSm = Font.custom("Inter", size: 24).weight(.bold)
-        /// Title-LG: 20px — Card titles, passkey button
-        static let titleLarge = Font.custom("Inter", size: 20).weight(.bold)
-        /// Body-LG: 16px — Primary text
-        static let bodyLarge = Font.custom("Inter", size: 16).weight(.medium)
-        /// Body-MD: 14px — Secondary text
-        static let bodyMedium = Font.custom("Inter", size: 14).weight(.medium)
-        /// Body-SM: 13px — Subtitles
-        static let bodySm = Font.custom("Inter", size: 13).weight(.regular)
-        /// Label-MD: 12px — Timestamps, metadata (tracked +2%)
-        static let labelMd = Font.custom("Inter", size: 12).weight(.medium)
-        /// Label-SM: 10px — Micro labels (SECURE ALTERNATIVE)
-        static let labelSm = Font.custom("Inter", size: 10).weight(.bold)
+        static let displayLarge = Font.system(size: 56, weight: .bold)
+        static let displayMedium = Font.system(size: 45, weight: .bold)
+        static let headlineSm = Font.system(size: 24, weight: .bold)
+        static let titleLarge = Font.system(size: 20, weight: .bold)
+        static let bodyLarge = Font.system(size: 16, weight: .medium)
+        static let bodyMedium = Font.system(size: 14, weight: .medium)
+        static let bodySm = Font.system(size: 13, weight: .regular)
+        static let labelMd = Font.system(size: 12, weight: .medium)
+        static let labelSm = Font.system(size: 10, weight: .bold)
     }
 }
 

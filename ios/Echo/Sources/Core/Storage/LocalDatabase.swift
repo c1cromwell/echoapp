@@ -4,6 +4,19 @@ import SwiftData
 
 /// Local database manager using SwiftData.
 ///
+/// # T0–T7 Data Classification (WO-217)
+///
+/// | Data                              | Tier | Rationale |
+/// |-----------------------------------|------|-----------|
+/// | `activeStorageKey`                | T1   | In-memory HKDF key; zeroed on background |
+/// | `LocalMessage.encryptedContent`   | T2   | AES-256-GCM ciphertext at rest |
+/// | `LocalMessage.content`            | T0   | Plaintext — never persist; clear after display |
+/// | `LocalDID.did`, `publicKey`       | T7   | Public chain data; safe to persist |
+/// | `LocalCredential.credentialData`  | T2   | Encrypted credential blob |
+///
+/// T0 invariant: `LocalMessage.content` must never be written to the persistent
+/// store. Only `encryptedContent` (T2 AES-256-GCM) belongs in SwiftData.
+///
 /// WO-224 storage key integration:
 ///   - Call `unlock(storageKey:)` on app foreground — call `deriveStorageKey(keyId:)` on
 ///     `SecureEnclaveManager` first, then hand the result here.

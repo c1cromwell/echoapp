@@ -1,8 +1,20 @@
 import Foundation
 import CryptoKit
 
-/// End-to-End Encryption service using Kinnami protocol
-/// Provides message encryption and decryption with asymmetric key exchange
+/// End-to-End Encryption service using Kinnami protocol.
+/// Provides message encryption and decryption with asymmetric key exchange.
+///
+/// # T0–T7 Data Classification (WO-217)
+///
+/// | Data                          | Tier | Rationale |
+/// |-------------------------------|------|-----------|
+/// | `plaintext` (input)           | T0   | Memory-only; never logged or persisted |
+/// | `encryptedMessage` (output)   | T2   | AES-256-GCM ciphertext; safe to store locally |
+/// | Ephemeral private key         | T1   | One-time per session; zero after key agreement |
+/// | Shared secret (ECDH output)   | T1   | Used immediately for HKDF; zero after derivation |
+///
+/// T0 invariant: `plaintext` must never appear in logs, DB writes, or network payloads.
+/// Only the T2 ciphertext output leaves this actor.
 actor KinnamiEncryption {
     
     // MARK: - Properties

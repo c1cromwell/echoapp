@@ -111,12 +111,13 @@ struct GlacialLoginScreen: View {
 
                     Spacer(minLength: 40)
 
-                    // Footer — simple hint (v2.5.3: new users go through FirstRunCoordinator)
                     HStack(spacing: 4) {
                         Text("New to ECHO?")
                             .font(.system(size: 12))
                             .foregroundStyle(Color.Echo.onSurfaceVariant)
-                        Button("Get the app") { }
+                        Button("Create Account") {
+                            onGetStarted()
+                        }
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Color.Echo.primaryContainer)
                     }

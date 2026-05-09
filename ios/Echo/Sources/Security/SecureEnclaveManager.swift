@@ -7,6 +7,19 @@ import UIKit
 
 /// Manages cryptographic keys in iOS Secure Enclave with biometric protection.
 ///
+/// # T0–T7 Data Classification (WO-217)
+///
+/// | Data                              | Tier | Rationale |
+/// |-----------------------------------|------|-----------|
+/// | Identity signing private key      | T1   | Secure Enclave–bound; bytes never in app memory |
+/// | `performKeyAgreement` result      | T1   | Ephemeral session key; zero after use |
+/// | `deriveStorageKey` result         | T1   | Re-derived on each unlock; never persisted |
+/// | `cachedDerivedKeys` dict          | T1   | In-memory cache; zeroed on background (purgeOnBackground) |
+/// | Biometric failure counter         | T7   | Integer counter only; no key material stored |
+///
+/// T0 invariant: private key bytes never reach application memory.
+/// All cryptographic operations execute inside the Secure Enclave boundary.
+///
 /// Implements WO-223 / WO-224 / WO-211 key hierarchy:
 ///   - Four purpose-specific HKDF contexts (WO-211)
 ///   - X25519 ECDH key agreement for per-session message encryption (WO-223)

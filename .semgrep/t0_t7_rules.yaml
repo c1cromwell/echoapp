@@ -267,3 +267,101 @@ rules:
     metadata:
       category: correctness
       tier: T5
+
+  # ---------------------------------------------------------------------------
+  # Swift / iOS rules (WO-217)
+  # ---------------------------------------------------------------------------
+
+  - id: swift-t0-no-print-private-key
+    patterns:
+      - pattern-either:
+          - pattern: print($VAR)
+          - pattern: print("...", $VAR, ...)
+          - pattern: NSLog($FMT, $VAR)
+    pattern-where-either:
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: (?i)(privateKey|private_key|signingKey|signing_key|secretKey|secret_key|rawKey|keyBytes|derivedKey|storageKey|biometricTemplate)
+    message: |
+      [T0/T1 violation] Logging private key or derived key material in Swift.
+      T0 secrets must stay in memory only; T1 secrets live in Secure Enclave only.
+      Never print key material to console, os_log, or analytics.
+      Reference: docs/data-classification.md §T0
+    languages: [swift]
+    severity: ERROR
+    metadata:
+      category: security
+      tier: T0
+      cwe: CWE-532
+
+  - id: swift-t1-no-userdefaults-key-material
+    patterns:
+      - pattern-either:
+          - pattern: UserDefaults.standard.set($VAR, forKey: ...)
+          - pattern: $DEFAULTS.set($VAR, forKey: ...)
+    pattern-where-either:
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: (?i)(privateKey|private_key|derivedKey|derived_key|storageKey|storage_key|symmetricKey|symmetric_key|hkdfKey|biometricTemplate|sessionKey)
+    message: |
+      [T1 violation] Writing T1 key material to UserDefaults. Derived keys are
+      T1 device-local secrets — they must never be persisted. Derive on-demand
+      from SecureEnclaveManager.deriveStorageKey() and zero on background.
+      Reference: docs/data-classification.md §T1
+    languages: [swift]
+    severity: ERROR
+    metadata:
+      category: security
+      tier: T1
+      cwe: CWE-312
+
+  - id: swift-t0-no-plaintext-in-swiftdata
+    patterns:
+      - pattern: $MODEL.$FIELD = $VALUE
+    pattern-where-either:
+      - metavariable-regex:
+          metavariable: $FIELD
+          regex: (?i)(plaintext|plain_text|messageContent|message_content|decryptedContent|decrypted_content|rawMessage|msgPlain)
+    message: |
+      [T0 violation] Writing T0 plaintext message content to a SwiftData model field.
+      Message plaintext is T0 — memory-only. Persist only AES-256-GCM ciphertext (T2).
+      Reference: docs/data-classification.md §T0
+    languages: [swift]
+    severity: ERROR
+    metadata:
+      category: security
+      tier: T0
+
+  - id: swift-pii-no-email-in-metagraph-submission
+    patterns:
+      - pattern-either:
+          - pattern: $STRUCT(email: $VAL, ...)
+          - pattern: $STRUCT(emailAddress: $VAL, ...)
+          - pattern: $VAR.email = $VAL
+    message: |
+      [PII violation] Email address in a struct that may be submitted on-chain.
+      Zero PII on any blockchain is a hard invariant. Strip all PII before
+      constructing any metagraph submission type.
+      Reference: docs/data-classification.md §PII-invariant
+    languages: [swift]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: CWE-359
+
+  - id: swift-t2-no-plaintext-network-send
+    patterns:
+      - pattern: URLSession.$METH($REQ, ...)
+    pattern-where-either:
+      - metavariable-regex:
+          metavariable: $REQ
+          regex: (?i)(plaintextRequest|plaintext_request|unencrypted_request|cleartext)
+    message: |
+      [T2 violation] Sending plaintext (T0/T2) data over the network without encryption.
+      All data above T3 must be encrypted before transmission.
+      Reference: docs/data-classification.md §T2
+    languages: [swift]
+    severity: ERROR
+    metadata:
+      category: security
+      tier: T2
