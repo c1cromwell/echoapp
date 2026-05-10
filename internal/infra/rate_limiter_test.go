@@ -1,6 +1,7 @@
 package infra
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -27,8 +28,9 @@ func TestRateLimiter_BlocksOverLimit(t *testing.T) {
 	}
 
 	err := rl.Check("did:dag:user1", "message_send")
-	if err != ErrRateLimitExceeded {
-		t.Errorf("expected rate limit exceeded, got: %v", err)
+	var rle *RateLimitExceededError
+	if !errors.As(err, &rle) {
+		t.Errorf("expected RateLimitExceededError, got: %v", err)
 	}
 }
 
@@ -74,7 +76,8 @@ func TestRateLimiter_WindowReset(t *testing.T) {
 	rl.Check("did:dag:user1", "test_action")
 
 	err := rl.Check("did:dag:user1", "test_action")
-	if err != ErrRateLimitExceeded {
+	var rle *RateLimitExceededError
+	if !errors.As(err, &rle) {
 		t.Fatal("should be rate limited")
 	}
 

@@ -177,3 +177,27 @@ func (r *RedisClient) SetDIDDeviceKeys(ctx context.Context, did string, keys []s
 func (r *RedisClient) DeleteDIDDeviceKeys(ctx context.Context, did string) error {
 	return r.client.Del(ctx, didKeyPrefix+did).Err()
 }
+
+// --- Device Registration Tokens (WO-273) ---
+
+const deviceRegTokenPrefix = "device_reg_token:"
+
+// SetDeviceRegToken stores a single-use device registration token with a TTL.
+func (r *RedisClient) SetDeviceRegToken(ctx context.Context, token string, record []byte, ttl time.Duration) error {
+	return r.client.Set(ctx, deviceRegTokenPrefix+token, record, ttl).Err()
+}
+
+// GetDeviceRegToken retrieves the device registration token record.
+// Returns redis.Nil-wrapped error if missing or expired.
+func (r *RedisClient) GetDeviceRegToken(ctx context.Context, token string) ([]byte, error) {
+	val, err := r.client.Get(ctx, deviceRegTokenPrefix+token).Bytes()
+	if err == redis.Nil {
+		return nil, fmt.Errorf("token not found or expired")
+	}
+	return val, err
+}
+
+// DeleteDeviceRegToken deletes a device registration token (single-use enforcement).
+func (r *RedisClient) DeleteDeviceRegToken(ctx context.Context, token string) error {
+	return r.client.Del(ctx, deviceRegTokenPrefix+token).Err()
+}

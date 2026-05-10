@@ -5,6 +5,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -53,11 +54,12 @@ type Router struct {
 	StartTime            time.Time
 	TokenValidator       func(token string) bool
 	UserIDExtractor      func(token string) string
-	WSHub                *Hub          // WebSocket hub for real-time messaging
-	V3                   *V3Handlers   // V3 API handlers (blueprint services)
-	DIDRegistry          DIDRegistry   // did:key binding store (WO-230 / WO-278)
-	CredentialStatusPool *pgxpool.Pool // WO-274 durable VC status list slots (optional)
+	WSHub                *Hub               // WebSocket hub for real-time messaging
+	V3                   *V3Handlers        // V3 API handlers (blueprint services)
+	DIDRegistry          DIDRegistry        // did:key binding store (WO-230 / WO-278)
+	CredentialStatusPool *pgxpool.Pool      // WO-274 durable VC status list slots (optional)
 	Redis                *infra.RedisClient
+	RateLimiter          *infra.RateLimiter // WO-44 per-DID tiered rate limiting (optional)
 	IdentityL1           *metagraph.MetagraphClient // WO-274 trust-tier commitments
 	DataL1               *metagraph.MetagraphClient // WO-230 Data L1 Merkle proxy (optional)
 	CredentialService    *credentials.Service       // WO-274 VC issuance (optional)
@@ -139,6 +141,11 @@ func (rt *Router) Handler() http.Handler {
 			rt.handleIdentityRegister(w, r)
 		case r.URL.Path == "/identity/devices":
 			rt.handleIdentityAddDevice(w, r)
+		case r.URL.Path == "/identity/devices/token":
+			rt.handleIdentityDeviceToken(w, r)
+		case strings.HasPrefix(r.URL.Path, "/identity/devices/"):
+			did := strings.TrimPrefix(r.URL.Path, "/identity/devices/")
+			rt.handleIdentityListDevices(w, r, did)
 		case r.URL.Path == "/identity/trust-tier/commitment":
 			rt.handleTrustTierCommitment(w, r)
 		case strings.HasPrefix(r.URL.Path, "/identity/resolve/"):
@@ -162,8 +169,8 @@ func (rt *Router) Handler() http.Handler {
 		}
 	})
 
-	// Middleware chain: CORS -> Auth -> RequestID -> core
-	return rt.corsMiddleware(rt.authMiddleware(rt.requestIDMiddleware(core)))
+	// Middleware chain: CORS -> Auth -> RateLimit -> RequestID -> core
+	return rt.corsMiddleware(rt.authMiddleware(rt.rateLimitMiddleware(rt.requestIDMiddleware(core))))
 }
 
 // --- Middleware ---
@@ -294,13 +301,54 @@ func (rt *Router) corsMiddleware(next http.Handler) http.Handler {
 
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID, X-Identity-Signature")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID, X-Sender-DID, X-Signature, X-Identity-Signature")
+			w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID, Retry-After, X-RateLimit-Remaining")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Set("Access-Control-Max-Age", "3600")
 		}
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// rateLimitMiddleware enforces WO-44 per-DID tiered rate limits.
+// It runs after auth so the DID is available in context.
+// Health, WebSocket and public registration paths are exempt.
+func (rt *Router) rateLimitMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if rt.RateLimiter == nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		path := r.URL.Path
+		if path == "/health" || path == "/ws" || publicPaths[path] ||
+			identityRequestExemptFromAuth(path, r.Method) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		did, _ := r.Context().Value(ContextKeyUserID).(string)
+		if did == "" {
+			// Unauthenticated request — auth middleware will reject it; skip rate limiting.
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		reqID := r.Header.Get("X-Request-ID")
+		remaining := rt.RateLimiter.Remaining(did, "api_request")
+		w.Header().Set("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))
+
+		if err := rt.RateLimiter.Check(did, "api_request"); err != nil {
+			if rle, ok := err.(*infra.RateLimitExceededError); ok {
+				w.Header().Set("Retry-After", fmt.Sprintf("%.0f", rle.RetryAfter.Seconds()))
+			}
+			WriteError(w, http.StatusTooManyRequests, "RATE_LIMIT_EXCEEDED", "Too many requests", reqID)
 			return
 		}
 

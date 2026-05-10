@@ -301,6 +301,12 @@ func (rt *Router) handleIdentityAddDevice(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Token-based path (WO-273 QR flow): secondary device provides {token, new_public_key_hex}.
+	// Falls through to the signature path if no token field is present.
+	if rt.tryTokenBasedDeviceAdd(w, r, rawBody) {
+		return
+	}
+
 	sigHex := r.Header.Get(identitySignatureHeader)
 	if sigHex == "" {
 		WriteError(w, http.StatusBadRequest, "MISSING_SIGNATURE", identitySignatureHeader+" header required", r.Header.Get("X-Request-ID"))
