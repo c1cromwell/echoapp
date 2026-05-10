@@ -158,6 +158,8 @@ func (rt *Router) Handler() http.Handler {
 		case strings.HasPrefix(r.URL.Path, "/identity/"):
 			did := strings.TrimPrefix(r.URL.Path, "/identity/")
 			rt.handleIdentityResolve(w, r, did)
+		case r.URL.Path == "/v1/crypto/server-key":
+			rt.handleServerKey(w, r)
 		case strings.HasPrefix(r.URL.Path, "/v1/"):
 			rt.handleV1(w, r)
 		case strings.HasPrefix(r.URL.Path, "/v2/"):
@@ -199,6 +201,7 @@ var publicPaths = map[string]bool{
 	"/v1/enrollment/idv/await":         true,
 	"/v1/data-l1/merkle-roots":         true,
 	"/v1/phase1/trust-tier-commitment": true,
+	"/v1/crypto/server-key":            true, // WO-13: public key endpoint, no auth
 	"/identity/register":               true,
 	"/identity/devices":                true,
 }
