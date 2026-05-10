@@ -1,3 +1,4 @@
+#if os(iOS)
 // Core/Stargazer/StargazerBridge.swift
 // Wraps Constellation Stargazer SDK for ECHO-specific operations.
 // In production, this bridges to the real StargazerSDK framework.
@@ -131,4 +132,5 @@ final class MockWalletAPIClient: WalletAPIClient {
     func submitWithdrawLock(stakeId: String, amount: Decimal) async throws -> String { txHash }
     func submitRewardClaim(rewardTypes: [String]) async throws -> String { txHash }
 }
+#endif
 #endif

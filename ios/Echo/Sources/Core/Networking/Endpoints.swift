@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 
 // MARK: - Authentication Endpoints
@@ -758,3 +759,4 @@ struct AddBadgeRequest: Codable {
     let verifiable: Bool
     let proof: String?
 }
+#endif

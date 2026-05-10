@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 
 // MARK: - Authenticate UseCase
@@ -495,3 +496,4 @@ struct VerifyBiometricUseCase {
         return try await repository.verifyBiometric(challenge: challenge)
     }
 }
+#endif

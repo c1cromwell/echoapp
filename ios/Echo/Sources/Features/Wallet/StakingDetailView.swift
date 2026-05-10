@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Wallet/StakingDetailView.swift
 // Detailed staking position view with tier table, delegation info, and actions
 
@@ -296,3 +297,4 @@ class StakingDetailViewModel: ObservableObject {
         // TODO: Load from staking service
     }
 }
+#endif

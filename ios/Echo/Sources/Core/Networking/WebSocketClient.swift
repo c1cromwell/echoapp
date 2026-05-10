@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 
 /// Configuration for WebSocket client
@@ -418,3 +419,4 @@ enum WebSocketError: LocalizedError {
         }
     }
 }
+#endif

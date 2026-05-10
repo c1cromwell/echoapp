@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 import SwiftUI
 
@@ -419,3 +420,4 @@ class EchoNavigationStack: ObservableObject {
         !stack.isEmpty
     }
 }
+#endif

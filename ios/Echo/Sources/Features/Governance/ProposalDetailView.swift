@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Governance/ProposalDetailView.swift
 // Full proposal view with description, tally breakdown, and voting interface
 
@@ -254,3 +255,4 @@ private struct MetadataSection: View {
         .ghostBorder(opacity: 0.12)
     }
 }
+#endif

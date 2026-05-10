@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 
 // MARK: - Auth Repository Protocol
@@ -615,3 +616,4 @@ enum RepositoryError: LocalizedError {
         }
     }
 }
+#endif

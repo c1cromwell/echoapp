@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 import Combine
 
@@ -89,3 +90,4 @@ final class OTPViewModel: ObservableObject {
             }
     }
 }
+#endif

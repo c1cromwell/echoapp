@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 import CryptoKit
 
@@ -79,3 +80,4 @@ final class CertificatePinner: NSObject, URLSessionDelegate {
         return "sha256/" + Data(hash).base64EncodedString()
     }
 }
+#endif

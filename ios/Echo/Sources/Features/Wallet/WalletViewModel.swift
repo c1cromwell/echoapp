@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Wallet/WalletViewModel.swift
 // Manages wallet state: balance, staking, delegation, rewards, vesting
 
@@ -163,3 +164,4 @@ class WalletViewModel: ObservableObject {
         )
     }
 }
+#endif

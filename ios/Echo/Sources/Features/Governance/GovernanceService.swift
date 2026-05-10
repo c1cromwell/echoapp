@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Governance/GovernanceService.swift
 // API service for governance operations
 
@@ -127,3 +128,4 @@ enum GovernanceError: LocalizedError {
         }
     }
 }
+#endif

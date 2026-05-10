@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 
 /// Manages local outbox for offline message sends.
@@ -44,3 +45,4 @@ actor OfflineQueueManager {
         queue.removeAll()
     }
 }
+#endif

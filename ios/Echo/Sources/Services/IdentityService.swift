@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 
 /// Identity service for authentication and user management
@@ -144,3 +145,4 @@ public enum IdentityError: LocalizedError {
         }
     }
 }
+#endif

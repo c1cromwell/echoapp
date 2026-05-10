@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 
 @MainActor
@@ -75,3 +76,4 @@ final class LoginViewModel: ObservableObject {
         }
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Governance/ProposalListViewModel.swift
 // ViewModel for the proposals list and voting power
 
@@ -43,3 +44,4 @@ final class ProposalListViewModel: ObservableObject {
         return result
     }
 }
+#endif

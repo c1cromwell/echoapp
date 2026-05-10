@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 
 @MainActor
@@ -52,3 +53,4 @@ final class PhoneEntryViewModel: ObservableObject {
         }
     }
 }
+#endif

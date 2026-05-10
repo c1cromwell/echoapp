@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 import Combine
 
@@ -176,4 +177,5 @@ final class MockDataKeychainManager: DataKeychainProtocol {
         storage.removeValue(forKey: key)
     }
 }
+#endif
 #endif

@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Governance/GovernanceCoordinator.swift
 // Navigation coordinator for the governance feature
 
@@ -34,3 +35,4 @@ struct GovernanceCoordinator: View {
         }
     }
 }
+#endif

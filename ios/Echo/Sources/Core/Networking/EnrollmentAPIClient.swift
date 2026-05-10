@@ -1,3 +1,4 @@
+#if os(iOS)
 // Core/Networking/EnrollmentAPIClient.swift
 //
 // Typed wrapper around the /v1/enrollment/* endpoints on the Go backend.
@@ -277,3 +278,4 @@ private struct WireBundle: Decodable {
         )
     }
 }
+#endif

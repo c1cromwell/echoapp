@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 import Combine
 
@@ -130,3 +131,4 @@ final class AuthCoordinatorVM: ObservableObject {
         }
     }
 }
+#endif

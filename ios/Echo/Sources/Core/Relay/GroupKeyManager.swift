@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 import CryptoKit
 
@@ -147,3 +148,4 @@ enum GroupKeyError: LocalizedError {
         }
     }
 }
+#endif

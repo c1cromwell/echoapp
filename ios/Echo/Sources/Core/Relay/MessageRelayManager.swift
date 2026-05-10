@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 import CryptoKit
 
@@ -208,3 +209,4 @@ enum MessageRelayError: LocalizedError {
         }
     }
 }
+#endif

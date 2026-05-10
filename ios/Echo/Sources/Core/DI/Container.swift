@@ -1,5 +1,4 @@
-import Foundation
-
+#if os(iOS)
 import Foundation
 
 /// Dependency Injection Container for ECHO iOS app
@@ -79,9 +78,18 @@ final class DIContainer {
             KinnamiEncryption()
         }
         
-        // Networking Services
-        registerFactory(ServiceKeys.apiClient) {
-            APIClient(configuration: APIConfiguration.default)
+        // Networking Services (WO-2: cert pinning; WO-1: passkey signing)
+        registerFactory(ServiceKeys.certificatePinner) {
+            CertificatePinner()
+        }
+
+        registerFactory(ServiceKeys.apiClient) { [weak self] in
+            let pinner = self?.resolve(ServiceKeys.certificatePinner) as? CertificatePinner
+            let client = APIClient(configuration: APIConfiguration.default, pinner: pinner)
+            // Add passkey signing interceptor so all authenticated requests carry
+            // X-Sender-DID + X-Signature headers (WO-1 iOS side).
+            Task { await client.addInterceptor(PasskeySigningInterceptor()) }
+            return client
         }
         
         registerFactory(ServiceKeys.webSocketClient) {
@@ -164,6 +172,7 @@ enum ServiceKeys {
     
     // Networking
     static let apiClient = "networking.apiClient"
+    static let certificatePinner = "networking.certificatePinner"
     static let webSocketClient = "networking.webSocketClient"
     
     // Storage
@@ -226,3 +235,4 @@ extension DIContainer {
         resolve(ServiceKeys.tokenRepository)
     }
 }
+#endif

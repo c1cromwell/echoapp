@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Wallet/Delegation/ValidatorBrowserView.swift
 // List validators with metrics for delegation
 
@@ -91,3 +92,4 @@ struct ValidatorRow: View {
         }
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Governance/ProposalListView.swift
 // Active proposals list with tally progress and voting power card
 
@@ -174,3 +175,4 @@ struct StatusBadge: View {
             )
     }
 }
+#endif

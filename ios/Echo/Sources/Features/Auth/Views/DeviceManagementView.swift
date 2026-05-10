@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 
 struct DeviceManagementView: View {
@@ -143,3 +144,4 @@ struct DeviceRowView: View {
         .cornerRadius(12)
     }
 }
+#endif

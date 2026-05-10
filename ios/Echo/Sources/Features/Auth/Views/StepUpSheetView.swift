@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 
 struct StepUpSheetView: View {
@@ -92,3 +93,4 @@ struct StepUpSheetView: View {
         }
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Evidence/EvidenceService.swift
 // Additional evidence types supplementing Core/Relay/DigitalEvidenceBridge
 
@@ -47,4 +48,5 @@ final class MockEvidenceAPI: EvidenceAPIProtocol {
         )
     }
 }
+#endif
 #endif

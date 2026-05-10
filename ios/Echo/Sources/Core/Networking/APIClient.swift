@@ -1,4 +1,6 @@
+#if os(iOS)
 import Foundation
+import CryptoKit
 
 /// Configuration for API client
 struct APIConfiguration {
@@ -36,40 +38,94 @@ actor AuthenticationInterceptor: RequestInterceptor {
 
 /// Encryption interceptor for request/response bodies
 actor EncryptionInterceptor: RequestInterceptor {
-    
+
     private let encryption: KinnamiEncryption
-    
+
     init(encryption: KinnamiEncryption = KinnamiEncryption()) {
         self.encryption = encryption
     }
-    
+
     func intercept(_ request: inout URLRequest) async throws {
-        // Encryption can be applied here if needed
-        // For now, this is a placeholder for future E2E request encryption
+        // Placeholder — future WO for sealed-sender envelope encryption
     }
 }
 
-/// REST API client with request/response handling
+// MARK: - Passkey Signing Interceptor (WO-1)
+
+/// Signs every authenticated request with the device's Secure Enclave P-256 key.
+///
+/// For each request the interceptor:
+///   1. Reads the DID from Keychain.
+///   2. Computes SHA-256(body) — or SHA-256("") for GET/HEAD.
+///   3. Signs the hash with `SecureEnclaveManager.sign(data:keyId:)`.
+///   4. Sets `X-Sender-DID` and `X-Signature` headers (hex-encoded DER signature).
+///
+/// Requests to public paths (health, identity/register, crypto/server-key) are
+/// skipped — the server does not require passkey auth on those endpoints.
+actor PasskeySigningInterceptor: RequestInterceptor {
+
+    private let secureEnclave: SecureEnclaveManager
+    private let keychain: KeychainManager
+    private static let publicPaths: Set<String> = [
+        "/health", "/identity/register", "/v1/crypto/server-key",
+        "/identity/devices",   // token-based device add is also public
+    ]
+
+    init(
+        secureEnclave: SecureEnclaveManager = .shared,
+        keychain: KeychainManager = .shared
+    ) {
+        self.secureEnclave = secureEnclave
+        self.keychain = keychain
+    }
+
+    func intercept(_ request: inout URLRequest) async throws {
+        guard let path = request.url?.path,
+              !Self.publicPaths.contains(path) else { return }
+
+        guard let did = try? await keychain.retrieve(
+            key: "echo.did.current",
+            as: String.self
+        ) else { return }
+
+        let bodyData = request.httpBody ?? Data()
+        let bodyHash = Data(SHA256.hash(data: bodyData))
+
+        let sigDER = try await secureEnclave.sign(data: bodyHash, keyId: "echo-identity-signing")
+        let sigHex = sigDER.map { String(format: "%02x", $0) }.joined()
+
+        request.setValue(did, forHTTPHeaderField: "X-Sender-DID")
+        request.setValue(sigHex, forHTTPHeaderField: "X-Signature")
+    }
+}
+
+/// REST API client with TLS certificate pinning and passkey request signing.
 actor APIClient {
-    
+
     // MARK: - Properties
-    
+
     private let configuration: APIConfiguration
     private let session: URLSession
     private var interceptors: [RequestInterceptor] = []
-    
+
     // MARK: - Initialization
-    
-    init(configuration: APIConfiguration = .default) {
+
+    /// Creates an APIClient whose URLSession uses `pinner` as its delegate.
+    /// Pass `nil` to disable certificate pinning (dev/test builds).
+    init(configuration: APIConfiguration = .default, pinner: CertificatePinner? = nil) {
         self.configuration = configuration
-        
+
         let sessionConfig = URLSessionConfiguration.default
         sessionConfig.timeoutIntervalForRequest = configuration.timeout
         sessionConfig.timeoutIntervalForResource = configuration.timeout * 2
         sessionConfig.waitsForConnectivity = true
         sessionConfig.tlsMinimumSupportedProtocolVersion = .TLSv13
-        
-        self.session = URLSession(configuration: sessionConfig)
+
+        if let pinner = pinner {
+            self.session = URLSession(configuration: sessionConfig, delegate: pinner, delegateQueue: nil)
+        } else {
+            self.session = URLSession(configuration: sessionConfig)
+        }
     }
     
     // MARK: - Interceptor Management
@@ -224,6 +280,11 @@ actor APIClient {
             throw APIError.forbidden
         case 404:
             throw APIError.notFound
+        case 429:
+            // WO-44: read Retry-After header (seconds) set by the backend rate limiter.
+            let retryAfter = response.value(forHTTPHeaderField: "Retry-After")
+                .flatMap(TimeInterval.init) ?? 60
+            throw APIError.rateLimited(retryAfter: retryAfter)
         case 500...599:
             throw APIError.serverError(response.statusCode)
         default:
@@ -265,12 +326,14 @@ enum APIError: LocalizedError {
     case unauthorized
     case forbidden
     case notFound
+    /// WO-44: 429 Too Many Requests; retryAfter is the value of the Retry-After header.
+    case rateLimited(retryAfter: TimeInterval)
     case serverError(Int)
     case unexpectedStatusCode(Int)
     case networkError(URLError)
     case decodingError(DecodingError)
     case encodingError(EncodingError)
-    
+
     var errorDescription: String? {
         switch self {
         case .invalidResponse:
@@ -283,6 +346,8 @@ enum APIError: LocalizedError {
             return "Forbidden (403)"
         case .notFound:
             return "Resource not found (404)"
+        case .rateLimited(let retryAfter):
+            return "Rate limited — retry after \(Int(retryAfter))s"
         case .serverError(let code):
             return "Server error (\(code))"
         case .unexpectedStatusCode(let code):
@@ -296,3 +361,4 @@ enum APIError: LocalizedError {
         }
     }
 }
+#endif

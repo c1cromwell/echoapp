@@ -18,6 +18,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/api"
 	"github.com/thechadcromwell/echoapp/internal/database"
 	"github.com/thechadcromwell/echoapp/internal/infra"
+	applog "github.com/thechadcromwell/echoapp/internal/logging"
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
 	"github.com/thechadcromwell/echoapp/internal/rewards"
 	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
@@ -41,8 +42,9 @@ type ServerConfig struct {
 
 // Server manages the HTTP server lifecycle.
 type Server struct {
-	config ServerConfig
-	server *http.Server
+	config          ServerConfig
+	server          *http.Server
+	stopLogPublish  func() // WO-53: stops background log flush goroutine
 }
 
 // NewServer creates a new production server.
@@ -125,6 +127,10 @@ func (s *Server) Start() error {
 	storage := s.initStorage()
 
 	// Initialize services and wire V3 handlers
+	// WO-44: Per-DID tiered rate limiter (base 100/min; VIP 200/min).
+	rateLimiter := infra.NewRateLimiter(infra.DefaultRateLimits())
+	router.RateLimiter = rateLimiter
+
 	emission := rewards.NewEmissionSchedule(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
 	router.V3 = &api.V3Handlers{
 		DB:           db,
@@ -134,7 +140,13 @@ func (s *Server) Start() error {
 		Rewards:      rewardsSvc.NewService(db, emission),
 		Groups:       groups.NewGroupService(),
 		Broadcasts:   broadcast_channels.NewChannelService(),
+		RateLimiter:  rateLimiter,
 	}
+
+	// WO-53: Start audit log publisher background goroutine.
+	// Uses FallbackIPFSStorage (Pinata→Storj) when env vars are set;
+	// falls back to StubIPFSStorage silently when not configured.
+	s.startLogPublisher()
 
 	listener, err := net.Listen("tcp", ":"+s.config.Port)
 	if err != nil {
@@ -166,10 +178,51 @@ func (s *Server) Start() error {
 
 // Shutdown gracefully shuts down the server.
 func (s *Server) Shutdown(ctx context.Context) error {
+	if s.stopLogPublish != nil {
+		s.stopLogPublish()
+	}
 	if s.server == nil {
 		return nil
 	}
 	return s.server.Shutdown(ctx)
+}
+
+// startLogPublisher initialises the WO-53 audit log publisher and starts the
+// background flush goroutine.  Requires LOG_MASTER_KEY (64 hex chars = 32 bytes).
+// Falls back to a no-op stub when not configured.
+func (s *Server) startLogPublisher() {
+	masterKeyHex := os.Getenv("LOG_MASTER_KEY")
+	if masterKeyHex == "" {
+		log.Println("LOG_MASTER_KEY not set — audit log publisher disabled (WO-53)")
+		s.stopLogPublish = func() {}
+		return
+	}
+
+	masterKey, epoch, err := applog.DeriveMonthlyKey([]byte(masterKeyHex), time.Now())
+	if err != nil {
+		log.Printf("audit log key derivation failed: %v — publisher disabled", err)
+		s.stopLogPublish = func() {}
+		return
+	}
+
+	pub, err := applog.NewLogPublisher(masterKey, epoch)
+	if err != nil {
+		log.Printf("audit log publisher init failed: %v — publisher disabled", err)
+		s.stopLogPublish = func() {}
+		return
+	}
+
+	var storage applog.IPFSStorage
+	fallback, ferr := applog.NewFallbackIPFSStorage()
+	if ferr != nil {
+		storage = &applog.StubIPFSStorage{}
+		log.Println("IPFS storage not configured — using in-memory stub (WO-33)")
+	} else {
+		storage = fallback
+		log.Println("Audit log publisher started with IPFS storage (WO-53)")
+	}
+
+	s.stopLogPublish = pub.StartPeriodicFlush(storage)
 }
 
 // initDatabase connects to PostgreSQL if DATABASE_HOST is set, otherwise falls back to in-memory.

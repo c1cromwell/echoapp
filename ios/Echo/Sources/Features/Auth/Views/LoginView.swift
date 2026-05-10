@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 
 struct AuthLoginView: View {
@@ -81,3 +82,4 @@ struct AuthLoginView: View {
         .onAppear { viewModel.loadStoredAccountInfo() }
     }
 }
+#endif

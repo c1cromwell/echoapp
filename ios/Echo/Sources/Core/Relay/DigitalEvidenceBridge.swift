@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 import CryptoKit
 
@@ -112,3 +113,4 @@ enum EvidenceEndpoint: APIEndpoint {
 
     var requiresAuth: Bool { true }
 }
+#endif

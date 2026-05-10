@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 
 // MARK: - Protocol
@@ -397,4 +398,5 @@ final class MockAuthAPIClient: AuthAPIClientProtocol {
         )
     }
 }
+#endif
 #endif
