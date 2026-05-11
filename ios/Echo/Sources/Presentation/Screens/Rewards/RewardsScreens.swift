@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 
 /// Rewards Dashboard Screen
@@ -348,3 +349,4 @@ struct RewardsScreens_Previews: PreviewProvider {
     }
 }
 #endif
+#endif // os(iOS)

@@ -53,61 +53,89 @@ struct PersonaGateView<Content: View>: View {
     }
 
     // MARK: - Gate screen
+    // Design review: dark surface for private moments so "privacy feels different, not just looks it".
+    // Minimal copy — no logo, no hint at what's hidden, no decorative chrome.
 
     private var gateScreen: some View {
         ZStack {
-            Color.echoBackground.ignoresSafeArea()
-            VStack(spacing: 32) {
+            Color.echoNight.ignoresSafeArea()
+
+            VStack(spacing: 0) {
                 Spacer()
 
+                // Double-ring circle around Face ID glyph
                 ZStack {
                     Circle()
-                        .fill(Color.echoPrimary.opacity(0.10))
-                        .frame(width: 100, height: 100)
-                    Image(systemName: "lock.shield.fill")
-                        .font(.system(size: 44, weight: .semibold))
-                        .foregroundColor(.echoPrimary)
-                }
+                        .stroke(Color.echoNightHair, lineWidth: 1)
+                        .frame(width: 136, height: 136)
 
-                VStack(spacing: 12) {
-                    Text("Hidden area")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(.echoPrimaryText)
-                    Text("Verify with Face ID to access this protected space.")
-                        .font(.system(size: 14))
-                        .foregroundColor(.echoSecondaryText)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                }
+                    Circle()
+                        .stroke(Color.echoNightHair.opacity(0.5), lineWidth: 1)
+                        .frame(width: 120, height: 120)
+                        .padding(8)
 
-                if let error = errorMessage {
-                    Text(error)
-                        .font(.system(size: 13))
-                        .foregroundColor(.echoError)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
+                    Circle()
+                        .fill(Color.echoNightHi)
+                        .frame(width: 120, height: 120)
+
+                    Image(systemName: "faceid")
+                        .font(.system(size: 48, weight: .ultraLight))
+                        .foregroundStyle(Color.echoNightInk)
+                        .scaleEffect(isUnlocking ? 1.06 : 1.0)
+                        .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true),
+                                   value: isUnlocking)
                 }
+                .padding(.bottom, 28)
+
+                Text("Verify to continue.")
+                    .font(.system(size: 22, weight: .semibold))
+                    .tracking(-0.5)
+                    .foregroundStyle(Color.echoNightInk)
+
+                Text("This area requires biometric confirmation.\nIt will lock again after two minutes in the background.")
+                    .font(.system(size: 13.5))
+                    .lineSpacing(4)
+                    .foregroundStyle(Color.echoNightInk70)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+                    .padding(.top, 10)
+
+                // Mono status tag
+                VStack(spacing: 0) {
+                    if let error = errorMessage {
+                        Text(error)
+                            .font(.echomono(11))
+                            .foregroundStyle(Color.echoAlert)
+                    } else {
+                        Text(isUnlocking ? "● scanning" : "● awaiting Face ID")
+                            .font(.echomono(11))
+                            .foregroundStyle(Color.echoNightInk40)
+                    }
+                }
+                .padding(.top, 36)
 
                 Spacer()
 
-                VStack(spacing: 12) {
-                    EchoButton(
-                        isUnlocking ? "Verifying…" : "Unlock with Face ID",
-                        style: .primary
-                    ) {
-                        guard !isUnlocking else { return }
-                        Task { await unlock() }
-                    }
-                    .disabled(isUnlocking)
+                // Cancel + Try again — quiet, no filled button
+                HStack(spacing: 16) {
+                    Button("Cancel") { isUnlocked = false }
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.echoNightInk70)
+                        .padding(8)
+
+                    Button("Try again") { Task { await unlock() } }
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.echoNightInk)
+                        .padding(8)
+                        .disabled(isUnlocking)
                 }
-                .padding(.horizontal, 24)
                 .padding(.bottom, 48)
             }
         }
+        .preferredColorScheme(.dark)
         .onAppear {
-            // Auto-trigger on appear for a Signal-like seamless experience.
             Task {
-                try? await Task.sleep(nanoseconds: 300_000_000) // 300ms
+                try? await Task.sleep(nanoseconds: 300_000_000)
                 await unlock()
             }
         }

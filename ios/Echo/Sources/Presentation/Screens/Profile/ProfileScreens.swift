@@ -1,5 +1,4 @@
-import SwiftUI
-
+#if os(iOS)
 import SwiftUI
 
 // MARK: - Screen 1: Profile Tab (Enhanced per spec)
@@ -802,6 +801,55 @@ import SwiftUI
 
                 ScrollView {
                     VStack(spacing: Spacing.lg.rawValue) {
+
+                        // Design review: leading copy frames what's OFF as the story.
+                        // "You're sharing five things. Everything else stays here."
+                        VStack(alignment: .leading, spacing: 16) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("You're sharing five things.")
+                                    .font(.system(size: 22, weight: .semibold))
+                                    .tracking(-0.5)
+                                    .foregroundStyle(Color.echoInk)
+                                Text("Everything else stays here.")
+                                    .font(.system(size: 22, weight: .semibold))
+                                    .tracking(-0.5)
+                                    .foregroundStyle(Color.echoInk55)
+                            }
+
+                            // "NEVER COLLECTED" chip cloud
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("NEVER COLLECTED")
+                                    .font(.echomono(10))
+                                    .foregroundStyle(Color.echoInk40)
+
+                                FlowLayout(spacing: 6) {
+                                    ForEach(["Phone number", "Email", "Contacts", "Location",
+                                             "Device ID", "Crash logs", "Ad ID"], id: \.self) { label in
+                                        Text(label)
+                                            .font(.system(size: 11.5, weight: .medium))
+                                            .foregroundStyle(Color.echoTrustGreenDim)
+                                            .strikethrough(color: Color.echoTrustGreen.opacity(0.4))
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 5)
+                                            .background(Color.echoTrustGreen.opacity(0.10),
+                                                        in: Capsule())
+                                    }
+                                }
+
+                                Text("Echo asks for none of these and stores none of these. Available to inspect in Data Export.")
+                                    .font(.system(size: 11.5))
+                                    .lineSpacing(3)
+                                    .foregroundStyle(Color.echoTrustGreenDim)
+                            }
+                            .padding(16)
+                            .background(Color.echoTrustGreen.opacity(0.05),
+                                        in: RoundedRectangle(cornerRadius: 14))
+                            .overlay(RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color.echoTrustGreen.opacity(0.18), lineWidth: 1))
+                        }
+                        .padding(.horizontal, Spacing.lg.rawValue)
+                        .padding(.top, 4)
+
                         // Profile Visibility
                         SettingsSectionView(title: "Profile Visibility") {
                             SettingsListItem(
@@ -2917,3 +2965,4 @@ struct ProfileScreens_Previews: PreviewProvider {
     }
 }
 #endif
+#endif // os(iOS)

@@ -1,5 +1,23 @@
 import SwiftUI
 
+// MARK: - Mono font helpers
+// Geist Mono is used for cryptographic content: DIDs, key fingerprints, OTP codes.
+// Falls back to system monospaced if the font isn't bundled.
+extension Font {
+    /// Monospaced font at a given size.  Use for: DID strings, key fingerprints, OTP codes, timestamps.
+    static func echomono(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        .custom("GeistMono-Regular", size: size)
+            .monospaced()
+    }
+
+    /// 11pt mono label — for "WHAT ECHO STORES", "● E2EE", section headers in privacy UI.
+    static let echoMonoCaption  = echomono(11, weight: .regular)
+    /// 12.5pt mono — short DID fragments, key fingerprints in chat headers.
+    static let echoMonoSmall    = echomono(12.5)
+    /// 13pt mono — standard DID display, OTP entry digits.
+    static let echoMonoBody     = echomono(13)
+}
+
 /// ECHO Design System - Typography
 /// Comprehensive type scale from Display to Tiny with semantic styles
 public enum TypographyStyle {

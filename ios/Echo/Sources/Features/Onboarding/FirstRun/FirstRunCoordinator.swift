@@ -1,10 +1,12 @@
 #if os(iOS)
 // Features/Onboarding/FirstRun/FirstRunCoordinator.swift
-// Wave 12 — 4-step onboarding:
-//   1. Welcome carousel
-//   2. Display name (username) entry
-//   3. Biometric enrollment (mandatory Face ID / Touch ID)
-//   4. Recovery setup (phrase + optional SMS — skippable)
+// Design review: compress 4 steps → 2.
+//   1. Welcome (single page, no carousel)
+//   2. Name + Face ID (fused — typing the name and enrolling the key happen together)
+//   3. Recovery setup (phrase + optional SMS — skippable, labelled "1 / 2" above)
+//
+// The old 3-slide carousel and separate BiometricEnrollmentView are superseded
+// by EchoWelcomeView and NameAndKeyView. The routes are kept for backward compat.
 
 import SwiftUI
 import Observation
@@ -13,11 +15,13 @@ import Observation
 @Observable
 final class FirstRunCoordinator {
     enum Route: Hashable {
-        case welcome
-        case displayName
-        case biometricEnrollment
+        case welcome          // EchoWelcomeView — single page, no carousel
+        case nameAndKey       // NameAndKeyView  — fused name + Face ID (2-in-1)
         case recoverySetup(did: String)
         case restore
+        // Legacy routes (kept for demo app back-compat)
+        case displayName
+        case biometricEnrollment
     }
 
     var path: [Route] = []
@@ -35,9 +39,16 @@ final class FirstRunCoordinator {
     }
 
     func welcomeContinueTapped() {
-        path.append(.displayName)
+        path.append(.nameAndKey)
     }
 
+    // Called by NameAndKeyView on completion (fused name + Face ID).
+    func nameAndKeyCompleted(username: String, did: String) {
+        displayName = username
+        path.append(.recoverySetup(did: did))
+    }
+
+    // Legacy — kept for demo app and existing call sites
     func displayNameSubmitted(_ name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard DisplayNameValidator.isValid(trimmed) else { return }
@@ -49,10 +60,7 @@ final class FirstRunCoordinator {
         path.append(.recoverySetup(did: did))
     }
 
-    func biometricUnsupported() {
-        // Device has no biometrics — show error and block onboarding.
-        // In Phase 1, biometric is mandatory.
-    }
+    func biometricUnsupported() {}
 
     func recoverySetupCompleted() {
         onComplete(displayName)
@@ -79,41 +87,56 @@ struct FirstRunCoordinatorView: View {
 
     var body: some View {
         NavigationStack(path: $coordinator.path) {
-            WelcomeCarouselView(coordinator: coordinator)
-                .navigationDestination(for: FirstRunCoordinator.Route.self) { route in
-                    switch route {
-                    case .welcome:
-                        WelcomeCarouselView(coordinator: coordinator)
+            // Root: new single-page welcome (no carousel)
+            EchoWelcomeView(
+                onSetUp: { coordinator.welcomeContinueTapped() },
+                onAlreadyHaveAccount: { coordinator.restoreTapped() }
+            )
+            .navigationDestination(for: FirstRunCoordinator.Route.self) { route in
+                switch route {
+                case .welcome:
+                    EchoWelcomeView(
+                        onSetUp: { coordinator.welcomeContinueTapped() },
+                        onAlreadyHaveAccount: { coordinator.restoreTapped() }
+                    )
 
-                    case .displayName:
-                        DisplayNameEntryView(coordinator: coordinator)
+                case .nameAndKey:
+                    NameAndKeyView(
+                        onComplete: { name, did in coordinator.nameAndKeyCompleted(username: name, did: did) },
+                        onSkip: { coordinator.recoverySetupSkipped() }
+                    )
+                    .navigationBarBackButtonHidden(true)
 
-                    case .biometricEnrollment:
-                        BiometricEnrollmentView(
-                            username: coordinator.displayName,
-                            onComplete: { did in coordinator.biometricEnrollmentCompleted(did: did) },
-                            onUnsupported: { coordinator.biometricUnsupported() }
+                // Legacy routes kept for demo app
+                case .displayName:
+                    DisplayNameEntryView(coordinator: coordinator)
+
+                case .biometricEnrollment:
+                    BiometricEnrollmentView(
+                        username: coordinator.displayName,
+                        onComplete: { did in coordinator.biometricEnrollmentCompleted(did: did) },
+                        onUnsupported: { coordinator.biometricUnsupported() }
+                    )
+                    .navigationBarBackButtonHidden(true)
+
+                case .recoverySetup(let did):
+                    RecoverySetupView(
+                        did: did,
+                        onComplete: { coordinator.recoverySetupCompleted() },
+                        onSkip: { coordinator.recoverySetupSkipped() }
+                    )
+                    .navigationBarBackButtonHidden(true)
+
+                case .restore:
+                    RestoreFromPhraseView(
+                        coordinator: RecoveryCoordinator(
+                            onExportComplete: { },
+                            onRestoreComplete: { coordinator.onRestoreComplete($0) },
+                            onCancel: { coordinator.back() }
                         )
-                        .navigationBarBackButtonHidden(true)
-
-                    case .recoverySetup(let did):
-                        RecoverySetupView(
-                            did: did,
-                            onComplete: { coordinator.recoverySetupCompleted() },
-                            onSkip: { coordinator.recoverySetupSkipped() }
-                        )
-                        .navigationBarBackButtonHidden(true)
-
-                    case .restore:
-                        RestoreFromPhraseView(
-                            coordinator: RecoveryCoordinator(
-                                onExportComplete: { },
-                                onRestoreComplete: { coordinator.onRestoreComplete($0) },
-                                onCancel: { coordinator.back() }
-                            )
-                        )
-                    }
+                    )
                 }
+            }
         }
         .tint(Color.Echo.primaryContainer)
     }
