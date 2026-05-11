@@ -22,21 +22,21 @@ const (
 type AbuseReportType string
 
 const (
-	AbuseTypeSilentSpam     AbuseReportType = "silent_spam"
-	AbuseTypeScheduledSpam  AbuseReportType = "scheduled_spam"
-	AbuseTypeHarassment     AbuseReportType = "harassment"
-	AbuseTypeInappropriate  AbuseReportType = "inappropriate_content"
+	AbuseTypeSilentSpam    AbuseReportType = "silent_spam"
+	AbuseTypeScheduledSpam AbuseReportType = "scheduled_spam"
+	AbuseTypeHarassment    AbuseReportType = "harassment"
+	AbuseTypeInappropriate AbuseReportType = "inappropriate_content"
 )
 
 // AbuseReport represents a single abuse report
 type AbuseReport struct {
-	ID           string
-	ReporterID   string
-	ReportedID   string
-	MessageID    string
-	Type         AbuseReportType
-	Description  string
-	CreatedAt    time.Time
+	ID          string
+	ReporterID  string
+	ReportedID  string
+	MessageID   string
+	Type        AbuseReportType
+	Description string
+	CreatedAt   time.Time
 }
 
 // Suspension represents a feature suspension
@@ -57,9 +57,9 @@ type SilentBlockEntry struct {
 
 // AbuseTracker monitors and enforces abuse prevention rules
 type AbuseTracker struct {
-	mu          sync.RWMutex
-	reports     map[string][]*AbuseReport   // reportedID -> reports
-	suspensions map[string][]*Suspension    // userID -> suspensions
+	mu           sync.RWMutex
+	reports      map[string][]*AbuseReport  // reportedID -> reports
+	suspensions  map[string][]*Suspension   // userID -> suspensions
 	silentBlocks map[string]map[string]bool // userID -> set of blocked senderIDs
 }
 

@@ -27,9 +27,9 @@ type PersonaVisibility struct {
 // PersonaService manages personas and per-contact visibility
 type PersonaService struct {
 	mu         sync.RWMutex
-	personas   map[string]*Persona            // personaID -> persona
-	byUser     map[string][]string            // userDID -> []personaID
-	visibility map[string]*PersonaVisibility  // "userDID:contactDID" -> visibility
+	personas   map[string]*Persona           // personaID -> persona
+	byUser     map[string][]string           // userDID -> []personaID
+	visibility map[string]*PersonaVisibility // "userDID:contactDID" -> visibility
 	circles    *CircleService
 }
 

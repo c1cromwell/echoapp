@@ -229,7 +229,7 @@ func TestValidateUsername(t *testing.T) {
 		{"alice", true},
 		{"alex_echo", true},
 		{"NightOwl42", true},
-		{"ab", false},            // too short
+		{"ab", false}, // too short
 		{"has space", false},
 		{"has-dash", false},
 		{"has.dot", false},

@@ -64,7 +64,7 @@ func TestValidateRewardClaimPre(t *testing.T) {
 	})
 
 	t.Run("ok — correct decay and multiplier", func(t *testing.T) {
-		decay := ComputeVolumeDecay(9)  // 0.7071
+		decay := ComputeVolumeDecay(9) // 0.7071
 		mult := 1.0
 		err := ValidateRewardClaimPre(RewardClaimPreValidation{
 			SubmittedDecayFactor:     &decay,

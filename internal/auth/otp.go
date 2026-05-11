@@ -32,8 +32,8 @@ type OTPSession struct {
 
 // OTPService handles OTP generation, hashing, and verification.
 type OTPService struct {
-	mu       sync.RWMutex
-	sessions map[string]*OTPSession // key: verification_id
+	mu          sync.RWMutex
+	sessions    map[string]*OTPSession // key: verification_id
 	phoneLimits map[string][]time.Time // key: phone_hash -> timestamps of OTP sends
 }
 

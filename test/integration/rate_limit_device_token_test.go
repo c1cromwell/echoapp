@@ -119,9 +119,9 @@ func TestDeviceTokenFlow_EndToEnd(t *testing.T) {
 	_, secondaryPub := mustGenerateKeyPair(t)
 	secondaryDID := mustDeriveDID(t, secondaryPub)
 	addBody := map[string]string{
-		"token":            token,
+		"token":              token,
 		"new_public_key_hex": hex.EncodeToString(secondaryPub),
-		"device_label":     "secondary-phone",
+		"device_label":       "secondary-phone",
 	}
 	raw, _ := json.Marshal(addBody)
 	resp, err := http.Post(ts.BaseURL+"/identity/devices",

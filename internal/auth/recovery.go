@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	RecoverySessionTTL = 24 * time.Hour
+	RecoverySessionTTL     = 24 * time.Hour
 	RecoveryShardThreshold = 2 // 2-of-3 Shamir threshold
 	RecoveryMinContacts    = 3
 )
@@ -35,16 +35,16 @@ const (
 
 // RecoverySession tracks an in-progress account recovery.
 type RecoverySession struct {
-	ID             string
-	UserID         string
-	Method         RecoveryMethod
-	Status         RecoverySessionStatus
-	RequiredSteps  []string
-	CompletedSteps []string
+	ID              string
+	UserID          string
+	Method          RecoveryMethod
+	Status          RecoverySessionStatus
+	RequiredSteps   []string
+	CompletedSteps  []string
 	ShardsCollected int
 	ShardsRequired  int
-	CreatedAt      time.Time
-	ExpiresAt      time.Time
+	CreatedAt       time.Time
+	ExpiresAt       time.Time
 }
 
 // TrustedContactShard represents a recovery shard from a trusted contact.

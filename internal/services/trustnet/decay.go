@@ -43,11 +43,11 @@ func (sc ScoreComponents) Total() float64 {
 
 // TrustDecayService manages trust score decay and history
 type TrustDecayService struct {
-	mu        sync.RWMutex
-	scores    map[string]float64              // userDID -> current score
-	peaks     map[string]float64              // userDID -> peak score
-	history   map[string][]TrustScoreSnapshot // userDID -> history
-	lastActivity map[string]time.Time         // userDID -> last activity time
+	mu           sync.RWMutex
+	scores       map[string]float64              // userDID -> current score
+	peaks        map[string]float64              // userDID -> peak score
+	history      map[string][]TrustScoreSnapshot // userDID -> history
+	lastActivity map[string]time.Time            // userDID -> last activity time
 }
 
 // NewTrustDecayService creates a new trust decay service

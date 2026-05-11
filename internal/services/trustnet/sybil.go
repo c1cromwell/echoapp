@@ -31,30 +31,30 @@ const (
 
 // DeviceFingerprint represents a device identity signal
 type DeviceFingerprint struct {
-	UserDID       string
+	UserDID         string
 	FingerprintHash string
-	IPAddress     string
-	UserAgent     string
-	CreatedAt     time.Time
+	IPAddress       string
+	UserAgent       string
+	CreatedAt       time.Time
 }
 
 // SybilAssessment is the result of a sybil check
 type SybilAssessment struct {
-	UserDID         string
-	RiskLevel       SybilRiskLevel
-	Score           float64 // 0.0 (safe) to 1.0 (definitely sybil)
-	Flags           []string
-	ClusterID       string // empty if no cluster detected
-	AssessedAt      time.Time
+	UserDID    string
+	RiskLevel  SybilRiskLevel
+	Score      float64 // 0.0 (safe) to 1.0 (definitely sybil)
+	Flags      []string
+	ClusterID  string // empty if no cluster detected
+	AssessedAt time.Time
 }
 
 // AccountCluster represents a group of potentially linked accounts
 type AccountCluster struct {
-	ID        string
-	Members   []string // user DIDs
-	Signals   []string // what triggered the cluster
+	ID         string
+	Members    []string // user DIDs
+	Signals    []string // what triggered the cluster
 	DetectedAt time.Time
-	Reviewed  bool
+	Reviewed   bool
 }
 
 // SybilService detects and manages sybil accounts
@@ -65,7 +65,7 @@ type SybilService struct {
 	byIP         map[string][]string           // ipAddress -> []userDID
 	clusters     map[string]*AccountCluster    // clusterID -> cluster
 	assessments  map[string]*SybilAssessment   // userDID -> latest assessment
-	connections  map[string]map[string]bool     // userDID -> set of connected DIDs
+	connections  map[string]map[string]bool    // userDID -> set of connected DIDs
 }
 
 // NewSybilService creates a new sybil detection service

@@ -8,9 +8,9 @@ import (
 
 // AuthRateLimitConfig defines a rate limit rule.
 type AuthRateLimitConfig struct {
-	Name    string
-	Limit   int
-	Window  time.Duration
+	Name   string
+	Limit  int
+	Window time.Duration
 }
 
 // AuthRateLimiter implements sliding window rate limiting.

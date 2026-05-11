@@ -13,11 +13,11 @@ func TestValidatePhoneNumber(t *testing.T) {
 		{"+15551234567", true},
 		{"+442071234567", true},
 		{"+8613800138000", true},
-		{"+1234567", true},    // minimum length
+		{"+1234567", true},     // minimum length
 		{"5551234567", false},  // missing +
 		{"+0551234567", false}, // starts with 0
 		{"", false},
-		{"+1", false},         // too short
+		{"+1", false}, // too short
 		{"hello", false},
 		{"+1abc", false},
 	}

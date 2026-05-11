@@ -53,7 +53,7 @@ type RevocationRecord struct {
 
 // EndorsementService manages endorsements between users
 type EndorsementService struct {
-	mu          sync.RWMutex
+	mu           sync.RWMutex
 	endorsements map[string]*Endorsement   // endorsementID -> endorsement
 	byEndorser   map[string][]string       // endorserDID -> []endorsementID
 	byEndorsee   map[string][]string       // endorseeDID -> []endorsementID

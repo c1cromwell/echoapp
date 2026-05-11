@@ -11,9 +11,9 @@ import (
 type DisputeType string
 
 const (
-	DisputeFalseReport      DisputeType = "false_report"
+	DisputeFalseReport       DisputeType = "false_report"
 	DisputeCoordinatedAttack DisputeType = "coordinated_attack"
-	DisputeSystemError      DisputeType = "system_error"
+	DisputeSystemError       DisputeType = "system_error"
 	DisputeAccountCompromise DisputeType = "account_compromise"
 )
 
@@ -56,18 +56,18 @@ const (
 
 // Dispute represents a trust dispute
 type Dispute struct {
-	ID           string
-	FiledBy      string
-	AgainstDID   string // the entity/system being disputed
-	Type         DisputeType
-	Status       DisputeStatus
-	Evidence     string
-	Jurors       []string // juror DIDs
-	Votes        map[string]JurorVote
-	CreatedAt    time.Time
-	ExpiresAt    time.Time
-	ResolvedAt   *time.Time
-	StakeAmount  float64
+	ID            string
+	FiledBy       string
+	AgainstDID    string // the entity/system being disputed
+	Type          DisputeType
+	Status        DisputeStatus
+	Evidence      string
+	Jurors        []string // juror DIDs
+	Votes         map[string]JurorVote
+	CreatedAt     time.Time
+	ExpiresAt     time.Time
+	ResolvedAt    *time.Time
+	StakeAmount   float64
 	StakeRefunded bool
 }
 
@@ -82,8 +82,8 @@ type JurorVote struct {
 // DisputeService manages trust disputes
 type DisputeService struct {
 	mu       sync.RWMutex
-	disputes map[string]*Dispute  // disputeID -> dispute
-	byUser   map[string][]string  // userDID -> []disputeID
+	disputes map[string]*Dispute // disputeID -> dispute
+	byUser   map[string][]string // userDID -> []disputeID
 }
 
 // NewDisputeService creates a new dispute service

@@ -15,10 +15,10 @@ func TestMarshalVC2JSONLD(t *testing.T) {
 		},
 	}
 	vc := &VerifiableCredential{
-		Type:         []string{"VerifiableCredential", "ProofOfHumanity"},
-		ID:           "urn:credential:x",
-		Issuer:       "did:key:z6MkrTEST",
-		IssuanceDate: time.Date(2026, 4, 27, 0, 0, 0, 0, time.UTC),
+		Type:           []string{"VerifiableCredential", "ProofOfHumanity"},
+		ID:             "urn:credential:x",
+		Issuer:         "did:key:z6MkrTEST",
+		IssuanceDate:   time.Date(2026, 4, 27, 0, 0, 0, 0, time.UTC),
 		ExpirationDate: &exp,
 		CredentialSubject: CredentialSubject{
 			ID: "did:key:z2DAuser",
@@ -34,13 +34,13 @@ func TestMarshalVC2JSONLD(t *testing.T) {
 			StatusListCredential: "https://identity-metagraph.echo.app/status/0",
 		},
 		Proof: Proof{
-			Type:                 "DataIntegrityProof",
-			Cryptosuite:          "ecdsa-2019",
-			Created:              time.Date(2026, 4, 27, 12, 0, 0, 0, time.UTC),
-			VerificationMethod:   "did:key:z6MkrTEST#key1",
-			ProofPurpose:         "assertionMethod",
-			ChallengeNonce:       "n1",
-			ProofValue:           "zQmECHO_DEV_PLACEHOLDER_SIGN_WITH_REAL_ECDSA_2019",
+			Type:               "DataIntegrityProof",
+			Cryptosuite:        "ecdsa-2019",
+			Created:            time.Date(2026, 4, 27, 12, 0, 0, 0, time.UTC),
+			VerificationMethod: "did:key:z6MkrTEST#key1",
+			ProofPurpose:       "assertionMethod",
+			ChallengeNonce:     "n1",
+			ProofValue:         "zQmECHO_DEV_PLACEHOLDER_SIGN_WITH_REAL_ECDSA_2019",
 		},
 	}
 

@@ -17,7 +17,7 @@ type BlockchainAnchor struct {
 	Type            string     `json:"type"` // "trust_score", "endorsement", "dispute_resolution"
 	UserDID         string     `json:"user_did"`
 	Timestamp       time.Time  `json:"timestamp"`
-	DataHash        string     `json:"data_hash"`               // ZK-friendly hash of the data
+	DataHash        string     `json:"data_hash"`                   // ZK-friendly hash of the data
 	MetagraphTxHash string     `json:"metagraph_tx_hash,omitempty"` // Identity / Data L1 submission ID
 	MetagraphRef    string     `json:"metagraph_ref,omitempty"`     // Reference in metagraph snapshot
 	ZKProofHash     string     `json:"zk_proof_hash,omitempty"`

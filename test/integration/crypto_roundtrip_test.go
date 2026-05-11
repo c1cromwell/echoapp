@@ -83,7 +83,10 @@ func TestCryptoRoundTrip_TamperedCiphertext(t *testing.T) {
 	ts, cleanup := testutil.StartTestServer(t)
 	defer cleanup()
 
-	resp, _ := http.Get(ts.BaseURL + "/v1/crypto/server-key")
+	resp, err := http.Get(ts.BaseURL + "/v1/crypto/server-key")
+	if err != nil {
+		t.Fatalf("GET /v1/crypto/server-key: %v", err)
+	}
 	defer resp.Body.Close()
 
 	var keyResp api.ServerKeyResponse

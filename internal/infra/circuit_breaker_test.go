@@ -170,9 +170,9 @@ func TestCircuitBreaker_GetAllStates(t *testing.T) {
 
 func TestCircuitState_String(t *testing.T) {
 	tests := map[CircuitState]string{
-		CircuitClosed:   "closed",
-		CircuitOpen:     "open",
-		CircuitHalfOpen: "half_open",
+		CircuitClosed:    "closed",
+		CircuitOpen:      "open",
+		CircuitHalfOpen:  "half_open",
 		CircuitState(99): "unknown",
 	}
 	for state, expected := range tests {

@@ -28,30 +28,30 @@ type ProfileData struct {
 
 // Persona represents a user persona
 type Persona struct {
-	ID                   string                       `json:"id"`
-	Type                 string                       `json:"type"`
-	Name                 string                       `json:"name"`
-	DisplayName          string                       `json:"display_name"`
-	Username             string                       `json:"username,omitempty"`
-	Bio                  string                       `json:"bio,omitempty"`
-	AvatarURL            string                       `json:"avatar_url,omitempty"`
-	UseMainAvatar        bool                         `json:"use_main_avatar"`
-	Visibility           string                       `json:"visibility"`
-	DefaultVisibility    string                       `json:"default_visibility"`
-	Discoverability      bool                         `json:"discoverability"`
-	SelectedContactIDs   []string                     `json:"selected_contact_ids"`
-	AccessGrants         []AccessGrant                `json:"access_grants"`
-	IsDefault            bool                         `json:"is_default"`
-	CreatedAt            string                       `json:"created_at"`
-	UpdatedAt            string                       `json:"updated_at"`
-	LastActiveAt         string                       `json:"last_active_at,omitempty"`
-	MessageCount         int                          `json:"message_count"`
-	Status               string                       `json:"status,omitempty"`
-	PrivacySettings      PersonaPrivacySettingsData   `json:"privacy_settings"`
-	NotificationSettings PersonaNotifSettingsData     `json:"notification_settings"`
-	FeatureSettings      PersonaFeatureSettingsData   `json:"feature_settings"`
-	Badges               []PersonaBadgeData           `json:"badges"`
-	DeletionState        *PersonaDeletionStateData    `json:"deletion_state,omitempty"`
+	ID                   string                     `json:"id"`
+	Type                 string                     `json:"type"`
+	Name                 string                     `json:"name"`
+	DisplayName          string                     `json:"display_name"`
+	Username             string                     `json:"username,omitempty"`
+	Bio                  string                     `json:"bio,omitempty"`
+	AvatarURL            string                     `json:"avatar_url,omitempty"`
+	UseMainAvatar        bool                       `json:"use_main_avatar"`
+	Visibility           string                     `json:"visibility"`
+	DefaultVisibility    string                     `json:"default_visibility"`
+	Discoverability      bool                       `json:"discoverability"`
+	SelectedContactIDs   []string                   `json:"selected_contact_ids"`
+	AccessGrants         []AccessGrant              `json:"access_grants"`
+	IsDefault            bool                       `json:"is_default"`
+	CreatedAt            string                     `json:"created_at"`
+	UpdatedAt            string                     `json:"updated_at"`
+	LastActiveAt         string                     `json:"last_active_at,omitempty"`
+	MessageCount         int                        `json:"message_count"`
+	Status               string                     `json:"status,omitempty"`
+	PrivacySettings      PersonaPrivacySettingsData `json:"privacy_settings"`
+	NotificationSettings PersonaNotifSettingsData   `json:"notification_settings"`
+	FeatureSettings      PersonaFeatureSettingsData `json:"feature_settings"`
+	Badges               []PersonaBadgeData         `json:"badges"`
+	DeletionState        *PersonaDeletionStateData  `json:"deletion_state,omitempty"`
 }
 
 // AccessGrant represents a per-contact permission grant
@@ -92,22 +92,22 @@ type PersonaPrivacySettingsData struct {
 
 // PersonaNotifSettingsData represents per-persona notifications
 type PersonaNotifSettingsData struct {
-	Enabled                  bool   `json:"enabled"`
-	QuietHoursEnabled        bool   `json:"quiet_hours_enabled"`
-	QuietHoursStart          string `json:"quiet_hours_start"`
-	QuietHoursEnd            string `json:"quiet_hours_end"`
-	QuietHoursTimezone       string `json:"quiet_hours_timezone"`
-	QuietHoursAllowExceptions bool  `json:"quiet_hours_allow_exceptions"`
-	MessagesMode             string `json:"messages_mode"`
-	CallsMode                string `json:"calls_mode"`
-	GroupActivityMode        string `json:"group_activity_mode"`
-	ContactRequests          bool   `json:"contact_requests"`
-	SoundEnabled             bool   `json:"sound_enabled"`
-	SoundID                  string `json:"sound_id"`
-	VibrationEnabled         bool   `json:"vibration_enabled"`
-	ShowContent              bool   `json:"show_content"`
-	ShowSender               bool   `json:"show_sender"`
-	ShowPersonaName          bool   `json:"show_persona_name"`
+	Enabled                   bool   `json:"enabled"`
+	QuietHoursEnabled         bool   `json:"quiet_hours_enabled"`
+	QuietHoursStart           string `json:"quiet_hours_start"`
+	QuietHoursEnd             string `json:"quiet_hours_end"`
+	QuietHoursTimezone        string `json:"quiet_hours_timezone"`
+	QuietHoursAllowExceptions bool   `json:"quiet_hours_allow_exceptions"`
+	MessagesMode              string `json:"messages_mode"`
+	CallsMode                 string `json:"calls_mode"`
+	GroupActivityMode         string `json:"group_activity_mode"`
+	ContactRequests           bool   `json:"contact_requests"`
+	SoundEnabled              bool   `json:"sound_enabled"`
+	SoundID                   string `json:"sound_id"`
+	VibrationEnabled          bool   `json:"vibration_enabled"`
+	ShowContent               bool   `json:"show_content"`
+	ShowSender                bool   `json:"show_sender"`
+	ShowPersonaName           bool   `json:"show_persona_name"`
 }
 
 // PersonaFeatureSettingsData represents per-persona feature toggles
@@ -267,32 +267,32 @@ type AppearanceSettingsData struct {
 
 // StorageInfoData represents storage and data info
 type StorageInfoData struct {
-	TotalUsedBytes      int64   `json:"total_used_bytes"`
-	TotalCapacityBytes  int64   `json:"total_capacity_bytes"`
-	PhotosVideosBytes   int64   `json:"photos_videos_bytes"`
-	DocumentsBytes      int64   `json:"documents_bytes"`
-	VoiceMessagesBytes  int64   `json:"voice_messages_bytes"`
-	OtherBytes          int64   `json:"other_bytes"`
-	CacheBytes          int64   `json:"cache_bytes"`
-	AutoDownload        string  `json:"auto_download"`
-	MediaQuality        string  `json:"media_quality"`
-	KeepMedia           string  `json:"keep_media"`
-	UseLessData         bool    `json:"use_less_data_for_calls"`
-	AutoBackup          string  `json:"auto_backup"`
-	IncludeMedia        bool    `json:"include_media_in_backup"`
-	LastBackupDate      *string `json:"last_backup_date"`
+	TotalUsedBytes     int64   `json:"total_used_bytes"`
+	TotalCapacityBytes int64   `json:"total_capacity_bytes"`
+	PhotosVideosBytes  int64   `json:"photos_videos_bytes"`
+	DocumentsBytes     int64   `json:"documents_bytes"`
+	VoiceMessagesBytes int64   `json:"voice_messages_bytes"`
+	OtherBytes         int64   `json:"other_bytes"`
+	CacheBytes         int64   `json:"cache_bytes"`
+	AutoDownload       string  `json:"auto_download"`
+	MediaQuality       string  `json:"media_quality"`
+	KeepMedia          string  `json:"keep_media"`
+	UseLessData        bool    `json:"use_less_data_for_calls"`
+	AutoBackup         string  `json:"auto_backup"`
+	IncludeMedia       bool    `json:"include_media_in_backup"`
+	LastBackupDate     *string `json:"last_backup_date"`
 }
 
 // AccountInfoData represents account information
 type AccountInfoData struct {
-	Phone                     string `json:"phone"`
-	Email                     string `json:"email,omitempty"`
-	DID                       string `json:"did,omitempty"`
-	PasskeyCount              int    `json:"passkey_count"`
-	TwoFactorEnabled          bool   `json:"two_factor_enabled"`
-	ActiveSessionCount        int    `json:"active_session_count"`
-	RecoveryPhraseSetUp       bool   `json:"recovery_phrase_set_up"`
-	TrustedRecoveryContacts   int    `json:"trusted_recovery_contact_count"`
+	Phone                   string `json:"phone"`
+	Email                   string `json:"email,omitempty"`
+	DID                     string `json:"did,omitempty"`
+	PasskeyCount            int    `json:"passkey_count"`
+	TwoFactorEnabled        bool   `json:"two_factor_enabled"`
+	ActiveSessionCount      int    `json:"active_session_count"`
+	RecoveryPhraseSetUp     bool   `json:"recovery_phrase_set_up"`
+	TrustedRecoveryContacts int    `json:"trusted_recovery_contact_count"`
 }
 
 // ProfileHandler manages profile and persona operations
@@ -557,26 +557,26 @@ func (ph *ProfileHandler) CreatePersona(w http.ResponseWriter, r *http.Request) 
 	isDefault := len(ph.personas[userID]) == 0
 
 	persona := Persona{
-		ID:                fmt.Sprintf("persona-%d", time.Now().UnixNano()),
-		Type:              req.Type,
-		Name:              req.Name,
-		DisplayName:       req.DisplayName,
-		Username:          req.Username,
-		Bio:               req.Bio,
-		UseMainAvatar:     req.UseMainAvatar,
-		Visibility:        req.Visibility,
-		DefaultVisibility: "contacts",
-		Discoverability:   true,
-		SelectedContactIDs: req.SelectedContactIDs,
-		AccessGrants:      []AccessGrant{},
-		IsDefault:         isDefault,
-		CreatedAt:         now,
-		UpdatedAt:         now,
-		MessageCount:      0,
-		PrivacySettings:   defaultPersonaPrivacySettings(),
+		ID:                   fmt.Sprintf("persona-%d", time.Now().UnixNano()),
+		Type:                 req.Type,
+		Name:                 req.Name,
+		DisplayName:          req.DisplayName,
+		Username:             req.Username,
+		Bio:                  req.Bio,
+		UseMainAvatar:        req.UseMainAvatar,
+		Visibility:           req.Visibility,
+		DefaultVisibility:    "contacts",
+		Discoverability:      true,
+		SelectedContactIDs:   req.SelectedContactIDs,
+		AccessGrants:         []AccessGrant{},
+		IsDefault:            isDefault,
+		CreatedAt:            now,
+		UpdatedAt:            now,
+		MessageCount:         0,
+		PrivacySettings:      defaultPersonaPrivacySettings(),
 		NotificationSettings: defaultPersonaNotifSettings(),
-		FeatureSettings:   defaultPersonaFeatureSettings(),
-		Badges:            []PersonaBadgeData{},
+		FeatureSettings:      defaultPersonaFeatureSettings(),
+		Badges:               []PersonaBadgeData{},
 	}
 
 	if persona.SelectedContactIDs == nil {
@@ -851,13 +851,13 @@ func (ph *ProfileHandler) GetStorageInfo(w http.ResponseWriter, r *http.Request)
 
 	lastBackup := time.Now().UTC().Format(time.RFC3339)
 	info := StorageInfoData{
-		TotalUsedBytes:     2576980378,  // ~2.4 GB
-		TotalCapacityBytes: 5368709120,  // 5 GB
-		PhotosVideosBytes:  1932735283,  // ~1.8 GB
-		DocumentsBytes:     440401920,   // ~420 MB
-		VoiceMessagesBytes: 188743680,   // ~180 MB
-		OtherBytes:         44040192,    // ~42 MB
-		CacheBytes:         163577856,   // ~156 MB
+		TotalUsedBytes:     2576980378, // ~2.4 GB
+		TotalCapacityBytes: 5368709120, // 5 GB
+		PhotosVideosBytes:  1932735283, // ~1.8 GB
+		DocumentsBytes:     440401920,  // ~420 MB
+		VoiceMessagesBytes: 188743680,  // ~180 MB
+		OtherBytes:         44040192,   // ~42 MB
+		CacheBytes:         163577856,  // ~156 MB
 		AutoDownload:       "wifi",
 		MediaQuality:       "standard",
 		KeepMedia:          "forever",
@@ -1276,8 +1276,8 @@ func (ph *ProfileHandler) GetVisibilityMatrix(w http.ResponseWriter, r *http.Req
 	var entries []map[string]interface{}
 	for cID, visibility := range contactMap {
 		entries = append(entries, map[string]interface{}{
-			"contact_id":        cID,
-			"contact_name":      "Contact " + cID,
+			"contact_id":         cID,
+			"contact_name":       "Contact " + cID,
 			"persona_visibility": visibility,
 		})
 	}
@@ -1627,10 +1627,10 @@ func (ph *ProfileHandler) GetPersonaLimits(w http.ResponseWriter, r *http.Reques
 	allowCustom := trustLevel == "member" || trustLevel == "basic" || trustLevel == "trusted" || trustLevel == "verified" || trustLevel == "elite"
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"max_personas":          maxAllowed,
-		"current_count":         currentCount,
-		"remaining":             maxAllowed - currentCount,
-		"trust_level":           trustLevel,
+		"max_personas":            maxAllowed,
+		"current_count":           currentCount,
+		"remaining":               maxAllowed - currentCount,
+		"trust_level":             trustLevel,
 		"allow_custom_categories": allowCustom,
 	})
 }

@@ -11,9 +11,9 @@ import (
 type RequestStatus string
 
 const (
-	RequestPending  RequestStatus = "pending"
-	RequestAccepted RequestStatus = "accepted"
-	RequestDeclined RequestStatus = "declined"
+	RequestPending   RequestStatus = "pending"
+	RequestAccepted  RequestStatus = "accepted"
+	RequestDeclined  RequestStatus = "declined"
 	RequestCancelled RequestStatus = "cancelled"
 )
 

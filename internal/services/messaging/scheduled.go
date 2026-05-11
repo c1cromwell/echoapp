@@ -18,21 +18,21 @@ const (
 
 // ScheduledMessage represents a message queued for future delivery
 type ScheduledMessage struct {
-	ID              string
-	SenderID        string
-	ConvID          string
-	Content         []byte
-	ContentType     MessageType
-	ScheduledAt     time.Time
-	Timezone        string
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	Status          DeliveryStatus
-	DeliveredAt     *time.Time
-	RetryCount      int
-	FailureReason   string
-	Silent          bool
-	SilentFlags     *SilentFlags
+	ID            string
+	SenderID      string
+	ConvID        string
+	Content       []byte
+	ContentType   MessageType
+	ScheduledAt   time.Time
+	Timezone      string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	Status        DeliveryStatus
+	DeliveredAt   *time.Time
+	RetryCount    int
+	FailureReason string
+	Silent        bool
+	SilentFlags   *SilentFlags
 }
 
 // ScheduledMessageService manages scheduled message operations

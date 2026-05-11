@@ -40,9 +40,9 @@ type DeviceTokenResponse struct {
 
 // DeviceTokenAddRequest is the body for the token-based add-device flow.
 type DeviceTokenAddRequest struct {
-	Token         string `json:"token"`
-	NewPublicKey  string `json:"new_public_key_hex"`
-	DeviceLabel   string `json:"device_label,omitempty"`
+	Token        string `json:"token"`
+	NewPublicKey string `json:"new_public_key_hex"`
+	DeviceLabel  string `json:"device_label,omitempty"`
 }
 
 // handleIdentityDeviceToken issues a 5-minute registration token (WO-273).

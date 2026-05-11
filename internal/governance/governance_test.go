@@ -308,16 +308,16 @@ func TestBuildTally(t *testing.T) {
 
 func newTestService() (*GovernanceService, *mockProposalStore) {
 	trust := &mockTrust{tiers: map[string]int{
-		"did:dag:voter1": 3,
-		"did:dag:voter2": 5,
-		"did:dag:tier1":  1,
+		"did:dag:voter1":  3,
+		"did:dag:voter2":  5,
+		"did:dag:tier1":   1,
 		"did:dag:nostake": 4,
 	}}
 	stake := &mockStake{stakes: map[string]int64{
 		"did:dag:voter1":  50000,
 		"did:dag:voter2":  100000,
 		"did:dag:tier1":   1000000,
-		"did:dag:nostake":  0,
+		"did:dag:nostake": 0,
 	}}
 	store := newMockStore()
 	svc := NewGovernanceService(nil, trust, stake, store) // nil metagraph for unit tests

@@ -31,8 +31,8 @@ import (
 )
 
 const (
-	headerSenderDID  = "X-Sender-DID"
-	headerSignature  = "X-Signature"
+	headerSenderDID = "X-Sender-DID"
+	headerSignature = "X-Signature"
 )
 
 // resolveDeviceKeys returns the public keys for did from the Redis cache; on cache miss

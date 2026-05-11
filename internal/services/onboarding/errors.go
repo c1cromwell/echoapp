@@ -24,11 +24,11 @@ var (
 	ErrPasskeyAlreadyExists  = errors.New("passkey already registered for this session")
 
 	// Recovery errors
-	ErrRecoveryMethodInvalid = errors.New("invalid recovery method type")
-	ErrRecoveryEmailInvalid  = errors.New("invalid recovery email address")
+	ErrRecoveryMethodInvalid    = errors.New("invalid recovery method type")
+	ErrRecoveryEmailInvalid     = errors.New("invalid recovery email address")
 	ErrRecoveryEmailNotVerified = errors.New("recovery email not verified")
-	ErrRecoveryWalletInvalid = errors.New("invalid wallet address")
-	ErrRecoveryContactInvalid = errors.New("invalid trusted contact")
+	ErrRecoveryWalletInvalid    = errors.New("invalid wallet address")
+	ErrRecoveryContactInvalid   = errors.New("invalid trusted contact")
 
 	// Profile errors
 	ErrDisplayNameRequired = errors.New("display name is required")

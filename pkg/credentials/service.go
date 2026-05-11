@@ -86,8 +86,8 @@ func (s *Service) RevokeCredential(ctx context.Context, credentialID, issuerDID,
 	if s.statusPublisher != nil {
 		enqueued := s.statusPublisher.MarkRevoked(credentialID)
 		result.StatusList = &RevokeStatusListMeta{
-			PublishEnqueued:           enqueued,
-			MetagraphPublishPending:   s.statusPublisher.PublishPending(),
+			PublishEnqueued:         enqueued,
+			MetagraphPublishPending: s.statusPublisher.PublishPending(),
 		}
 	}
 	return result, nil

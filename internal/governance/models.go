@@ -15,7 +15,7 @@ const (
 
 // Threshold types.
 const (
-	ThresholdSimpleMajority = "simple_majority"
+	ThresholdSimpleMajority  = "simple_majority"
 	ThresholdSupermajority67 = "supermajority_67"
 	ThresholdSupermajority75 = "supermajority_75"
 )
@@ -37,14 +37,14 @@ const (
 
 // Errors.
 var (
-	ErrCannotVote         = errors.New("user does not meet voting requirements")
-	ErrProposalNotFound   = errors.New("proposal not found")
-	ErrProposalNotActive  = errors.New("proposal is not active")
-	ErrAlreadyVoted       = errors.New("already voted on this proposal")
-	ErrInvalidVoteValue   = errors.New("vote value must be for, against, or abstain")
+	ErrCannotVote          = errors.New("user does not meet voting requirements")
+	ErrProposalNotFound    = errors.New("proposal not found")
+	ErrProposalNotActive   = errors.New("proposal is not active")
+	ErrAlreadyVoted        = errors.New("already voted on this proposal")
+	ErrInvalidVoteValue    = errors.New("vote value must be for, against, or abstain")
 	ErrInvalidProposalType = errors.New("invalid proposal type")
-	ErrInvalidThreshold   = errors.New("invalid threshold type")
-	ErrProposalExpired    = errors.New("proposal voting period has ended")
+	ErrInvalidThreshold    = errors.New("invalid threshold type")
+	ErrProposalExpired     = errors.New("proposal voting period has ended")
 )
 
 // VotingPower represents a user's pre-validated governance weight.

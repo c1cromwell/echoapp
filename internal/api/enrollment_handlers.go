@@ -170,9 +170,9 @@ func (rt *Router) handleRestoreChallenge(w http.ResponseWriter, r *http.Request)
 
 // RestoreDIDRequest is the body for POST /v1/auth/restore-did.
 type RestoreDIDRequest struct {
-	WalletAddress     string `json:"wallet_address"`
+	WalletAddress      string `json:"wallet_address"`
 	NewDevicePublicKey string `json:"new_device_public_key"`
-	WalletSignature   string `json:"wallet_signature"`
+	WalletSignature    string `json:"wallet_signature"`
 }
 
 // handleRestoreDID handles POST /v1/auth/restore-did.

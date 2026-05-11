@@ -48,7 +48,7 @@ type SnapshotEvent struct {
 
 // CurrencyL1Transaction is a unified submission type for Currency L1 transactions.
 type CurrencyL1Transaction struct {
-	Type            string `json:"type"`
+	Type            string           `json:"type"`
 	TokenLock       *TokenLock       `json:"tokenLock,omitempty"`
 	StakeDelegation *StakeDelegation `json:"stakeDelegation,omitempty"`
 	WithdrawLock    *WithdrawLock    `json:"withdrawLock,omitempty"`

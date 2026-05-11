@@ -16,15 +16,15 @@ func newTestRelay() *RelayService {
 
 func testMessage(id, sender string, recipients ...string) RelayMessage {
 	return RelayMessage{
-		MessageID:     id,
+		MessageID:      id,
 		ConversationID: "conv-1",
-		SenderDID:     sender,
-		RecipientDIDs: recipients,
-		ContentType:   "text",
-		EncryptedBlob: []byte("encrypted-blob-data"),
-		Commitment:    []byte("commitment-hash"),
-		Signature:     []byte("signature"),
-		Timestamp:     time.Now(),
+		SenderDID:      sender,
+		RecipientDIDs:  recipients,
+		ContentType:    "text",
+		EncryptedBlob:  []byte("encrypted-blob-data"),
+		Commitment:     []byte("commitment-hash"),
+		Signature:      []byte("signature"),
+		Timestamp:      time.Now(),
 	}
 }
 

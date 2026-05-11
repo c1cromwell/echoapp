@@ -26,9 +26,9 @@ const (
 type SlashingPenalty struct {
 	Offense        SlashingOffense `json:"offense"`
 	StakePercent   int             `json:"stake_percent"`   // % of staked ECHO slashed
-	SuspensionDays int            `json:"suspension_days"` // 0 = no suspension, -1 = permanent ban
-	Recoverable    bool           `json:"recoverable"`
-	Description    string         `json:"description"`
+	SuspensionDays int             `json:"suspension_days"` // 0 = no suspension, -1 = permanent ban
+	Recoverable    bool            `json:"recoverable"`
+	Description    string          `json:"description"`
 }
 
 // DefaultSlashingPenalties returns the v3.2 slashing schedule.
@@ -91,16 +91,16 @@ type SlashingEvent struct {
 
 // ValidatorStatus tracks a validator's current standing.
 type ValidatorStatus struct {
-	ValidatorDID   string           `json:"validator_did"`
-	StakedAmount   *big.Int         `json:"staked_amount"`
-	IsActive       bool             `json:"is_active"`
-	IsSuspended    bool             `json:"is_suspended"`
-	IsBanned       bool             `json:"is_banned"`
-	SuspendedUntil time.Time        `json:"suspended_until,omitempty"`
+	ValidatorDID    string          `json:"validator_did"`
+	StakedAmount    *big.Int        `json:"staked_amount"`
+	IsActive        bool            `json:"is_active"`
+	IsSuspended     bool            `json:"is_suspended"`
+	IsBanned        bool            `json:"is_banned"`
+	SuspendedUntil  time.Time       `json:"suspended_until,omitempty"`
 	SlashingHistory []SlashingEvent `json:"slashing_history"`
-	Layer          L1Layer          `json:"layer"`
-	UptimePercent  float64          `json:"uptime_percent"`
-	LastHeartbeat  time.Time        `json:"last_heartbeat"`
+	Layer           L1Layer         `json:"layer"`
+	UptimePercent   float64         `json:"uptime_percent"`
+	LastHeartbeat   time.Time       `json:"last_heartbeat"`
 }
 
 // CalculateSlash computes the slashing amount and creates a SlashingEvent.

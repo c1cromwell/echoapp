@@ -282,8 +282,8 @@ type PreAuthorizedCode struct {
 
 // VPPayload is the decoded JWT payload of a Verifiable Presentation (OID4VP).
 type VPPayload struct {
-	Iss   string    `json:"iss"`   // holder DID
-	Aud   string    `json:"aud"`   // verifier DID (string; wallets sometimes use []string)
+	Iss   string    `json:"iss"` // holder DID
+	Aud   string    `json:"aud"` // verifier DID (string; wallets sometimes use []string)
 	Iat   int64     `json:"iat"`
 	Exp   int64     `json:"exp"`
 	Nonce string    `json:"nonce,omitempty"`

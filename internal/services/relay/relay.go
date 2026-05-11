@@ -22,22 +22,22 @@ var (
 // RelayMessage represents an E2E encrypted blob in transit.
 // The server sees metadata only; content is opaque ciphertext.
 type RelayMessage struct {
-	MessageID      string    `json:"messageId"`
-	ConversationID string    `json:"conversationId"`
-	SenderDID      string    `json:"senderDID"`
-	RecipientDIDs  []string  `json:"recipientDIDs"`
-	ContentType    string    `json:"contentType"`
-	EncryptedBlob  []byte    `json:"encryptedBlob"`
-	Commitment     []byte    `json:"commitment"`
-	Signature      []byte    `json:"signature"`
-	Timestamp      time.Time `json:"timestamp"`
+	MessageID      string     `json:"messageId"`
+	ConversationID string     `json:"conversationId"`
+	SenderDID      string     `json:"senderDID"`
+	RecipientDIDs  []string   `json:"recipientDIDs"`
+	ContentType    string     `json:"contentType"`
+	EncryptedBlob  []byte     `json:"encryptedBlob"`
+	Commitment     []byte     `json:"commitment"`
+	Signature      []byte     `json:"signature"`
+	Timestamp      time.Time  `json:"timestamp"`
 	ExpiresAt      *time.Time `json:"expiresAt,omitempty"`
 }
 
 // RelayResult indicates whether the message was delivered live or queued.
 type RelayResult struct {
 	MessageID  string            `json:"messageId"`
-	Status     string            `json:"status"` // "relayed", "queued", or "partial"
+	Status     string            `json:"status"`     // "relayed", "queued", or "partial"
 	Recipients map[string]string `json:"recipients"` // DID -> "relayed" or "queued"
 	Timestamp  time.Time         `json:"timestamp"`
 }
@@ -229,7 +229,7 @@ type OfflineQueue struct {
 }
 
 type queueEntry struct {
-	Message   RelayMessage
+	Message    RelayMessage
 	EnqueuedAt time.Time
 	Retention  time.Duration
 }

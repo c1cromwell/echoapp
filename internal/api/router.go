@@ -54,13 +54,13 @@ type Router struct {
 	StartTime            time.Time
 	TokenValidator       func(token string) bool
 	UserIDExtractor      func(token string) string
-	WSHub                *Hub               // WebSocket hub for real-time messaging
-	V3                   *V3Handlers        // V3 API handlers (blueprint services)
-	DIDRegistry          DIDRegistry        // did:key binding store (WO-230 / WO-278)
-	CredentialStatusPool *pgxpool.Pool      // WO-274 durable VC status list slots (optional)
+	WSHub                *Hub          // WebSocket hub for real-time messaging
+	V3                   *V3Handlers   // V3 API handlers (blueprint services)
+	DIDRegistry          DIDRegistry   // did:key binding store (WO-230 / WO-278)
+	CredentialStatusPool *pgxpool.Pool // WO-274 durable VC status list slots (optional)
 	Redis                *infra.RedisClient
-	RateLimiter          *infra.RateLimiter  // WO-44 per-DID tiered rate limiting (optional)
-	SMSProvider          infra.SMSProvider   // Wave 12 SMS OTP recovery (optional; stub when nil)
+	RateLimiter          *infra.RateLimiter         // WO-44 per-DID tiered rate limiting (optional)
+	SMSProvider          infra.SMSProvider          // Wave 12 SMS OTP recovery (optional; stub when nil)
 	IdentityL1           *metagraph.MetagraphClient // WO-274 trust-tier commitments
 	DataL1               *metagraph.MetagraphClient // WO-230 Data L1 Merkle proxy (optional)
 	CredentialService    *credentials.Service       // WO-274 VC issuance (optional)
@@ -208,7 +208,7 @@ var publicPaths = map[string]bool{
 	"/v1/enrollment/idv/await":         true,
 	"/v1/data-l1/merkle-roots":         true,
 	"/v1/phase1/trust-tier-commitment": true,
-	"/v1/crypto/server-key":             true, // WO-13: public key endpoint, no auth
+	"/v1/crypto/server-key":            true, // WO-13: public key endpoint, no auth
 	"/v1/auth/sms-recovery/register":   true, // Wave 12: phone commitment registration
 	"/v1/auth/sms-recovery/verify":     true, // Wave 12: OTP verification
 	"/v1/auth/sms-recovery/challenge":  true, // Wave 12: recovery challenge

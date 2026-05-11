@@ -1,6 +1,6 @@
 .PHONY: help build run test clean install-deps lint fmt vet build-prod tls-cert \
 	dev dev-stop dev-status dev-logs dev-restart validate-phase1 metagraph-verify-skeleton metagraph-test \
-	testnet-up testnet-down
+	testnet-up testnet-down release-check
 
 # Variables
 BINARY_NAME=echoapp
@@ -155,9 +155,39 @@ update-deps:
 	@echo "✅ Dependencies updated"
 
 version:
-	@echo "EchoApp v1.0.0"
+	@cat VERSION 2>/dev/null | xargs -I{} echo "EchoApp v{}" || echo "EchoApp (no VERSION file)"
 	@echo "Go version: $$($(GO) version)"
 	@echo "Binary: $(BINARY_NAME)"
+
+## Release readiness check — run before tagging a release.
+release-check:
+	@echo "=== Phase-1 Release Check ==="
+	@echo ""
+	@echo "--- 1. Go build ---"
+	@$(GO) build ./... && echo "✅ go build clean" || (echo "❌ go build failed" && exit 1)
+	@echo ""
+	@echo "--- 2. Go tests (race) ---"
+	@$(GO) test -race -count=1 ./internal/... ./pkg/... ./test/... && echo "✅ all tests pass" || (echo "❌ tests failed" && exit 1)
+	@echo ""
+	@echo "--- 3. go vet ---"
+	@$(GO) vet ./... && echo "✅ vet clean" || (echo "❌ vet issues" && exit 1)
+	@echo ""
+	@echo "--- 4. gofmt ---"
+	@if [ -n "$$(gofmt -l .)" ]; then echo "❌ unformatted files:"; gofmt -l .; exit 1; else echo "✅ gofmt clean"; fi
+	@echo ""
+	@echo "--- 5. No stray binaries ---"
+	@if ls $(BINARY_NAME) credentials cardanoidentity 2>/dev/null | grep -v "^ls:"; then \
+		echo "❌ stale binaries present — run: rm -f $(BINARY_NAME) credentials cardanoidentity"; exit 1; \
+	else echo "✅ no stray binaries"; fi
+	@echo ""
+	@echo "--- 6. VERSION file ---"
+	@cat VERSION && echo "✅ VERSION exists"
+	@echo ""
+	@echo "--- 7. CHANGELOG ---"
+	@head -1 CHANGELOG.md && echo "✅ CHANGELOG exists"
+	@echo ""
+	@echo "=== ✅ Release check passed — ready to tag ==="
+	@echo "Run: git tag v\$$(cat VERSION)-phase1 && git push origin v\$$(cat VERSION)-phase1"
 
 info:
 	@echo "Project Information:"

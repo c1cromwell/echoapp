@@ -15,38 +15,38 @@ type VerificationBadge struct {
 
 // ContactProfileView is the unified view of a contact's profile
 type ContactProfileView struct {
-	DID            string
-	DisplayName    string
-	Username       string
-	TrustScore     int
-	CircleTier     CircleTier
-	Verifications  []VerificationBadge
+	DID             string
+	DisplayName     string
+	Username        string
+	TrustScore      int
+	CircleTier      CircleTier
+	Verifications   []VerificationBadge
 	VisiblePersonas []*Persona
-	MutualCount    int
-	SharedGroups   []string
-	IsMuted        bool
-	IsBlocked      bool
-	ContactSince   *time.Time
+	MutualCount     int
+	SharedGroups    []string
+	IsMuted         bool
+	IsBlocked       bool
+	ContactSince    *time.Time
 }
 
 // MuteBlockState tracks mute/block state per contact
 type MuteBlockState struct {
-	UserDID    string
-	ContactDID string
-	Muted      bool
-	MutedAt    *time.Time
-	Blocked    bool
-	BlockedAt  *time.Time
+	UserDID     string
+	ContactDID  string
+	Muted       bool
+	MutedAt     *time.Time
+	Blocked     bool
+	BlockedAt   *time.Time
 	BlockReason string
 }
 
 // ContactProfileService provides unified contact profile views
 type ContactProfileService struct {
-	mu         sync.RWMutex
-	circles    *CircleService
-	personas   *PersonaService
-	discovery  *DiscoveryService
-	muteBlock  map[string]*MuteBlockState // "userDID:contactDID" -> state
+	mu            sync.RWMutex
+	circles       *CircleService
+	personas      *PersonaService
+	discovery     *DiscoveryService
+	muteBlock     map[string]*MuteBlockState     // "userDID:contactDID" -> state
 	verifications map[string][]VerificationBadge // userDID -> badges
 	sharedGroups  map[string]map[string][]string // "userDID:contactDID" -> group names
 }

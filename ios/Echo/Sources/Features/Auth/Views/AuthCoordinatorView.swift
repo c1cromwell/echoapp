@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Auth/AuthCoordinator.swift
 // Manages the pre-authentication flow: Login → SMS OTP → Onboarding
 
@@ -210,3 +211,4 @@ struct GlacialNavigationBar<Content: View>: View {
 #Preview("SMS Verification") {
     SMSVerificationScreen(phoneNumber: "+1 (555) 123-4567")
 }
+#endif

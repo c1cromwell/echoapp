@@ -27,12 +27,12 @@ const (
 
 // UserProfile represents a searchable user profile in the discovery system
 type UserProfile struct {
-	DID          string
-	Username     string
-	DisplayName  string
-	TrustScore   int
-	Verified     bool
-	CreatedAt    time.Time
+	DID         string
+	Username    string
+	DisplayName string
+	TrustScore  int
+	Verified    bool
+	CreatedAt   time.Time
 }
 
 // QRCode represents a generated QR code payload

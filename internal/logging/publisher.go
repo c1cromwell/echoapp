@@ -34,21 +34,21 @@ const (
 // LogEntry represents a single privacy-safe operational event.
 // No PII, no DIDs (unless compliance-required), no message content.
 type LogEntry struct {
-	EventType string    `json:"event_type"` // "relay_batch", "reward_claim", etc.
-	Count     int       `json:"count"`
-	Timestamp time.Time `json:"timestamp"`
+	EventType string            `json:"event_type"` // "relay_batch", "reward_claim", etc.
+	Count     int               `json:"count"`
+	Timestamp time.Time         `json:"timestamp"`
 	Metadata  map[string]string `json:"metadata,omitempty"`
 }
 
 // LogBatch represents a completed batch ready for encryption and IPFS push.
 type LogBatch struct {
-	Entries     []LogEntry `json:"entries"`
-	BatchHash   string     `json:"batch_hash"`
-	EntryCount  int        `json:"entry_count"`
+	Entries     []LogEntry     `json:"entries"`
+	BatchHash   string         `json:"batch_hash"`
+	EntryCount  int            `json:"entry_count"`
 	TimeRange   BatchTimeRange `json:"time_range"`
-	CreatedAt   time.Time  `json:"created_at"`
-	EncryptedAt time.Time  `json:"encrypted_at,omitempty"`
-	CID         string     `json:"cid,omitempty"` // IPFS CID after push
+	CreatedAt   time.Time      `json:"created_at"`
+	EncryptedAt time.Time      `json:"encrypted_at,omitempty"`
+	CID         string         `json:"cid,omitempty"` // IPFS CID after push
 }
 
 // BatchTimeRange represents temporal bounds of a log batch.
@@ -63,8 +63,8 @@ type LogPublisher struct {
 	buffer        []LogEntry
 	maxBuffer     int
 	flushInterval time.Duration
-	encryptionKey []byte // AES-256-GCM key (monthly rotating)
-	keyEpoch      string // Identifies which key encrypted a given batch
+	encryptionKey []byte     // AES-256-GCM key (monthly rotating)
+	keyEpoch      string     // Identifies which key encrypted a given batch
 	batches       []LogBatch // completed batches
 }
 
@@ -241,10 +241,10 @@ func (p *LogPublisher) RotateKey(masterKey []byte, month time.Time) error {
 
 // AuditLogRecord is submitted to Data L1 after a batch is pushed to IPFS.
 type AuditLogRecord struct {
-	Type      string `json:"type"`      // always "audit_log"
-	CID       string `json:"cid"`       // IPFS content identifier
-	BatchHash string `json:"batch_hash"`
-	KeyEpoch  string `json:"key_epoch"`
+	Type      string         `json:"type"` // always "audit_log"
+	CID       string         `json:"cid"`  // IPFS content identifier
+	BatchHash string         `json:"batch_hash"`
+	KeyEpoch  string         `json:"key_epoch"`
 	TimeRange BatchTimeRange `json:"time_range"`
 }
 

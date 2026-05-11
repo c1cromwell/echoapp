@@ -152,10 +152,10 @@ func TestGetLimits(t *testing.T) {
 	rl := NewRateLimiter()
 
 	tests := []struct {
-		level           TrustLevel
-		expectedSilent  int
-		expectedSched   int
-		expectedDays    int
+		level          TrustLevel
+		expectedSilent int
+		expectedSched  int
+		expectedDays   int
 	}{
 		{TrustUnverified, 5, 3, 1},
 		{TrustNewcomer, 20, 10, 7},

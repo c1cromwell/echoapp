@@ -44,13 +44,13 @@ func signVPJWT(t *testing.T, priv *ecdsa.PrivateKey, holderDID string, credentia
 		exp = 0
 	}
 	payload := map[string]interface{}{
-		"iss": holderDID,
-		"aud": "did:key:verifier",
-		"iat": time.Now().Unix(),
+		"iss":   holderDID,
+		"aud":   "did:key:verifier",
+		"iat":   time.Now().Unix(),
 		"nonce": "test-nonce",
 		"vp": map[string]interface{}{
-			"@context": []string{"https://www.w3.org/2018/credentials/v1"},
-			"type":     []string{"VerifiablePresentation"},
+			"@context":             []string{"https://www.w3.org/2018/credentials/v1"},
+			"type":                 []string{"VerifiablePresentation"},
 			"verifiableCredential": credentials,
 		},
 	}
@@ -206,9 +206,9 @@ func TestVerifyPresentation_ExpiredVP(t *testing.T) {
 		"iat": time.Now().Add(-2 * time.Hour).Unix(),
 		"exp": time.Now().Add(-time.Hour).Unix(), // expired
 		"vp": map[string]interface{}{
-			"@context":              []string{"https://www.w3.org/2018/credentials/v1"},
-			"type":                  []string{"VerifiablePresentation"},
-			"verifiableCredential":  []string{},
+			"@context":             []string{"https://www.w3.org/2018/credentials/v1"},
+			"type":                 []string{"VerifiablePresentation"},
+			"verifiableCredential": []string{},
 		},
 	}
 	payloadJSON, _ := json.Marshal(payload)

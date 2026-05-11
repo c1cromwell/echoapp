@@ -34,7 +34,7 @@ func TestStatusListMarkRevokedAsyncPublish(t *testing.T) {
 		Timeout:                   3 * time.Second,
 		MaxRetries:                3,
 		RetryBackoff:              5 * time.Millisecond,
-		StatusListPublishInterval:  time.Hour,
+		StatusListPublishInterval: time.Hour,
 	}
 	p := NewStatusListPublisher(cfg)
 	p.Start()
@@ -86,12 +86,12 @@ func TestStatusListCoalescedSignalsSingleWorker(t *testing.T) {
 	defer srv.Close()
 
 	cfg := MetagraphConfig{
-		IdentityL1URL:            srv.URL,
-		IssuerDID:                "did:key:zIssuer",
-		EnableAnchor:             true,
-		Timeout:                  3 * time.Second,
-		MaxRetries:               3,
-		RetryBackoff:             5 * time.Millisecond,
+		IdentityL1URL:             srv.URL,
+		IssuerDID:                 "did:key:zIssuer",
+		EnableAnchor:              true,
+		Timeout:                   3 * time.Second,
+		MaxRetries:                3,
+		RetryBackoff:              5 * time.Millisecond,
 		StatusListPublishInterval: time.Hour,
 	}
 	p := NewStatusListPublisher(cfg)

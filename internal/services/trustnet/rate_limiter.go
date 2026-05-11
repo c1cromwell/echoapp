@@ -9,18 +9,18 @@ import (
 type TrustOperation string
 
 const (
-	OpEndorsement   TrustOperation = "endorsement"
-	OpPromotion     TrustOperation = "promotion"
-	OpReport        TrustOperation = "report"
-	OpVerification  TrustOperation = "verification"
-	OpDispute       TrustOperation = "dispute"
+	OpEndorsement  TrustOperation = "endorsement"
+	OpPromotion    TrustOperation = "promotion"
+	OpReport       TrustOperation = "report"
+	OpVerification TrustOperation = "verification"
+	OpDispute      TrustOperation = "dispute"
 )
 
 // TrustOpLimits defines the rate limits for trust operations
 var TrustOpLimits = map[TrustOperation]OpLimit{
 	OpEndorsement:  {Daily: 5, Cooldown: 0},
 	OpPromotion:    {Daily: 10, Cooldown: 0},
-	OpReport:       {Daily: 10, Cooldown: 0},           // plus per-target: 1 ever
+	OpReport:       {Daily: 10, Cooldown: 0},             // plus per-target: 1 ever
 	OpVerification: {Daily: 3, Cooldown: 24 * time.Hour}, // 24h after failure
 	OpDispute:      {Daily: 1, Cooldown: 90 * 24 * time.Hour},
 }

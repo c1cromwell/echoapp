@@ -12,15 +12,15 @@ import (
 type OnboardingStep string
 
 const (
-	StepCarousel     OnboardingStep = "carousel"
-	StepWelcome      OnboardingStep = "welcome"
-	StepPhoneEntry   OnboardingStep = "phone_entry"
-	StepOTP          OnboardingStep = "otp_verification"
-	StepPasskey      OnboardingStep = "passkey_setup"
-	StepRecovery     OnboardingStep = "recovery_setup"
-	StepProfile      OnboardingStep = "profile_setup"
-	StepTrustDash    OnboardingStep = "trust_dashboard"
-	StepComplete     OnboardingStep = "complete"
+	StepCarousel   OnboardingStep = "carousel"
+	StepWelcome    OnboardingStep = "welcome"
+	StepPhoneEntry OnboardingStep = "phone_entry"
+	StepOTP        OnboardingStep = "otp_verification"
+	StepPasskey    OnboardingStep = "passkey_setup"
+	StepRecovery   OnboardingStep = "recovery_setup"
+	StepProfile    OnboardingStep = "profile_setup"
+	StepTrustDash  OnboardingStep = "trust_dashboard"
+	StepComplete   OnboardingStep = "complete"
 )
 
 // StepStatus tracks the completion state of each step
@@ -75,10 +75,10 @@ type OnboardingSession struct {
 }
 
 const (
-	SessionExpiry      = 24 * time.Hour
-	MaxDisplayNameLen  = 50
-	MaxUsernameLen     = 30
-	MaxBioLen          = 150
+	SessionExpiry     = 24 * time.Hour
+	MaxDisplayNameLen = 50
+	MaxUsernameLen    = 30
+	MaxBioLen         = 150
 )
 
 var usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_]{3,30}$`)

@@ -28,15 +28,15 @@ const (
 type EvidenceType string
 
 const (
-	EvidenceAuditTrail    EvidenceType = "audit_trail"
-	EvidenceMediaAuth     EvidenceType = "media_authenticity"
-	EvidenceSmartCheck    EvidenceType = "smart_checkmark"
+	EvidenceAuditTrail     EvidenceType = "audit_trail"
+	EvidenceMediaAuth      EvidenceType = "media_authenticity"
+	EvidenceSmartCheck     EvidenceType = "smart_checkmark"
 	EvidenceRetentionProof EvidenceType = "retention_proof"
 )
 
 // FingerprintRequest represents a submission to the Digital Evidence API.
 type FingerprintRequest struct {
-	Hash           string       `json:"hash"`            // SHA-256 hex string
+	Hash           string       `json:"hash"` // SHA-256 hex string
 	EvidenceType   EvidenceType `json:"evidence_type"`
 	Metadata       EventMeta    `json:"metadata"`
 	OrganizationID string       `json:"organization_id"`

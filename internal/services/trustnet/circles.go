@@ -9,8 +9,8 @@ import (
 type CircleTier string
 
 const (
-	CircleInner       CircleTier = "inner"
-	CircleTrusted     CircleTier = "trusted"
+	CircleInner        CircleTier = "inner"
+	CircleTrusted      CircleTier = "trusted"
 	CircleAcquaintance CircleTier = "acquaintance"
 	// CirclePublic is the implicit tier for non-contacts (strangers)
 	CirclePublic CircleTier = "public"
@@ -18,10 +18,10 @@ const (
 
 // CircleLimits defines max contacts per tier
 var CircleLimits = map[CircleTier]int{
-	CircleInner:       15,
-	CircleTrusted:     50,
+	CircleInner:        15,
+	CircleTrusted:      50,
 	CircleAcquaintance: 200,
-	CirclePublic:      -1, // unlimited (implicit, non-contacts)
+	CirclePublic:       -1, // unlimited (implicit, non-contacts)
 }
 
 // CirclePermissions defines what each tier can access per spec
@@ -36,9 +36,9 @@ type CirclePermissions struct {
 	SeeReadReceipts bool
 
 	// Communication
-	DirectCall  bool
-	CallRequest bool
-	AddToGroups bool // "Yes", "Ask" handled by AskToAddToGroups
+	DirectCall       bool
+	CallRequest      bool
+	AddToGroups      bool // "Yes", "Ask" handled by AskToAddToGroups
 	AskToAddToGroups bool
 
 	// Profile visibility
@@ -64,9 +64,9 @@ var DefaultPermissions = map[CircleTier]CirclePermissions{
 	CircleTrusted: {
 		SeeSelectedPersonas: true, SeeDefaultPersona: true,
 		SeeOnlineStatus: true, SeeReadReceipts: true,
-		CallRequest: true,
+		CallRequest:      true,
 		AskToAddToGroups: true,
-		StandardProfile: true, MinimalProfile: true,
+		StandardProfile:  true, MinimalProfile: true,
 		UnfilteredMessages: true,
 	},
 	CircleAcquaintance: {
