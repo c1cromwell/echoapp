@@ -28,6 +28,10 @@ type ServerKeyProvider struct {
 
 var globalServerKeys = &ServerKeyProvider{}
 
+// GlobalServerKeys returns the process-level X25519 key provider.
+// Exposed for integration tests that need to decrypt test payloads.
+func GlobalServerKeys() *ServerKeyProvider { return globalServerKeys }
+
 // PublicKeyBase64 returns the base64-encoded X25519 public key, generating it
 // lazily on first call.
 func (p *ServerKeyProvider) PublicKeyBase64() (string, error) {

@@ -40,11 +40,15 @@ type ServerConfig struct {
 	ShutdownTimeout time.Duration
 }
 
+// slog is the process-level structured logger (WO-6 / WO-53).
+// Replaces ad-hoc log.Printf calls for structured, PII-safe output.
+var slog = applog.NewLogger("server", applog.LevelInfo)
+
 // Server manages the HTTP server lifecycle.
 type Server struct {
-	config          ServerConfig
-	server          *http.Server
-	stopLogPublish  func() // WO-53: stops background log flush goroutine
+	config         ServerConfig
+	server         *http.Server
+	stopLogPublish func() // WO-53: stops background log flush goroutine
 }
 
 // NewServer creates a new production server.
@@ -159,16 +163,16 @@ func (s *Server) Start() error {
 		TLSConfig: s.setupTLS(),
 	}
 
-	log.Printf("API Server starting on port %s (TLS 1.3+)", s.config.Port)
+	slog.Info("API server starting", applog.F("port", s.config.Port), applog.F("tls", "1.3+"))
 
 	go func() {
 		if s.config.TLSCertFile != "" && s.config.TLSKeyFile != "" {
 			if err := s.server.ServeTLS(listener, s.config.TLSCertFile, s.config.TLSKeyFile); err != nil && err != http.ErrServerClosed {
-				log.Printf("Server error: %v", err)
+				slog.Error("server error", applog.F("err", err))
 			}
 		} else {
 			if err := s.server.Serve(listener); err != nil && err != http.ErrServerClosed {
-				log.Printf("Server error: %v", err)
+				slog.Error("server error", applog.F("err", err))
 			}
 		}
 	}()
@@ -193,7 +197,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 func (s *Server) startLogPublisher() {
 	masterKeyHex := os.Getenv("LOG_MASTER_KEY")
 	if masterKeyHex == "" {
-		log.Println("LOG_MASTER_KEY not set — audit log publisher disabled (WO-53)")
+		slog.Warn("LOG_MASTER_KEY not set — audit log publisher disabled (WO-53)")
 		s.stopLogPublish = func() {}
 		return
 	}
@@ -216,10 +220,10 @@ func (s *Server) startLogPublisher() {
 	fallback, ferr := applog.NewFallbackIPFSStorage()
 	if ferr != nil {
 		storage = &applog.StubIPFSStorage{}
-		log.Println("IPFS storage not configured — using in-memory stub (WO-33)")
+		slog.Info("IPFS storage not configured — using in-memory stub (WO-33)")
 	} else {
 		storage = fallback
-		log.Println("Audit log publisher started with IPFS storage (WO-53)")
+		slog.Info("Audit log publisher started with IPFS storage (WO-53)")
 	}
 
 	s.stopLogPublish = pub.StartPeriodicFlush(storage)

@@ -583,16 +583,27 @@ func (h *V3Handlers) handleAuthRegister(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
+// handleAuthVerify confirms the caller's identity after authentication.
+// By the time this handler runs, the auth middleware (WO-1) has already
+// verified the passkey or JWT.  This endpoint exists as a client-callable
+// "am I authenticated?" check — it echoes the verified DID back.
 func (h *V3Handlers) handleAuthVerify(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
 		return
 	}
 
-	// Passkey verification placeholder
+	did := h.getDID(r)
+	if did == "" {
+		// Should never happen — auth middleware would have rejected without a DID —
+		// but guard defensively.
+		WriteError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "authentication required", r.Header.Get("X-Request-ID"))
+		return
+	}
+
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"verified":  true,
-		"did":       h.getDID(r),
+		"did":       did,
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	})
 }

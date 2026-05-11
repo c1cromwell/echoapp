@@ -1,8 +1,10 @@
 package credentials
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // FormatHandler handles credential format conversion
@@ -93,17 +95,69 @@ func (fh *FormatHandler) FromJSONLD(credentialJSON string) (*VerifiableCredentia
 	return &vc, nil
 }
 
-// FromJWT parses JWT credential
-func (fh *FormatHandler) FromJWT(jwt string) (*VerifiableCredential, error) {
-	// In production, use proper JWT library with verification
-	// For now, basic parsing
-	return nil, fmt.Errorf("JWT parsing not implemented")
+// FromJWT parses a compact JWT credential (header.payload.signature).
+// Extracts the VC from the `vc` claim of the payload.
+// Signature verification is deliberately not performed here — the caller
+// must use VerifyCredential / the oidc4vc verifier for trust validation.
+func (fh *FormatHandler) FromJWT(jwtToken string) (*VerifiableCredential, error) {
+	parts := strings.Split(jwtToken, ".")
+	if len(parts) != 3 {
+		return nil, NewCredentialErrorWithDetails(
+			ErrCodeInvalidCredential,
+			"invalid JWT format: expected header.payload.signature",
+			fmt.Sprintf("got %d parts", len(parts)),
+		)
+	}
+
+	// Base64url decode the payload (middle part).
+	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil, NewCredentialErrorWithDetails(
+			ErrCodeInvalidCredential,
+			"failed to base64url-decode JWT payload",
+			err.Error(),
+		)
+	}
+
+	// JWT-VC payload: the `vc` claim holds the VerifiableCredential object.
+	var claims struct {
+		VC      *VerifiableCredential `json:"vc"`
+		Issuer  string                `json:"iss"`
+		Subject string                `json:"sub"`
+		JTI     string                `json:"jti"`
+	}
+	if err := json.Unmarshal(payloadBytes, &claims); err != nil {
+		return nil, NewCredentialErrorWithDetails(
+			ErrCodeInvalidCredential,
+			"failed to parse JWT payload JSON",
+			err.Error(),
+		)
+	}
+	if claims.VC == nil {
+		return nil, NewCredentialError(ErrCodeInvalidCredential, "JWT payload missing 'vc' claim")
+	}
+
+	// Backfill top-level JWT claims into the VC if not already set.
+	if claims.VC.Issuer == "" && claims.Issuer != "" {
+		claims.VC.Issuer = claims.Issuer
+	}
+	if claims.VC.ID == "" && claims.JTI != "" {
+		claims.VC.ID = claims.JTI
+	}
+	return claims.VC, nil
 }
 
-// FromSDJWT parses SD-JWT credential
+// FromSDJWT parses an SD-JWT credential.
+// Phase 1: delegates to FromJWT — the selective-disclosure tilde-separated
+// disclosures are stripped before JWT parsing (full SD-JWT is Phase 3 scope).
 func (fh *FormatHandler) FromSDJWT(sdjwt string) (*VerifiableCredential, error) {
-	// In production, use proper SD-JWT library
-	return nil, fmt.Errorf("SD-JWT parsing not implemented")
+	// SD-JWT format: <JWT>~<disclosure1>~<disclosure2>~...
+	// Strip disclosures and parse the base JWT.
+	jwtPart := strings.SplitN(sdjwt, "~", 2)[0]
+	if jwtPart == "" {
+		return nil, NewCredentialError(ErrCodeInvalidCredential, "empty SD-JWT")
+	}
+	return fh.FromJWT(jwtPart)
 }
 
 // NegotiateFormat negotiates best format for wallet
