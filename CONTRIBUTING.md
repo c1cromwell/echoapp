@@ -9,6 +9,11 @@ PR — onboarding docs only stay accurate when we treat them as code.
 > Scala metagraph modules, iOS app prototype, and the Constellation
 > Euclid SDK testnet that ties them together.
 
+> **Targeting a TestFlight launch?** See [`docs/PHASE1_LAUNCH.md`](docs/PHASE1_LAUNCH.md)
+> for the end-to-end test checklist, code signing walkthrough, and the
+> June 1 countdown. This file covers developer setup; that file covers
+> shipping.
+
 ## Table of contents
 
 1. [Prerequisites](#1-prerequisites)
