@@ -1,7 +1,10 @@
 #if os(iOS)
 // Features/Onboarding/FirstRun/FirstRunCoordinator.swift
-// Session-style cold-start coordinator.
-// Routes: 1. Welcome carousel  2. Display name entry  3. Silent provisioning (background)
+// Wave 12 — 4-step onboarding:
+//   1. Welcome carousel
+//   2. Display name (username) entry
+//   3. Biometric enrollment (mandatory Face ID / Touch ID)
+//   4. Recovery setup (phrase + optional SMS — skippable)
 
 import SwiftUI
 import Observation
@@ -12,15 +15,15 @@ final class FirstRunCoordinator {
     enum Route: Hashable {
         case welcome
         case displayName
+        case biometricEnrollment
+        case recoverySetup(did: String)
         case restore
     }
 
     var path: [Route] = []
     var displayName: String = ""
 
-    /// Called when the user finishes the two-page first-run flow.
     let onComplete: (String) -> Void
-    /// Called when account restore completes successfully.
     let onRestoreComplete: (RestoredIdentity) -> Void
 
     init(
@@ -39,10 +42,26 @@ final class FirstRunCoordinator {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard DisplayNameValidator.isValid(trimmed) else { return }
         displayName = trimmed
-        onComplete(trimmed)
+        path.append(.biometricEnrollment)
     }
 
-    // Navigates within the first-run NavigationStack to the restore flow (AC-MSG-003.8).
+    func biometricEnrollmentCompleted(did: String) {
+        path.append(.recoverySetup(did: did))
+    }
+
+    func biometricUnsupported() {
+        // Device has no biometrics — show error and block onboarding.
+        // In Phase 1, biometric is mandatory.
+    }
+
+    func recoverySetupCompleted() {
+        onComplete(displayName)
+    }
+
+    func recoverySetupSkipped() {
+        onComplete(displayName)
+    }
+
     func restoreTapped() {
         path.append(.restore)
     }
@@ -65,8 +84,26 @@ struct FirstRunCoordinatorView: View {
                     switch route {
                     case .welcome:
                         WelcomeCarouselView(coordinator: coordinator)
+
                     case .displayName:
                         DisplayNameEntryView(coordinator: coordinator)
+
+                    case .biometricEnrollment:
+                        BiometricEnrollmentView(
+                            username: coordinator.displayName,
+                            onComplete: { did in coordinator.biometricEnrollmentCompleted(did: did) },
+                            onUnsupported: { coordinator.biometricUnsupported() }
+                        )
+                        .navigationBarBackButtonHidden(true)
+
+                    case .recoverySetup(let did):
+                        RecoverySetupView(
+                            did: did,
+                            onComplete: { coordinator.recoverySetupCompleted() },
+                            onSkip: { coordinator.recoverySetupSkipped() }
+                        )
+                        .navigationBarBackButtonHidden(true)
+
                     case .restore:
                         RestoreFromPhraseView(
                             coordinator: RecoveryCoordinator(

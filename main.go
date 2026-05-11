@@ -135,6 +135,15 @@ func (s *Server) Start() error {
 	rateLimiter := infra.NewRateLimiter(infra.DefaultRateLimits())
 	router.RateLimiter = rateLimiter
 
+	// Wave 12: SMS provider — Twilio in prod, stub in dev/test.
+	smsProvider, isProd := infra.NewSMSProvider()
+	router.SMSProvider = smsProvider
+	if isProd {
+		slog.Info("SMS provider: Twilio")
+	} else {
+		slog.Info("SMS provider: stub (set TWILIO_* env vars for production)")
+	}
+
 	emission := rewards.NewEmissionSchedule(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
 	router.V3 = &api.V3Handlers{
 		DB:           db,

@@ -59,7 +59,8 @@ type Router struct {
 	DIDRegistry          DIDRegistry        // did:key binding store (WO-230 / WO-278)
 	CredentialStatusPool *pgxpool.Pool      // WO-274 durable VC status list slots (optional)
 	Redis                *infra.RedisClient
-	RateLimiter          *infra.RateLimiter // WO-44 per-DID tiered rate limiting (optional)
+	RateLimiter          *infra.RateLimiter  // WO-44 per-DID tiered rate limiting (optional)
+	SMSProvider          infra.SMSProvider   // Wave 12 SMS OTP recovery (optional; stub when nil)
 	IdentityL1           *metagraph.MetagraphClient // WO-274 trust-tier commitments
 	DataL1               *metagraph.MetagraphClient // WO-230 Data L1 Merkle proxy (optional)
 	CredentialService    *credentials.Service       // WO-274 VC issuance (optional)
@@ -160,6 +161,12 @@ func (rt *Router) Handler() http.Handler {
 			rt.handleIdentityResolve(w, r, did)
 		case r.URL.Path == "/v1/crypto/server-key":
 			rt.handleServerKey(w, r)
+		case r.URL.Path == "/v1/auth/sms-recovery/register":
+			rt.handleSMSRecoveryRegister(w, r)
+		case r.URL.Path == "/v1/auth/sms-recovery/verify":
+			rt.handleSMSRecoveryVerify(w, r)
+		case r.URL.Path == "/v1/auth/sms-recovery/challenge":
+			rt.handleSMSRecoveryChallenge(w, r)
 		case strings.HasPrefix(r.URL.Path, "/v1/"):
 			rt.handleV1(w, r)
 		case strings.HasPrefix(r.URL.Path, "/v2/"):
@@ -201,7 +208,10 @@ var publicPaths = map[string]bool{
 	"/v1/enrollment/idv/await":         true,
 	"/v1/data-l1/merkle-roots":         true,
 	"/v1/phase1/trust-tier-commitment": true,
-	"/v1/crypto/server-key":            true, // WO-13: public key endpoint, no auth
+	"/v1/crypto/server-key":             true, // WO-13: public key endpoint, no auth
+	"/v1/auth/sms-recovery/register":   true, // Wave 12: phone commitment registration
+	"/v1/auth/sms-recovery/verify":     true, // Wave 12: OTP verification
+	"/v1/auth/sms-recovery/challenge":  true, // Wave 12: recovery challenge
 	"/identity/register":               true,
 	"/identity/devices":                true,
 }

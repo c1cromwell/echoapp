@@ -57,7 +57,7 @@ struct DisplayNameEntryView: View {
                 .accessibilityLabel("Back to welcome")
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Text("Step 2 of 2")
+                Text("Step 1 of 3")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(1.4)
                     .foregroundStyle(Color.Echo.onSurfaceVariant)
@@ -75,7 +75,7 @@ struct DisplayNameEntryView: View {
 
     private var titleBlock: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("What should others\ncall you?")
+            Text("Choose your username")
                 .font(.system(size: 24, weight: .semibold))
                 .kerning(-0.3)
                 .foregroundStyle(Color.Echo.onSurface)
@@ -161,7 +161,7 @@ struct DisplayNameEntryView: View {
             coordinator.displayNameSubmitted(coordinator.displayName)
         } label: {
             HStack(spacing: 8) {
-                Text("Start messaging")
+                Text("Next")
                     .font(.system(size: 15, weight: .semibold))
                 Image(systemName: "arrow.right")
                     .font(.system(size: 13, weight: .semibold))

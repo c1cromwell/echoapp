@@ -201,3 +201,27 @@ func (r *RedisClient) GetDeviceRegToken(ctx context.Context, token string) ([]by
 func (r *RedisClient) DeleteDeviceRegToken(ctx context.Context, token string) error {
 	return r.client.Del(ctx, deviceRegTokenPrefix+token).Err()
 }
+
+// --- SMS OTP Sessions (Wave 12) ---
+
+const smsOTPPrefix = "sms_otp:"
+const SMSOTPSessionTTL = 5 * time.Minute
+
+// SetSMSOTPSession stores the OTP session (JSON blob) keyed by session token.
+func (r *RedisClient) SetSMSOTPSession(ctx context.Context, sessionToken string, record []byte) error {
+	return r.client.Set(ctx, smsOTPPrefix+sessionToken, record, SMSOTPSessionTTL).Err()
+}
+
+// GetSMSOTPSession retrieves an OTP session by token; returns error if missing/expired.
+func (r *RedisClient) GetSMSOTPSession(ctx context.Context, sessionToken string) ([]byte, error) {
+	val, err := r.client.Get(ctx, smsOTPPrefix+sessionToken).Bytes()
+	if err == redis.Nil {
+		return nil, fmt.Errorf("OTP session not found or expired")
+	}
+	return val, err
+}
+
+// DeleteSMSOTPSession removes an OTP session (single-use enforcement).
+func (r *RedisClient) DeleteSMSOTPSession(ctx context.Context, sessionToken string) error {
+	return r.client.Del(ctx, smsOTPPrefix+sessionToken).Err()
+}

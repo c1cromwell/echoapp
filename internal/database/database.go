@@ -4,6 +4,7 @@ package database
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -206,6 +207,15 @@ type LogIndexStore interface {
 }
 
 // DB is the composite database interface.
+// SMSRecoveryStore stores the phone commitment (H(phone)) for SMS-based recovery.
+// The raw phone number is never stored — only the SHA-256 hex commitment.
+type SMSRecoveryStore interface {
+	// SetSMSRecovery stores {did → phone_hash} (upsert).
+	SetSMSRecovery(ctx context.Context, did, phoneHash string) error
+	// GetSMSRecoveryByPhoneHash returns the DID registered for the given phone hash.
+	GetSMSRecoveryByPhoneHash(ctx context.Context, phoneHash string) (string, error)
+}
+
 type DB interface {
 	UserStore
 	TrustScoreStore
@@ -217,6 +227,7 @@ type DB interface {
 	MediaStore
 	NotificationStore
 	LogIndexStore
+	SMSRecoveryStore
 }
 
 // --- In-Memory Implementation ---
@@ -254,6 +265,9 @@ type MemoryDB struct {
 	notificationPrefs map[string]*NotificationPrefs
 
 	logIndex []*LogIndexEntry
+
+	smsRecoveryByDID   map[string]string // did → phone_hash
+	smsRecoveryByPhone map[string]string // phone_hash → did
 }
 
 func NewMemoryDB() *MemoryDB {
@@ -270,10 +284,36 @@ func NewMemoryDB() *MemoryDB {
 		invites:           make(map[string]*InviteLink),
 		mediaFiles:        make(map[string]*MediaFile),
 		mediaChunks:       make(map[string][]*MediaChunk),
-		devices:           make(map[string]*UserDevice),
-		devicesByDID:      make(map[string][]*UserDevice),
-		notificationPrefs: make(map[string]*NotificationPrefs),
+		devices:            make(map[string]*UserDevice),
+		devicesByDID:       make(map[string][]*UserDevice),
+		notificationPrefs:  make(map[string]*NotificationPrefs),
+		smsRecoveryByDID:   make(map[string]string),
+		smsRecoveryByPhone: make(map[string]string),
 	}
+}
+
+// --- SMS Recovery Store ---
+
+func (m *MemoryDB) SetSMSRecovery(_ context.Context, did, phoneHash string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	// Remove old phone hash mapping if DID was previously registered.
+	if old, ok := m.smsRecoveryByDID[did]; ok {
+		delete(m.smsRecoveryByPhone, old)
+	}
+	m.smsRecoveryByDID[did] = phoneHash
+	m.smsRecoveryByPhone[phoneHash] = did
+	return nil
+}
+
+func (m *MemoryDB) GetSMSRecoveryByPhoneHash(_ context.Context, phoneHash string) (string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	did, ok := m.smsRecoveryByPhone[phoneHash]
+	if !ok {
+		return "", fmt.Errorf("phone hash not registered")
+	}
+	return did, nil
 }
 
 // --- User Store ---

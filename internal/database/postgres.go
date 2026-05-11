@@ -635,6 +635,28 @@ func (p *PostgresDB) GetLogIndex(ctx context.Context, from, to time.Time) ([]*Lo
 	return results, rows.Err()
 }
 
+// --- SMS Recovery Store (Wave 12) ---
+
+func (p *PostgresDB) SetSMSRecovery(ctx context.Context, did, phoneHash string) error {
+	_, err := p.pool.Exec(ctx, `
+		INSERT INTO sms_recovery (did, phone_hash, updated_at)
+		VALUES ($1, $2, NOW())
+		ON CONFLICT (did) DO UPDATE SET phone_hash = EXCLUDED.phone_hash, updated_at = NOW()
+	`, did, phoneHash)
+	return err
+}
+
+func (p *PostgresDB) GetSMSRecoveryByPhoneHash(ctx context.Context, phoneHash string) (string, error) {
+	var did string
+	err := p.pool.QueryRow(ctx,
+		`SELECT did FROM sms_recovery WHERE phone_hash = $1 LIMIT 1`, phoneHash,
+	).Scan(&did)
+	if err != nil {
+		return "", fmt.Errorf("phone hash not found: %w", err)
+	}
+	return did, nil
+}
+
 // isDuplicateError checks for PostgreSQL unique violation (23505).
 func isDuplicateError(err error) bool {
 	if err == nil {
