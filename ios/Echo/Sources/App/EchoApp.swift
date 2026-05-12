@@ -1,6 +1,7 @@
 #if os(iOS)
 import SwiftUI
 
+@main
 struct EchoApp: App {
     @State private var appState: AppState
     @Environment(\.scenePhase) private var scenePhase

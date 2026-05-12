@@ -18,7 +18,8 @@ let package = Package(
         .target(
             name: "Echo",
             dependencies: [],
-            path: "Sources"
+            path: "Sources",
+            exclude: ["App/EchoApp.swift"]  // entry point lives in EchoApp.xcodeproj, not the package
         ),
         .testTarget(
             name: "EchoTests",
