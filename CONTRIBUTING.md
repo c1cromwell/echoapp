@@ -32,7 +32,7 @@ PR — onboarding docs only stay accurate when we treat them as code.
 
 | Tool             | Version           | Why                                                |
 | ---------------- | ----------------- | -------------------------------------------------- |
-| macOS or Linux   | recent            | Phase-1 is built and tested on macOS 14+ and Ubuntu 22.04. |
+| macOS or Linux   | recent            | Phase-1 is built and tested on macOS 14+ and **Ubuntu 22.04 Server** (no GUI needed; Server image is lighter). |
 | Homebrew         | latest            | Package manager (macOS install path below).        |
 | JDK              | **21** (Temurin)  | Tessellation 4.0.0-rc.0 requires JDK 21.           |
 | sbt              | 1.9+              | Builds the metagraph Scala modules.                |
@@ -82,7 +82,12 @@ In Docker Desktop → **Settings → Resources** bump **Memory ≥ 8 GB** and
 **CPUs ≥ 4** before continuing. Euclid will warn (and eventually fail)
 below this.
 
-### 2b. Ubuntu 22.04+ / Debian
+### 2b. Ubuntu 22.04+ / Debian (Server image recommended)
+
+Use **Ubuntu Server** (not Desktop) — no GUI is needed and Server is
+significantly lighter (2 GB image vs. 4+ GB Desktop). Download from
+[ubuntu.com/download/server](https://ubuntu.com/download/server).
+The commands below work identically on both images and on Debian 12.
 
 ```bash
 sudo apt update && sudo apt install -y curl gnupg jq yq git build-essential
