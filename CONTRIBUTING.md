@@ -42,7 +42,7 @@ PR — onboarding docs only stay accurate when we treat them as code.
 | Docker Compose   | v2 (`docker compose`) | Used by `docker-compose.testnet.yml`.          |
 | Go               | 1.21+             | Builds the backend.                                |
 | Xcode            | 15+ (macOS only)  | iOS prototype (`ios/Echo/`).                       |
-| `jq`, `yq`, `argc` | latest          | Required by `metagraph/scripts/setup-euclid.sh`.   |
+| `jq`, `yq`, `argc` | latest          | Required by `metagraph/scripts/setup-euclid.sh`. `argc` is in Homebrew core — `brew install argc`. |
 | Git LFS          | optional          | Needed only if you touch large binary fixtures.    |
 
 ---
@@ -65,8 +65,7 @@ brew install sbt coursier/formulas/coursier
 cs install scala:2.13.10 scalafmt
 
 # Euclid prerequisites
-brew install jq yq
-brew install sigoden/tap/argc        # or: cargo install argc
+brew install jq yq argc              # argc moved to Homebrew core; no tap needed
 
 # Docker Desktop (then launch it once so the VM is created)
 brew install --cask docker
