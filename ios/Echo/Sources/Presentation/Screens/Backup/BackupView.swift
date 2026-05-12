@@ -31,7 +31,7 @@ public struct BackupView: View {
                         viewModel.showRecoveryPhrase = true
                     } label: {
                         Text("View Recovery Phrase")
-                            .font(.custom("Inter", size: 14)).fontWeight(.bold)
+                            .font(.system(size: 14)).fontWeight(.bold)
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -51,7 +51,7 @@ public struct BackupView: View {
                     InfoRow(label: "Location", value: "iCloud Keychain")
 
                     Button("Back Up Now") { Task { await viewModel.backupNow() } }
-                        .font(.custom("Inter", size: 14)).fontWeight(.bold)
+                        .font(.system(size: 14)).fontWeight(.bold)
                         .foregroundStyle(Color.Echo.primaryContainer)
                 }
 
@@ -72,7 +72,7 @@ public struct BackupView: View {
                 // Danger zone
                 VStack(spacing: 16) {
                     Text("DANGER ZONE")
-                        .font(.custom("Inter", size: 10))
+                        .font(.system(size: 10))
                         .fontWeight(.bold).tracking(2)
                         .foregroundStyle(Color.Echo.error)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -81,7 +81,7 @@ public struct BackupView: View {
                     Button("Delete All Data") {
                         viewModel.showDeleteConfirmation = true
                     }
-                    .font(.custom("Inter", size: 14)).fontWeight(.bold)
+                    .font(.system(size: 14)).fontWeight(.bold)
                     .foregroundStyle(Color.Echo.error)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)

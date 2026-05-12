@@ -15,8 +15,7 @@ public struct RestoreFromPhraseView: View {
 
     public var body: some View {
         ZStack {
-            Color.Echo.surface.ignoresSafeArea()
-            AtmosphericBackground()
+            Color.echoNight.ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 20) {

@@ -9,8 +9,7 @@ struct RecoveryPhraseDisplayView: View {
 
     var body: some View {
         ZStack {
-            Color.Echo.surface.ignoresSafeArea()
-            AtmosphericBackground()
+            Color.echoNight.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Spacer(minLength: 12)

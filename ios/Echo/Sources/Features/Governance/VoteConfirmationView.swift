@@ -37,7 +37,7 @@ public struct VoteConfirmationView: View {
 
             // Title
             Text("Confirm Your Vote")
-                .font(.custom("Inter", size: 24))
+                .font(.system(size: 24))
                 .fontWeight(.bold)
                 .foregroundStyle(Color.Echo.onSurface)
 
@@ -57,7 +57,7 @@ public struct VoteConfirmationView: View {
 
             // Warning
             Text("This vote will be recorded on-chain and cannot be changed.")
-                .font(.custom("Inter", size: 13))
+                .font(.system(size: 13))
                 .foregroundStyle(Color.Echo.outline)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
@@ -75,7 +75,7 @@ public struct VoteConfirmationView: View {
                             .tint(.white)
                     }
                     Text("Submit Vote")
-                        .font(.custom("Inter", size: 18))
+                        .font(.system(size: 18))
                         .fontWeight(.bold)
                 }
                 .foregroundStyle(.white)
@@ -94,7 +94,7 @@ public struct VoteConfirmationView: View {
             Button("Cancel") {
                 dismiss()
             }
-            .font(.custom("Inter", size: 16))
+            .font(.system(size: 16))
             .foregroundStyle(Color.Echo.outline)
             .padding(.bottom, 32)
         }
@@ -118,11 +118,11 @@ private struct SummaryRow: View {
     var body: some View {
         HStack {
             Text(label)
-                .font(.custom("Inter", size: 14))
+                .font(.system(size: 14))
                 .foregroundStyle(Color.Echo.outline)
             Spacer()
             Text(value)
-                .font(.custom("Inter", size: 14))
+                .font(.system(size: 14))
                 .fontWeight(.semibold)
                 .foregroundStyle(valueColor)
         }

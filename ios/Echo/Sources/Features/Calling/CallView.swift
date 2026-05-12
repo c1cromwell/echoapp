@@ -61,7 +61,7 @@ struct CallView: View {
 
                         // State label
                         Text(viewModel.stateLabel)
-                            .font(.custom("Inter", size: 32))
+                            .font(.system(size: 32))
                             .fontWeight(.light)
                             .foregroundStyle(Color.Echo.outline)
                             .monospacedDigit()

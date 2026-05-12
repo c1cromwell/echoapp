@@ -145,7 +145,7 @@ struct FilterChip: View {
     var body: some View {
         Button(action: action) {
             Text(label)
-                .font(.custom("Inter", size: 13))
+                .font(.system(size: 13))
                 .fontWeight(isSelected ? .bold : .medium)
                 .foregroundStyle(isSelected ? .white : Color.Echo.outline)
                 .padding(.horizontal, 16)
@@ -176,7 +176,7 @@ struct SearchResultRow: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(result.contactName)
-                    .font(.custom("Inter", size: 14))
+                    .font(.system(size: 14))
                     .fontWeight(.semibold)
                     .foregroundStyle(Color.Echo.onSurface)
                 Text(result.matchedText)
@@ -207,7 +207,7 @@ struct RecentSearchesSection: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("RECENT SEARCHES")
-                    .font(.custom("Inter", size: 10))
+                    .font(.system(size: 10))
                     .fontWeight(.bold)
                     .tracking(2)
                     .foregroundStyle(Color.Echo.outline)

@@ -22,7 +22,7 @@ struct ProposalListView: View {
                 // Error state
                 if let error = viewModel.errorMessage {
                     Text(error)
-                        .font(.custom("Inter", size: 14))
+                        .font(.system(size: 14))
                         .foregroundStyle(Color.Echo.error)
                         .padding()
                 }
@@ -30,7 +30,7 @@ struct ProposalListView: View {
                 // Proposals
                 if viewModel.proposals.isEmpty && !viewModel.isLoading {
                     Text("No active proposals")
-                        .font(.custom("Inter", size: 16))
+                        .font(.system(size: 16))
                         .foregroundStyle(Color.Echo.outline)
                         .padding(.top, 40)
                 } else {
@@ -60,14 +60,14 @@ struct ProposalCard: View {
         VStack(alignment: .leading, spacing: 12) {
             // Type badge
             Text(proposal.type.displayName.uppercased())
-                .font(.custom("Inter", size: 10))
+                .font(.system(size: 10))
                 .fontWeight(.bold)
                 .tracking(1.0)
                 .foregroundStyle(Color.Echo.primaryContainer)
 
             // Title
             Text(proposal.title)
-                .font(.custom("Inter", size: 18))
+                .font(.system(size: 18))
                 .fontWeight(.bold)
                 .foregroundStyle(Color.Echo.onSurface)
                 .multilineTextAlignment(.leading)
@@ -78,13 +78,13 @@ struct ProposalCard: View {
 
                 HStack {
                     Text("\(Int(tally.forPercent))% For")
-                        .font(.custom("Inter", size: 12))
+                        .font(.system(size: 12))
                         .foregroundStyle(Color.Echo.primaryContainer)
 
                     Spacer()
 
                     Text("\(tally.voterCount) voter\(tally.voterCount == 1 ? "" : "s")")
-                        .font(.custom("Inter", size: 12))
+                        .font(.system(size: 12))
                         .foregroundStyle(Color.Echo.outline)
                 }
             }
@@ -96,7 +96,7 @@ struct ProposalCard: View {
                 Text(proposal.endsAt, style: .relative)
                 Text("remaining")
             }
-            .font(.custom("Inter", size: 12))
+            .font(.system(size: 12))
             .foregroundStyle(Color.Echo.outline)
 
             // Status badge for non-active
@@ -165,7 +165,7 @@ struct StatusBadge: View {
 
     var body: some View {
         Text(status.displayName)
-            .font(.custom("Inter", size: 11))
+            .font(.system(size: 11))
             .fontWeight(.semibold)
             .foregroundStyle(color)
             .padding(.horizontal, 10)

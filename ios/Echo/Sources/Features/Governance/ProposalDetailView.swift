@@ -18,13 +18,13 @@ struct ProposalDetailView: View {
                 // Header
                 VStack(alignment: .leading, spacing: 8) {
                     Text(proposal.type.displayName.uppercased())
-                        .font(.custom("Inter", size: 10))
+                        .font(.system(size: 10))
                         .fontWeight(.bold)
                         .tracking(1.5)
                         .foregroundStyle(Color.Echo.primaryContainer)
 
                     Text(proposal.title)
-                        .font(.custom("Inter", size: 24))
+                        .font(.system(size: 24))
                         .fontWeight(.bold)
                         .foregroundStyle(Color.Echo.onSurface)
 
@@ -32,14 +32,14 @@ struct ProposalDetailView: View {
                         StatusBadge(status: proposal.status)
 
                         Text("Requires: \(proposal.threshold.displayName)")
-                            .font(.custom("Inter", size: 12))
+                            .font(.system(size: 12))
                             .foregroundStyle(Color.Echo.outline)
                     }
                 }
 
                 // Description
                 Text(proposal.description)
-                    .font(.custom("Inter", size: 15))
+                    .font(.system(size: 15))
                     .foregroundStyle(Color.Echo.onSurfaceVariant)
                     .lineSpacing(4)
 
@@ -90,7 +90,7 @@ private struct TallyBreakdown: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("VOTE TALLY")
-                .font(.custom("Inter", size: 10))
+                .font(.system(size: 10))
                 .fontWeight(.bold)
                 .tracking(1.5)
                 .foregroundStyle(Color.Echo.outline)
@@ -109,7 +109,7 @@ private struct TallyBreakdown: View {
                 Spacer()
                 Text("\(tally.voterCount) voter\(tally.voterCount == 1 ? "" : "s")")
             }
-            .font(.custom("Inter", size: 12))
+            .font(.system(size: 12))
             .foregroundStyle(Color.Echo.outline)
         }
         .padding(20)
@@ -134,11 +134,11 @@ private struct TallyItem: View {
                 .frame(width: 8, height: 8)
 
             Text(label)
-                .font(.custom("Inter", size: 12))
+                .font(.system(size: 12))
                 .foregroundStyle(Color.Echo.outline)
 
             Text("\(Int(percent))%")
-                .font(.custom("Inter", size: 18))
+                .font(.system(size: 18))
                 .fontWeight(.bold)
                 .foregroundStyle(Color.Echo.onSurface)
                 .monospacedDigit()
@@ -156,7 +156,7 @@ private struct VotingSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("CAST YOUR VOTE")
-                .font(.custom("Inter", size: 10))
+                .font(.system(size: 10))
                 .fontWeight(.bold)
                 .tracking(1.5)
                 .foregroundStyle(Color.Echo.outline)
@@ -172,7 +172,7 @@ private struct VotingSection: View {
                 }
             } else {
                 Text("You must be Trust Tier 2+ with staked ECHO to vote")
-                    .font(.custom("Inter", size: 14))
+                    .font(.system(size: 14))
                     .foregroundStyle(Color.Echo.outline)
                     .padding(16)
                     .frame(maxWidth: .infinity)
@@ -204,7 +204,7 @@ private struct VoteButton: View {
                 Image(systemName: value.systemImage)
                     .font(.system(size: 24))
                 Text(value.displayName)
-                    .font(.custom("Inter", size: 12))
+                    .font(.system(size: 12))
                     .fontWeight(.semibold)
             }
             .foregroundStyle(isSelected ? .white : color)
@@ -227,14 +227,14 @@ private struct MetadataSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("DETAILS")
-                .font(.custom("Inter", size: 10))
+                .font(.system(size: 10))
                 .fontWeight(.bold)
                 .tracking(1.5)
                 .foregroundStyle(Color.Echo.outline)
 
             LabeledContent("Created by") {
                 Text(String(proposal.createdBy.prefix(20)) + "...")
-                    .font(.custom("Inter", size: 13).monospacedDigit())
+                    .font(.system(size: 13).monospacedDigit())
             }
 
             LabeledContent("Created") {
@@ -245,7 +245,7 @@ private struct MetadataSection: View {
                 Text(proposal.endsAt, style: .date)
             }
         }
-        .font(.custom("Inter", size: 13))
+        .font(.system(size: 13))
         .foregroundStyle(Color.Echo.onSurfaceVariant)
         .padding(20)
         .background(

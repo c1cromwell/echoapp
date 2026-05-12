@@ -73,7 +73,7 @@ struct SectionLabel: View {
 
     var body: some View {
         Text(text)
-            .font(.custom("Inter", size: 10))
+            .font(.system(size: 10))
             .fontWeight(.bold)
             .tracking(2)
             .foregroundStyle(Color.Echo.outline)
@@ -162,7 +162,7 @@ struct DiscoverBotRow: View {
             Spacer()
 
             Button("Add") { onAdd() }
-                .font(.custom("Inter", size: 12))
+                .font(.system(size: 12))
                 .fontWeight(.bold)
                 .foregroundStyle(.white)
                 .padding(.horizontal, 16)
@@ -196,7 +196,7 @@ struct BotDetailView: View {
                             )
 
                         Text(bot.name)
-                            .font(.custom("Inter", size: 24))
+                            .font(.system(size: 24))
                             .fontWeight(.heavy)
 
                         Text(bot.description)
@@ -218,13 +218,13 @@ struct BotDetailView: View {
                         Button(bot.isActive ? "Disable Bot" : "Enable Bot") {
                             // TODO: Toggle bot
                         }
-                        .font(.custom("Inter", size: 14)).fontWeight(.bold)
+                        .font(.system(size: 14)).fontWeight(.bold)
                         .foregroundStyle(bot.isActive ? Color.Echo.error : Color.Echo.primaryContainer)
 
                         Button("Remove Bot") {
                             // TODO: Remove bot
                         }
-                        .font(.custom("Inter", size: 14)).fontWeight(.bold)
+                        .font(.system(size: 14)).fontWeight(.bold)
                         .foregroundStyle(Color.Echo.error.opacity(0.7))
                     }
                 }

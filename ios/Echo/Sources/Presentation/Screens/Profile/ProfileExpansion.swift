@@ -18,7 +18,7 @@ struct ProfileDIDSection: View {
     var body: some View {
         VStack(spacing: 4) {
             Text(echoHandle)
-                .font(.custom("Inter", size: 13))
+                .font(.system(size: 13))
                 .fontWeight(.semibold)
                 .foregroundStyle(Color.Echo.primaryContainer)
 
@@ -63,7 +63,7 @@ struct ProfileWalletSummary: View {
                         .font(Font.Echo.labelSm).tracking(1)
                         .foregroundStyle(Color.Echo.outline)
                     Text("\(balance) ECHO")
-                        .font(.custom("Inter", size: 20)).fontWeight(.bold)
+                        .font(.system(size: 20)).fontWeight(.bold)
                         .foregroundStyle(Color.Echo.onSurface)
                 }
                 Spacer()
@@ -88,7 +88,7 @@ struct ProfileQRShareButton: View {
     var body: some View {
         Button(action: onNavigateToQR) {
             Label("Share My Identity", systemImage: "qrcode")
-                .font(.custom("Inter", size: 14)).fontWeight(.bold)
+                .font(.system(size: 14)).fontWeight(.bold)
                 .foregroundStyle(Color.Echo.onSurface)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)

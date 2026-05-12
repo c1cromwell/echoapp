@@ -78,7 +78,7 @@ struct GlacialTabBar: View {
                 }
 
                 Text(label)
-                    .font(.custom("Inter", size: 10))
+                    .font(.system(size: 10))
                     .fontWeight(selectedTab == tab ? .semibold : .medium)
                     .foregroundStyle(selectedTab == tab ? Color.Echo.primaryContainer : Color.Echo.outline)
             }

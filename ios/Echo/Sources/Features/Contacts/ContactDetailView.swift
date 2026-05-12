@@ -28,12 +28,12 @@ public struct ContactDetailView: View {
                     )
 
                     Text(viewModel.contact.name)
-                        .font(.custom("Inter", size: 28))
+                        .font(.system(size: 28))
                         .fontWeight(.heavy)
                         .tracking(-0.5)
 
                     Text(viewModel.contact.echoHandle)
-                        .font(.custom("Inter", size: 13))
+                        .font(.system(size: 13))
                         .fontWeight(.semibold)
                         .foregroundStyle(Color.Echo.primaryContainer)
 
@@ -107,13 +107,13 @@ public struct ContactDetailView: View {
                     Button("Block Contact") {
                         viewModel.showBlockConfirmation = true
                     }
-                    .font(.custom("Inter", size: 14)).fontWeight(.semibold)
+                    .font(.system(size: 14)).fontWeight(.semibold)
                     .foregroundStyle(Color.Echo.error)
 
                     Button("Report Contact") {
                         viewModel.showReportSheet = true
                     }
-                    .font(.custom("Inter", size: 14)).fontWeight(.semibold)
+                    .font(.system(size: 14)).fontWeight(.semibold)
                     .foregroundStyle(Color.Echo.error.opacity(0.7))
                 }
             }
@@ -152,7 +152,7 @@ struct GhostBorderSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(title)
-                .font(.custom("Inter", size: 10))
+                .font(.system(size: 10))
                 .fontWeight(.bold)
                 .tracking(2)
                 .foregroundStyle(Color.Echo.outline)
@@ -187,7 +187,7 @@ struct ContactActionButton: View {
                     .font(.system(size: 20))
                     .foregroundStyle(Color.Echo.primaryContainer)
                 Text(label)
-                    .font(.custom("Inter", size: 10))
+                    .font(.system(size: 10))
                     .fontWeight(.bold)
                     .textCase(.uppercase)
                     .tracking(0.5)
@@ -275,7 +275,7 @@ struct SharedMediaPreview: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("SHARED MEDIA")
-                    .font(.custom("Inter", size: 10))
+                    .font(.system(size: 10))
                     .fontWeight(.bold)
                     .tracking(2)
                     .foregroundStyle(Color.Echo.outline)

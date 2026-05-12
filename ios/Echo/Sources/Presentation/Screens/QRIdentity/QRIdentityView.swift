@@ -44,12 +44,12 @@ public struct QRIdentityView: View {
 
                 // Identity info
                 Text(viewModel.echoHandle)
-                    .font(.custom("Inter", size: 16))
+                    .font(.system(size: 16))
                     .fontWeight(.bold)
                     .foregroundStyle(Color.Echo.primaryContainer)
 
                 Text(viewModel.didShort)
-                    .font(.custom("Inter", size: 12))
+                    .font(.system(size: 12))
                     .foregroundStyle(Color.Echo.outline)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -80,7 +80,7 @@ public struct QRIdentityView: View {
                     showScanner = true
                 } label: {
                     Label("Scan QR", systemImage: "camera.fill")
-                        .font(.custom("Inter", size: 14))
+                        .font(.system(size: 14))
                         .fontWeight(.bold)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
@@ -96,7 +96,7 @@ public struct QRIdentityView: View {
                     viewModel.shareLink()
                 } label: {
                     Label("Share Link", systemImage: "square.and.arrow.up")
-                        .font(.custom("Inter", size: 14))
+                        .font(.system(size: 14))
                         .fontWeight(.bold)
                         .foregroundStyle(Color.Echo.onSurface)
                         .frame(maxWidth: .infinity)
@@ -228,7 +228,7 @@ struct QRScannerView: View {
                     )
 
                 Button("Cancel") { dismiss() }
-                    .font(.custom("Inter", size: 16))
+                    .font(.system(size: 16))
                     .fontWeight(.bold)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 32)

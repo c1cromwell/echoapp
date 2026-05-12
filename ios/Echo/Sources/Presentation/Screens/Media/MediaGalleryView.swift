@@ -38,7 +38,7 @@ public struct MediaGalleryView: View {
                         }
                     } label: {
                         Text(tab.label)
-                            .font(.custom("Inter", size: 14))
+                            .font(.system(size: 14))
                             .fontWeight(selectedTab == tab ? .bold : .medium)
                             .foregroundStyle(selectedTab == tab ? Color.Echo.primaryContainer : Color.Echo.outline)
                             .frame(maxWidth: .infinity)

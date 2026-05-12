@@ -15,7 +15,7 @@ public struct StakingDetailView: View {
                 // Current Position Card
                 VStack(alignment: .leading, spacing: 16) {
                     Text("CURRENT POSITION")
-                        .font(.custom("Inter", size: 10))
+                        .font(.system(size: 10))
                         .fontWeight(.bold)
                         .tracking(2)
                         .foregroundStyle(Color.Echo.outline)
@@ -86,7 +86,7 @@ public struct StakingDetailView: View {
                 // Staking Tiers Reference
                 VStack(alignment: .leading, spacing: 16) {
                     Text("STAKING TIERS")
-                        .font(.custom("Inter", size: 10))
+                        .font(.system(size: 10))
                         .fontWeight(.bold)
                         .tracking(2)
                         .foregroundStyle(Color.Echo.outline)
@@ -143,7 +143,7 @@ public struct StakingDetailView: View {
                 if let validator = viewModel.delegatedValidator {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("DELEGATION")
-                            .font(.custom("Inter", size: 10))
+                            .font(.system(size: 10))
                             .fontWeight(.bold)
                             .tracking(2)
                             .foregroundStyle(Color.Echo.outline)
@@ -195,7 +195,7 @@ public struct StakingDetailView: View {
                         // Navigate to stake more
                     } label: {
                         Text("Stake More")
-                            .font(.custom("Inter", size: 14)).fontWeight(.bold)
+                            .font(.system(size: 14)).fontWeight(.bold)
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
@@ -210,7 +210,7 @@ public struct StakingDetailView: View {
                         // Navigate to unstake
                     } label: {
                         Text("Unstake")
-                            .font(.custom("Inter", size: 14)).fontWeight(.bold)
+                            .font(.system(size: 14)).fontWeight(.bold)
                             .foregroundStyle(Color.Echo.onSurface)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)

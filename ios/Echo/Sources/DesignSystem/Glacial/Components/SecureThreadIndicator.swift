@@ -9,7 +9,7 @@ public struct SecureThreadIndicator: View {
 
     public var body: some View {
         Rectangle()
-            .fill(Color.Echo.primaryContainer)
+            .fill(Color.echoSignal)
             .frame(height: 2)
             .opacity(opacity)
             .onAppear {

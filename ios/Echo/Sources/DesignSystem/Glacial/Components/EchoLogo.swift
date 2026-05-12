@@ -108,7 +108,7 @@ struct EchoLogo: View {
     HStack(spacing: 8) {
         EchoLogo(size: 32)
         Text("ECHO")
-            .font(.custom("Inter", size: 24))
+            .font(.system(size: 24))
             .fontWeight(.bold)
             .foregroundStyle(Color.Echo.primaryContainer)
     }

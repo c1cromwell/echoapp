@@ -16,7 +16,7 @@ public struct NotificationCenterView: View {
                 ForEach(viewModel.groupedNotifications.keys.sorted().reversed(), id: \.self) { date in
                     // Section header
                     Text(viewModel.sectionTitle(for: date))
-                        .font(.custom("Inter", size: 10))
+                        .font(.system(size: 10))
                         .fontWeight(.bold)
                         .tracking(2)
                         .textCase(.uppercase)
@@ -77,7 +77,7 @@ struct NotificationRow: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(notification.title)
-                    .font(.custom("Inter", size: 14))
+                    .font(.system(size: 14))
                     .fontWeight(notification.isRead ? .regular : .bold)
                     .foregroundStyle(Color.Echo.onSurface)
 

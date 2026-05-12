@@ -23,7 +23,7 @@ struct EnterpriseProfileView: View {
                         )
 
                     Text(viewModel.orgName)
-                        .font(.custom("Inter", size: 24))
+                        .font(.system(size: 24))
                         .fontWeight(.heavy)
                         .tracking(-0.5)
 
