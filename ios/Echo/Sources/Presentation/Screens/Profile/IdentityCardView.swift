@@ -5,13 +5,19 @@ import SwiftUI
 // The user should see their actual public key — it IS their identity.
 // Show it, let them copy it, let them share it as a QR.
 
-struct IdentityCardView: View {
+public struct IdentityCardView: View {
     let username: String
     let did: String
     let joinDate: Date?
 
     @State private var showQR = false
     @State private var copied = false
+
+    public init(username: String, did: String, joinDate: Date? = nil) {
+        self.username = username
+        self.did = did
+        self.joinDate = joinDate
+    }
 
     private var shortDID: String {
         guard did.count > 20 else { return did }
@@ -20,7 +26,7 @@ struct IdentityCardView: View {
         return "\(prefix)···\(suffix)"
     }
 
-    var body: some View {
+    public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Avatar + name
             HStack(spacing: 14) {
@@ -105,11 +111,16 @@ struct IdentityCardView: View {
 
 // MARK: - What's protected list
 
-struct IdentityProtectedList: View {
+public struct IdentityProtectedList: View {
     let hasPhrase: Bool
     let hasSMS: Bool
 
-    var body: some View {
+    public init(hasPhrase: Bool, hasSMS: Bool) {
+        self.hasPhrase = hasPhrase
+        self.hasSMS = hasSMS
+    }
+
+    public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("WHAT'S PROTECTED")
                 .font(.echomono(10))

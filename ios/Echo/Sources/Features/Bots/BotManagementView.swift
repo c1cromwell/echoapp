@@ -5,10 +5,12 @@ import SwiftUI
 
 // MARK: - Bot Management View
 
-struct BotManagementView: View {
+public struct BotManagementView: View {
     @StateObject private var viewModel = BotManagementViewModel()
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 // My Bots section

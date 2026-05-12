@@ -1,9 +1,13 @@
 import SwiftUI
 
-struct TrustIntroView: View {
+public struct TrustIntroView: View {
     let onDismiss: () -> Void
 
-    var body: some View {
+    public init(onDismiss: @escaping () -> Void = {}) {
+        self.onDismiss = onDismiss
+    }
+
+    public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 

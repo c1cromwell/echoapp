@@ -28,14 +28,18 @@ enum CarouselCopy {
     ]
 }
 
-struct WelcomeCarouselView: View {
+public struct WelcomeCarouselView: View {
     let coordinator: FirstRunCoordinator
+
+    public init(coordinator: FirstRunCoordinator) {
+        self.coordinator = coordinator
+    }
 
     @State private var currentIndex: Int = 0
     @State private var autoAdvance: Task<Void, Never>?
     private let autoAdvanceInterval: Duration = .seconds(3.5)
 
-    var body: some View {
+    public var body: some View {
         ZStack {
             Color.Echo.surface.ignoresSafeArea()
             AtmosphericBackground()

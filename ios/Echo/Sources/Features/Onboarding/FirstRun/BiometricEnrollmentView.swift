@@ -14,13 +14,23 @@ import LocalAuthentication
 //   - Key is invalidated if new biometric enrollments are added (biometryCurrentSet)
 //   - Storage key derived via HKDF from identity key signature (WO-224)
 
-struct BiometricEnrollmentView: View {
+public struct BiometricEnrollmentView: View {
     let username: String
-    let onComplete: (String) -> Void   // passes the registered DID
-    let onUnsupported: () -> Void      // device has no biometrics
+    let onComplete: (String) -> Void
+    let onUnsupported: () -> Void
 
     @State private var phase: EnrollPhase = .idle
     @State private var errorMessage: String?
+
+    public init(
+        username: String,
+        onComplete: @escaping (String) -> Void = { _ in },
+        onUnsupported: @escaping () -> Void = {}
+    ) {
+        self.username = username
+        self.onComplete = onComplete
+        self.onUnsupported = onUnsupported
+    }
 
     enum EnrollPhase {
         case idle, generating, registering, verifying, done
@@ -36,7 +46,7 @@ struct BiometricEnrollmentView: View {
         var isWorking: Bool { self != .idle && self != .done }
     }
 
-    var body: some View {
+    public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
             VStack(spacing: 32) {
@@ -130,9 +140,8 @@ struct BiometricEnrollmentView: View {
             try await KeychainManager.shared.store(key: "echo.did.current", value: did)
             try await KeychainManager.shared.store(key: "echo.username.current", value: username)
 
-            // 5. Save biometric integrity baseline.
-            try? BiometricIntegrityService(keychain: KeychainManager.shared)
-                .saveBiometricState()
+            // 5. Biometric integrity baseline is saved by SecureEnclaveManager
+            //    on first successful sign() — no extra call needed here.
 
             phase = .done
             try? await Task.sleep(nanoseconds: 600_000_000)

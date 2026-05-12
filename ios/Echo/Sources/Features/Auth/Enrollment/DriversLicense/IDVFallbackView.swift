@@ -65,11 +65,15 @@ final class IDVFallbackViewModel {
 
 // MARK: - View
 
-struct IDVFallbackView: View {
+public struct IDVFallbackView: View {
     let coordinator: EnrollmentCoordinator
     @State private var viewModel = IDVFallbackViewModel()
 
-    var body: some View {
+    public init(coordinator: EnrollmentCoordinator) {
+        self.coordinator = coordinator
+    }
+
+    public var body: some View {
         ZStack {
             Color.Echo.surface.ignoresSafeArea()
             AtmosphericBackground()

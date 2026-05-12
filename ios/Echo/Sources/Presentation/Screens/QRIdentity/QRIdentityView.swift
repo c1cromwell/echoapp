@@ -11,11 +11,13 @@ import AppKit
 
 // MARK: - QR Identity View
 
-struct QRIdentityView: View {
+public struct QRIdentityView: View {
     @StateObject private var viewModel = QRIdentityViewModel()
     @State private var showScanner = false
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         VStack(spacing: 32) {
             SecureThreadIndicator()
 

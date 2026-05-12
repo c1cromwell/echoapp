@@ -9,7 +9,7 @@ import Observation
 
 @MainActor
 @Observable
-final class EnrollmentCoordinator {
+public final class EnrollmentCoordinator {
     /// Path driving the NavigationStack.
     var path: [EnrollmentRoute] = []
 
@@ -26,7 +26,7 @@ final class EnrollmentCoordinator {
     /// Called if the user bails out (back from picker).
     let onCancel: () -> Void
 
-    init(
+    public init(
         onComplete: @escaping (VerifiedIdentityBundle) -> Void,
         onCancel: @escaping () -> Void
     ) {
@@ -87,10 +87,14 @@ enum EnrollmentRoute: Hashable {
 
 // MARK: - Root Container View
 
-struct EnrollmentCoordinatorView: View {
+public struct EnrollmentCoordinatorView: View {
     @State var coordinator: EnrollmentCoordinator
 
-    var body: some View {
+    public init(coordinator: EnrollmentCoordinator) {
+        _coordinator = State(wrappedValue: coordinator)
+    }
+
+    public var body: some View {
         NavigationStack(path: $coordinator.path) {
             EnrollmentMethodPickerView(coordinator: coordinator)
                 .navigationDestination(for: EnrollmentRoute.self) { route in

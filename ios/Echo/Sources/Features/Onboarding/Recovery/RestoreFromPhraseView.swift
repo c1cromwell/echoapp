@@ -3,13 +3,17 @@
 
 import SwiftUI
 
-struct RestoreFromPhraseView: View {
+public struct RestoreFromPhraseView: View {
     @Bindable var coordinator: RecoveryCoordinator
     @State private var words: [String] = Array(repeating: "", count: 24)
     @State private var isRestoring = false
     @State private var errorMessage: String?
 
-    var body: some View {
+    public init(coordinator: RecoveryCoordinator) {
+        self.coordinator = coordinator
+    }
+
+    public var body: some View {
         ZStack {
             Color.Echo.surface.ignoresSafeArea()
             AtmosphericBackground()

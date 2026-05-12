@@ -7,11 +7,15 @@ import SwiftUI
 // Proposed: one screen, no carousel, no dots, no timer.
 // The pitch IS the layout. Three privacy facts inline as anchored content.
 
-struct EchoWelcomeView: View {
+public struct EchoWelcomeView: View {
     let onSetUp: () -> Void
     let onAlreadyHaveAccount: () -> Void
 
-    var body: some View {
+    public init(onSetUp: @escaping () -> Void, onAlreadyHaveAccount: @escaping () -> Void) {
+        self.onSetUp = onSetUp; self.onAlreadyHaveAccount = onAlreadyHaveAccount
+    }
+
+    public var body: some View {
         ZStack {
             Color.echoPaper.ignoresSafeArea()
 
@@ -117,7 +121,7 @@ private struct EchoRippleMarkLocal: View {
 
     private let ringRadii: [CGFloat] = [6, 11, 17, 24, 34]
 
-    var body: some View {
+    public var body: some View {
         Canvas { ctx, sz in
             let cx = sz.width / 2
             let cy = sz.height / 2

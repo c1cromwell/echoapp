@@ -10,9 +10,14 @@ import CryptoKit
 //   - phone_raw is used only to send the OTP via Twilio, then discarded
 //   - After OTP verification, phone_hash is stored in Keychain for recovery lookups
 
-struct SMSOTPSetupView: View {
+public struct SMSOTPSetupView: View {
     let did: String
     let onConfigured: () -> Void
+
+    public init(did: String, onConfigured: @escaping () -> Void = {}) {
+        self.did = did
+        self.onConfigured = onConfigured
+    }
 
     @State private var phone = ""
     @State private var otp = ""
@@ -25,7 +30,7 @@ struct SMSOTPSetupView: View {
 
     enum OTPPhase { case enterPhone, enterOTP, done }
 
-    var body: some View {
+    public var body: some View {
         NavigationStack {
             ZStack {
                 Color.echoBackground.ignoresSafeArea()
@@ -71,7 +76,7 @@ struct SMSOTPSetupView: View {
                     .padding(.horizontal, 32)
             }
 
-            EchoTextField("Phone number (+12125551234)", text: $phone)
+            EchoTextField(placeholder: "Phone number (+12125551234)", text: $phone)
                 .keyboardType(.phonePad)
                 .padding(.horizontal, 24)
 
@@ -107,7 +112,7 @@ struct SMSOTPSetupView: View {
                     .foregroundColor(.echoSecondaryText)
             }
 
-            OTPInputView(code: $otp, length: 6)
+            OTPInputView(code: $otp, onComplete: { _ in Task { await verifyOTP() } })
                 .padding(.horizontal, 24)
 
             if let error = errorMessage {

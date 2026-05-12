@@ -3,10 +3,11 @@
 
 import SwiftUI
 
-struct SecureThreadIndicator: View {
+public struct SecureThreadIndicator: View {
+    public init() {}
     @State private var opacity: Double = 0.6
 
-    var body: some View {
+    public var body: some View {
         Rectangle()
             .fill(Color.Echo.primaryContainer)
             .frame(height: 2)

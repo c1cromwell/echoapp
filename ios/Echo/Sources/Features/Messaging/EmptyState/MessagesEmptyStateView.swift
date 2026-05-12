@@ -11,13 +11,25 @@
 
 import SwiftUI
 
-struct MessagesEmptyStateView: View {
+public struct MessagesEmptyStateView: View {
     let displayName: String
     let trustTier: Int
     let onComposeTapped: () -> Void
     let onUpgradeTrustTapped: () -> Void
 
-    var body: some View {
+    public init(
+        displayName: String,
+        trustTier: Int,
+        onComposeTapped: @escaping () -> Void = {},
+        onUpgradeTrustTapped: @escaping () -> Void = {}
+    ) {
+        self.displayName = displayName
+        self.trustTier = trustTier
+        self.onComposeTapped = onComposeTapped
+        self.onUpgradeTrustTapped = onUpgradeTrustTapped
+    }
+
+    public var body: some View {
         ZStack {
             Color.Echo.surface.ignoresSafeArea()
             AtmosphericBackground()

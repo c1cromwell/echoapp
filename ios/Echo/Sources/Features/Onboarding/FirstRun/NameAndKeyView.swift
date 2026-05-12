@@ -9,14 +9,22 @@ import CryptoKit
 // The "privacy receipt" shows exactly what is stored vs what is not,
 // answering the user's implicit question before they ask it.
 
-struct NameAndKeyView: View {
-    let onComplete: (String, String) -> Void  // (username, did)
+public struct NameAndKeyView: View {
+    let onComplete: (String, String) -> Void
     let onSkip: () -> Void
 
     @State private var username = ""
     @State private var phase: Phase = .naming
     @State private var errorMessage: String?
     @FocusState private var focused: Bool
+
+    public init(
+        onComplete: @escaping (String, String) -> Void = { _, _ in },
+        onSkip: @escaping () -> Void = {}
+    ) {
+        self.onComplete = onComplete
+        self.onSkip = onSkip
+    }
 
     enum Phase { case naming, enrolling, done }
 
@@ -28,7 +36,7 @@ struct NameAndKeyView: View {
         return t.unicodeScalars.allSatisfy { allowed.contains($0) }
     }
 
-    var body: some View {
+    public var body: some View {
         ZStack {
             Color.echoPaper.ignoresSafeArea()
 
@@ -218,7 +226,7 @@ struct FaceIDIcon: View {
     var size: CGFloat = 24
     var color: Color = .echoInk
 
-    var body: some View {
+    public var body: some View {
         Canvas { ctx, sz in
             let s = sz.width / 32
             func p(_ d: String) -> Path { try! Path(svgPath: d, scale: s) }

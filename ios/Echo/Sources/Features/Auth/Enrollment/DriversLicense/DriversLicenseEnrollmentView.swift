@@ -47,11 +47,15 @@ final class DriversLicenseEnrollmentViewModel {
 
 // MARK: - View
 
-struct DriversLicenseEnrollmentView: View {
+public struct DriversLicenseEnrollmentView: View {
     let coordinator: EnrollmentCoordinator
     @State private var viewModel = DriversLicenseEnrollmentViewModel()
 
-    var body: some View {
+    public init(coordinator: EnrollmentCoordinator) {
+        self.coordinator = coordinator
+    }
+
+    public var body: some View {
         ZStack {
             Color.Echo.surface.ignoresSafeArea()
             AtmosphericBackground()

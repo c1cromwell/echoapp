@@ -8,15 +8,15 @@ import UIKit
 import AppKit
 #endif
 
-struct ContactDetailView: View {
+public struct ContactDetailView: View {
     @StateObject private var viewModel: ContactDetailViewModel
     @Environment(\.dismiss) private var dismiss
 
-    init(contactId: String) {
+    public init(contactId: String) {
         _viewModel = StateObject(wrappedValue: ContactDetailViewModel(contactId: contactId))
     }
 
-    var body: some View {
+    public var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 // Hero — large avatar with trust ring

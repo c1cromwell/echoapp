@@ -5,10 +5,12 @@ import SwiftUI
 
 // MARK: - Backup View
 
-struct BackupView: View {
+public struct BackupView: View {
     @StateObject private var viewModel = BackupViewModel()
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 // Recovery phrase section

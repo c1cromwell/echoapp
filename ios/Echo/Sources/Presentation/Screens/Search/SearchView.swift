@@ -5,12 +5,14 @@ import SwiftUI
 
 // MARK: - Search View
 
-struct SearchView: View {
+public struct SearchView: View {
     @StateObject private var viewModel = SearchViewModel()
     @FocusState private var isSearchFocused: Bool
     @Environment(\.dismiss) private var dismiss
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         VStack(spacing: 0) {
             SecureThreadIndicator()
 

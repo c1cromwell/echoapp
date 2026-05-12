@@ -5,7 +5,7 @@ import SwiftUI
 
 // MARK: - Media Gallery View
 
-struct MediaGalleryView: View {
+public struct MediaGalleryView: View {
     @StateObject private var viewModel: MediaGalleryViewModel
     @State private var selectedTab: MediaTab = .photos
 
@@ -21,11 +21,11 @@ struct MediaGalleryView: View {
         }
     }
 
-    init(conversationId: String) {
+    public init(conversationId: String) {
         _viewModel = StateObject(wrappedValue: MediaGalleryViewModel(conversationId: conversationId))
     }
 
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 0) {
             SecureThreadIndicator()
 

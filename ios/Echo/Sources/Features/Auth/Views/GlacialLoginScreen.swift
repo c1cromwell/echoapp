@@ -6,7 +6,7 @@
 import SwiftUI
 import LocalAuthentication
 
-struct GlacialLoginScreen: View {
+public struct GlacialLoginScreen: View {
     @State private var savedUsername: String = ""
     @State private var isUnlocking = false
     @State private var unlockError: String?
@@ -14,7 +14,17 @@ struct GlacialLoginScreen: View {
     let onSMSLogin: (String) -> Void
     let onGetStarted: () -> Void
 
-    var body: some View {
+    public init(
+        onPasskeyLogin: @escaping () -> Void = {},
+        onSMSLogin: @escaping (String) -> Void = { _ in },
+        onGetStarted: @escaping () -> Void = {}
+    ) {
+        self.onPasskeyLogin = onPasskeyLogin
+        self.onSMSLogin = onSMSLogin
+        self.onGetStarted = onGetStarted
+    }
+
+    public var body: some View {
         ZStack {
             Color.echoPaper.ignoresSafeArea()
 

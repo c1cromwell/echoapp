@@ -12,11 +12,15 @@ import CryptoKit
 //  5. On success, onCompletion is called; onboarding coordinator moves to main tab.
 
 /// Full-screen onboarding step that creates and registers a Secure Enclave passkey.
-struct PasskeySetupView: View {
+public struct PasskeySetupView: View {
     let onCompletion: () -> Void
 
     @State private var phase: SetupPhase = .idle
     @State private var errorMessage: String?
+
+    public init(onCompletion: @escaping () -> Void) {
+        self.onCompletion = onCompletion
+    }
 
     enum SetupPhase {
         case idle, generating, submitting, verifying, done
@@ -32,7 +36,7 @@ struct PasskeySetupView: View {
         var isWorking: Bool { self != .idle && self != .done }
     }
 
-    var body: some View {
+    public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 

@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct AccountLockedView: View {
+public struct AccountLockedView: View {
     let reason: LockReason
     let retryAfter: Date?
     let onRecovery: () -> Void
@@ -8,7 +8,13 @@ struct AccountLockedView: View {
     @State private var timeRemaining: String = ""
     @State private var timer: Timer?
 
-    var body: some View {
+    public init(reason: LockReason, retryAfter: Date? = nil, onRecovery: @escaping () -> Void = {}) {
+        self.reason = reason
+        self.retryAfter = retryAfter
+        self.onRecovery = onRecovery
+    }
+
+    public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 

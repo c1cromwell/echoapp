@@ -5,10 +5,12 @@ import SwiftUI
 
 // MARK: - Notification Center View
 
-struct NotificationCenterView: View {
+public struct NotificationCenterView: View {
     @StateObject private var viewModel = NotificationViewModel()
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 ForEach(viewModel.groupedNotifications.keys.sorted().reversed(), id: \.self) { date in

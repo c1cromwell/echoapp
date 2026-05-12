@@ -5,7 +5,7 @@ import SwiftUI
 // Falls back to system monospaced if the font isn't bundled.
 extension Font {
     /// Monospaced font at a given size.  Use for: DID strings, key fingerprints, OTP codes, timestamps.
-    static func echomono(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+    public static func echomono(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
         .custom("GeistMono-Regular", size: size)
             .monospaced()
     }

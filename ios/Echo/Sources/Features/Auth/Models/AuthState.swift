@@ -37,7 +37,7 @@ enum AuthState: Equatable {
 
 // MARK: - Lock Reason
 
-enum LockReason: Equatable {
+public enum LockReason: Equatable {
     case tooManyAttempts
     case suspiciousActivity
     case accountSuspended

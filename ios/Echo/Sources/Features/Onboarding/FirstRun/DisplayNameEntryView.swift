@@ -5,16 +5,20 @@
 
 import SwiftUI
 
-struct DisplayNameEntryView: View {
+public struct DisplayNameEntryView: View {
     @Bindable var coordinator: FirstRunCoordinator
     @FocusState private var nameFieldFocused: Bool
+
+    public init(coordinator: FirstRunCoordinator) {
+        self.coordinator = coordinator
+    }
 
     private var trimmed: String {
         coordinator.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     private var isValid: Bool { DisplayNameValidator.isValid(coordinator.displayName) }
 
-    var body: some View {
+    public var body: some View {
         ZStack {
             Color.Echo.surface.ignoresSafeArea()
             AtmosphericBackground()

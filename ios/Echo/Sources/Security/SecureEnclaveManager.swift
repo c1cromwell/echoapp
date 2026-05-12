@@ -580,7 +580,7 @@ actor SecureEnclaveManager {
 
 // MARK: - Biometric lock state (WO-211)
 
-enum BiometricLockState: Equatable {
+public enum BiometricLockState: Equatable {
   case allowed(failureCount: Int)
   case requiresPasscode(failureCount: Int)
   case hardLocked(until: Date)

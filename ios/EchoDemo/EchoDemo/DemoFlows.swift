@@ -117,7 +117,15 @@ struct DemoRootView: View {
                         PasskeySetupView(onCompletion: {})
                     }
                     DemoLink("Device Management") {
-                        DeviceManagementView()
+                        VStack(spacing: 12) {
+                            Image(systemName: "iphone.gen3")
+                                .font(.system(size: 48)).foregroundStyle(Color.echoPrimary)
+                            Text("Device Management").font(.system(size: 18, weight: .semibold))
+                            Text("Requires active auth session")
+                                .font(.system(size: 13)).foregroundStyle(Color.echoSecondaryText)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.echoBackground.ignoresSafeArea())
                     }
                     DemoLink("Account Locked") {
                         AccountLockedView(
@@ -276,7 +284,7 @@ struct DemoRootView: View {
                 // MARK: Wallet & Staking
                 // ────────────────────────────────────────────────────────
                 Section("Wallet & Staking") {
-                    DemoLink("Staking")                 { StakingView() }
+                    DemoLink("Staking")                 { RewardsStakingView() }
                     DemoLink("Staking Detail")          { StakingDetailView() }
                     DemoLink("Validator Browser")       { ValidatorBrowserView() }
                     DemoLink("Rewards Dashboard")       { RewardsDashboardView() }
@@ -289,13 +297,12 @@ struct DemoRootView: View {
                     DemoLink("Voting Power") {
                         GovernanceWeightView(power: DemoData.votingPower)
                     }
-                    DemoLink("Proposal List")           { DemoProposalListView() }
                     DemoLink("Vote Confirmation") {
                         VoteConfirmationView(
                             proposal: DemoData.proposal,
-                            vote: "for",
-                            onConfirm: {},
-                            onCancel: {}
+                            voteValue: .for,
+                            votingPower: DemoData.votingPower,
+                            onConfirm: {}
                         )
                     }
                 }
@@ -359,21 +366,34 @@ struct DemoLink<Destination: View>: View {
 // MARK: - Demo data
 
 enum DemoData {
-    static let votingPower = GovernanceVotingPower(
-        totalPower: 1_250,
-        stakedTokens: 500,
-        trustMultiplier: 2.5,
-        tier: 3
+    static let votingPower = VotingPower(
+        did: "did:key:zDemoGovernance",
+        trustTier: 3,
+        multiplier: 1.0,
+        totalStaked: 1_250,
+        weight: 1_250,
+        canVote: true
     )
-    static let proposal = GovernanceProposal(
+    static let proposal = Proposal(
         id: "prop-001",
         title: "Increase relay fee rebate to 15%",
         description: "Proposal to increase the relay fee rebate from 10% to 15% to incentivize node operators.",
+        type: .parameterChange,
+        threshold: .simpleMajority,
+        createdBy: "did:key:zDemoProposer",
+        createdAt: Date().addingTimeInterval(-7 * 24 * 60 * 60),
+        endsAt: Date().addingTimeInterval(3 * 24 * 60 * 60),
         status: .active,
-        votesFor: 12_400,
-        votesAgainst: 3_200,
-        abstentions: 600,
-        deadline: Date().addingTimeInterval(3 * 24 * 60 * 60)
+        tally: ProposalTally(
+            proposalId: "prop-001",
+            forWeight: 12_400,
+            againstWeight: 3_200,
+            abstainWeight: 600,
+            totalWeight: 16_200,
+            forPercent: 76.5,
+            voterCount: 42,
+            passed: false
+        )
     )
 }
 
@@ -562,7 +582,7 @@ struct ComponentsPreview: View {
                     }
                 }
                 section("OTP Input") {
-                    OTPInputView(code: $otpCode, length: 6)
+                    OTPInputView(code: $otpCode) { _ in }
                 }
                 section("Secure Thread Indicator") {
                     SecureThreadIndicator()
@@ -689,6 +709,7 @@ struct TrustScalePreview: View {
 
                 ForEach(steps, id: \.0) { label, color, detail in
                     HStack(spacing: 16) {
+                        let isElite = (color == Color.echoTrustElite)
                         RoundedRectangle(cornerRadius: 10)
                             .fill(color)
                             .overlay(RoundedRectangle(cornerRadius: 10)
@@ -697,8 +718,7 @@ struct TrustScalePreview: View {
                             .overlay(
                                 Text(label.prefix(2))
                                     .font(.echomono(12))
-                                    .foregroundStyle(color == .echoTrustElite
-                                                     ? .white : Color.echoTrustGreenDim)
+                                    .foregroundStyle(isElite ? Color.white : Color.echoTrustGreenDim)
                             )
 
                         VStack(alignment: .leading, spacing: 3) {

@@ -7,13 +7,17 @@ import SwiftUI
 
 /// Full-screen gate shown when the local SwiftData store is not yet unlocked.
 /// Mirrors the lock screen pattern from Signal / WhatsApp for end-to-end key management.
-struct StorageLockedView: View {
+public struct StorageLockedView: View {
     let onUnlock: () async -> Void
 
     @State private var isUnlocking = false
     @State private var errorMessage: String?
 
-    var body: some View {
+    public init(onUnlock: @escaping () async -> Void) {
+        self.onUnlock = onUnlock
+    }
+
+    public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 

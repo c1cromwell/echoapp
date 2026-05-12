@@ -3,10 +3,14 @@
 
 import SwiftUI
 
-struct GovernanceWeightView: View {
-    let power: VotingPower
+public struct GovernanceWeightView: View {
+    public let power: VotingPower
 
-    var body: some View {
+    public init(power: VotingPower) {
+        self.power = power
+    }
+
+    public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             Text("YOUR VOTING POWER")

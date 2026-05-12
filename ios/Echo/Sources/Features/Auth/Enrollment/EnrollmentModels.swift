@@ -12,12 +12,12 @@ import Foundation
 
 /// A path the user can take to enroll in ECHO from the login screen.
 /// Ordering of the enum cases reflects promotion order in the picker.
-enum EnrollmentMethod: String, CaseIterable, Identifiable, Sendable {
+public enum EnrollmentMethod: String, CaseIterable, Identifiable, Sendable {
     case mobileWalletCredential   // OIDC4VC / OID4VP presentation
     case driversLicense           // Apple Wallet mDL, QR, NFC, or IDV fallback
     case phoneNumber              // Existing SMS + DID flow
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 }
 
 // MARK: - Driver's License Sub-Method
@@ -25,13 +25,13 @@ enum EnrollmentMethod: String, CaseIterable, Identifiable, Sendable {
 /// How the user wants to present their driver's license for enrollment.
 /// Order matters: `.appleWallet` is tried first when available, then QR, then NFC,
 /// and `.scanAndSelfie` is the IDV fallback.
-enum MDLSubMethod: String, CaseIterable, Identifiable, Sendable {
+public enum MDLSubMethod: String, CaseIterable, Identifiable, Sendable {
     case appleWallet      // W3C DC API via ASWebAuthenticationSession
     case qrEngagement     // ISO 18013-5 §8.2 QR device engagement
     case nfcEngagement    // ISO 18013-5 §8.3 NFC device engagement
     case scanAndSelfie    // Stripe Identity / Sumsub IAL2 fallback
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 }
 
 // MARK: - Requested Claims
@@ -39,7 +39,7 @@ enum MDLSubMethod: String, CaseIterable, Identifiable, Sendable {
 /// Minimum claims ECHO requests during enrollment. Bound to the verifier's
 /// request manifest and enforced on the backend. Selective disclosure means
 /// the wallet releases only these fields, per ISO 18013-5 §7.1.
-struct EnrollmentClaimsRequest: Codable, Sendable {
+public struct EnrollmentClaimsRequest: Codable, Sendable {
     let familyName: Bool
     let givenName: Bool
     let ageOver18: Bool
@@ -59,7 +59,7 @@ struct EnrollmentClaimsRequest: Codable, Sendable {
 
 /// The on-device outcome of a successful credential presentation.
 /// Never persisted in plaintext outside the Secure Enclave-gated CredentialCache.
-struct VerifiedIdentityBundle: Sendable {
+public struct VerifiedIdentityBundle: Sendable {
     let credentialReferenceUUID: UUID      // opaque ref stored on-chain
     let issuerDID: String
     let credentialType: String             // e.g. "org.iso.18013.5.1.mDL"
@@ -70,7 +70,7 @@ struct VerifiedIdentityBundle: Sendable {
     let evidence: PresentationEvidence
 }
 
-enum AssuranceLevel: String, Codable, Sendable {
+public enum AssuranceLevel: String, Codable, Sendable {
     case ial1, ial2, ial3
 
     /// Maps NIST 800-63-3 IAL to ECHO trust tier (1–5).
@@ -85,7 +85,7 @@ enum AssuranceLevel: String, Codable, Sendable {
 
 /// Protocol-specific proof captured during presentation. Used server-side to
 /// re-verify the issuer signature and session transcript.
-enum PresentationEvidence: Sendable {
+public enum PresentationEvidence: Sendable {
     case mdoc(deviceResponse: Data, sessionTranscript: Data)  // ISO 18013-5
     case openid4vp(vpToken: String, presentationSubmission: Data)
     case idv(providerReferenceID: String, confidenceScore: Double)
@@ -93,7 +93,7 @@ enum PresentationEvidence: Sendable {
 
 // MARK: - Enrollment Errors
 
-enum EnrollmentError: LocalizedError, Sendable {
+public enum EnrollmentError: LocalizedError, Sendable {
     case userCancelled
     case deviceUnsupported(reason: String)
     case issuerNotInTrustRegistry(issuerDID: String)
@@ -105,7 +105,7 @@ enum EnrollmentError: LocalizedError, Sendable {
     case nfcUnavailable
     case cameraUnavailable
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .userCancelled:
             return "You cancelled the enrollment."
@@ -134,7 +134,7 @@ enum EnrollmentError: LocalizedError, Sendable {
 // MARK: - Enrollment Progress
 
 /// Drives the shared tail flow (DID → wallet → passkey) progress UI.
-enum EnrollmentStage: Sendable {
+public enum EnrollmentStage: Sendable {
     case idle
     case verifyingCredential
     case creatingDID

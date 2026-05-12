@@ -4,10 +4,12 @@
 
 import SwiftUI
 
-struct StakingDetailView: View {
+public struct StakingDetailView: View {
     @StateObject private var viewModel = StakingDetailViewModel()
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 // Current Position Card

@@ -10,14 +10,19 @@ import LocalAuthentication
 /// Full-screen overlay shown when `BiometricLockState` is locked.
 /// Clears automatically once the hard lockout expires or the user
 /// authenticates with a device passcode.
-struct BiometricLockoutView: View {
+public struct BiometricLockoutView: View {
     let lockState: BiometricLockState
     let onUnlocked: () -> Void
 
     @State private var secondsRemaining: Int = 0
     @State private var timer: Timer?
 
-    var body: some View {
+    public init(lockState: BiometricLockState, onUnlocked: @escaping () -> Void = {}) {
+        self.lockState = lockState
+        self.onUnlocked = onUnlocked
+    }
+
+    public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 

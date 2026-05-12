@@ -3,11 +3,18 @@
 
 import SwiftUI
 
-struct VoteConfirmationView: View {
-    let proposal: Proposal
-    let voteValue: VoteValue
-    let votingPower: VotingPower
-    let onConfirm: () -> Void
+public struct VoteConfirmationView: View {
+    public let proposal: Proposal
+    public let voteValue: VoteValue
+    public let votingPower: VotingPower
+    public let onConfirm: () -> Void
+
+    public init(proposal: Proposal, voteValue: VoteValue, votingPower: VotingPower, onConfirm: @escaping () -> Void) {
+        self.proposal = proposal
+        self.voteValue = voteValue
+        self.votingPower = votingPower
+        self.onConfirm = onConfirm
+    }
 
     @Environment(\.dismiss) private var dismiss
     @State private var isSubmitting = false
@@ -20,7 +27,7 @@ struct VoteConfirmationView: View {
         }
     }
 
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 24) {
             // Vote icon
             Image(systemName: voteValue.systemImage)

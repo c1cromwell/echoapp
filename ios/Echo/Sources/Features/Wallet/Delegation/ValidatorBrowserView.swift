@@ -4,10 +4,18 @@
 
 import SwiftUI
 
-struct ValidatorBrowserView: View {
-    @ObservedObject var viewModel: WalletViewModel
+public struct ValidatorBrowserView: View {
+    @StateObject private var viewModel: WalletViewModel
 
-    var body: some View {
+    public init() {
+        _viewModel = StateObject(wrappedValue: WalletViewModel(api: WalletAPIClientStub()))
+    }
+
+    init(viewModel: WalletViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
+
+    public var body: some View {
         ScrollView {
             VStack(spacing: 12) {
                 if viewModel.validators.isEmpty {

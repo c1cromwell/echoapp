@@ -10,17 +10,23 @@ import CryptoKit
 //
 // Both are skippable — accessible later from Settings.
 
-struct RecoverySetupView: View {
+public struct RecoverySetupView: View {
     let did: String
     let onComplete: () -> Void
     let onSkip: () -> Void
+
+    public init(did: String, onComplete: @escaping () -> Void = {}, onSkip: @escaping () -> Void = {}) {
+        self.did = did
+        self.onComplete = onComplete
+        self.onSkip = onSkip
+    }
 
     @State private var showPhraseSetup = false
     @State private var showSMSSetup = false
     @State private var phraseConfigured = false
     @State private var smsConfigured = false
 
-    var body: some View {
+    public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
             VStack(spacing: 0) {
@@ -98,7 +104,7 @@ private struct RecoveryOptionCard: View {
     let isConfigured: Bool
     let action: () -> Void
 
-    var body: some View {
+    public var body: some View {
         Button(action: action) {
             HStack(spacing: 16) {
                 ZStack {
@@ -136,7 +142,7 @@ private struct PhraseBackupSheet: View {
     let onConfigured: () -> Void
     @Environment(\.dismiss) private var dismiss
 
-    var body: some View {
+    public var body: some View {
         NavigationStack {
             VStack(spacing: 24) {
                 Text("Your recovery phrase is 24 words. Write them down and store offline — never share them.")

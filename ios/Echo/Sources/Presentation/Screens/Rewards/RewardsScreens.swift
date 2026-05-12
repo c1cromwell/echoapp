@@ -163,7 +163,8 @@ struct ActivityRow: View {
 
 // MARK: - Staking View
 
-public struct StakingView: View {
+// Renamed to avoid conflict with Wallet/Staking/StakingView (which takes a WalletViewModel).
+public struct RewardsStakingView: View {
     @Environment(\.dismiss) var dismiss
     @State private var stakeAmount = ""
     @State private var stakingPeriod = "30"

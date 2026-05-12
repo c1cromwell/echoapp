@@ -88,11 +88,15 @@ final class WalletCredentialEnrollmentViewModel {
 
 // MARK: - View
 
-struct WalletCredentialEnrollmentView: View {
+public struct WalletCredentialEnrollmentView: View {
     let coordinator: EnrollmentCoordinator
     @State private var viewModel = WalletCredentialEnrollmentViewModel()
 
-    var body: some View {
+    public init(coordinator: EnrollmentCoordinator) {
+        self.coordinator = coordinator
+    }
+
+    public var body: some View {
         ZStack {
             Color.Echo.surface.ignoresSafeArea()
             AtmosphericBackground()

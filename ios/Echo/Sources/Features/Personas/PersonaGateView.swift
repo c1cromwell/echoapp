@@ -14,7 +14,7 @@ import SwiftUI
 //   - Auto-locks after 2 minutes of the app being in the background
 //   - Re-auth required each time the user returns from background while gated
 
-struct PersonaGateView<Content: View>: View {
+public struct PersonaGateView<Content: View>: View {
     let personaID: String
     @ViewBuilder let protectedContent: () -> Content
 
@@ -24,9 +24,14 @@ struct PersonaGateView<Content: View>: View {
     @State private var unlockTime: Date?
     @Environment(\.scenePhase) private var scenePhase
 
-    private let lockAfterBackground: TimeInterval = 120 // 2 minutes
+    private let lockAfterBackground: TimeInterval = 120
 
-    var body: some View {
+    public init(personaID: String, @ViewBuilder protectedContent: @escaping () -> Content) {
+        self.personaID = personaID
+        self.protectedContent = protectedContent
+    }
+
+    public var body: some View {
         Group {
             if isUnlocked {
                 protectedContent()

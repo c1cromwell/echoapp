@@ -179,22 +179,22 @@ import Combine
     func exportPersonaData(personaId: String) async throws -> URL
 }
 
- struct ProfileData {
-     var displayName: String
-     var username: String
-     var bio: String
-     var status: String
-     var avatarURL: String?
-     var website: String?
-     var links: [String]
-     var trustScore: Int
-     var trustLevel: String
-     var isVerified: Bool
-     var messagesSent: Int
-     var contactsCount: Int
-     var echoRewards: Double
+public struct ProfileData {
+    public var displayName: String
+    public var username: String
+    public var bio: String
+    public var status: String
+    public var avatarURL: String?
+    public var website: String?
+    public var links: [String]
+    public var trustScore: Int
+    public var trustLevel: String
+    public var isVerified: Bool
+    public var messagesSent: Int
+    public var contactsCount: Int
+    public var echoRewards: Double
 
-     init(
+    public init(
         displayName: String = "",
         username: String = "",
         bio: String = "",

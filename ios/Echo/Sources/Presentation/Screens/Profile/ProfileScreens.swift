@@ -3,7 +3,7 @@ import SwiftUI
 
 // MARK: - Screen 1: Profile Tab (Enhanced per spec)
 
- struct ProfileTabView: View {
+public struct ProfileTabView: View {
     @State private var showEditProfile = false
     @State private var showPersonas = false
     @State private var showSettings = false
@@ -25,7 +25,7 @@ import SwiftUI
     let onHelpSupport: () -> Void
     let onAbout: () -> Void
 
-    init(
+    public init(
         profile: ProfileData = ProfileData(),
         personas: [Persona] = [],
         maxPersonas: Int = 10,
@@ -61,7 +61,7 @@ import SwiftUI
         self.onAbout = onAbout
     }
 
-     var body: some View {
+    public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -214,7 +214,7 @@ import SwiftUI
 
 // MARK: - Screen 2: Edit Profile
 
- struct EditProfileView: View {
+public struct EditProfileView: View {
     @Environment(\.dismiss) var dismiss
     @Binding var displayName: String
     @Binding var username: String
@@ -228,7 +228,21 @@ import SwiftUI
     let onSave: () -> Void
     let onChangePhoto: () -> Void
 
-     init(
+    public init() {
+        self._displayName = .constant("Chad")
+        self._username = .constant("chad")
+        self._bio = .constant("")
+        self._status = .constant("")
+        self._website = .constant("")
+        self.isUsernameAvailable = nil
+        self.isCheckingUsername = false
+        self.isSaving = false
+        self.onCheckUsername = {}
+        self.onSave = {}
+        self.onChangePhoto = {}
+    }
+
+    public init(
         displayName: Binding<String>,
         username: Binding<String>,
         bio: Binding<String>,
@@ -254,7 +268,7 @@ import SwiftUI
         self.onChangePhoto = onChangePhoto
     }
 
-     var body: some View {
+    public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -342,7 +356,7 @@ import SwiftUI
 
 // MARK: - Screen 3: Personas Management
 
- struct PersonasManagementView: View {
+public struct PersonasManagementView: View {
     @Environment(\.dismiss) var dismiss
     let personas: [Persona]
     let maxPersonas: Int
@@ -351,7 +365,7 @@ import SwiftUI
     let onSetDefault: (String) -> Void
     let onCreatePersona: () -> Void
 
-     init(
+    public init(
         personas: [Persona] = [],
         maxPersonas: Int = 10,
         onEditPersona: @escaping (Persona) -> Void = { _ in },
@@ -367,7 +381,7 @@ import SwiftUI
         self.onCreatePersona = onCreatePersona
     }
 
-     var body: some View {
+    public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -625,13 +639,13 @@ import SwiftUI
 
 // MARK: - Screen 5: Account Settings
 
- struct AccountSettingsView: View {
+public struct AccountSettingsView: View {
     @Environment(\.dismiss) var dismiss
     let account: AccountInfo
     let onDeleteAccount: () -> Void
     @State private var showDeleteAlert = false
 
-     init(
+    public init(
         account: AccountInfo = AccountInfo(),
         onDeleteAccount: @escaping () -> Void = {}
     ) {
@@ -639,7 +653,7 @@ import SwiftUI
         self.onDeleteAccount = onDeleteAccount
     }
 
-     var body: some View {
+    public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -772,12 +786,12 @@ import SwiftUI
 
 // MARK: - Screen 6: Privacy & Security Settings
 
- struct PrivacySecuritySettingsView: View {
+public struct PrivacySecuritySettingsView: View {
     @Environment(\.dismiss) var dismiss
     @Binding var settings: EnhancedPrivacySettings
     let onSave: (EnhancedPrivacySettings) -> Void
 
-     init(
+    public init(
         settings: Binding<EnhancedPrivacySettings>,
         onSave: @escaping (EnhancedPrivacySettings) -> Void = { _ in }
     ) {
@@ -785,7 +799,7 @@ import SwiftUI
         self.onSave = onSave
     }
 
-     var body: some View {
+    public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -999,12 +1013,17 @@ import SwiftUI
 
 // MARK: - Screen 7: Notification Settings
 
- struct NotificationSettingsView: View {
+public struct NotificationSettingsView: View {
     @Environment(\.dismiss) var dismiss
     @Binding var settings: EnhancedNotificationSettings
     let onSave: (EnhancedNotificationSettings) -> Void
 
-     init(
+    public init() {
+        self._settings = .constant(EnhancedNotificationSettings())
+        self.onSave = { _ in }
+    }
+
+    public init(
         settings: Binding<EnhancedNotificationSettings>,
         onSave: @escaping (EnhancedNotificationSettings) -> Void = { _ in }
     ) {
@@ -1012,7 +1031,7 @@ import SwiftUI
         self.onSave = onSave
     }
 
-     var body: some View {
+    public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -1148,12 +1167,17 @@ import SwiftUI
 
 // MARK: - Screen 8: Appearance Settings
 
- struct AppearanceSettingsView: View {
+public struct AppearanceSettingsView: View {
     @Environment(\.dismiss) var dismiss
     @Binding var settings: AppearanceSettings
     let onSave: (AppearanceSettings) -> Void
 
-     init(
+    public init() {
+        self._settings = .constant(AppearanceSettings())
+        self.onSave = { _ in }
+    }
+
+    public init(
         settings: Binding<AppearanceSettings>,
         onSave: @escaping (AppearanceSettings) -> Void = { _ in }
     ) {
@@ -1169,7 +1193,7 @@ import SwiftUI
         ("Orange", "orange", Color(hex: 0xF59E0B))
     ]
 
-     var body: some View {
+    public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -1289,14 +1313,20 @@ import SwiftUI
 
 // MARK: - Screen 9: Storage & Data
 
- struct StorageDataView: View {
+public struct StorageDataView: View {
     @Environment(\.dismiss) var dismiss
     @Binding var storageInfo: StorageInfo
     let onClearCache: () -> Void
     let onBackUp: () -> Void
     @State private var showClearCacheAlert = false
 
-     init(
+    public init() {
+        self._storageInfo = .constant(StorageInfo())
+        self.onClearCache = {}
+        self.onBackUp = {}
+    }
+
+    public init(
         storageInfo: Binding<StorageInfo>,
         onClearCache: @escaping () -> Void = {},
         onBackUp: @escaping () -> Void = {}
@@ -1306,7 +1336,7 @@ import SwiftUI
         self.onBackUp = onBackUp
     }
 
-     var body: some View {
+    public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -1460,7 +1490,7 @@ import SwiftUI
 
 // MARK: - Screen 10: About Echo
 
- struct AboutView: View {
+public struct AboutView: View {
     @Environment(\.dismiss) var dismiss
 
     let appVersion: String
@@ -1471,7 +1501,7 @@ import SwiftUI
     let onPrivacyPolicy: () -> Void
     let onOpenSource: () -> Void
 
-     init(
+    public init(
         appVersion: String = "1.0.0",
         onHelpCenter: @escaping () -> Void = {},
         onContactSupport: @escaping () -> Void = {},
@@ -1489,7 +1519,7 @@ import SwiftUI
         self.onOpenSource = onOpenSource
     }
 
-     var body: some View {
+    public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 

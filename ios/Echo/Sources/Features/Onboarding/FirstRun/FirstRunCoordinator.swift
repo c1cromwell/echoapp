@@ -13,7 +13,7 @@ import Observation
 
 @MainActor
 @Observable
-final class FirstRunCoordinator {
+public final class FirstRunCoordinator {
     enum Route: Hashable {
         case welcome          // EchoWelcomeView — single page, no carousel
         case nameAndKey       // NameAndKeyView  — fused name + Face ID (2-in-1)
@@ -30,7 +30,7 @@ final class FirstRunCoordinator {
     let onComplete: (String) -> Void
     let onRestoreComplete: (RestoredIdentity) -> Void
 
-    init(
+    public init(
         onComplete: @escaping (String) -> Void,
         onRestoreComplete: @escaping (RestoredIdentity) -> Void
     ) {
@@ -82,10 +82,14 @@ final class FirstRunCoordinator {
 
 // MARK: - Root NavigationStack
 
-struct FirstRunCoordinatorView: View {
+public struct FirstRunCoordinatorView: View {
     @State var coordinator: FirstRunCoordinator
 
-    var body: some View {
+    public init(coordinator: FirstRunCoordinator) {
+        _coordinator = State(wrappedValue: coordinator)
+    }
+
+    public var body: some View {
         NavigationStack(path: $coordinator.path) {
             // Root: new single-page welcome (no carousel)
             EchoWelcomeView(

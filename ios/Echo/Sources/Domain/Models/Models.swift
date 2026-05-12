@@ -356,8 +356,8 @@ enum PersonaVisibility: String, Codable {
     case all, selected, hidden
 }
 
-struct Persona: Codable, Identifiable {
-    let id: String
+public struct Persona: Codable, Identifiable {
+    public let id: String
     var type: PersonaType
     var name: String
     var displayName: String
@@ -729,79 +729,89 @@ struct VisibilityMatrixEntry: Identifiable {
 
 // MARK: - Enhanced Settings Models
 
-struct EnhancedNotificationSettings: Codable {
-    var messageNotifications: Bool = true
-    var showPreviews: String = "always"
-    var messageSound: String = "Echo Default"
-    var groupNotifications: Bool = true
-    var mentionsOnly: Bool = false
-    var callNotifications: Bool = true
-    var ringSound: String = "Reflection"
-    var contactRequests: Bool = true
-    var trustScoreChanges: Bool = true
-    var rewardNotifications: Bool = true
-    var quietHoursEnabled: Bool = false
-    var quietHoursFrom: String = "22:00"
-    var quietHoursTo: String = "07:00"
-    var allowInnerCircleCalls: Bool = true
+public struct EnhancedNotificationSettings: Codable {
+    public var messageNotifications: Bool = true
+    public var showPreviews: String = "always"
+    public var messageSound: String = "Echo Default"
+    public var groupNotifications: Bool = true
+    public var mentionsOnly: Bool = false
+    public var callNotifications: Bool = true
+    public var ringSound: String = "Reflection"
+    public var contactRequests: Bool = true
+    public var trustScoreChanges: Bool = true
+    public var rewardNotifications: Bool = true
+    public var quietHoursEnabled: Bool = false
+    public var quietHoursFrom: String = "22:00"
+    public var quietHoursTo: String = "07:00"
+    public var allowInnerCircleCalls: Bool = true
+
+    public init() {}
 }
 
-struct EnhancedPrivacySettings: Codable {
-    var findByUsername: String = "everyone"
-    var showOnlineStatus: String = "contacts"
-    var showTrustScore: String = "everyone"
-    var whoCanMessage: String = "contacts"
-    var readReceipts: Bool = true
-    var typingIndicators: Bool = true
-    var whoCanCall: String = "trusted"
-    var anchorMessagesByDefault: Bool = false
-    var showVerificationBadges: Bool = true
-    var screenLockTimeout: String = "immediately"
-    var hideMessagePreviews: Bool = true
-    var screenshotNotifications: Bool = true
+public struct EnhancedPrivacySettings: Codable {
+    public var findByUsername: String = "everyone"
+    public var showOnlineStatus: String = "contacts"
+    public var showTrustScore: String = "everyone"
+    public var whoCanMessage: String = "contacts"
+    public var readReceipts: Bool = true
+    public var typingIndicators: Bool = true
+    public var whoCanCall: String = "trusted"
+    public var anchorMessagesByDefault: Bool = false
+    public var showVerificationBadges: Bool = true
+    public var screenLockTimeout: String = "immediately"
+    public var hideMessagePreviews: Bool = true
+    public var screenshotNotifications: Bool = true
     // WO-208 additions
-    var showLastSeen: Bool = true
-    var showProfilePicture: Bool = true
-    var showStatusMessage: Bool = true
-    var contactDiscoveryOptIn: Bool = true
-    var showEncryptionIndicator: Bool = true
+    public var showLastSeen: Bool = true
+    public var showProfilePicture: Bool = true
+    public var showStatusMessage: Bool = true
+    public var contactDiscoveryOptIn: Bool = true
+    public var showEncryptionIndicator: Bool = true
+
+    public init() {}
 }
 
-struct AppearanceSettings: Codable {
-    var theme: String = "light"
-    var accentColor: String = "indigo"
-    var chatWallpaper: String = "default"
-    var messageCorners: String = "rounded"
-    var fontSize: String = "medium"
-    var appIcon: String = "default"
+public struct AppearanceSettings: Codable {
+    public var theme: String = "light"
+    public var accentColor: String = "indigo"
+    public var chatWallpaper: String = "default"
+    public var messageCorners: String = "rounded"
+    public var fontSize: String = "medium"
+    public var appIcon: String = "default"
+
+    public init() {}
 }
 
-struct StorageInfo: Codable {
-    var totalUsedBytes: Int64 = 0
-    var totalCapacityBytes: Int64 = 0
-    var photosVideosBytes: Int64 = 0
-    var documentsBytes: Int64 = 0
-    var voiceMessagesBytes: Int64 = 0
-    var otherBytes: Int64 = 0
-    var cacheBytes: Int64 = 0
-    var autoDownload: String = "wifi"
-    var mediaQuality: String = "standard"
-    var keepMedia: String = "forever"
-    var useLessDataForCalls: Bool = false
-    var autoBackup: String = "daily"
-    var includeMediaInBackup: Bool = true
-    var lastBackupDate: Date?
+public struct StorageInfo: Codable {
+    public var totalUsedBytes: Int64 = 0
+    public var totalCapacityBytes: Int64 = 0
+    public var photosVideosBytes: Int64 = 0
+    public var documentsBytes: Int64 = 0
+    public var voiceMessagesBytes: Int64 = 0
+    public var otherBytes: Int64 = 0
+    public var cacheBytes: Int64 = 0
+    public var autoDownload: String = "wifi"
+    public var mediaQuality: String = "standard"
+    public var keepMedia: String = "forever"
+    public var useLessDataForCalls: Bool = false
+    public var autoBackup: String = "daily"
+    public var includeMediaInBackup: Bool = true
+    public var lastBackupDate: Date?
+
+    public init() {}
 }
 
-struct AccountInfo: Codable {
-    var phone: String = ""
-    var email: String?
-    var did: String?
-    var passkeyCount: Int = 0
-    var twoFactorEnabled: Bool = false
-    var activeSessionCount: Int = 0
-    var recoveryPhraseSetUp: Bool = false
-    var trustedRecoveryContactCount: Int = 0
+public struct AccountInfo: Codable {
+    public var phone: String = ""
+    public var email: String?
+    public var did: String?
+    public var passkeyCount: Int = 0
+    public var twoFactorEnabled: Bool = false
+    public var activeSessionCount: Int = 0
+    public var recoveryPhraseSetUp: Bool = false
+    public var trustedRecoveryContactCount: Int = 0
+
+    public init() {}
 }
 
 // MARK: - Web of Trust Model

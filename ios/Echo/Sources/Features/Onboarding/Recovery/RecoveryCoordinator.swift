@@ -6,7 +6,7 @@ import Observation
 
 @MainActor
 @Observable
-final class RecoveryCoordinator {
+public final class RecoveryCoordinator {
     enum Route: Hashable {
         case phraseDisplay
         case phraseConfirm
@@ -22,7 +22,7 @@ final class RecoveryCoordinator {
     let onRestoreComplete: (RestoredIdentity) -> Void
     let onCancel: () -> Void
 
-    init(
+    public init(
         onExportComplete: @escaping () -> Void,
         onRestoreComplete: @escaping (RestoredIdentity) -> Void,
         onCancel: @escaping () -> Void
@@ -69,10 +69,14 @@ final class RecoveryCoordinator {
 
 // MARK: - Root NavigationStack
 
-struct RecoveryCoordinatorView: View {
+public struct RecoveryCoordinatorView: View {
     @State var coordinator: RecoveryCoordinator
 
-    var body: some View {
+    public init(coordinator: RecoveryCoordinator) {
+        _coordinator = State(wrappedValue: coordinator)
+    }
+
+    public var body: some View {
         NavigationStack(path: $coordinator.path) {
             // RecoveryCoordinatorView is always entered via a sheet; the root
             // is either the phrase display (export flow) or the restore form.
@@ -94,7 +98,7 @@ struct RecoveryCoordinatorView: View {
 
 // MARK: - Restored identity
 
-struct RestoredIdentity: Sendable {
+public struct RestoredIdentity: Sendable {
     let did: String
     let walletAddress: String
     let displayName: String

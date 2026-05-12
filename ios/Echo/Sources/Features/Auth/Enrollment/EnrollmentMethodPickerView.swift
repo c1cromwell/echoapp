@@ -7,10 +7,14 @@
 
 import SwiftUI
 
-struct EnrollmentMethodPickerView: View {
+public struct EnrollmentMethodPickerView: View {
     let coordinator: EnrollmentCoordinator
 
-    var body: some View {
+    public init(coordinator: EnrollmentCoordinator) {
+        self.coordinator = coordinator
+    }
+
+    public var body: some View {
         ZStack {
             Color.Echo.surface.ignoresSafeArea()
             AtmosphericBackground()

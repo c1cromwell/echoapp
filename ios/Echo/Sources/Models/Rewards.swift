@@ -138,3 +138,5 @@ public struct ReferralInfo {
         self.createdAt = Date()
     }
 }
+
+// DailyRewards and RewardEarningEntry are defined in Core/Stargazer/WalletTypes.swift.
