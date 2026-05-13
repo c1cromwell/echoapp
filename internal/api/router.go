@@ -165,6 +165,8 @@ func (rt *Router) Handler() http.Handler {
 			rt.handleSMSRecoveryRegister(w, r)
 		case r.URL.Path == "/v1/auth/sms-recovery/verify":
 			rt.handleSMSRecoveryVerify(w, r)
+		case r.URL.Path == "/v1/auth/vip-verify":
+			rt.handleVIPVerify(w, r)
 		case r.URL.Path == "/v1/auth/sms-recovery/challenge":
 			rt.handleSMSRecoveryChallenge(w, r)
 		case strings.HasPrefix(r.URL.Path, "/v1/"):
@@ -212,6 +214,7 @@ var publicPaths = map[string]bool{
 	"/v1/auth/sms-recovery/register":   true, // Wave 12: phone commitment registration
 	"/v1/auth/sms-recovery/verify":     true, // Wave 12: OTP verification
 	"/v1/auth/sms-recovery/challenge":  true, // Wave 12: recovery challenge
+	"/v1/auth/vip-verify":              true, // Phase 1: VIP identity verification result
 	"/identity/register":               true,
 	"/identity/devices":                true,
 }

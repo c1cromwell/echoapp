@@ -14,6 +14,10 @@ public struct VIPSuccessView: View {
         self.onContinue = onContinue
     }
 
+    private var evidenceType: String {
+        trustTier >= 4 ? "digital_id" : "standard_idv"
+    }
+
     private var isElite: Bool { trustTier >= 4 }
 
     private var headline: String {
@@ -100,6 +104,11 @@ public struct VIPSuccessView: View {
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) { SecureThreadIndicator() }
+        .task {
+            // Persist trust tier to backend (best-effort, does not block the UX)
+            guard let did = UserDefaults.standard.string(forKey: "echo.did.current") else { return }
+            try? await RealProvisionAPI().updateTrustTier(did: did, trustTier: trustTier, evidenceType: evidenceType)
+        }
     }
 }
 

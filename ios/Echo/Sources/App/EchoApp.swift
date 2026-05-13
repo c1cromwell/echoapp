@@ -8,10 +8,10 @@ struct EchoApp: App {
 
     init() {
         let provisionService = SilentProvisionService(
-            secureEnclave: StubProvisionSecureEnclave(),
-            api: StubProvisionAPI(),
-            stargazer: StubProvisionStargazer(),
-            passkeyProvider: StubProvisionPasskey()
+            secureEnclave: RealProvisionSecureEnclave(),
+            api: RealProvisionAPI(),
+            stargazer: StubProvisionStargazer(),     // Phase 2: real Stargazer SDK
+            passkeyProvider: StubProvisionPasskey()  // Phase 2: real WebAuthn
         )
         _appState = State(initialValue: AppState(provisionService: provisionService))
     }
