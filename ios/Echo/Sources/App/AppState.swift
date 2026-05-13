@@ -18,12 +18,14 @@ final class AppState {
     var root: Root
     var selectedTab: AppTab = .messages
     var displayName: String = ""
+    var trustTier: Int = 0
 
     let provisionService: SilentProvisionService
 
     init(provisionService: SilentProvisionService) {
         self.provisionService = provisionService
         self.displayName = UserDefaults.standard.string(forKey: "echo.displayName") ?? ""
+        self.trustTier = UserDefaults.standard.integer(forKey: "echo.trustTier")
         self.root = Self.initialRoot()
     }
 
@@ -35,12 +37,14 @@ final class AppState {
 
     // MARK: - First-run intents
 
-    func firstRunCompleted(displayName: String) {
+    func firstRunCompleted(displayName: String, trustTier: Int = 0) {
         self.displayName = displayName
+        self.trustTier = trustTier
         provisionService.begin(displayName: displayName)
         UserDefaults.standard.set(true, forKey: "echo.hasCompletedFirstRun")
         UserDefaults.standard.set(Date(), forKey: "echo.firstRunCompletedAt")
         UserDefaults.standard.set(displayName, forKey: "echo.displayName")
+        UserDefaults.standard.set(trustTier, forKey: "echo.trustTier")
         root = .authenticated
     }
 
@@ -73,8 +77,8 @@ struct EchoRootView: View {
             case .firstRun:
                 FirstRunCoordinatorView(
                     coordinator: FirstRunCoordinator(
-                        onComplete: { name in
-                            appState.firstRunCompleted(displayName: name)
+                        onComplete: { name, tier in
+                            appState.firstRunCompleted(displayName: name, trustTier: tier)
                         },
                         onRestoreComplete: { identity in
                             appState.firstRunRestoreCompleted(identity)

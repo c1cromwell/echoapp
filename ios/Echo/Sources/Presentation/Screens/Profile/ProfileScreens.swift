@@ -108,7 +108,7 @@ public struct ProfileTabView: View {
 
                 if profile.isVerified {
                     Image(systemName: "checkmark.seal.fill")
-                        .foregroundColor(.echoPrimary)
+                        .foregroundColor(.echoTrustGreen)
                         .font(.system(size: 18))
                 }
             }
@@ -642,15 +642,21 @@ public struct PersonasManagementView: View {
 public struct AccountSettingsView: View {
     @Environment(\.dismiss) var dismiss
     let account: AccountInfo
+    let trustTier: Int
     let onDeleteAccount: () -> Void
+    let onVerify: () -> Void
     @State private var showDeleteAlert = false
 
     public init(
         account: AccountInfo = AccountInfo(),
-        onDeleteAccount: @escaping () -> Void = {}
+        trustTier: Int = 0,
+        onDeleteAccount: @escaping () -> Void = {},
+        onVerify: @escaping () -> Void = {}
     ) {
         self.account = account
+        self.trustTier = trustTier
         self.onDeleteAccount = onDeleteAccount
+        self.onVerify = onVerify
     }
 
     public var body: some View {
@@ -741,6 +747,39 @@ public struct AccountSettingsView: View {
                                 title: "Trusted Recovery Contacts",
                                 value: "\(account.trustedRecoveryContactCount) contacts set up"
                             )
+                        }
+
+                        // Verification
+                        SettingsSectionView(title: "Verification") {
+                            if trustTier == 0 {
+                                Button(action: onVerify) {
+                                    HStack {
+                                        Image(systemName: "checkmark.seal")
+                                            .foregroundColor(.echoTrustGreen)
+                                        Text("Become a Verified User")
+                                            .typographyStyle(.body, color: .echoPrimaryText)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.echoGray400)
+                                    }
+                                    .padding(Spacing.lg.rawValue)
+                                }
+                            } else {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "checkmark.seal.fill")
+                                        .foregroundColor(.echoTrustGreen)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(trustTier >= 4 ? "Trusted User · T4" : "Verified User · T2")
+                                            .typographyStyle(.body, color: .echoPrimaryText)
+                                        Text("Identity verified")
+                                            .typographyStyle(.caption, color: .echoSecondaryText)
+                                    }
+                                    Spacer()
+                                    TrustBadge(level: trustTier >= 4 ? "Trusted" : "Verified", size: .small)
+                                }
+                                .padding(Spacing.lg.rawValue)
+                            }
                         }
 
                         // Danger Zone

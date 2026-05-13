@@ -30,30 +30,56 @@ struct DemoRootView: View {
                 // MARK: Onboarding — Design Review (2-step)
                 // "Compress onboarding to two screens" — Claude Design
                 // ────────────────────────────────────────────────────────
-                Section("Onboarding — Design Review (2-step)") {
-                    DemoLink("1 · Welcome (single page, no carousel)") {
+                Section("Onboarding — Redesigned (VIP Flow)") {
+                    DemoLink("1 · Welcome") {
                         EchoWelcomeView(onSetUp: {}, onAlreadyHaveAccount: {})
                     }
-                    DemoLink("2 · Name + Face ID (fused)") {
-                        NameAndKeyView(onComplete: { _, _ in }, onSkip: {})
+                    DemoLink("2 · Username Entry") {
+                        DisplayNameEntryView(
+                            coordinator: FirstRunCoordinator(
+                                onComplete: { _, _ in },
+                                onRestoreComplete: { _ in }
+                            )
+                        )
                     }
-                    DemoLink("2b · Recovery Setup") {
+                    DemoLink("3 · Onboarding Options (Face ID + VIP)") {
+                        OnboardingOptionsView(
+                            coordinator: FirstRunCoordinator(
+                                onComplete: { _, _ in },
+                                onRestoreComplete: { _ in }
+                            )
+                        )
+                    }
+                    DemoLink("4a · VIP Path Picker") {
+                        NavigationStack {
+                            VIPPathView(
+                                did: "did:key:zDemoVIP",
+                                onDigitalID: { _ in },
+                                onStandardIDV: { _ in },
+                                onSkip: {}
+                            )
+                        }
+                    }
+                    DemoLink("4b · VIP Standard IDV") {
+                        VIPStandardIDVView(did: "did:key:zDemoVIP") { _ in }
+                    }
+                    DemoLink("5 · VIP Success · T2 Verified") {
+                        VIPSuccessView(trustTier: 2) {}
+                    }
+                    DemoLink("5 · VIP Success · T4 Trusted") {
+                        VIPSuccessView(trustTier: 4) {}
+                    }
+                    DemoLink("6 · Recovery Setup") {
                         RecoverySetupView(
                             did: "did:key:zDemoDesignReview",
                             onComplete: {},
                             onSkip: {}
                         )
                     }
-                    DemoLink("2c · SMS OTP Setup") {
-                        SMSOTPSetupView(
-                            did: "did:key:zDemoDesignReview",
-                            onConfigured: {}
-                        )
-                    }
-                    DemoLink("Full 2-step Flow") {
+                    DemoLink("Full Redesigned Flow") {
                         FirstRunCoordinatorView(
                             coordinator: FirstRunCoordinator(
-                                onComplete: { _ in },
+                                onComplete: { _, _ in },
                                 onRestoreComplete: { _ in }
                             )
                         )
@@ -63,19 +89,11 @@ struct DemoRootView: View {
                 // ────────────────────────────────────────────────────────
                 // MARK: Onboarding — Legacy (Wave 12 4-step, kept for reference)
                 // ────────────────────────────────────────────────────────
-                Section("Onboarding — Legacy (4-step, Wave 12)") {
+                Section("Onboarding — Legacy (Wave 12, for reference)") {
                     DemoLink("Welcome Carousel (old)") {
                         WelcomeCarouselView(
                             coordinator: FirstRunCoordinator(
-                                onComplete: { _ in },
-                                onRestoreComplete: { _ in }
-                            )
-                        )
-                    }
-                    DemoLink("Username Entry (old step 1)") {
-                        DisplayNameEntryView(
-                            coordinator: FirstRunCoordinator(
-                                onComplete: { _ in },
+                                onComplete: { _, _ in },
                                 onRestoreComplete: { _ in }
                             )
                         )

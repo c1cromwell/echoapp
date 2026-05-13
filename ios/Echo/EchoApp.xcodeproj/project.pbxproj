@@ -162,6 +162,10 @@
 		20236D6707154AA4AABBF37A /* IdentityCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF1C5DE7829640F9BD1D51AA /* IdentityCardView.swift */; };
 		EECBE178A0D0465BACA697E7 /* BiometricLockoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6125BC995B494A6E8821C867 /* BiometricLockoutView.swift */; };
 		D8CCBC09BC79427FABFDFF91 /* StorageLockedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 404E937D2E5B42EFBF874085 /* StorageLockedView.swift */; };
+		C9D2F60B87F94B98BDF35119 /* OnboardingOptionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C4FB342BDBA4A46BCB6A489 /* OnboardingOptionsView.swift */; };
+		A91A538BBFCF43A7BCB34691 /* VIPPathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F638568F074357AEE51CD9 /* VIPPathView.swift */; };
+		0B4FE7EA463245E7B6531EEA /* VIPStandardIDVView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E6EA147E2FF4D5F80E78EB1 /* VIPStandardIDVView.swift */; };
+		D40F41C357A240FD9CC3B02C /* VIPSuccessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E53DD00F80A34C11ADAECDD4 /* VIPSuccessView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -321,6 +325,10 @@
 		EF1C5DE7829640F9BD1D51AA /* IdentityCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Presentation/Screens/Profile/IdentityCardView.swift; sourceTree = "<group>"; };
 		6125BC995B494A6E8821C867 /* BiometricLockoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Security/BiometricLockoutView.swift; sourceTree = "<group>"; };
 		404E937D2E5B42EFBF874085 /* StorageLockedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Security/StorageLockedView.swift; sourceTree = "<group>"; };
+		3C4FB342BDBA4A46BCB6A489 /* OnboardingOptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift; sourceTree = "<group>"; };
+		C3F638568F074357AEE51CD9 /* VIPPathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/VIP/VIPPathView.swift; sourceTree = "<group>"; };
+		5E6EA147E2FF4D5F80E78EB1 /* VIPStandardIDVView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/VIP/VIPStandardIDVView.swift; sourceTree = "<group>"; };
+		E53DD00F80A34C11ADAECDD4 /* VIPSuccessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/VIP/VIPSuccessView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -1189,6 +1197,10 @@
 				3ADA25FCFF9B7B005460980F /* WalletViewModel.swift in Sources */,
 				ABE1805C939CE820FC9F4E6B /* WebSocketClient.swift in Sources */,
 				CCF456E401C263EE1B3078EE /* WelcomeCarouselView.swift in Sources */,
+				C9D2F60B87F94B98BDF35119 /* OnboardingOptionsView.swift in Sources */,
+				A91A538BBFCF43A7BCB34691 /* VIPPathView.swift in Sources */,
+				0B4FE7EA463245E7B6531EEA /* VIPStandardIDVView.swift in Sources */,
+				D40F41C357A240FD9CC3B02C /* VIPSuccessView.swift in Sources */,
 				CBF3ACC0B7864928AF7B2A71 /* FileEncryptionService.swift in Sources */,
 				869E0F4731AE4BFAA30E56B7 /* Logger.swift in Sources */,
 				4EE7E6478616426686A16F54 /* EchoMark.swift in Sources */,

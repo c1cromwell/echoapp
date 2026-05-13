@@ -61,7 +61,7 @@ public struct DisplayNameEntryView: View {
                 .accessibilityLabel("Back to welcome")
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Text("Step 1 of 3")
+                Text("Step 1 of 2")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(1.4)
                     .foregroundStyle(Color.Echo.onSurfaceVariant)
