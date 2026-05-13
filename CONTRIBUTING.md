@@ -99,13 +99,14 @@ echo "deb [signed-by=/usr/share/keyrings/adoptium.gpg] https://packages.adoptium
   | sudo tee /etc/apt/sources.list.d/adoptium.list
 sudo apt update && sudo apt install -y temurin-21-jdk
 
-# Coursier + Scala + sbt + scalafmt  (no apt/GPG needed, works on x86_64 + ARM64)
-CS_ARCH=$(uname -m | sed 's/aarch64/aarch64/;s/arm64/aarch64/;s/x86_64/x86_64/')
-curl -fL "https://github.com/coursier/coursier/releases/latest/download/cs-${CS_ARCH}-pc-linux.gz" \
-  | gunzip > /tmp/cs && chmod +x /tmp/cs && sudo mv /tmp/cs /usr/local/bin/cs
-cs install sbt scala:2.13.10 scalafmt
-echo 'export PATH="$PATH:$HOME/.local/share/coursier/bin"' >> ~/.bashrc
-source ~/.bashrc
+# sbt + Scala via SDKMAN (handles x86_64 and ARM64 automatically, no GPG needed)
+curl -s "https://get.sdkman.io" | bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+sdk install sbt 1.9.9
+sdk install scala 2.13.10
+
+# scalafmt (optional — only needed when editing metagraph Scala sources)
+# Install via sbt plugin or skip; standalone binary has its own arch issues.
 
 # argc
 cargo install argc   # requires Rust toolchain; or download release binary
