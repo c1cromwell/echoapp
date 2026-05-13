@@ -92,6 +92,12 @@ The commands below work identically on both images and on Debian 12.
 ```bash
 sudo apt update && sudo apt install -y curl gnupg jq yq git build-essential
 
+# Remove any stale sbt apt sources (left over from earlier failed attempts).
+# The Docker installer runs apt update internally and will fail if these exist.
+sudo rm -f /etc/apt/sources.list.d/sbt.list \
+           /etc/apt/sources.list.d/sbt-old.list \
+           /usr/share/keyrings/sbt.gpg
+
 # JDK 21 (Temurin)
 curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public \
   | sudo gpg --dearmor -o /usr/share/keyrings/adoptium.gpg
