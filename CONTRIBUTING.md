@@ -99,11 +99,11 @@ echo "deb [signed-by=/usr/share/keyrings/adoptium.gpg] https://packages.adoptium
   | sudo tee /etc/apt/sources.list.d/adoptium.list
 sudo apt update && sudo apt install -y temurin-21-jdk
 
-# sbt
-echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" \
-  | sudo tee /etc/apt/sources.list.d/sbt.list
-curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x99E82A75642AC823" \
+# sbt — fetch key directly from JFrog (avoids keyserver reliability issues)
+curl -fsSL https://scala.jfrog.io/artifactory/debian/sbt.asc \
   | sudo gpg --dearmor -o /usr/share/keyrings/sbt.gpg
+echo "deb [signed-by=/usr/share/keyrings/sbt.gpg] https://repo.scala-sbt.org/scalasbt/debian all main" \
+  | sudo tee /etc/apt/sources.list.d/sbt.list
 sudo apt update && sudo apt install -y sbt
 
 # Coursier + Scala + scalafmt
