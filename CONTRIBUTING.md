@@ -121,8 +121,11 @@ cargo install argc   # requires Rust toolchain; or download release binary
 curl -fsSL https://get.docker.com | sudo sh
 sudo usermod -aG docker "$USER"   # log out / back in for this to take effect
 
-# Go (matches go.mod toolchain — pin to 1.21+)
-curl -fsSL https://go.dev/dl/go1.22.linux-amd64.tar.gz | sudo tar -C /usr/local -xz
+# Go — fetch latest stable, detect arch (works on x86_64 and ARM64)
+GO_ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+GO_VER=$(curl -fsSL "https://go.dev/VERSION?m=text" | head -1)
+curl -fsSL "https://go.dev/dl/${GO_VER}.linux-${GO_ARCH}.tar.gz" \
+  | sudo tar -C /usr/local -xz
 echo 'export PATH="$PATH:/usr/local/go/bin"' >> ~/.bashrc
 ```
 
