@@ -13,13 +13,19 @@ import LocalAuthentication
 public struct BiometricLockoutView: View {
     let lockState: BiometricLockState
     let onUnlocked: () -> Void
+    let onRecovery: () -> Void
 
     @State private var secondsRemaining: Int = 0
     @State private var timer: Timer?
 
-    public init(lockState: BiometricLockState, onUnlocked: @escaping () -> Void = {}) {
+    public init(
+        lockState: BiometricLockState,
+        onUnlocked: @escaping () -> Void = {},
+        onRecovery: @escaping () -> Void = {}
+    ) {
         self.lockState = lockState
         self.onUnlocked = onUnlocked
+        self.onRecovery = onRecovery
     }
 
     public var body: some View {
@@ -73,6 +79,14 @@ public struct BiometricLockoutView: View {
                         EchoButton("Try \(biometricLabel)", style: .secondary) {
                             retryBiometric()
                         }
+                    }
+
+                    // Recover via SMS — shown in hard-locked state
+                    if case .hardLocked = lockState {
+                        Button("Recover account via SMS") { onRecovery() }
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color.echoInk55)
+                            .padding(.top, 4)
                     }
                 }
                 .padding(.horizontal, 24)

@@ -166,6 +166,7 @@
 		A91A538BBFCF43A7BCB34691 /* VIPPathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F638568F074357AEE51CD9 /* VIPPathView.swift */; };
 		0B4FE7EA463245E7B6531EEA /* VIPStandardIDVView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E6EA147E2FF4D5F80E78EB1 /* VIPStandardIDVView.swift */; };
 		D40F41C357A240FD9CC3B02C /* VIPSuccessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E53DD00F80A34C11ADAECDD4 /* VIPSuccessView.swift */; };
+		AC357D766BDD4417A4EAF20C /* StepUpAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3141640DB14B49719F5CD49A /* StepUpAuthManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -329,6 +330,7 @@
 		C3F638568F074357AEE51CD9 /* VIPPathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/VIP/VIPPathView.swift; sourceTree = "<group>"; };
 		5E6EA147E2FF4D5F80E78EB1 /* VIPStandardIDVView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/VIP/VIPStandardIDVView.swift; sourceTree = "<group>"; };
 		E53DD00F80A34C11ADAECDD4 /* VIPSuccessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/VIP/VIPSuccessView.swift; sourceTree = "<group>"; };
+		3141640DB14B49719F5CD49A /* StepUpAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Core/Security/StepUpAuthManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -1197,6 +1199,7 @@
 				3ADA25FCFF9B7B005460980F /* WalletViewModel.swift in Sources */,
 				ABE1805C939CE820FC9F4E6B /* WebSocketClient.swift in Sources */,
 				CCF456E401C263EE1B3078EE /* WelcomeCarouselView.swift in Sources */,
+				AC357D766BDD4417A4EAF20C /* StepUpAuthManager.swift in Sources */,
 				C9D2F60B87F94B98BDF35119 /* OnboardingOptionsView.swift in Sources */,
 				A91A538BBFCF43A7BCB34691 /* VIPPathView.swift in Sources */,
 				0B4FE7EA463245E7B6531EEA /* VIPStandardIDVView.swift in Sources */,

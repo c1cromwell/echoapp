@@ -1,18 +1,18 @@
 #if os(iOS)
-import SwiftUI
+// Features/Personas/PersonaGateView.swift
+// Biometric re-auth gate for hidden personas, folders, and chats.
+//
+// Supports three step-up methods via StepUpAuthManager:
+//   .faceID         — SE key sign (default)
+//   .passkey        — same SE key, different label
+//   .devicePasscode — LAContext .deviceOwnerAuthentication
+//
+// The preferred method is read from StepUpAuthManager.shared.preferredMethod.
+// A "Try another method" sheet is shown after the second failure.
+//
+// Security: auto-locks after 2 minutes in the background.
 
-// Wave 12: Biometric re-auth gate for hidden personas and folders.
-//
-// Usage:
-//   PersonaGateView(personaID: persona.id) {
-//       HiddenConversationListView(persona: persona)
-//   }
-//
-// Security properties:
-//   - Triggers SecureEnclaveManager.sign() with a per-persona nonce — Face ID prompts
-//   - The resulting signature is discarded immediately (proof-of-presence, not a secret)
-//   - Auto-locks after 2 minutes of the app being in the background
-//   - Re-auth required each time the user returns from background while gated
+import SwiftUI
 
 public struct PersonaGateView<Content: View>: View {
     let personaID: String
@@ -22,6 +22,8 @@ public struct PersonaGateView<Content: View>: View {
     @State private var isUnlocking = false
     @State private var errorMessage: String?
     @State private var unlockTime: Date?
+    @State private var failureCount = 0
+    @State private var showMethodPicker = false
     @Environment(\.scenePhase) private var scenePhase
 
     private let lockAfterBackground: TimeInterval = 120
@@ -36,14 +38,12 @@ public struct PersonaGateView<Content: View>: View {
             if isUnlocked {
                 protectedContent()
                     .onChange(of: scenePhase) { _, newPhase in
-                        if newPhase == .background {
-                            // Start the lock countdown.
-                        } else if newPhase == .active {
-                            // If the app was in the background for too long, re-lock.
-                            if let t = unlockTime, Date().timeIntervalSince(t) > lockAfterBackground {
-                                isUnlocked = false
-                                unlockTime = nil
-                            }
+                        if newPhase == .active,
+                           let t = unlockTime,
+                           Date().timeIntervalSince(t) > lockAfterBackground {
+                            isUnlocked = false
+                            unlockTime = nil
+                            failureCount = 0
                         }
                     }
             } else {
@@ -55,11 +55,16 @@ public struct PersonaGateView<Content: View>: View {
                 unlockTime = isUnlocked ? Date() : nil
             }
         }
+        .sheet(isPresented: $showMethodPicker) {
+            methodPickerSheet
+        }
     }
 
     // MARK: - Gate screen
-    // Design review: dark surface for private moments so "privacy feels different, not just looks it".
-    // Minimal copy — no logo, no hint at what's hidden, no decorative chrome.
+
+    private var preferredMethod: StepUpMethod {
+        StepUpAuthManager.shared.preferredMethod
+    }
 
     private var gateScreen: some View {
         ZStack {
@@ -68,22 +73,18 @@ public struct PersonaGateView<Content: View>: View {
             VStack(spacing: 0) {
                 Spacer()
 
-                // Double-ring circle around Face ID glyph
+                // Method icon in double-ring
                 ZStack {
                     Circle()
                         .stroke(Color.echoNightHair, lineWidth: 1)
                         .frame(width: 136, height: 136)
-
                     Circle()
                         .stroke(Color.echoNightHair.opacity(0.5), lineWidth: 1)
                         .frame(width: 120, height: 120)
-                        .padding(8)
-
                     Circle()
                         .fill(Color.echoNightHi)
                         .frame(width: 120, height: 120)
-
-                    Image(systemName: "faceid")
+                    Image(systemName: preferredMethod.systemIcon)
                         .font(.system(size: 48, weight: .ultraLight))
                         .foregroundStyle(Color.echoNightInk)
                         .scaleEffect(isUnlocking ? 1.06 : 1.0)
@@ -97,7 +98,7 @@ public struct PersonaGateView<Content: View>: View {
                     .tracking(-0.5)
                     .foregroundStyle(Color.echoNightInk)
 
-                Text("This area requires biometric confirmation.\nIt will lock again after two minutes in the background.")
+                Text("This area is protected. It locks again after two minutes in the background.")
                     .font(.system(size: 13.5))
                     .lineSpacing(4)
                     .foregroundStyle(Color.echoNightInk70)
@@ -105,14 +106,14 @@ public struct PersonaGateView<Content: View>: View {
                     .padding(.horizontal, 40)
                     .padding(.top, 10)
 
-                // Mono status tag
-                VStack(spacing: 0) {
+                // Status tag
+                Group {
                     if let error = errorMessage {
                         Text(error)
                             .font(.echomono(11))
                             .foregroundStyle(Color.echoAlert)
                     } else {
-                        Text(isUnlocking ? "● scanning" : "● awaiting Face ID")
+                        Text(isUnlocking ? "● scanning" : "● awaiting \(preferredMethod.displayName)")
                             .font(.echomono(11))
                             .foregroundStyle(Color.echoNightInk40)
                     }
@@ -121,18 +122,28 @@ public struct PersonaGateView<Content: View>: View {
 
                 Spacer()
 
-                // Cancel + Try again — quiet, no filled button
-                HStack(spacing: 16) {
-                    Button("Cancel") { isUnlocked = false }
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color.echoNightInk70)
-                        .padding(8)
+                // Action buttons
+                VStack(spacing: 4) {
+                    HStack(spacing: 16) {
+                        Button("Cancel") { /* dismiss handled by parent */ }
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.echoNightInk70)
+                            .padding(8)
 
-                    Button("Try again") { Task { await unlock() } }
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.echoNightInk)
-                        .padding(8)
-                        .disabled(isUnlocking)
+                        Button("Try again") { Task { await unlock() } }
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Color.echoNightInk)
+                            .padding(8)
+                            .disabled(isUnlocking)
+                    }
+
+                    // Show alternative method button after 2nd failure
+                    if failureCount >= 2 {
+                        Button("Try another method") { showMethodPicker = true }
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.echoNightInk40)
+                            .padding(.top, 4)
+                    }
                 }
                 .padding(.bottom, 48)
             }
@@ -146,35 +157,90 @@ public struct PersonaGateView<Content: View>: View {
         }
     }
 
+    // MARK: - Method picker sheet
+
+    private var methodPickerSheet: some View {
+        VStack(spacing: 0) {
+            Capsule()
+                .fill(Color.echoHair)
+                .frame(width: 36, height: 5)
+                .padding(.top, 12)
+                .padding(.bottom, 20)
+
+            Text("Choose verification method")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Color.echoInk)
+                .padding(.bottom, 16)
+
+            ForEach(StepUpMethod.allCases, id: \.rawValue) { method in
+                if method.isAvailable {
+                    Button {
+                        showMethodPicker = false
+                        Task {
+                            try? await Task.sleep(nanoseconds: 200_000_000)
+                            await unlock(override: method)
+                        }
+                    } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: method.systemIcon)
+                                .font(.system(size: 20))
+                                .foregroundStyle(Color.echoSignal)
+                                .frame(width: 32)
+                            Text(method.displayName)
+                                .font(.system(size: 15))
+                                .foregroundStyle(Color.echoInk)
+                            Spacer()
+                            if method == preferredMethod {
+                                Text("Default")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(Color.echoInk40)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(Color.echoHair, in: Capsule())
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 14)
+                    }
+                    Divider().padding(.leading, 70)
+                }
+            }
+
+            Spacer()
+        }
+        .presentationDetents([.fraction(0.42)])
+        .presentationDragIndicator(.hidden)
+    }
+
     // MARK: - Unlock
 
-    private func unlock() async {
+    private func unlock(override method: StepUpMethod? = nil) async {
+        guard !isUnlocking else { return }
         isUnlocking = true
         errorMessage = nil
 
         do {
-            // Proof-of-presence: sign a per-persona nonce with the identity key.
-            // Face ID is triggered here. The signature is discarded — we just need
-            // to know the biometric passed.
-            let nonce = Data("persona-access-\(personaID)-\(Date().timeIntervalSince1970)".utf8)
-            _ = try await SecureEnclaveManager.shared.sign(
-                data: nonce,
-                keyId: "echo-identity-signing"
+            try await StepUpAuthManager.shared.authenticate(
+                reason: "Access hidden content in Echo",
+                override: method
             )
             isUnlocked = true
             unlockTime = Date()
+            failureCount = 0
         } catch {
-            errorMessage = "Verification failed. Please try again."
+            failureCount += 1
+            errorMessage = failureCount >= 2
+                ? "Verification failed. Try another method below."
+                : "Verification failed. Please try again."
         }
 
         isUnlocking = false
     }
 }
 
-// MARK: - Persona model extension
+// MARK: - Persona extension
 
 extension Persona {
-    /// Whether this persona requires a biometric gate to access.
     var requiresGate: Bool { visibility == .hidden }
 }
 #endif

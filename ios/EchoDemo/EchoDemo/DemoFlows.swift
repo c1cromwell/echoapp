@@ -111,11 +111,29 @@ struct DemoRootView: View {
                 // MARK: Auth & Security
                 // ────────────────────────────────────────────────────────
                 Section("Auth & Security") {
-                    DemoLink("Login — 'Look at your phone' (design review)") {
+                    DemoLink("Login — Normal (Face ID auto-trigger)") {
                         GlacialLoginScreen(
                             onPasskeyLogin: {},
                             onSMSLogin: { _ in },
                             onGetStarted: {}
+                        )
+                    }
+                    DemoLink("Login — Soft Locked (5 fails → passcode)") {
+                        GlacialLoginScreen(
+                            onPasskeyLogin: {},
+                            onSMSLogin: { _ in },
+                            onGetStarted: {},
+                            onSuccess: {},
+                            onRecovery: {}
+                        )
+                    }
+                    DemoLink("Login — Biometrics Unavailable") {
+                        GlacialLoginScreen(
+                            onPasskeyLogin: {},
+                            onSMSLogin: { _ in },
+                            onGetStarted: {},
+                            onSuccess: {},
+                            onRecovery: {}
                         )
                     }
                     DemoLink("Storage Locked (WO-224)") {
@@ -123,12 +141,14 @@ struct DemoRootView: View {
                     }
                     DemoLink("Biometric Lockout — Soft (5 fails)") {
                         BiometricLockoutView(
-                            lockState: .requiresPasscode(failureCount: 5)
+                            lockState: .requiresPasscode(failureCount: 5),
+                            onRecovery: {}
                         )
                     }
-                    DemoLink("Biometric Lockout — Hard (10 fails)") {
+                    DemoLink("Biometric Lockout — Hard (10 fails + recovery link)") {
                         BiometricLockoutView(
-                            lockState: .hardLocked(until: Date().addingTimeInterval(12 * 60))
+                            lockState: .hardLocked(until: Date().addingTimeInterval(12 * 60)),
+                            onRecovery: {}
                         )
                     }
                     DemoLink("Passkey Setup (WO-136)") {

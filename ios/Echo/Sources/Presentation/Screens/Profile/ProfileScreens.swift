@@ -646,6 +646,9 @@ public struct AccountSettingsView: View {
     let onDeleteAccount: () -> Void
     let onVerify: () -> Void
     @State private var showDeleteAlert = false
+    @State private var selectedStepUpMethod: StepUpMethod = StepUpAuthManager.shared.preferredMethod
+    @State private var showStepUpMethodPicker = false
+    @State private var isConfirmingMethodChange = false
 
     public init(
         account: AccountInfo = AccountInfo(),
@@ -734,6 +737,34 @@ public struct AccountSettingsView: View {
                             )
                         }
 
+                        // Hidden Content Protection
+                        SettingsSectionView(title: "Hidden Content") {
+                            Button {
+                                showStepUpMethodPicker = true
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: selectedStepUpMethod.systemIcon)
+                                        .font(.system(size: 16))
+                                        .foregroundColor(.echoTrustGreen)
+                                        .frame(width: 24)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Protected by")
+                                            .typographyStyle(.caption, color: .echoSecondaryText)
+                                        Text(selectedStepUpMethod.displayName)
+                                            .typographyStyle(.body, color: .echoPrimaryText)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.echoGray400)
+                                }
+                                .padding(Spacing.lg.rawValue)
+                            }
+                        }
+                        .sheet(isPresented: $showStepUpMethodPicker) {
+                            stepUpMethodPickerSheet
+                        }
+
                         // Recovery
                         SettingsSectionView(title: "Recovery") {
                             SettingsListItem(
@@ -809,6 +840,84 @@ public struct AccountSettingsView: View {
         } message: {
             Text("This action is permanent and cannot be undone. All your data will be lost.")
         }
+    }
+
+    // MARK: - Step-up method picker
+
+    private var stepUpMethodPickerSheet: some View {
+        VStack(spacing: 0) {
+            Capsule()
+                .fill(Color.echoHair)
+                .frame(width: 36, height: 5)
+                .padding(.top, 12)
+                .padding(.bottom, 20)
+
+            Text("Hidden Content Protection")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Color.echoInk)
+
+            Text("Choosing a new method requires verifying with your current method first.")
+                .font(.system(size: 12))
+                .foregroundStyle(Color.echoInk55)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 28)
+                .padding(.top, 6)
+                .padding(.bottom, 20)
+
+            ForEach(StepUpMethod.allCases.filter(\.isAvailable), id: \.rawValue) { method in
+                Button {
+                    guard method != selectedStepUpMethod else {
+                        showStepUpMethodPicker = false
+                        return
+                    }
+                    Task {
+                        // Verify with current method before switching
+                        isConfirmingMethodChange = true
+                        do {
+                            try await StepUpAuthManager.shared.authenticate(
+                                reason: "Confirm method change",
+                                override: selectedStepUpMethod
+                            )
+                            StepUpAuthManager.shared.preferredMethod = method
+                            selectedStepUpMethod = method
+                        } catch {}
+                        isConfirmingMethodChange = false
+                        showStepUpMethodPicker = false
+                    }
+                } label: {
+                    HStack(spacing: 14) {
+                        Image(systemName: method.systemIcon)
+                            .font(.system(size: 20))
+                            .foregroundStyle(Color.echoSignal)
+                            .frame(width: 32)
+                        Text(method.displayName)
+                            .font(.system(size: 15))
+                            .foregroundStyle(Color.echoInk)
+                        Spacer()
+                        if method == selectedStepUpMethod {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Color.echoTrustGreen)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 16)
+                }
+                Divider().padding(.leading, 70)
+            }
+
+            if isConfirmingMethodChange {
+                HStack(spacing: 8) {
+                    ProgressView().tint(Color.echoSignal)
+                    Text("Verifying…").font(.system(size: 13)).foregroundStyle(Color.echoInk55)
+                }
+                .padding(.top, 16)
+            }
+
+            Spacer()
+        }
+        .presentationDetents([.fraction(0.5)])
+        .presentationDragIndicator(.hidden)
     }
 
     private var maskedPhone: String {
