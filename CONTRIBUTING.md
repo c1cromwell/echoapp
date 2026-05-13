@@ -99,17 +99,12 @@ echo "deb [signed-by=/usr/share/keyrings/adoptium.gpg] https://packages.adoptium
   | sudo tee /etc/apt/sources.list.d/adoptium.list
 sudo apt update && sudo apt install -y temurin-21-jdk
 
-# sbt — fetch key directly from JFrog (avoids keyserver reliability issues)
-curl -fsSL https://scala.jfrog.io/artifactory/debian/sbt.asc \
-  | sudo gpg --dearmor -o /usr/share/keyrings/sbt.gpg
-echo "deb [signed-by=/usr/share/keyrings/sbt.gpg] https://repo.scala-sbt.org/scalasbt/debian all main" \
-  | sudo tee /etc/apt/sources.list.d/sbt.list
-sudo apt update && sudo apt install -y sbt
-
-# Coursier + Scala + scalafmt
+# Coursier + Scala + sbt + scalafmt  (no apt/GPG needed)
 curl -fL https://github.com/coursier/coursier/releases/latest/download/cs-x86_64-pc-linux.gz \
   | gunzip > /tmp/cs && chmod +x /tmp/cs && sudo mv /tmp/cs /usr/local/bin/cs
-cs install scala:2.13.10 scalafmt
+cs install sbt scala:2.13.10 scalafmt
+echo 'export PATH="$PATH:$HOME/.local/share/coursier/bin"' >> ~/.bashrc
+source ~/.bashrc
 
 # argc
 cargo install argc   # requires Rust toolchain; or download release binary
