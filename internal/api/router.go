@@ -167,6 +167,8 @@ func (rt *Router) Handler() http.Handler {
 			rt.handleSMSRecoveryVerify(w, r)
 		case r.URL.Path == "/v1/auth/vip-verify":
 			rt.handleVIPVerify(w, r)
+		case r.URL.Path == "/v1/auth/login/challenge":
+			rt.handleLoginChallenge(w, r)
 		case r.URL.Path == "/v1/auth/sms-recovery/challenge":
 			rt.handleSMSRecoveryChallenge(w, r)
 		case strings.HasPrefix(r.URL.Path, "/v1/"):
@@ -215,6 +217,7 @@ var publicPaths = map[string]bool{
 	"/v1/auth/sms-recovery/verify":     true, // Wave 12: OTP verification
 	"/v1/auth/sms-recovery/challenge":  true, // Wave 12: recovery challenge
 	"/v1/auth/vip-verify":              true, // Phase 1: VIP identity verification result
+	"/v1/auth/login/challenge":         true, // Phase 1: nonce for passkey signing (public)
 	"/identity/register":               true,
 	"/identity/devices":                true,
 }
@@ -396,6 +399,8 @@ func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
 		rt.v1GetProfile(w, r)
 
 	// --- Auth endpoints (REQ-INFRA-004) ---
+	case "/v1/auth/step-up":
+		rt.handleStepUp(w, r)
 	case "/v1/auth/register-did":
 		rt.handleRegisterDID(w, r)
 	case "/v1/auth/restore-challenge":

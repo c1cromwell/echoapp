@@ -21,6 +21,10 @@ protocol AuthAPIClientProtocol {
     func getAuditLog(token: String) async throws -> [AuthAuditLogEntry]
     func requestStepUp(action: String, assertion: PasskeyAssertionResult,
                        token: String) async throws -> StepUpTokenResponse
+    /// Phase 1 simplified step-up: sends action with X-Sender-DID + X-Signature.
+    /// No WebAuthn assertion or Bearer token required — signature is added by
+    /// PasskeySigningInterceptor automatically.
+    func requestSimpleStepUp(action: String) async throws -> StepUpTokenResponse
 }
 
 // MARK: - Step-Up Response
@@ -296,6 +300,13 @@ final class AuthAPIClient: AuthAPIClientProtocol {
         let data = try await makeRequest(path: "auth/step-up", body: body, token: token)
         return try decoder.decode(StepUpTokenResponse.self, from: data)
     }
+
+    func requestSimpleStepUp(action: String) async throws -> StepUpTokenResponse {
+        struct Body: Encodable { let action: String }
+        // X-Sender-DID + X-Signature are added by PasskeySigningInterceptor
+        let data = try await makeRequest(path: "auth/step-up", body: Body(action: action))
+        return try decoder.decode(StepUpTokenResponse.self, from: data)
+    }
 }
 
 // MARK: - Mock for Testing
@@ -377,6 +388,15 @@ final class MockAuthAPIClient: AuthAPIClientProtocol {
     }
 
     func requestStepUp(action: String, assertion: PasskeyAssertionResult, token: String) async throws -> StepUpTokenResponse {
+        if let error = errorToThrow { throw error }
+        return stepUpResponse ?? StepUpTokenResponse(
+            elevatedToken: "mock-elevated-token",
+            expiresAt: Date().addingTimeInterval(300),
+            action: action
+        )
+    }
+
+    func requestSimpleStepUp(action: String) async throws -> StepUpTokenResponse {
         if let error = errorToThrow { throw error }
         return stepUpResponse ?? StepUpTokenResponse(
             elevatedToken: "mock-elevated-token",

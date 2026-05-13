@@ -109,17 +109,11 @@ struct StepUpSheetView: View {
                 dismiss()
 
             case .faceID, .passkey:
-                // Full WebAuthn flow → elevated backend token
-                let challenge = try await apiClient.getLoginChallenge()
-                let assertion = try await passkeyManager.authenticateWithPasskey(
-                    challenge: challenge.challengeData
-                )
-                let token = try await tokenManager.getValidAccessToken()
-                let response = try await apiClient.requestStepUp(
-                    action: action.rawValue,
-                    assertion: assertion,
-                    token: token
-                )
+                // Local Face ID / SE key sign proves presence, then request
+                // elevated token from backend. X-Sender-DID + X-Signature are
+                // added automatically by PasskeySigningInterceptor — no Bearer
+                // token or WebAuthn challenge needed for Phase 1.
+                let response = try await apiClient.requestSimpleStepUp(action: action.rawValue)
                 onVerified(response.elevatedToken)
                 dismiss()
             }
