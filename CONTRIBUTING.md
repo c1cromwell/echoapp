@@ -114,9 +114,14 @@ sdk install scala 2.13.10
 # scalafmt (optional — only needed when editing metagraph Scala sources)
 # Install via sbt plugin or skip; standalone binary has its own arch issues.
 
-# argc — requires Rust 1.85+ (edition2024); update before installing
-rustup update stable
-cargo install argc
+# argc — pre-built binary (avoids Rust edition2024 compile issues on Ubuntu)
+ARGC_ARCH=$(uname -m | sed 's/x86_64/x86_64/;s/aarch64/aarch64/')
+ARGC_TAG=$(curl -fsSL "https://api.github.com/repos/sigoden/argc/releases/latest" \
+  | grep '"tag_name"' | head -1 | cut -d'"' -f4)
+curl -fsSL "https://github.com/sigoden/argc/releases/download/${ARGC_TAG}/argc-${ARGC_TAG}-${ARGC_ARCH}-unknown-linux-musl.tar.gz" \
+  | tar -xzf - argc
+sudo mv argc /usr/local/bin/
+unset ARGC_ARCH ARGC_TAG
 
 # Docker Engine + Compose v2
 curl -fsSL https://get.docker.com | sudo sh
