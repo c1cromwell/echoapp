@@ -114,8 +114,9 @@ sdk install scala 2.13.10
 # scalafmt (optional — only needed when editing metagraph Scala sources)
 # Install via sbt plugin or skip; standalone binary has its own arch issues.
 
-# argc
-cargo install argc   # requires Rust toolchain; or download release binary
+# argc — requires Rust 1.85+ (edition2024); update before installing
+rustup update stable
+cargo install argc
 
 # Docker Engine + Compose v2
 curl -fsSL https://get.docker.com | sudo sh
@@ -157,7 +158,7 @@ echo 'export PATH="$JAVA_HOME/bin:$PATH"' >> ~/.zshrc
 ### 2d. Clone and bootstrap the repo
 
 ```bash
-git clone git@github.com:thechadcromwell/echoapp.git
+git clone git@github.com:c1cromwell/echoapp.git
 cd echoapp
 
 # Local environment file
