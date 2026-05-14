@@ -27,12 +27,23 @@ check_cmd argc "cargo install argc"
 
 echo "✓ All prerequisites found"
 
-# 2. Verify Docker has enough memory (need ≥8GB)
-DOCKER_MEM=$(docker info --format '{{.MemTotal}}' 2>/dev/null || echo "0")
-DOCKER_MEM_GB=$((DOCKER_MEM / 1073741824))
-if [ "$DOCKER_MEM_GB" -lt 8 ]; then
-  echo "WARNING: Docker has ${DOCKER_MEM_GB}GB RAM allocated. Euclid needs ≥8GB."
-  echo "  → Docker Desktop → Preferences → Resources → Memory → 8GB+"
+# 2. Verify enough RAM (need ≥8GB)
+# Docker Desktop (macOS/Windows) reports via MemTotal; Docker CE on Linux always
+# returns 0 for that field — fall back to reading /proc/meminfo directly.
+if [ "$(uname)" = "Darwin" ]; then
+  DOCKER_MEM=$(docker info --format '{{.MemTotal}}' 2>/dev/null | tr -d '[:space:]')
+  DOCKER_MEM=${DOCKER_MEM:-0}
+  DOCKER_MEM_GB=$((DOCKER_MEM / 1073741824))
+else
+  DOCKER_MEM_GB=$(awk '/MemTotal/{printf "%d", $2/1048576}' /proc/meminfo)
+fi
+if [ "${DOCKER_MEM_GB:-0}" -lt 8 ]; then
+  echo "WARNING: ${DOCKER_MEM_GB}GB RAM detected. Euclid needs ≥8GB."
+  if [ "$(uname)" = "Darwin" ]; then
+    echo "  → Docker Desktop → Preferences → Resources → Memory → 8GB+"
+  else
+    echo "  → Ensure the host machine has at least 8GB RAM."
+  fi
 fi
 
 # 3. Clone Euclid dev environment if not present
