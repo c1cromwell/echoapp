@@ -114,14 +114,13 @@ sdk install scala 2.13.10
 # scalafmt (optional — only needed when editing metagraph Scala sources)
 # Install via sbt plugin or skip; standalone binary has its own arch issues.
 
-# argc — pre-built binary (avoids Rust edition2024 compile issues on Ubuntu)
-ARGC_ARCH=$(uname -m | sed 's/x86_64/x86_64/;s/aarch64/aarch64/')
-ARGC_TAG=$(curl -fsSL "https://api.github.com/repos/sigoden/argc/releases/latest" \
-  | grep '"tag_name"' | head -1 | cut -d'"' -f4)
-curl -fsSL "https://github.com/sigoden/argc/releases/download/${ARGC_TAG}/argc-${ARGC_TAG}-${ARGC_ARCH}-unknown-linux-musl.tar.gz" \
-  | tar -xzf - argc
-sudo mv argc /usr/local/bin/
-unset ARGC_ARCH ARGC_TAG
+# argc — pre-built binary (pick the line matching your arch: uname -m)
+# aarch64:
+curl -fsSL https://github.com/sigoden/argc/releases/download/v1.23.0/argc-v1.23.0-aarch64-unknown-linux-musl.tar.gz -o /tmp/argc.tar.gz
+# x86_64:
+# curl -fsSL https://github.com/sigoden/argc/releases/download/v1.23.0/argc-v1.23.0-x86_64-unknown-linux-musl.tar.gz -o /tmp/argc.tar.gz
+tar -xzf /tmp/argc.tar.gz -C /tmp
+sudo mv /tmp/argc /usr/local/bin/
 
 # Docker Engine + Compose v2
 curl -fsSL https://get.docker.com | sudo sh
