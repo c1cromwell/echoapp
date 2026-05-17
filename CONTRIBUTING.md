@@ -43,6 +43,7 @@ PR — onboarding docs only stay accurate when we treat them as code.
 | Go               | 1.21+             | Builds the backend.                                |
 | Xcode            | 15+ (macOS only)  | iOS prototype (`ios/Echo/`).                       |
 | `jq`, `yq`, `argc` | latest          | Required by `metagraph/scripts/setup-euclid.sh`. `argc` is in Homebrew core — `brew install argc`. |
+| Ansible          | **2.16+**         | Required by Euclid `hydra` scripts to orchestrate the metagraph cluster. |
 | Git LFS          | optional          | Needed only if you touch large binary fixtures.    |
 
 ---
@@ -64,8 +65,8 @@ brew install --cask temurin@21
 brew install sbt coursier/formulas/coursier
 cs install scala:2.13.10 scalafmt
 
-# Euclid prerequisites
-brew install jq yq argc              # argc moved to Homebrew core; no tap needed
+# Euclid prerequisites (jq, yq, argc, ansible)
+brew install jq yq argc ansible      # argc moved to Homebrew core; no tap needed
 
 # Docker Desktop (then launch it once so the VM is created)
 brew install --cask docker
@@ -90,7 +91,14 @@ significantly lighter (2 GB image vs. 4+ GB Desktop). Download from
 The commands below work identically on both images and on Debian 12.
 
 ```bash
-sudo apt update && sudo apt install -y curl gnupg jq yq git build-essential
+sudo apt update && sudo apt install -y curl gnupg jq git build-essential python3-pip
+sudo pip3 install --user 'ansible>=2.16'
+echo 'export PATH="$PATH:$HOME/.local/bin"' >> ~/.bashrc && source ~/.bashrc
+
+# yq — pre-built binary (apt version is too old)
+sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_arm64 -O /usr/local/bin/yq
+sudo chmod +x /usr/local/bin/yq
+# (swap arm64 → amd64 above if on x86_64)
 
 # Remove any stale sbt apt sources (left over from earlier failed attempts).
 # The Docker installer runs apt update internally and will fail if these exist.

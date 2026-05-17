@@ -223,7 +223,7 @@ info:
 
 EUCLID_DIR ?= $(abspath ../euclid-development-environment)
 COMPOSE_TESTNET := docker compose -f docker-compose.testnet.yml
-HYDRA_HEALTH_TIMEOUT := 180
+HYDRA_HEALTH_TIMEOUT := 300
 
 dev: ## Bring up full Phase-1 cluster
 	@echo "===== Phase-1 Testnet Bring-up ====="
