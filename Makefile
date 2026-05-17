@@ -248,13 +248,13 @@ dev: ## Bring up full Phase-1 cluster
 	@echo "[4/5] Waiting for metagraph endpoints to come up..."
 	@deadline=$$(( $$(date +%s) + $(HYDRA_HEALTH_TIMEOUT) )); \
 	for endpoint in \
-	  "Global L0=http://localhost:9000/node/info" \
-	  "Metagraph L0=http://localhost:9200/node/info" \
-	  "Currency L1=http://localhost:9300/node/info" \
-	  "Data L1=http://localhost:9400/node/info" \
-	  "Identity L0=http://localhost:9600/node/info" \
-	  "Identity L1=http://localhost:9500/node/info"; do \
-	  label=$${endpoint%%=*}; url=$${endpoint#*=}; \
+	  "Global L0=http://localhost:9000/node/info=required" \
+	  "Metagraph L0=http://localhost:9200/node/info=required" \
+	  "Currency L1=http://localhost:9300/node/info=required" \
+	  "Data L1=http://localhost:9400/node/info=required" \
+	  "Identity L0=http://localhost:9600/node/info=optional" \
+	  "Identity L1=http://localhost:9500/node/info=optional"; do \
+	  label=$${endpoint%%=*}; rest=$${endpoint#*=}; url=$${rest%=*}; required=$${rest##*=}; \
 	  printf "  waiting for %-14s ... " "$$label"; \
 	  while [ $$(date +%s) -lt $$deadline ]; do \
 	    if curl -fsS --max-time 2 "$$url" >/dev/null 2>&1; then \
@@ -263,9 +263,13 @@ dev: ## Bring up full Phase-1 cluster
 	    sleep 2; \
 	  done; \
 	  if ! curl -fsS --max-time 2 "$$url" >/dev/null 2>&1; then \
-	    echo "✗ TIMEOUT"; \
-	    echo "    Check 'cd $(EUCLID_DIR) && scripts/hydra status'"; \
-	    exit 1; \
+	    if [ "$$required" = "required" ]; then \
+	      echo "✗ TIMEOUT"; \
+	      echo "    Check 'cd $(EUCLID_DIR) && scripts/hydra status'"; \
+	      exit 1; \
+	    else \
+	      echo "⚠ not running (optional — run 'make start-identity' to enable VC features)"; \
+	    fi; \
 	  fi; \
 	done
 	@echo ""
@@ -312,6 +316,29 @@ metagraph-test: ## WO-272/277: run validators + Identity L1 wiring tests (sbt + 
 dev-stop: testnet-down ## Tear down backend stack (does not stop metagraph)
 	@echo "Backend stack down. Metagraph still running — use:"
 	@echo "  cd $(EUCLID_DIR) && scripts/hydra stop"
+
+# Identity nodes (L0 port 9600, L1 port 9500) are custom Echo modules not
+# managed by Euclid hydra. They require sbt assembly JARs and their own
+# Docker setup. Use these targets once the core cluster is running.
+start-identity: ## Start Identity L0 + L1 nodes (requires sbt assembly first)
+	@echo "Starting Identity nodes..."
+	@JAR_L0=$$(ls metagraph/modules/identity_l0/target/scala-2.13/*assembly*.jar 2>/dev/null | head -1); \
+	JAR_L1=$$(ls metagraph/modules/identity_l1/target/scala-2.13/*assembly*.jar 2>/dev/null | head -1); \
+	if [ -z "$$JAR_L0" ] || [ -z "$$JAR_L1" ]; then \
+	  echo "  ✗ Identity JARs not found. Run: cd metagraph && sbt assembly"; \
+	  exit 1; \
+	fi; \
+	echo "  ✓ Found $$JAR_L0"; \
+	echo "  ✓ Found $$JAR_L1"; \
+	docker compose -f docker-compose.identity.yml up -d --build
+	@echo "  Waiting for Identity L0 on :9600..."
+	@for i in $$(seq 1 30); do \
+	  if curl -fsS --max-time 2 http://localhost:9600/node/info >/dev/null 2>&1; then \
+	    echo "  ✓ Identity L0 ready"; break; \
+	  fi; sleep 3; done
+
+stop-identity: ## Stop Identity L0 + L1 nodes
+	@docker compose -f docker-compose.identity.yml down 2>/dev/null || true
 
 dev-restart: ## Restart backend stack
 	@$(COMPOSE_TESTNET) restart

@@ -1,0 +1,106 @@
+# docker-compose.identity.yml
+# Starts the custom Identity L0 and Identity L1 metagraph nodes.
+# These are NOT managed by Euclid hydra — they require the assembled JARs
+# produced by: cd metagraph && sbt assembly
+#
+# Usage:
+#   make start-identity   (preferred — checks JARs exist first)
+#   docker compose -f docker-compose.identity.yml up -d --build
+#
+# Ports:
+#   Identity L0: 9600 (public), 9601 (p2p), 9602 (cli)
+#   Identity L1: 9500 (public), 9501 (p2p), 9502 (cli)
+#
+# Both nodes join the same Docker network as the Euclid cluster (euclid_custom).
+
+x-identity-base: &identity-base
+  image: metagraph-base-image:latest
+  restart: unless-stopped
+  environment:
+    CL_APP_ENV: dev
+    CL_COLLATERAL: "0"
+    CL_KEYSTORE: token-key.p12
+    CL_KEYALIAS: alias
+    CL_PASSWORD: password
+  networks:
+    - euclid_custom
+
+services:
+
+  identity-l0:
+    <<: *identity-base
+    container_name: identity-l0
+    ports:
+      - "9600:9600"
+      - "9601:9601"
+      - "9602:9602"
+    volumes:
+      # Pre-built fat JAR from sbt assembly
+      - ./metagraph/modules/identity_l0/target/scala-2.13:/jars:ro
+      # Reuse the dev key file that Euclid generated
+      - ../euclid-development-environment/source/p12-files/token-key.p12:/code/identity-l0/token-key.p12:ro
+    environment:
+      CL_APP_ENV: dev
+      CL_COLLATERAL: "0"
+      CL_KEYSTORE: token-key.p12
+      CL_KEYALIAS: alias
+      CL_PASSWORD: password
+      CL_PUBLIC_HTTP_PORT: "9600"
+      CL_P2P_HTTP_PORT: "9601"
+      CL_CLI_HTTP_PORT: "9602"
+      CL_L0_PEER_HTTP_HOST: "172.50.0.10"
+      CL_L0_PEER_HTTP_PORT: "9200"
+      CL_GLOBAL_L0_PEER_HTTP_HOST: "172.50.0.10"
+      CL_GLOBAL_L0_PEER_HTTP_PORT: "9000"
+    command: >
+      bash -c "
+        set -e
+        mkdir -p /code/identity-l0
+        JAR=$$(ls /jars/*assembly*.jar | head -1)
+        cp $$JAR /code/identity-l0/identity-l0.jar
+        cp /code/currency-l1/cl-wallet.jar /code/identity-l0/cl-wallet.jar 2>/dev/null || true
+        cp /code/currency-l1/cl-keytool.jar /code/identity-l0/cl-keytool.jar 2>/dev/null || true
+        cd /code/identity-l0
+        nohup java -jar identity-l0.jar run-initial-validator --ip 0.0.0.0 > identity-l0.log 2>&1
+      "
+
+  identity-l1:
+    <<: *identity-base
+    container_name: identity-l1
+    ports:
+      - "9500:9500"
+      - "9501:9501"
+      - "9502:9502"
+    volumes:
+      - ./metagraph/modules/identity_l1/target/scala-2.13:/jars:ro
+      - ../euclid-development-environment/source/p12-files/token-key-1.p12:/code/identity-l1/token-key.p12:ro
+    environment:
+      CL_APP_ENV: dev
+      CL_COLLATERAL: "0"
+      CL_KEYSTORE: token-key.p12
+      CL_KEYALIAS: alias
+      CL_PASSWORD: password
+      CL_PUBLIC_HTTP_PORT: "9500"
+      CL_P2P_HTTP_PORT: "9501"
+      CL_CLI_HTTP_PORT: "9502"
+      CL_L0_PEER_HTTP_HOST: "172.50.0.10"
+      CL_L0_PEER_HTTP_PORT: "9600"
+      CL_GLOBAL_L0_PEER_HTTP_HOST: "172.50.0.10"
+      CL_GLOBAL_L0_PEER_HTTP_PORT: "9000"
+    command: >
+      bash -c "
+        set -e
+        mkdir -p /code/identity-l1
+        JAR=$$(ls /jars/*assembly*.jar | head -1)
+        cp $$JAR /code/identity-l1/identity-l1.jar
+        cp /code/currency-l1/cl-wallet.jar /code/identity-l1/cl-wallet.jar 2>/dev/null || true
+        cp /code/currency-l1/cl-keytool.jar /code/identity-l1/cl-keytool.jar 2>/dev/null || true
+        cd /code/identity-l1
+        nohup java -jar identity-l1.jar run-initial-validator --ip 0.0.0.0 > identity-l1.log 2>&1
+      "
+    depends_on:
+      - identity-l0
+
+networks:
+  euclid_custom:
+    external: true

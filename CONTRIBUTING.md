@@ -196,17 +196,23 @@ worked. If something is missing, fix it and re-run.
 ## 3. First boot
 
 ```bash
-# 1. Build + test the metagraph modules (~5-10 min first run; jars cached after)
-# sbt assembly produces the fat JARs that hydra bakes into Docker images.
-cd metagraph && sbt assembly && sbt test && cd ..
+# 1. Build the metagraph fat JARs (~5-10 min first run; jars cached after)
+# sbt assembly is required — sbt compile alone does not produce runnable JARs.
+cd metagraph && sbt assembly && cd ..
 
-# 2. Bring up the full Phase-1 cluster
-#    - Euclid: Global L0 (9000), Metagraph L0 (9200), Currency L1 (9300),
-#              Data L1 (9400), Identity L0 (9600), Identity L1 (9500)
+# 2. Bring up the core Phase-1 cluster
+#    - Euclid (via hydra): Global L0 (9000), Metagraph L0 (9200),
+#                          Currency L1 (9300), Data L1 (9400)
 #    - Backend: Postgres, Redis, NATS, MinIO, echoapp (8000)
+#    - Identity L0/L1 are optional — see note below
 make dev
 
-# 3. Run the WO-230 6-step go/no-go validation
+# 3. (Optional) Start Identity nodes for VC / trust-tier features
+#    Identity L0 + L1 are custom Echo modules not managed by Euclid hydra.
+#    They run via docker-compose.identity.yml using the sbt assembly JARs.
+make start-identity
+
+# 4. Run the WO-230 6-step go/no-go validation
 make validate-phase1
 ```
 
