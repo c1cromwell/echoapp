@@ -35,11 +35,11 @@ jq -e '(.docker.default_containers | index("identity-l1")) != null' "$EUCLID_JSO
 ok "euclid.json docker.default_containers includes identity-l0, identity-l1"
 
 # ports (WO-276: no conflicts with 9000/9200/9300/9400)
-[[ "$(jq -r '.layers.identity_l0.ports.public' "$EUCLID_JSON")" == "9100" ]] \
-  || fail "identity_l0 public port must be 9100"
+[[ "$(jq -r '.layers.identity_l0.ports.public' "$EUCLID_JSON")" == "9600" ]] \
+  || fail "identity_l0 public port must be 9600"
 [[ "$(jq -r '.layers.identity_l1.ports.public' "$EUCLID_JSON")" == "9500" ]] \
   || fail "identity_l1 public port must be 9500"
-ok "euclid.json identity_l0=9100 identity_l1=9500"
+ok "euclid.json identity_l0=9600 identity_l1=9500"
 
 BUILD_SBT="$METAGRAPH_ROOT/build.sbt"
 grep -q 'lazy val identityL0' "$BUILD_SBT" || fail "build.sbt: missing identityL0 project"

@@ -201,7 +201,7 @@ cd metagraph && sbt compile && sbt test && cd ..
 
 # 2. Bring up the full Phase-1 cluster
 #    - Euclid: Global L0 (9000), Metagraph L0 (9200), Currency L1 (9300),
-#              Data L1 (9400), Identity L0 (9100), Identity L1 (9500)
+#              Data L1 (9400), Identity L0 (9600), Identity L1 (9500)
 #    - Backend: Postgres, Redis, NATS, MinIO, echoapp (8000)
 make dev
 
@@ -365,7 +365,7 @@ If you're adding a new on-chain field, also update:
   icon to stop animating.
 - **`hydra install` fails.** Usually a wrong tag on the Euclid clone.
   `git -C ../euclid-development-environment checkout v0.19.0` fixes it.
-- **Port already in use.** Anything sitting on 9000-9002, 9100-9102,
+- **Port already in use.** Anything sitting on 9000-9002, 9600-9602,
   9200-9202, 9300-9302, 9400-9402, 9500-9502 will conflict. Find
   squatters with:
   ```bash

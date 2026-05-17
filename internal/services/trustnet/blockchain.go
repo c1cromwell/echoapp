@@ -244,7 +244,7 @@ func (bas *BlockchainAnchorService) CommitBatch() (map[string]string, error) {
 		anchor.MetagraphRef = metagraphRef
 		now := time.Now()
 		anchor.CommittedAt = &now
-		anchor.VerificationURL = fmt.Sprintf("http://localhost:9100/snapshots/%s", txHash)
+		anchor.VerificationURL = fmt.Sprintf("http://localhost:9600/snapshots/%s", txHash)
 
 		results[anchorID] = txHash
 	}

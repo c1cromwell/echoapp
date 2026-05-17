@@ -252,7 +252,7 @@ dev: ## Bring up full Phase-1 cluster
 	  "Metagraph L0=http://localhost:9200/node/info" \
 	  "Currency L1=http://localhost:9300/node/info" \
 	  "Data L1=http://localhost:9400/node/info" \
-	  "Identity L0=http://localhost:9100/node/info" \
+	  "Identity L0=http://localhost:9600/node/info" \
 	  "Identity L1=http://localhost:9500/node/info"; do \
 	  label=$${endpoint%%=*}; url=$${endpoint#*=}; \
 	  printf "  waiting for %-14s ... " "$$label"; \
@@ -287,7 +287,7 @@ dev: ## Bring up full Phase-1 cluster
 	@echo "  Metagraph L0:   http://localhost:9200"
 	@echo "  Currency L1:    http://localhost:9300"
 	@echo "  Data L1:        http://localhost:9400"
-	@echo "  Identity L0:    http://localhost:9100  (VC / trust tier / StatusList2021)"
+	@echo "  Identity L0:    http://localhost:9600  (VC / trust tier / StatusList2021)"
 	@echo "  Identity L1:    http://localhost:9500  (VC / StatusList / org-role + device-key submissions)"
 	@echo ""
 	@echo "Next: make validate-phase1"
@@ -337,7 +337,7 @@ dev-status: ## Show status of all testnet components
 	  "Metagraph L0=http://localhost:9200/node/info" \
 	  "Currency L1=http://localhost:9300/node/info" \
 	  "Data L1=http://localhost:9400/node/info" \
-	  "Identity L0=http://localhost:9100/node/info" \
+	  "Identity L0=http://localhost:9600/node/info" \
 	  "Identity L1=http://localhost:9500/node/info"; do \
 	  label=$${ep%%=*}; url=$${ep#*=}; \
 	  if curl -fsS --max-time 2 "$$url" >/dev/null 2>&1; then \

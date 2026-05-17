@@ -24,7 +24,7 @@ GLOBAL_L0_URL="${GLOBAL_L0_URL:-http://localhost:9000}"
 METAGRAPH_L0_URL="${METAGRAPH_L0_URL:-http://localhost:9200}"
 CURRENCY_L1_URL="${CURRENCY_L1_URL:-http://localhost:9300}"
 DATA_L1_URL="${DATA_L1_URL:-http://localhost:9400}"
-IDENTITY_L0_URL="${IDENTITY_L0_URL:-http://localhost:9100}"
+IDENTITY_L0_URL="${IDENTITY_L0_URL:-http://localhost:9600}"
 BACKEND_URL="${BACKEND_URL:-http://localhost:8000}"
 FINALITY_TIMEOUT_SECS="${FINALITY_TIMEOUT_SECS:-30}"
 

@@ -38,7 +38,7 @@ Wait until **Global L0**, **Metagraph L0**, **Currency L1**, **Data L1**, **Iden
 | Metagraph L0 | `http://localhost:9200/node/info` |
 | Currency L1 | `http://localhost:9300/node/info` |
 | Data L1     | `http://localhost:9400/node/info` |
-| Identity L0 | `http://localhost:9100/node/info` |
+| Identity L0 | `http://localhost:9600/node/info` |
 | Identity L1 | `http://localhost:9500/node/info` |
 
 ```bash
@@ -47,7 +47,7 @@ for u in \
   http://localhost:9200/node/info \
   http://localhost:9300/node/info \
   http://localhost:9400/node/info \
-  http://localhost:9100/node/info \
+  http://localhost:9600/node/info \
   http://localhost:9500/node/info
 do
   echo "== $u"; curl -fsS --max-time 5 "$u" | head -c 200; echo; echo
@@ -80,7 +80,7 @@ The compose file sets metagraph URLs via `host.docker.internal` (`docker-compose
 | `METAGRAPH_L0_URL` | `http://localhost:9200` |
 | `CURRENCY_L1_URL` | `http://localhost:9300` |
 | `DATA_L1_URL` | `http://localhost:9400` |
-| `IDENTITY_L0_URL` | `http://localhost:9100` |
+| `IDENTITY_L0_URL` | `http://localhost:9600` |
 | `IDENTITY_L1_URL` | `http://localhost:9500` |
 | `IDENTITY_SERVICE_DID` | Issuer `did:key:z…` (must match Identity L1 `IDENTITY_SERVICE_DID` for validates submissions) |
 

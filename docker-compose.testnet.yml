@@ -55,7 +55,7 @@ services:
       - CURRENCY_L1_URL=http://host.docker.internal:9300
       - DATA_L1_URL=http://host.docker.internal:9400
       # Identity Metagraph endpoints (WO-276 skeleton; WO-272 validation logic)
-      - IDENTITY_L0_URL=http://host.docker.internal:9100
+      - IDENTITY_L0_URL=http://host.docker.internal:9600
       - IDENTITY_L1_URL=http://host.docker.internal:9500
     volumes:
       - ./migrations:/app/migrations:ro

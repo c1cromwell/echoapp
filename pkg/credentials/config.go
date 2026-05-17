@@ -189,7 +189,7 @@ func DefaultConfig() *Config {
 			StatusListCredentialBaseURL: "https://identity-metagraph.echo.app/status",
 		},
 		MetagraphConfig: MetagraphConfig{
-			IdentityL0URL:             "http://localhost:9100",
+			IdentityL0URL:             "http://localhost:9600",
 			IdentityL1URL:             "http://localhost:9500",
 			Timeout:                   30 * time.Second,
 			MaxRetries:                3,
