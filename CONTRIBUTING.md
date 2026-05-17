@@ -44,6 +44,7 @@ PR — onboarding docs only stay accurate when we treat them as code.
 | Xcode            | 15+ (macOS only)  | iOS prototype (`ios/Echo/`).                       |
 | `jq`, `yq`, `argc` | latest          | Required by `metagraph/scripts/setup-euclid.sh`. `argc` is in Homebrew core — `brew install argc`. |
 | Ansible          | **2.16+**         | Required by Euclid `hydra` scripts to orchestrate the metagraph cluster. |
+| g8 (Giter8)      | latest            | Scala template processor used by `hydra install` to scaffold the project. Install via `cs install giter8`. |
 | Git LFS          | optional          | Needed only if you touch large binary fixtures.    |
 
 ---
@@ -65,8 +66,9 @@ brew install --cask temurin@21
 brew install sbt coursier/formulas/coursier
 cs install scala:2.13.10 scalafmt
 
-# Euclid prerequisites (jq, yq, argc, ansible)
+# Euclid prerequisites (jq, yq, argc, ansible, g8)
 brew install jq yq argc ansible      # argc moved to Homebrew core; no tap needed
+cs install giter8                    # g8 — Scala template processor for hydra install
 
 # Docker Desktop (then launch it once so the VM is created)
 brew install --cask docker
@@ -118,6 +120,7 @@ curl -s "https://get.sdkman.io" | bash
 source "$HOME/.sdkman/bin/sdkman-init.sh"
 sdk install sbt 1.9.9
 sdk install scala 2.13.10
+cs install giter8                    # g8 — required by hydra install
 
 # scalafmt (optional — only needed when editing metagraph Scala sources)
 # Install via sbt plugin or skip; standalone binary has its own arch issues.
