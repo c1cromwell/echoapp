@@ -231,17 +231,23 @@ dev: ## Bring up full Phase-1 cluster
 	@echo "[1/4] Ensuring Euclid SDK is set up..."
 	@cd metagraph && ./scripts/setup-euclid.sh
 	@echo ""
-	@echo "[2/4] Starting metagraph cluster (hydra start-genesis)..."
+	@echo "[2/4] Building metagraph Docker images (hydra install + build)..."
 	@if [ ! -d "$(EUCLID_DIR)" ]; then \
 		echo "  ✗ Euclid directory not found: $(EUCLID_DIR)"; \
 		echo "    setup-euclid.sh should have cloned it. Re-run 'cd metagraph && ./scripts/setup-euclid.sh'"; \
 		exit 1; \
 	fi
+	@cd "$(EUCLID_DIR)" && scripts/hydra install || \
+		echo "  ⚠ hydra install returned non-zero (may already be installed)"
+	@cd "$(EUCLID_DIR)" && scripts/hydra build || \
+		echo "  ⚠ hydra build returned non-zero (images may already be built)"
+	@echo ""
+	@echo "[3/5] Starting metagraph cluster (hydra start-genesis)..."
 	@cd "$(EUCLID_DIR)" && scripts/hydra start-genesis || { \
 		echo "  ⚠ hydra start-genesis returned non-zero (cluster may already be running)"; \
 	}
 	@echo ""
-	@echo "[3/4] Waiting for metagraph endpoints to come up..."
+	@echo "[4/5] Waiting for metagraph endpoints to come up..."
 	@deadline=$$(( $$(date +%s) + $(HYDRA_HEALTH_TIMEOUT) )); \
 	for endpoint in \
 	  "Global L0=http://localhost:9000/node/info" \
@@ -265,7 +271,7 @@ dev: ## Bring up full Phase-1 cluster
 	  fi; \
 	done
 	@echo ""
-	@echo "[4/4] Starting backend stack (Postgres + Redis + NATS + MinIO + echoapp)..."
+	@echo "[5/5] Starting backend stack (Postgres + Redis + NATS + MinIO + echoapp)..."
 	@$(COMPOSE_TESTNET) up -d --build
 	@echo ""
 	@echo "Waiting for backend health..."
