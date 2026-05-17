@@ -237,10 +237,8 @@ dev: ## Bring up full Phase-1 cluster
 		echo "    setup-euclid.sh should have cloned it. Re-run 'cd metagraph && ./scripts/setup-euclid.sh'"; \
 		exit 1; \
 	fi
-	@cd "$(EUCLID_DIR)" && scripts/hydra install || \
-		echo "  ⚠ hydra install returned non-zero (may already be installed)"
-	@cd "$(EUCLID_DIR)" && scripts/hydra build || \
-		echo "  ⚠ hydra build returned non-zero (images may already be built)"
+	@cd "$(EUCLID_DIR)" && scripts/hydra install
+	@cd "$(EUCLID_DIR)" && scripts/hydra build
 	@echo ""
 	@echo "[3/5] Starting metagraph cluster (hydra start-genesis)..."
 	@cd "$(EUCLID_DIR)" && scripts/hydra start-genesis || { \
