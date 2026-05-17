@@ -196,8 +196,9 @@ worked. If something is missing, fix it and re-run.
 ## 3. First boot
 
 ```bash
-# 1. Compile + test the metagraph modules (~5 min first run; jars cached after)
-cd metagraph && sbt compile && sbt test && cd ..
+# 1. Build + test the metagraph modules (~5-10 min first run; jars cached after)
+# sbt assembly produces the fat JARs that hydra bakes into Docker images.
+cd metagraph && sbt assembly && sbt test && cd ..
 
 # 2. Bring up the full Phase-1 cluster
 #    - Euclid: Global L0 (9000), Metagraph L0 (9200), Currency L1 (9300),
