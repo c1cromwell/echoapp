@@ -73,5 +73,23 @@ final class IdentityUpdateCodecSpec extends AnyFunSpec with Matchers {
       val json = u.asJson.noSpaces
       decode[IdentityUpdate](json) shouldBe Right(u)
     }
+
+    it("decodes UsernameRegistrationUpdate when username is present") {
+      val json =
+        s"""{"subjectDID":"$subject","username":"alice","registeredAt":1700000000123}"""
+      decode[IdentityUpdate](json) shouldBe Right(
+        UsernameRegistrationUpdate(subject, "alice", 1700000000123L)
+      )
+    }
+
+    it("round-trips UsernameRegistrationUpdate via encoder + decoder") {
+      val u: IdentityUpdate = UsernameRegistrationUpdate(
+        subjectDID   = subject,
+        username     = "alice_01",
+        registeredAt = 1700000000123L
+      )
+      val json = u.asJson.noSpaces
+      decode[IdentityUpdate](json) shouldBe Right(u)
+    }
   }
 }

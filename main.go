@@ -181,6 +181,7 @@ func (s *Server) Start() error {
 		Groups:       groups.NewGroupService(),
 		Broadcasts:   broadcast_channels.NewChannelService(),
 		RateLimiter:  rateLimiter,
+		IdentityL1:   router.IdentityL1, // D1: anchor @username -> DID on registration
 	}
 
 	// WO-53: Start audit log publisher background goroutine.

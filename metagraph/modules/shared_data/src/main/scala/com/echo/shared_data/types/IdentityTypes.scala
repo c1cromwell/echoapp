@@ -18,12 +18,13 @@ case class IdentityOnChainState(
   trustTierAnchors:   Map[String, TrustTierAnchor],      // keyed by subjectDID
   revocationLists:    Map[String, StatusList2021Vector], // keyed by issuerOrgDID
   orgRoleCredentials: Map[String, EchoOrgRoleCredential], // keyed by credentialId
-  deviceKeys:         Map[String, DeviceKeyRecord]       // keyed by subjectDID#publicKeyHex
+  deviceKeys:         Map[String, DeviceKeyRecord],      // keyed by subjectDID#publicKeyHex
+  usernames:          Map[String, UsernameRecord]        // keyed by lowercased username (public Data L1 index)
 )
 
 object IdentityOnChainState {
   val empty: IdentityOnChainState =
-    IdentityOnChainState(Map.empty, Map.empty, Map.empty, Map.empty, Map.empty)
+    IdentityOnChainState(Map.empty, Map.empty, Map.empty, Map.empty, Map.empty, Map.empty)
   implicit val encoder: Encoder[IdentityOnChainState] = deriveEncoder
   implicit val decoder: Decoder[IdentityOnChainState] = deriveDecoder
 }
@@ -148,6 +149,28 @@ object DeviceKeyRecord {
   implicit val decoder: Decoder[DeviceKeyRecord]  = deriveDecoder
 }
 
+/**
+ * Public `@username` -> DID binding anchored on the Identity Metagraph.
+ *
+ * Usernames are a PUBLIC Data L1 index (privacy class T7): anyone can resolve
+ * `@username` to its owning `did:key` without ECHO's involvement, and the owner
+ * can prove the binding is theirs. The backend Postgres `users` table is a
+ * read-through cache of this index, not the source of truth.
+ *
+ * Keyed in [[IdentityOnChainState.usernames]] by the lowercased username so
+ * uniqueness is case-insensitive.
+ */
+case class UsernameRecord(
+  username:     String, // as registered (display case preserved)
+  subjectDID:   String, // did:key of the owner
+  registeredAt: Long    // epoch millis
+)
+
+object UsernameRecord {
+  implicit val encoder: Encoder[UsernameRecord] = deriveEncoder
+  implicit val decoder: Decoder[UsernameRecord] = deriveDecoder
+}
+
 // --- Update messages submitted to Identity L1 endpoints ---
 
 sealed trait IdentityUpdate
@@ -205,6 +228,27 @@ object DeviceKeyRegistrationUpdate {
   implicit val decoder: Decoder[DeviceKeyRegistrationUpdate] = deriveDecoder
 }
 
+/**
+ * Public `@username` registration for a subject `did:key` (decentralization D1).
+ *
+ * JSON wire format (Identity L1 `POST /transactions` body): a flat object with
+ * `subjectDID`, `username`, `registeredAt` — discriminated from other
+ * [[IdentityUpdate]] variants by the presence of `username` (mirrors
+ * `internal/metagraph.UsernameRegistrationUpdate` in Go).
+ *
+ * Only the Identity Service DID may submit in Phase 1.
+ */
+case class UsernameRegistrationUpdate(
+  subjectDID:   String,
+  username:     String,
+  registeredAt: Long
+) extends IdentityUpdate
+
+object UsernameRegistrationUpdate {
+  implicit val encoder: Encoder[UsernameRegistrationUpdate] = deriveEncoder
+  implicit val decoder: Decoder[UsernameRegistrationUpdate] = deriveDecoder
+}
+
 object IdentityUpdate {
 
   private val vcDec           = deriveDecoder[VCIssuanceUpdate]
@@ -212,6 +256,7 @@ object IdentityUpdate {
   private val statusDec       = deriveDecoder[StatusList2021BatchUpdate]
   private val orgRoleDec      = deriveDecoder[EchoOrgRoleCredentialUpdate]
   private val deviceKeyDec    = DeviceKeyRegistrationUpdate.decoder
+  private val usernameDec     = UsernameRegistrationUpdate.decoder
 
   /** Classify variant from JSON keys (no explicit `type` discriminator). */
   implicit val decoder: Decoder[IdentityUpdate] = Decoder.instance { c: HCursor =>
@@ -222,12 +267,14 @@ object IdentityUpdate {
       keys.contains("publicKeyHex") && keys.contains("deviceLabel") && keys.contains(
         "addedAt"
       )
+    val username  = keys.contains("username")
     val vc        = keys.contains("schemaVersion")
     val orgRole   = keys.contains("role") && keys.contains("memberDID")
 
     if (bitVec) statusDec(c)
     else if (commitment) trustDec(c)
     else if (device) deviceKeyDec(c)
+    else if (username) usernameDec(c)
     else if (vc) vcDec(c)
     else if (orgRole) orgRoleDec(c)
     else Left(DecodingFailure("Unrecognized IdentityUpdate JSON shape", c.history))
@@ -239,6 +286,7 @@ object IdentityUpdate {
     case u: StatusList2021BatchUpdate     => deriveEncoder[StatusList2021BatchUpdate].apply(u)
     case u: EchoOrgRoleCredentialUpdate   => deriveEncoder[EchoOrgRoleCredentialUpdate].apply(u)
     case u: DeviceKeyRegistrationUpdate   => DeviceKeyRegistrationUpdate.encoder.apply(u)
+    case u: UsernameRegistrationUpdate    => UsernameRegistrationUpdate.encoder.apply(u)
   }
 }
 

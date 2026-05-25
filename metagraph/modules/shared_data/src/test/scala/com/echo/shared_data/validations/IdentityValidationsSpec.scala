@@ -318,4 +318,51 @@ final class IdentityValidationsSpec extends AnyFunSpec with Matchers {
       TrustTier.Max shouldBe 5
     }
   }
+
+  // -- Username registration (D1) ----------------------------------------
+
+  private def validUsername = UsernameRegistrationUpdate(
+    subjectDID   = Subject,
+    username     = "alice_01",
+    registeredAt = Now - 1000L
+  )
+
+  describe("validateUsernameRegistration") {
+    it("accepts a well-formed, unclaimed username from the authorized sender") {
+      IdentityValidations
+        .validateUsernameRegistration(validUsername, IdentitySvc, IdentitySvc, None, Now) shouldBe Right(())
+    }
+
+    it("rejects submissions from an unauthorized sender") {
+      IdentityValidations
+        .validateUsernameRegistration(validUsername, UnauthSender, IdentitySvc, None, Now)
+        .isLeft shouldBe true
+    }
+
+    it("rejects an invalid username format") {
+      val u = validUsername.copy(username = "ab") // too short
+      IdentityValidations
+        .validateUsernameRegistration(u, IdentitySvc, IdentitySvc, None, Now)
+        .isLeft shouldBe true
+    }
+
+    it("rejects a username already owned by a different DID") {
+      val r = IdentityValidations
+        .validateUsernameRegistration(validUsername, IdentitySvc, IdentitySvc, Some(Issuer), Now)
+      r.isLeft shouldBe true
+      r.left.toOption.get should include("already registered")
+    }
+
+    it("allows the same DID to re-register its own username (idempotent)") {
+      IdentityValidations
+        .validateUsernameRegistration(validUsername, IdentitySvc, IdentitySvc, Some(Subject), Now) shouldBe Right(())
+    }
+
+    it("rejects a non-did:key subject") {
+      val u = validUsername.copy(subjectDID = "did:web:example.com")
+      IdentityValidations
+        .validateUsernameRegistration(u, IdentitySvc, IdentitySvc, None, Now)
+        .isLeft shouldBe true
+    }
+  }
 }

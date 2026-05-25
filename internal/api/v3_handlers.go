@@ -11,8 +11,10 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -20,6 +22,7 @@ import (
 
 	"github.com/thechadcromwell/echoapp/internal/database"
 	"github.com/thechadcromwell/echoapp/internal/infra"
+	"github.com/thechadcromwell/echoapp/internal/metagraph"
 	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
 	"github.com/thechadcromwell/echoapp/internal/services/contacts"
 	"github.com/thechadcromwell/echoapp/internal/services/groups"
@@ -38,7 +41,8 @@ type V3Handlers struct {
 	Rewards      *rewards.Service
 	Groups       *groups.GroupService
 	Broadcasts   *broadcast_channels.ChannelService
-	RateLimiter  *infra.RateLimiter // optional; enforces per-DID claim velocity (WO-35)
+	RateLimiter  *infra.RateLimiter         // optional; enforces per-DID claim velocity (WO-35)
+	IdentityL1   *metagraph.MetagraphClient // optional; anchors @username -> DID on the Identity Metagraph (D1)
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.
@@ -575,12 +579,34 @@ func (h *V3Handlers) handleAuthRegister(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Anchor the @username -> DID binding on the Identity Metagraph (D1). The
+	// Postgres row just created is a read-through cache of this public index;
+	// anchoring is best-effort and never blocks or fails registration.
+	h.anchorUsername(r.Context(), user.DID, user.Username)
+
 	WriteJSON(w, http.StatusCreated, map[string]interface{}{
 		"userId":   user.UserID,
 		"did":      user.DID,
 		"username": user.Username,
 		"tier":     user.TrustTier,
 	})
+}
+
+// anchorUsername submits a public username->DID binding to the Identity
+// Metagraph. No-op when no Identity L1 client is configured; errors are logged,
+// not surfaced, since the Postgres cache remains usable until the anchor lands.
+func (h *V3Handlers) anchorUsername(ctx context.Context, did, username string) {
+	if h.IdentityL1 == nil {
+		return
+	}
+	_, err := h.IdentityL1.SubmitIdentityL1(ctx, metagraph.UsernameRegistrationUpdate{
+		SubjectDID:   did,
+		Username:     username,
+		RegisteredAt: time.Now().UnixMilli(),
+	})
+	if err != nil {
+		log.Printf("v3: username anchor failed for %q (%s): %v", username, did, err)
+	}
 }
 
 // handleAuthVerify confirms the caller's identity after authentication.

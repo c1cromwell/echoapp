@@ -42,6 +42,19 @@ type TrustTierCommitmentUpdate struct {
 	AnchoredAt int64  `json:"anchoredAt"`
 }
 
+// UsernameRegistrationUpdate is the Identity L1 wire shape for a public
+// @username -> DID binding (com.echo.shared_data.types.UsernameRegistrationUpdate).
+//
+// T7 (public chain data): username and subjectDID are public; the metagraph is
+// the authoritative, portable index for username ownership. The backend Postgres
+// users table is a read-through cache. Discriminated from other IdentityUpdate
+// variants by the presence of `username`.
+type UsernameRegistrationUpdate struct {
+	SubjectDID   string `json:"subjectDID"`
+	Username     string `json:"username"`
+	RegisteredAt int64  `json:"registeredAt"`
+}
+
 // TrustTierCommitmentHex returns SHA256(byte(tier) || nonce) as 64-char lowercase hex,
 // matching internal/api trust tier handlers and Scala IdentityValidations expectations.
 func TrustTierCommitmentHex(tier int, nonce string) string {

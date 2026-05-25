@@ -24,6 +24,11 @@ object IdentityValidations {
   private val MaxCredTypeLen   = 256
   private val MaxSchemaVersion = 32
 
+  // Username: 3-30 chars, letters/digits/underscore. Mirrors the backend
+  // usernameRegex (internal/services/onboarding + internal/api). Uniqueness is
+  // case-insensitive, so the on-chain index key is the lowercased username.
+  private val UsernamePattern = "^[A-Za-z0-9_]{3,30}$".r
+
   private def isHexLower(s: String): Boolean =
     s.nonEmpty && s.forall(c => c.isDigit || ('a' to 'f').contains(c))
 
@@ -230,4 +235,43 @@ object IdentityValidations {
       )
     } yield ()
   }
+
+  /**
+   * Public `@username` registration (decentralization D1).
+   *
+   * Enforces authorized sender, did:key subject, the username format, and
+   * case-insensitive uniqueness. `currentOwnerDID` is the DID that currently
+   * owns the lowercased username in on-chain state (supplied by the L1
+   * application, mirroring how [[validateStatusList2021]] receives the previous
+   * sequence): if it is defined and differs from the subject, the username is
+   * taken. Re-registering one's own username (idempotent) is allowed.
+   */
+  def validateUsernameRegistration(
+    update:           UsernameRegistrationUpdate,
+    sender:           String,
+    authorizedSender: String,
+    currentOwnerDID:  Option[String],
+    nowMillis:        Long
+  ): Either[String, Unit] =
+    for {
+      _ <- requireAuthorizedSender(sender, authorizedSender)
+      _ <- validateDidKey("subjectDID", update.subjectDID)
+      _ <- nonEmpty("username", update.username)
+      _ <- Either.cond(
+        update.username != null && UsernamePattern.pattern.matcher(update.username).matches(),
+        (),
+        "username must be 3-30 chars of letters, digits, or underscore"
+      )
+      _ <- Either.cond(
+        currentOwnerDID.forall(_ == update.subjectDID),
+        (),
+        s"username '${update.username}' is already registered to a different DID"
+      )
+      _ <- Either.cond(update.registeredAt > 0, (), "registeredAt must be positive epoch millis")
+      _ <- Either.cond(
+        update.registeredAt <= nowMillis + 300000L,
+        (),
+        s"registeredAt ${update.registeredAt} is too far in the future (now=$nowMillis)"
+      )
+    } yield ()
 }
