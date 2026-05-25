@@ -56,12 +56,14 @@ actor EncryptionInterceptor: RequestInterceptor {
 ///
 /// For each request the interceptor:
 ///   1. Reads the DID from Keychain.
-///   2. Computes SHA-256(body) — or SHA-256("") for GET/HEAD.
-///   3. Signs the hash with `SecureEnclaveManager.sign(data:keyId:)`.
-///   4. Sets `X-Sender-DID` and `X-Signature` headers (hex-encoded DER signature).
+///   2. Builds the canonical string `METHOD\nPATH\nTIMESTAMP\nhex(SHA-256(body))`.
+///   3. Signs SHA-256(canonical) with `SecureEnclaveManager.sign(data:keyId:)`.
+///   4. Sets `X-Sender-DID`, `X-Signature` (base64 DER), and `X-Timestamp` headers.
 ///
-/// Requests to public paths (health, identity/register, crypto/server-key) are
-/// skipped — the server does not require passkey auth on those endpoints.
+/// Binding the method, path, and timestamp into the signature prevents a captured
+/// signature from being replayed on another endpoint or after the freshness
+/// window (server enforces ±120s and single-use). Requests to public paths
+/// (health, identity/register, crypto/server-key) are skipped.
 actor PasskeySigningInterceptor: RequestInterceptor {
 
     private let secureEnclave: SecureEnclaveManager
@@ -89,13 +91,20 @@ actor PasskeySigningInterceptor: RequestInterceptor {
         ) else { return }
 
         let bodyData = request.httpBody ?? Data()
-        let bodyHash = Data(SHA256.hash(data: bodyData))
+        let bodyHashHex = Data(SHA256.hash(data: bodyData))
+            .map { String(format: "%02x", $0) }.joined()
+        let method = request.httpMethod ?? "GET"
+        let timestamp = String(Int(Date().timeIntervalSince1970))
 
-        let sigDER = try await secureEnclave.sign(data: bodyHash, keyId: "echo-identity-signing")
-        let sigHex = sigDER.map { String(format: "%02x", $0) }.joined()
+        // Canonical string must byte-match the server (internal/api/passkey_auth.go).
+        let canonical = "\(method)\n\(path)\n\(timestamp)\n\(bodyHashHex)"
+        let digest = Data(SHA256.hash(data: Data(canonical.utf8)))
+
+        let sigDER = try await secureEnclave.sign(data: digest, keyId: "echo-identity-signing")
 
         request.setValue(did, forHTTPHeaderField: "X-Sender-DID")
-        request.setValue(sigHex, forHTTPHeaderField: "X-Signature")
+        request.setValue(sigDER.base64EncodedString(), forHTTPHeaderField: "X-Signature")
+        request.setValue(timestamp, forHTTPHeaderField: "X-Timestamp")
     }
 }
 

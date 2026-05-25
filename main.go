@@ -80,6 +80,10 @@ func (s *Server) Start() error {
 		router.CredentialStatusPool = pgDB.Pool()
 	}
 	router.Redis = redisClient
+	if redisClient != nil {
+		// Durable revocation blocklist + single-use nonces survive restarts (S3).
+		router.TokenService().SetRedisBackend(redisClient)
+	}
 	if l1 := os.Getenv("IDENTITY_L1_URL"); l1 != "" {
 		router.IdentityL1 = metagraph.NewMetagraphClient(metagraph.MetagraphConfig{
 			IdentityL1URL: l1,

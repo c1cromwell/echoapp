@@ -262,7 +262,7 @@ func (rt *Router) authMiddleware(next http.Handler) http.Handler {
 				WriteError(w, http.StatusUnauthorized, "AUTH_UNKNOWN_DID", "no device keys found for DID", reqID)
 				return
 			}
-			if err := verifyPasskeyAuth(r, keys); err != nil {
+			if err := rt.verifyPasskeyAuth(r, keys); err != nil {
 				if pke, ok := err.(*passkeyAuthError); ok {
 					WriteError(w, http.StatusUnauthorized, pke.code, pke.msg, reqID)
 				} else {
@@ -321,7 +321,7 @@ func (rt *Router) corsMiddleware(next http.Handler) http.Handler {
 
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID, X-Sender-DID, X-Signature, X-Identity-Signature")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID, X-Sender-DID, X-Signature, X-Timestamp, X-Identity-Signature")
 			w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID, Retry-After, X-RateLimit-Remaining")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Set("Access-Control-Max-Age", "3600")

@@ -87,6 +87,13 @@ func (r *RedisClient) CacheDelete(ctx context.Context, key string) error {
 	return r.client.Del(ctx, "cache:"+key).Err()
 }
 
+// SetNX atomically sets key=value with TTL only if the key does not already
+// exist. It returns true when the key was set (i.e. it was absent) — the
+// building block for single-use nonce / anti-replay storage.
+func (r *RedisClient) SetNX(ctx context.Context, key string, value []byte, ttl time.Duration) (bool, error) {
+	return r.client.SetNX(ctx, key, value, ttl).Result()
+}
+
 // --- Offline Message Queue Overflow ---
 
 // QueuePush adds an encrypted blob to a recipient's overflow queue.

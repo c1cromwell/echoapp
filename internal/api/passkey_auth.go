@@ -20,12 +20,15 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"math/big"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/thechadcromwell/echoapp/pkg/didkey"
 )
@@ -33,7 +36,24 @@ import (
 const (
 	headerSenderDID = "X-Sender-DID"
 	headerSignature = "X-Signature"
+	headerTimestamp = "X-Timestamp"
+
+	// maxClockSkewSeconds bounds how far a request timestamp may be from server
+	// time; outside this window the request is rejected as stale (anti-replay).
+	maxClockSkewSeconds = 120
+	// replayWindow is how long a used signature is remembered. It must exceed
+	// the freshness window so a signature cannot be reused before it goes stale.
+	replayWindow = 2 * maxClockSkewSeconds * time.Second
 )
+
+// canonicalSigningString builds the bytes that the client signs and the server
+// verifies. Binding method + path + timestamp + body-hash prevents replaying a
+// captured signature on a different endpoint, at a different time, or (for
+// empty-body GETs) at all once the freshness window passes.
+func canonicalSigningString(method, path, timestamp string, body []byte) []byte {
+	bodyHash := sha256.Sum256(body)
+	return []byte(method + "\n" + path + "\n" + timestamp + "\n" + hex.EncodeToString(bodyHash[:]))
+}
 
 // resolveDeviceKeys returns the public keys for did from the Redis cache; on cache miss
 // it falls back to the DIDRegistry and populates the cache.
@@ -73,15 +93,29 @@ func (rt *Router) resolveDeviceKeys(ctx context.Context, did string) ([]*ecdsa.P
 	return pubs, nil
 }
 
-// verifyPasskeyAuth validates the X-Sender-DID / X-Signature headers against the
-// request body. Returns (senderDID, nil) on success or an (errCode, err) pair on failure.
+// verifyPasskeyAuth validates the X-Sender-DID / X-Signature / X-Timestamp
+// headers against the request. The signature must cover the canonical string
+// (method, path, timestamp, body-hash), the timestamp must be fresh (±120s),
+// and the exact signature must not have been seen before within the window.
 //
 // The function peeks the body without consuming it so downstream handlers still
 // receive the full body via r.Body.
-func verifyPasskeyAuth(r *http.Request, keys []*ecdsa.PublicKey) error {
+func (rt *Router) verifyPasskeyAuth(r *http.Request, keys []*ecdsa.PublicKey) error {
 	sigB64 := r.Header.Get(headerSignature)
 	if sigB64 == "" {
 		return passkeyError("AUTH_MISSING_SIGNATURE", "X-Signature header required")
+	}
+
+	ts := r.Header.Get(headerTimestamp)
+	if ts == "" {
+		return passkeyError("AUTH_MISSING_TIMESTAMP", "X-Timestamp header required")
+	}
+	tsInt, err := strconv.ParseInt(ts, 10, 64)
+	if err != nil {
+		return passkeyError("AUTH_STALE_TIMESTAMP", "X-Timestamp must be unix seconds")
+	}
+	if skew := time.Now().Unix() - tsInt; skew > maxClockSkewSeconds || skew < -maxClockSkewSeconds {
+		return passkeyError("AUTH_STALE_TIMESTAMP", "request timestamp outside the allowed window")
 	}
 
 	sig, err := base64.StdEncoding.DecodeString(sigB64)
@@ -99,12 +133,30 @@ func verifyPasskeyAuth(r *http.Request, keys []*ecdsa.PublicKey) error {
 	}
 	r.Body = io.NopCloser(bytes.NewReader(body))
 
+	msg := canonicalSigningString(r.Method, r.URL.Path, ts, body)
+
+	verified := false
 	for _, pub := range keys {
-		if err := didkey.VerifyECDSAP256SHA256(pub, body, sig); err == nil {
-			return nil
+		if err := didkey.VerifyECDSAP256SHA256(pub, msg, sig); err == nil {
+			verified = true
+			break
 		}
 	}
-	return passkeyError("AUTH_INVALID_SIGNATURE", "signature does not match any registered device key")
+	if !verified {
+		return passkeyError("AUTH_INVALID_SIGNATURE", "signature does not match any registered device key")
+	}
+
+	// Replay protection: a given signature may be presented at most once within
+	// the window. Combined with the freshness check, this closes the capture-and-
+	// replay hole (including for empty-body GETs).
+	if rt.tokenService != nil {
+		sigHash := sha256.Sum256(sig)
+		replayKey := "pkreplay:" + hex.EncodeToString(sigHash[:])
+		if !rt.tokenService.CheckAndStoreNonceTTL(replayKey, replayWindow) {
+			return passkeyError("AUTH_REPLAY", "request signature already used")
+		}
+	}
+	return nil
 }
 
 // passkeyAuthError is a sentinel error type carrying the API error code.
