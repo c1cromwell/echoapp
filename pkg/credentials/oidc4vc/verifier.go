@@ -32,6 +32,34 @@ type Verifier struct {
 
 	resultsMu sync.RWMutex
 	results   map[string]*VPVerificationResult
+
+	// challenges holds issued, not-yet-consumed presentation nonces (S8). Each is
+	// single-use: consumed on submit so a captured submission cannot be replayed.
+	challengeMu sync.Mutex
+	challenges  map[string]time.Time
+}
+
+// presentationChallengeTTL bounds how long an issued presentation request nonce
+// remains valid for submission.
+const presentationChallengeTTL = 5 * time.Minute
+
+func (v *Verifier) storeChallenge(nonce string) {
+	v.challengeMu.Lock()
+	defer v.challengeMu.Unlock()
+	v.challenges[nonce] = time.Now().Add(presentationChallengeTTL)
+}
+
+// consumeChallenge reports whether nonce was a known, unexpired challenge and
+// removes it so it cannot be reused (single-use anti-replay).
+func (v *Verifier) consumeChallenge(nonce string) bool {
+	v.challengeMu.Lock()
+	defer v.challengeMu.Unlock()
+	exp, ok := v.challenges[nonce]
+	if !ok {
+		return false
+	}
+	delete(v.challenges, nonce)
+	return time.Now().Before(exp)
 }
 
 // NewVerifier creates a new OIDC4VC verifier.
@@ -54,6 +82,7 @@ func NewVerifier(verifierDID, issuerDID, verifierBaseURL, issuerBaseURL string) 
 		metadataManager: metadataManager,
 		flowManager:     NewFlowManager(flowConfig),
 		results:         make(map[string]*VPVerificationResult),
+		challenges:      make(map[string]time.Time),
 	}
 }
 
@@ -99,6 +128,7 @@ func (v *Verifier) CreatePresentationRequest(c *gin.Context) {
 	}
 
 	state, _ := generateRandomCode(16)
+	v.storeChallenge(state) // single-use; must be presented back on /submit
 	req := v.metadataManager.GeneratePresentationRequest(clientID, redirectURI, state, credentialType)
 	c.JSON(http.StatusOK, req)
 }
@@ -124,8 +154,18 @@ func (v *Verifier) SubmitPresentation(c *gin.Context) {
 		return
 	}
 
+	// S8: the state must be a challenge this verifier issued and has not yet
+	// consumed — this rejects forged states and replays of a prior submission.
+	if !v.consumeChallenge(req.State) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":             "invalid_request",
+			"error_description": "unknown, expired, or already-used state",
+		})
+		return
+	}
+
 	presentationID := "pres_" + req.State
-	result, err := v.VerifyPresentation(c.Request.Context(), req.VPToken, req.PresentationSubmission)
+	result, err := v.verifyPresentation(c.Request.Context(), req.VPToken, req.PresentationSubmission, req.State)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":             "verification_failed",
@@ -188,6 +228,14 @@ func (v *Verifier) GetPresentationDefinition(c *gin.Context) {
 // each embedded credential. It returns a VPVerificationResult regardless of whether
 // individual credentials pass — callers should check IsValid.
 func (v *Verifier) VerifyPresentation(ctx context.Context, vpToken string, submission *PresentationSubmission) (*VPVerificationResult, error) {
+	return v.verifyPresentation(ctx, vpToken, submission, "")
+}
+
+// verifyPresentation is VerifyPresentation with optional nonce binding. When
+// expectedNonce is non-empty and the VP carries a nonce, they must match — a
+// holder-signed VP cannot have its nonce stripped without breaking the
+// signature, so a mismatch indicates a VP minted for a different request.
+func (v *Verifier) verifyPresentation(ctx context.Context, vpToken string, submission *PresentationSubmission, expectedNonce string) (*VPVerificationResult, error) {
 	if vpToken == "" {
 		return nil, fmt.Errorf("vp_token is required")
 	}
@@ -220,6 +268,13 @@ func (v *Verifier) VerifyPresentation(ctx context.Context, vpToken string, submi
 	if err := verifyVPHolderSignature(rawHeaderPayload, rawSig, vp.Iss); err != nil {
 		result.IsValid = false
 		result.Error = fmt.Sprintf("VP holder signature invalid: %v", err)
+		return result, nil
+	}
+
+	// 3b. Bind the VP to the issued challenge (S8) when both are present.
+	if expectedNonce != "" && vp.Nonce != "" && vp.Nonce != expectedNonce {
+		result.IsValid = false
+		result.Error = "VP nonce does not match the presentation request"
 		return result, nil
 	}
 

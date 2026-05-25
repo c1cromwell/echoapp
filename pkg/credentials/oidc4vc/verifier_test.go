@@ -333,6 +333,7 @@ func TestSubmitPresentation_HTTP_Valid(t *testing.T) {
 	token := signVPJWT(t, priv, holderDID, []string{"cred1"}, time.Hour)
 
 	v := NewVerifier("did:key:verifier", "did:key:issuer", "http://localhost", "http://localhost")
+	v.storeChallenge("test-state-001") // S8: state must be a server-issued challenge
 	r := setupTestRouter(v)
 
 	body, _ := json.Marshal(map[string]interface{}{
@@ -354,6 +355,15 @@ func TestSubmitPresentation_HTTP_Valid(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// S8: replaying the same submission must fail — the challenge is single-use.
+	rec2 := httptest.NewRecorder()
+	req2 := httptest.NewRequest(http.MethodPost, "/verification/submit", bytes.NewReader(body))
+	req2.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec2, req2)
+	if rec2.Code != http.StatusBadRequest {
+		t.Fatalf("replayed submission want 400, got %d", rec2.Code)
 	}
 
 	var resp map[string]interface{}
@@ -385,6 +395,33 @@ func TestSubmitPresentation_HTTP_MissingVPToken(t *testing.T) {
 	}
 }
 
+// TestSubmitPresentation_UnknownState verifies S8: a state the verifier never
+// issued is rejected, blocking forged or out-of-band submissions.
+func TestSubmitPresentation_UnknownState(t *testing.T) {
+	priv := generateTestKey(t)
+	holderDID := holderDIDFromKey(t, priv)
+	token := signVPJWT(t, priv, holderDID, []string{"c1"}, time.Hour)
+
+	v := NewVerifier("did:key:verifier", "did:key:issuer", "http://localhost", "http://localhost")
+	r := setupTestRouter(v) // no challenge stored
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"vp_token": token,
+		"state":    "never-issued",
+		"presentation_submission": map[string]interface{}{
+			"id": "x", "definition_id": "y", "descriptor_map": []interface{}{},
+		},
+	})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/verification/submit", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("unknown state want 400, got %d", rec.Code)
+	}
+}
+
 func TestGetVerificationStatus_NotFound(t *testing.T) {
 	v := NewVerifier("did:key:verifier", "did:key:issuer", "http://localhost", "http://localhost")
 	r := setupTestRouter(v)
@@ -404,6 +441,7 @@ func TestGetVerificationStatus_Found(t *testing.T) {
 	token := signVPJWT(t, priv, holderDID, []string{"c1"}, time.Hour)
 
 	v := NewVerifier("did:key:verifier", "did:key:issuer", "http://localhost", "http://localhost")
+	v.storeChallenge("mystate") // S8: state must be a server-issued challenge
 	r := setupTestRouter(v)
 
 	// Submit first
