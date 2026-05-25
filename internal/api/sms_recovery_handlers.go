@@ -18,10 +18,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math/big"
 	"net/http"
 	"os"
 	"regexp"
+	"sync"
 	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/infra"
@@ -91,10 +93,10 @@ func (rt *Router) handleSMSRecoveryRegister(w http.ResponseWriter, r *http.Reque
 		"session_token": sessionToken,
 		"expires_in":    int(infra.SMSOTPSessionTTL.Seconds()),
 	}
-	// In dev mode, echo the OTP so tests don't need an SMS provider.
-	if isDevMode() {
+	// In dev (and only with the explicit ALLOW_DEV_OTP opt-in), echo the OTP in
+	// the body so tests don't need an SMS provider. Never via a response header.
+	if devOTPEnabled() {
 		resp["_dev_otp"] = otp
-		w.Header().Set("X-Dev-OTP", otp)
 	}
 	WriteJSON(w, http.StatusOK, resp)
 }
@@ -196,9 +198,8 @@ func (rt *Router) handleSMSRecoveryChallenge(w http.ResponseWriter, r *http.Requ
 		"did":           did,
 		"expires_in":    int(infra.SMSOTPSessionTTL.Seconds()),
 	}
-	if isDevMode() {
+	if devOTPEnabled() {
 		resp["_dev_otp"] = otp
-		w.Header().Set("X-Dev-OTP", otp)
 	}
 	WriteJSON(w, http.StatusOK, resp)
 }
@@ -278,10 +279,27 @@ func generateOTP() (string, error) {
 	return fmt.Sprintf("%06d", n.Int64()), nil
 }
 
-// isDevMode returns true when DEV_MODE env var is "true" or "1".
-// In dev mode, the OTP is echoed in the response body and X-Dev-OTP header
-// so tests don't require a real SMS provider.
-func isDevMode() bool {
-	v := os.Getenv("DEV_MODE")
+var devOTPWarnOnce sync.Once
+
+// devOTPEnabled reports whether the OTP may be echoed in the response body for
+// local testing. It requires BOTH DEV_MODE and ALLOW_DEV_OTP to be truthy and is
+// hard-disabled when ENVIRONMENT=production — so a single mis-set flag (or a
+// forgotten DEV_MODE) cannot leak OTPs in production. The OTP is never returned
+// in a response header (headers leak to proxies, logs, and browser history).
+func devOTPEnabled() bool {
+	if os.Getenv("ENVIRONMENT") == "production" {
+		return false
+	}
+	if !envTruthy("DEV_MODE") || !envTruthy("ALLOW_DEV_OTP") {
+		return false
+	}
+	devOTPWarnOnce.Do(func() {
+		log.Println("⚠ security: dev OTP echo ENABLED (DEV_MODE+ALLOW_DEV_OTP) — OTPs are returned in API responses; never enable in production")
+	})
+	return true
+}
+
+func envTruthy(name string) bool {
+	v := os.Getenv(name)
 	return v == "true" || v == "1"
 }

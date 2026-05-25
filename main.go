@@ -69,8 +69,25 @@ func (s *Server) setupTLS() *tls.Config {
 	}
 }
 
+// validateCORSOrigins rejects a wildcard origin. The CORS layer always sends
+// Access-Control-Allow-Credentials: true, so reflecting any origin ("*") would
+// let any website make credentialed cross-site requests to the API. Operators
+// must configure an explicit allowlist.
+func validateCORSOrigins(origins []string) error {
+	for _, o := range origins {
+		if o == "*" {
+			return fmt.Errorf("CORS misconfiguration: wildcard origin \"*\" is not allowed with credentialed requests — configure an explicit allowlist")
+		}
+	}
+	return nil
+}
+
 // Start starts the API server.
 func (s *Server) Start() error {
+	if err := validateCORSOrigins(s.config.AllowedOrigins); err != nil {
+		return err
+	}
+
 	db, pgDB := s.initDatabase()
 	redisClient := s.initRedis()
 
