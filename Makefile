@@ -176,8 +176,8 @@ release-check:
 	@if [ -n "$$(gofmt -l .)" ]; then echo "❌ unformatted files:"; gofmt -l .; exit 1; else echo "✅ gofmt clean"; fi
 	@echo ""
 	@echo "--- 5. No stray binaries ---"
-	@if ls $(BINARY_NAME) credentials cardanoidentity 2>/dev/null | grep -v "^ls:"; then \
-		echo "❌ stale binaries present — run: rm -f $(BINARY_NAME) credentials cardanoidentity"; exit 1; \
+	@if ls $(BINARY_NAME) credentials 2>/dev/null | grep -v "^ls:"; then \
+		echo "❌ stale binaries present — run: rm -f $(BINARY_NAME) credentials"; exit 1; \
 	else echo "✅ no stray binaries"; fi
 	@echo ""
 	@echo "--- 6. VERSION file ---"
