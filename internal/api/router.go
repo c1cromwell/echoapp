@@ -183,6 +183,10 @@ func (rt *Router) Handler() http.Handler {
 			rt.handleV1(w, r)
 		case strings.HasPrefix(r.URL.Path, "/v2/"):
 			rt.handleV2(w, r)
+		case r.URL.Path == "/v3/auth/refresh":
+			rt.handleAuthRefresh(w, r)
+		case r.URL.Path == "/v3/auth/revoke":
+			rt.handleAuthRevoke(w, r)
 		case strings.HasPrefix(r.URL.Path, "/v3/"):
 			rt.handleV3(w, r)
 		default:
@@ -222,6 +226,7 @@ var publicPaths = map[string]bool{
 	"/v1/phase1/trust-tier-commitment": true,
 	"/v1/crypto/server-key":            true, // WO-13: public key endpoint, no auth
 	"/v1/users/check-username":         true, // WO-14: pre-auth username availability check
+	"/v3/auth/refresh":                 true, // A.2: refresh token is the credential; no access token yet
 	"/v1/auth/sms-recovery/register":   true, // Wave 12: phone commitment registration
 	"/v1/auth/sms-recovery/verify":     true, // Wave 12: OTP verification
 	"/v1/auth/sms-recovery/challenge":  true, // Wave 12: recovery challenge
@@ -244,6 +249,7 @@ var ipThrottledPublicPaths = map[string]bool{
 	"/v1/auth/sms-recovery/register":  true,
 	"/v1/auth/sms-recovery/verify":    true,
 	"/v1/auth/sms-recovery/challenge": true,
+	"/v3/auth/refresh":                true,
 }
 
 // clientIP extracts the caller's IP for rate limiting. It honors the leftmost
