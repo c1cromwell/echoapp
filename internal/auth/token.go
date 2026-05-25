@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/big"
@@ -26,6 +27,12 @@ type RedisBackend interface {
 	BlocklistToken(ctx context.Context, jti string, expiresAt time.Time) error
 	IsBlocklisted(ctx context.Context, jti string) (bool, error)
 	SetNX(ctx context.Context, key string, value []byte, ttl time.Duration) (bool, error)
+
+	// Durable refresh-token storage (rotation + reuse detection survive restart).
+	RefreshPut(ctx context.Context, tokenHash string, record []byte, ttl time.Duration) error
+	RefreshGet(ctx context.Context, tokenHash string) (record []byte, ok bool, err error)
+	RefreshAddToUser(ctx context.Context, userID, tokenHash string, ttl time.Duration) error
+	RefreshUserHashes(ctx context.Context, userID string) ([]string, error)
 }
 
 const (
@@ -374,7 +381,8 @@ func HashRefreshToken(token string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-// StoreRefreshToken persists a new refresh token record.
+// StoreRefreshToken persists a new refresh token record. Durable (Redis) when a
+// backend is configured; otherwise in-memory.
 func (ts *TokenService) StoreRefreshToken(userID, token, deviceID string) *RefreshTokenRecord {
 	record := &RefreshTokenRecord{
 		ID:        uuid.New().String(),
@@ -386,6 +394,11 @@ func (ts *TokenService) StoreRefreshToken(userID, token, deviceID string) *Refre
 		CreatedAt: time.Now(),
 	}
 
+	if r := ts.backend(); r != nil {
+		ts.persistRefresh(r, record)
+		return record
+	}
+
 	ts.mu.Lock()
 	ts.refreshTokens[record.TokenHash] = record
 	ts.mu.Unlock()
@@ -393,10 +406,45 @@ func (ts *TokenService) StoreRefreshToken(userID, token, deviceID string) *Refre
 	return record
 }
 
+// persistRefresh writes a refresh record and indexes it under its user.
+func (ts *TokenService) persistRefresh(r RedisBackend, rec *RefreshTokenRecord) {
+	ctx := context.Background()
+	raw, err := json.Marshal(rec)
+	if err != nil {
+		log.Printf("auth: marshal refresh record: %v", err)
+		return
+	}
+	if err := r.RefreshPut(ctx, rec.TokenHash, raw, RefreshTokenTTL); err != nil {
+		log.Printf("auth: redis refresh put failed: %v", err)
+		return
+	}
+	if err := r.RefreshAddToUser(ctx, rec.UserID, rec.TokenHash, RefreshTokenTTL); err != nil {
+		log.Printf("auth: redis refresh index failed: %v", err)
+	}
+}
+
+// loadRefresh reads a refresh record by hash from the durable backend.
+func (ts *TokenService) loadRefresh(r RedisBackend, tokenHash string) (*RefreshTokenRecord, bool) {
+	raw, ok, err := r.RefreshGet(context.Background(), tokenHash)
+	if err != nil || !ok {
+		return nil, false
+	}
+	var rec RefreshTokenRecord
+	if err := json.Unmarshal(raw, &rec); err != nil {
+		return nil, false
+	}
+	rec.TokenHash = tokenHash // TokenHash is not serialized (json:"-")
+	return &rec, true
+}
+
 // RotateRefreshToken validates the old token and issues a new one.
 // Implements single-use enforcement with replay detection.
 func (ts *TokenService) RotateRefreshToken(oldToken, deviceID string) (newToken string, record *RefreshTokenRecord, err *AuthError) {
 	oldHash := HashRefreshToken(oldToken)
+
+	if r := ts.backend(); r != nil {
+		return ts.rotateRefreshDurable(r, oldHash, deviceID)
+	}
 
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
@@ -448,8 +496,77 @@ func (ts *TokenService) RotateRefreshToken(oldToken, deviceID string) (newToken 
 	return newTokenStr, newRecord, nil
 }
 
+// rotateRefreshDurable is RotateRefreshToken backed by the durable store.
+func (ts *TokenService) rotateRefreshDurable(r RedisBackend, oldHash, deviceID string) (string, *RefreshTokenRecord, *AuthError) {
+	existing, ok := ts.loadRefresh(r, oldHash)
+	if !ok {
+		return "", nil, NewAuthError(ErrCodeRefreshInvalid, 401)
+	}
+
+	if time.Now().After(existing.ExpiresAt) {
+		existing.Status = RefreshTokenRevoked
+		ts.persistRefresh(r, existing)
+		return "", nil, NewAuthError(ErrCodeRefreshInvalid, 401)
+	}
+	if existing.DeviceID != deviceID {
+		return "", nil, NewAuthError(ErrCodeUnknownDevice, 403)
+	}
+	// REPLAY DETECTION: reuse of an already-used token revokes the whole family.
+	if existing.Status == RefreshTokenUsed {
+		ts.revokeAllUserDurable(r, existing.UserID)
+		return "", nil, NewAuthError(ErrCodeRefreshInvalid, 401)
+	}
+	if existing.Status == RefreshTokenRevoked {
+		return "", nil, NewAuthError(ErrCodeRefreshInvalid, 401)
+	}
+
+	now := time.Now()
+	existing.Status = RefreshTokenUsed
+	existing.UsedAt = &now
+	ts.persistRefresh(r, existing)
+
+	newTokenStr := GenerateRefreshToken()
+	newRecord := &RefreshTokenRecord{
+		ID:        uuid.New().String(),
+		UserID:    existing.UserID,
+		TokenHash: HashRefreshToken(newTokenStr),
+		DeviceID:  deviceID,
+		Status:    RefreshTokenActive,
+		ExpiresAt: time.Now().Add(RefreshTokenTTL),
+		CreatedAt: time.Now(),
+	}
+	ts.persistRefresh(r, newRecord)
+	return newTokenStr, newRecord, nil
+}
+
+// revokeAllUserDurable marks all of a user's active refresh tokens revoked in the
+// durable store and returns the count revoked.
+func (ts *TokenService) revokeAllUserDurable(r RedisBackend, userID string) int {
+	hashes, err := r.RefreshUserHashes(context.Background(), userID)
+	if err != nil {
+		log.Printf("auth: redis list user refresh tokens failed: %v", err)
+		return 0
+	}
+	count := 0
+	for _, h := range hashes {
+		rec, ok := ts.loadRefresh(r, h)
+		if !ok {
+			continue
+		}
+		if rec.Status == RefreshTokenActive {
+			rec.Status = RefreshTokenRevoked
+			ts.persistRefresh(r, rec)
+			count++
+		}
+	}
+	return count
+}
+
 // RevokeAllUserTokens revokes all refresh tokens for a user.
 func (ts *TokenService) RevokeAllUserTokens(userID string) int {
+	if r := ts.backend(); r != nil {
+		return ts.revokeAllUserDurable(r, userID)
+	}
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
 	return ts.revokeAllUserTokensLocked(userID)
@@ -468,6 +585,20 @@ func (ts *TokenService) revokeAllUserTokensLocked(userID string) int {
 
 // GetActiveRefreshTokenCount returns the number of active refresh tokens for a user.
 func (ts *TokenService) GetActiveRefreshTokenCount(userID string) int {
+	if r := ts.backend(); r != nil {
+		hashes, err := r.RefreshUserHashes(context.Background(), userID)
+		if err != nil {
+			return 0
+		}
+		count := 0
+		for _, h := range hashes {
+			if rec, ok := ts.loadRefresh(r, h); ok && rec.Status == RefreshTokenActive {
+				count++
+			}
+		}
+		return count
+	}
+
 	ts.mu.RLock()
 	defer ts.mu.RUnlock()
 	count := 0

@@ -94,6 +94,40 @@ func (r *RedisClient) SetNX(ctx context.Context, key string, value []byte, ttl t
 	return r.client.SetNX(ctx, key, value, ttl).Result()
 }
 
+// --- Refresh token storage (durable rotation + reuse detection) ---
+
+// RefreshPut stores (or overwrites) a refresh-token record keyed by its hash.
+func (r *RedisClient) RefreshPut(ctx context.Context, tokenHash string, record []byte, ttl time.Duration) error {
+	return r.client.Set(ctx, "refresh:"+tokenHash, record, ttl).Err()
+}
+
+// RefreshGet returns a refresh-token record by hash; ok is false when absent.
+func (r *RedisClient) RefreshGet(ctx context.Context, tokenHash string) (record []byte, ok bool, err error) {
+	val, gerr := r.client.Get(ctx, "refresh:"+tokenHash).Bytes()
+	if gerr == redis.Nil {
+		return nil, false, nil
+	}
+	if gerr != nil {
+		return nil, false, gerr
+	}
+	return val, true, nil
+}
+
+// RefreshAddToUser indexes a token hash under its user so all of a user's tokens
+// can be enumerated for revocation. The index TTL tracks the token lifetime.
+func (r *RedisClient) RefreshAddToUser(ctx context.Context, userID, tokenHash string, ttl time.Duration) error {
+	key := "urt:" + userID
+	if err := r.client.SAdd(ctx, key, tokenHash).Err(); err != nil {
+		return err
+	}
+	return r.client.Expire(ctx, key, ttl).Err()
+}
+
+// RefreshUserHashes returns all token hashes indexed for a user.
+func (r *RedisClient) RefreshUserHashes(ctx context.Context, userID string) ([]string, error) {
+	return r.client.SMembers(ctx, "urt:"+userID).Result()
+}
+
 // --- Offline Message Queue Overflow ---
 
 // QueuePush adds an encrypted blob to a recipient's overflow queue.
