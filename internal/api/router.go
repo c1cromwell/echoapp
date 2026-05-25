@@ -213,6 +213,7 @@ var publicPaths = map[string]bool{
 	"/v1/data-l1/merkle-roots":         true,
 	"/v1/phase1/trust-tier-commitment": true,
 	"/v1/crypto/server-key":            true, // WO-13: public key endpoint, no auth
+	"/v1/users/check-username":         true, // WO-14: pre-auth username availability check
 	"/v1/auth/sms-recovery/register":   true, // Wave 12: phone commitment registration
 	"/v1/auth/sms-recovery/verify":     true, // Wave 12: OTP verification
 	"/v1/auth/sms-recovery/challenge":  true, // Wave 12: recovery challenge
@@ -395,6 +396,8 @@ func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/v1/users":
 		rt.v1GetUsers(w, r)
+	case "/v1/users/check-username":
+		rt.handleCheckUsername(w, r)
 	case "/v1/users/profile":
 		rt.v1GetProfile(w, r)
 
