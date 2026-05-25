@@ -156,6 +156,12 @@ func (s *Server) Start() error {
 	rateLimiter := infra.NewRateLimiter(infra.DefaultRateLimits())
 	router.RateLimiter = rateLimiter
 
+	// S5/S9: per-IP throttle for unauthenticated endpoints + per-phone OTP send cap.
+	router.PublicRateLimiter = infra.NewRateLimiter(map[string]infra.RateLimitConfig{
+		"public_pre_auth": {MaxRequests: 30, Window: time.Minute},
+		"otp_send":        {MaxRequests: 3, Window: 15 * time.Minute},
+	})
+
 	// Wave 12: SMS provider — Twilio in prod, stub in dev/test.
 	smsProvider, isProd := infra.NewSMSProvider()
 	router.SMSProvider = smsProvider

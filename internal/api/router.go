@@ -7,8 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -60,12 +62,18 @@ type Router struct {
 	CredentialStatusPool *pgxpool.Pool // WO-274 durable VC status list slots (optional)
 	Redis                *infra.RedisClient
 	RateLimiter          *infra.RateLimiter         // WO-44 per-DID tiered rate limiting (optional)
+	PublicRateLimiter    *infra.RateLimiter         // S5: per-IP throttle for pre-auth public endpoints (optional)
 	SMSProvider          infra.SMSProvider          // Wave 12 SMS OTP recovery (optional; stub when nil)
 	IdentityL1           *metagraph.MetagraphClient // WO-274 trust-tier commitments
 	DataL1               *metagraph.MetagraphClient // WO-230 Data L1 Merkle proxy (optional)
 	CredentialService    *credentials.Service       // WO-274 VC issuance (optional)
 	OIDC                 *gin.Engine                // OpenID4VCI issuer mount (optional)
 	tokenService         *auth.TokenService         // ES256 JWT token service
+
+	// smsSessions is an in-memory fallback OTP-session store used only when
+	// Redis is not configured (dev/test); prod uses Redis. Guarded by smsSessionsMu.
+	smsSessions   map[string]smsOTPSession
+	smsSessionsMu sync.Mutex
 }
 
 // NewRouter creates a Router with production-grade ES256 JWT validation.
@@ -223,6 +231,37 @@ var publicPaths = map[string]bool{
 	"/identity/devices":                true,
 }
 
+// publicPreAuthAction is the rate-limit action key for unauthenticated endpoints.
+const publicPreAuthAction = "public_pre_auth"
+
+// ipThrottledPublicPaths are pre-auth endpoints throttled per client IP (S5) to
+// curb username enumeration, OTP abuse, and registration spam. They have no DID
+// to key the per-DID limiter on, so the IP is used instead.
+var ipThrottledPublicPaths = map[string]bool{
+	"/v1/users/check-username":        true,
+	"/v1/auth/login/challenge":        true,
+	"/identity/register":              true,
+	"/v1/auth/sms-recovery/register":  true,
+	"/v1/auth/sms-recovery/verify":    true,
+	"/v1/auth/sms-recovery/challenge": true,
+}
+
+// clientIP extracts the caller's IP for rate limiting. It honors the leftmost
+// X-Forwarded-For entry (set by a trusted reverse proxy) and falls back to the
+// connection's remote address.
+func clientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		if i := strings.IndexByte(xff, ','); i >= 0 {
+			return strings.TrimSpace(xff[:i])
+		}
+		return strings.TrimSpace(xff)
+	}
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		return host
+	}
+	return r.RemoteAddr
+}
+
 // identityRequestExemptFromAuth lists unauthenticated Identity routes (did:key resolution, etc.).
 // Authenticated Identity routes such as POST /identity/trust-tier/commitment are not exempt.
 func identityRequestExemptFromAuth(path, method string) bool {
@@ -341,12 +380,27 @@ func (rt *Router) corsMiddleware(next http.Handler) http.Handler {
 // Health, WebSocket and public registration paths are exempt.
 func (rt *Router) rateLimitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		reqID := r.Header.Get("X-Request-ID")
+
+		// S5: per-IP throttle for pre-auth public endpoints (independent of the
+		// per-DID limiter, which has no DID to key on for these routes).
+		if rt.PublicRateLimiter != nil && ipThrottledPublicPaths[path] {
+			ip := clientIP(r)
+			if err := rt.PublicRateLimiter.Check(ip, publicPreAuthAction); err != nil {
+				if rle, ok := err.(*infra.RateLimitExceededError); ok {
+					w.Header().Set("Retry-After", fmt.Sprintf("%.0f", rle.RetryAfter.Seconds()))
+				}
+				WriteError(w, http.StatusTooManyRequests, "RATE_LIMIT_EXCEEDED", "Too many requests", reqID)
+				return
+			}
+		}
+
 		if rt.RateLimiter == nil {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		path := r.URL.Path
 		if path == "/health" || path == "/ws" || publicPaths[path] ||
 			identityRequestExemptFromAuth(path, r.Method) {
 			next.ServeHTTP(w, r)
@@ -360,7 +414,6 @@ func (rt *Router) rateLimitMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		reqID := r.Header.Get("X-Request-ID")
 		remaining := rt.RateLimiter.Remaining(did, "api_request")
 		w.Header().Set("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))
 

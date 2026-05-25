@@ -16,6 +16,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -38,6 +39,7 @@ type smsOTPSession struct {
 	OTP       string    `json:"otp"`
 	DID       string    `json:"did,omitempty"`
 	ExpiresAt time.Time `json:"expires_at"`
+	Attempts  int       `json:"attempts"` // failed verification count (S6 brute-force lockout)
 }
 
 // --- POST /v1/auth/sms-recovery/register ---
@@ -85,6 +87,10 @@ func (rt *Router) handleSMSRecoveryRegister(w http.ResponseWriter, r *http.Reque
 
 	sessionToken, otp, err := rt.dispatchOTP(r.Context(), req.PhoneRaw, req.PhoneHash, req.DID)
 	if err != nil {
+		if errors.Is(err, errOTPSendRateLimited) {
+			WriteError(w, http.StatusTooManyRequests, "OTP_RATE_LIMITED", "too many codes requested for this number; try again later", r.Header.Get("X-Request-ID"))
+			return
+		}
 		WriteError(w, http.StatusInternalServerError, "OTP_SEND_FAILED", "failed to send OTP", r.Header.Get("X-Request-ID"))
 		return
 	}
@@ -128,15 +134,27 @@ func (rt *Router) handleSMSRecoveryVerify(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// S6: once the attempt budget is exhausted, lock the session for its lifetime
+	// (a new code must be requested). The session is kept, not deleted, so the
+	// lockout persists rather than degrading to "session not found".
+	if session.Attempts >= maxOTPAttempts {
+		WriteError(w, http.StatusTooManyRequests, "OTP_LOCKED", "too many incorrect attempts; request a new code", r.Header.Get("X-Request-ID"))
+		return
+	}
+
 	if !constantTimeStringEqual(req.OTP, session.OTP) {
+		session.Attempts++
+		_ = rt.putSMSSession(r.Context(), req.SessionToken, *session)
+		if session.Attempts >= maxOTPAttempts {
+			WriteError(w, http.StatusTooManyRequests, "OTP_LOCKED", "too many incorrect attempts; request a new code", r.Header.Get("X-Request-ID"))
+			return
+		}
 		WriteError(w, http.StatusUnauthorized, "INVALID_OTP", "OTP does not match", r.Header.Get("X-Request-ID"))
 		return
 	}
 
 	// Single-use: delete session immediately after successful verification.
-	if rt.Redis != nil {
-		_ = rt.Redis.DeleteSMSOTPSession(r.Context(), req.SessionToken)
-	}
+	rt.deleteSMSSession(r.Context(), req.SessionToken)
 
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"verified": true,
@@ -189,6 +207,10 @@ func (rt *Router) handleSMSRecoveryChallenge(w http.ResponseWriter, r *http.Requ
 
 	sessionToken, otp, err := rt.dispatchOTP(r.Context(), req.PhoneRaw, expectedHash, did)
 	if err != nil {
+		if errors.Is(err, errOTPSendRateLimited) {
+			WriteError(w, http.StatusTooManyRequests, "OTP_RATE_LIMITED", "too many codes requested for this number; try again later", r.Header.Get("X-Request-ID"))
+			return
+		}
 		WriteError(w, http.StatusInternalServerError, "OTP_SEND_FAILED", "failed to send OTP", r.Header.Get("X-Request-ID"))
 		return
 	}
@@ -217,9 +239,32 @@ func constantTimeStringEqual(a, b string) bool {
 	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }
 
-// dispatchOTP generates a 6-digit OTP, stores it in Redis, sends it via the
-// configured SMS provider, and returns the session token.
+const (
+	// maxOTPAttempts is the number of failed verifications allowed per OTP
+	// session before it is invalidated (S6 brute-force lockout).
+	maxOTPAttempts = 3
+	// maxOTPSendsPerWindow / otpSendWindow bound how many codes may be requested
+	// for a single phone number, preventing SMS flooding (S9).
+	maxOTPSendsPerWindow = 3
+	otpSendWindow        = 15 * time.Minute
+	// otpSendAction is the PublicRateLimiter action key for per-phone send limits.
+	otpSendAction = "otp_send"
+)
+
+// errOTPSendRateLimited signals that a phone number has requested too many codes.
+var errOTPSendRateLimited = errors.New("otp send rate limited")
+
+// dispatchOTP generates a 6-digit OTP, stores the session, sends it via the
+// configured SMS provider, and returns the session token. Sends per phone number
+// are rate limited (S9) when a limiter is configured.
 func (rt *Router) dispatchOTP(ctx context.Context, phoneRaw, phoneHash, did string) (sessionToken, otp string, err error) {
+	// S9: cap codes requested per phone number within the window.
+	if rt.PublicRateLimiter != nil {
+		if rerr := rt.PublicRateLimiter.Check(phoneHash, otpSendAction); rerr != nil {
+			return "", "", errOTPSendRateLimited
+		}
+	}
+
 	otp, err = generateOTP()
 	if err != nil {
 		return "", "", fmt.Errorf("generate OTP: %w", err)
@@ -231,17 +276,14 @@ func (rt *Router) dispatchOTP(ctx context.Context, phoneRaw, phoneHash, did stri
 	}
 	sessionToken = hex.EncodeToString(tokenBytes)
 
-	if rt.Redis != nil {
-		session := smsOTPSession{
-			PhoneHash: phoneHash,
-			OTP:       otp,
-			DID:       did,
-			ExpiresAt: time.Now().Add(infra.SMSOTPSessionTTL),
-		}
-		raw, _ := json.Marshal(session)
-		if err := rt.Redis.SetSMSOTPSession(ctx, sessionToken, raw); err != nil {
-			return "", "", fmt.Errorf("store OTP session: %w", err)
-		}
+	session := smsOTPSession{
+		PhoneHash: phoneHash,
+		OTP:       otp,
+		DID:       did,
+		ExpiresAt: time.Now().Add(infra.SMSOTPSessionTTL),
+	}
+	if err := rt.putSMSSession(ctx, sessionToken, session); err != nil {
+		return "", "", fmt.Errorf("store OTP session: %w", err)
 	}
 
 	// Send SMS — raw phone used only here, never stored.
@@ -253,18 +295,57 @@ func (rt *Router) dispatchOTP(ctx context.Context, phoneRaw, phoneHash, did stri
 	return sessionToken, otp, nil
 }
 
-// getSMSSession retrieves and deserializes an OTP session from Redis.
+// putSMSSession persists an OTP session: Redis when configured, otherwise an
+// in-memory map (dev/test). Storing in-memory keeps the recovery flow usable
+// without Redis.
+func (rt *Router) putSMSSession(ctx context.Context, sessionToken string, s smsOTPSession) error {
+	if rt.Redis != nil {
+		raw, _ := json.Marshal(s)
+		return rt.Redis.SetSMSOTPSession(ctx, sessionToken, raw)
+	}
+	rt.smsSessionsMu.Lock()
+	defer rt.smsSessionsMu.Unlock()
+	if rt.smsSessions == nil {
+		rt.smsSessions = make(map[string]smsOTPSession)
+	}
+	rt.smsSessions[sessionToken] = s
+	return nil
+}
+
+// deleteSMSSession removes an OTP session (single-use / lockout).
+func (rt *Router) deleteSMSSession(ctx context.Context, sessionToken string) {
+	if rt.Redis != nil {
+		_ = rt.Redis.DeleteSMSOTPSession(ctx, sessionToken)
+		return
+	}
+	rt.smsSessionsMu.Lock()
+	defer rt.smsSessionsMu.Unlock()
+	delete(rt.smsSessions, sessionToken)
+}
+
+// getSMSSession retrieves and deserializes an OTP session (Redis or in-memory).
 func (rt *Router) getSMSSession(ctx context.Context, sessionToken string) (*smsOTPSession, error) {
-	if rt.Redis == nil {
-		return nil, fmt.Errorf("Redis not configured")
+	if rt.Redis != nil {
+		raw, err := rt.Redis.GetSMSOTPSession(ctx, sessionToken)
+		if err != nil {
+			return nil, err
+		}
+		var session smsOTPSession
+		if err := json.Unmarshal(raw, &session); err != nil {
+			return nil, fmt.Errorf("malformed session: %w", err)
+		}
+		return &session, nil
 	}
-	raw, err := rt.Redis.GetSMSOTPSession(ctx, sessionToken)
-	if err != nil {
-		return nil, err
+
+	rt.smsSessionsMu.Lock()
+	defer rt.smsSessionsMu.Unlock()
+	session, ok := rt.smsSessions[sessionToken]
+	if !ok {
+		return nil, fmt.Errorf("session not found")
 	}
-	var session smsOTPSession
-	if err := json.Unmarshal(raw, &session); err != nil {
-		return nil, fmt.Errorf("malformed session: %w", err)
+	if time.Now().After(session.ExpiresAt) {
+		delete(rt.smsSessions, sessionToken)
+		return nil, fmt.Errorf("session expired")
 	}
 	return &session, nil
 }
