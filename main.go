@@ -362,6 +362,17 @@ func (s *Server) initNATS() *infra.NATSClient {
 func (s *Server) initStorage() media.StorageBackend {
 	backend := os.Getenv("STORAGE_BACKEND")
 	switch backend {
+	case "ipfs":
+		storage, err := media.NewIPFSStorage(media.IPFSConfig{
+			APIURL: os.Getenv("IPFS_API_URL"),
+			Root:   os.Getenv("IPFS_MFS_ROOT"),
+		})
+		if err != nil {
+			log.Printf("Failed to initialize IPFS storage: %v — falling back to memory", err)
+			return media.NewMemoryStorage()
+		}
+		log.Printf("Using IPFS storage at %s", os.Getenv("IPFS_API_URL"))
+		return storage
 	case "s3", "storj":
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
