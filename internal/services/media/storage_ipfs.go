@@ -3,6 +3,7 @@ package media
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -64,24 +65,25 @@ func (s *IPFSStorage) mfsPath(key string) (string, error) {
 	return s.root + "/" + key, nil
 }
 
-// Store writes data to MFS at the key's path (content-addressed in IPFS).
-func (s *IPFSStorage) Store(ctx context.Context, key string, data []byte) error {
+// Store writes data to MFS at the key's path (content-addressed in IPFS) and
+// returns the resulting CID so callers can anchor it on-chain (D3).
+func (s *IPFSStorage) Store(ctx context.Context, key string, data []byte) (string, error) {
 	path, err := s.mfsPath(key)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	var body bytes.Buffer
 	mw := multipart.NewWriter(&body)
 	fw, err := mw.CreateFormFile("data", strings.TrimPrefix(path, "/"))
 	if err != nil {
-		return fmt.Errorf("ipfs: form file: %w", err)
+		return "", fmt.Errorf("ipfs: form file: %w", err)
 	}
 	if _, err := fw.Write(data); err != nil {
-		return fmt.Errorf("ipfs: write part: %w", err)
+		return "", fmt.Errorf("ipfs: write part: %w", err)
 	}
 	if err := mw.Close(); err != nil {
-		return fmt.Errorf("ipfs: close multipart: %w", err)
+		return "", fmt.Errorf("ipfs: close multipart: %w", err)
 	}
 
 	q := url.Values{}
@@ -91,10 +93,29 @@ func (s *IPFSStorage) Store(ctx context.Context, key string, data []byte) error 
 	q.Set("truncate", "true")
 	resp, err := s.post(ctx, "/api/v0/files/write?"+q.Encode(), mw.FormDataContentType(), &body)
 	if err != nil {
-		return err
+		return "", err
 	}
 	resp.Body.Close()
-	return nil
+
+	return s.statCID(ctx, path)
+}
+
+// statCID returns the IPFS CID (content hash) of an MFS path via files/stat.
+func (s *IPFSStorage) statCID(ctx context.Context, path string) (string, error) {
+	q := url.Values{}
+	q.Set("arg", path)
+	resp, err := s.post(ctx, "/api/v0/files/stat?"+q.Encode(), "", nil)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	var stat struct {
+		Hash string `json:"Hash"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&stat); err != nil {
+		return "", fmt.Errorf("ipfs: decode files/stat: %w", err)
+	}
+	return stat.Hash, nil
 }
 
 // Retrieve reads the bytes stored at the key's MFS path.

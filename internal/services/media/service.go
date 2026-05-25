@@ -7,12 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
+	"github.com/thechadcromwell/echoapp/internal/metagraph"
 )
 
 const (
@@ -65,11 +67,17 @@ type UploadResult struct {
 	ContentType string    `json:"contentType"`
 	Size        int64     `json:"size"`
 	Timestamp   time.Time `json:"timestamp"`
+	// ContentRoot is the SHA-256 Merkle root over the chunk CIDs, anchored on
+	// Data L1 when content-addressed storage + a DataL1 client are configured.
+	ContentRoot string `json:"contentRoot,omitempty"`
 }
 
 // StorageBackend abstracts the underlying storage (Storj/S3/IPFS).
 type StorageBackend interface {
-	Store(ctx context.Context, key string, data []byte) error
+	// Store persists data under key and returns its content identifier (CID) when
+	// the backend is content-addressed (IPFS); content-location backends (S3)
+	// return an empty cid. The cid enables on-chain integrity anchoring (D3).
+	Store(ctx context.Context, key string, data []byte) (cid string, err error)
 	Retrieve(ctx context.Context, key string) ([]byte, error)
 	Delete(ctx context.Context, key string) error
 }
@@ -78,6 +86,10 @@ type StorageBackend interface {
 type Service struct {
 	db      database.DB
 	storage StorageBackend
+	// DataL1 optionally anchors a content Merkle root (over chunk CIDs) on the
+	// Data L1 metagraph so media integrity/provenance is publicly verifiable (D3).
+	// Nil disables anchoring; only content-addressed backends (IPFS) yield CIDs.
+	DataL1 *metagraph.MetagraphClient
 }
 
 // NewService creates a media service.
@@ -109,6 +121,7 @@ func (s *Service) Upload(ctx context.Context, req UploadRequest, body io.Reader)
 	chunkIndex := 0
 	buf := make([]byte, ChunkSize)
 	var totalSize int64
+	var cidLeaves []string // sha256(chunkCID) per chunk, for the content Merkle root
 
 	for {
 		n, err := body.Read(buf)
@@ -121,8 +134,12 @@ func (s *Service) Upload(ctx context.Context, req UploadRequest, body io.Reader)
 
 			// Store chunk data
 			if s.storage != nil {
-				if err := s.storage.Store(ctx, chunkID, chunkData); err != nil {
+				cid, err := s.storage.Store(ctx, chunkID, chunkData)
+				if err != nil {
 					return nil, err
+				}
+				if cid != "" {
+					cidLeaves = append(cidLeaves, fmt.Sprintf("%x", sha256.Sum256([]byte(cid))))
 				}
 			}
 
@@ -162,13 +179,39 @@ func (s *Service) Upload(ctx context.Context, req UploadRequest, body io.Reader)
 		return nil, err
 	}
 
+	// D3: anchor a content Merkle root over the chunk CIDs on Data L1 so anyone
+	// can verify the media's integrity/provenance against the chain. Best-effort:
+	// only when storage is content-addressed (CIDs present) and a client is wired.
+	contentRoot := s.anchorContentRoot(ctx, fileID, cidLeaves)
+
 	return &UploadResult{
 		FileID:      fileID,
 		ChunkCount:  chunkIndex,
 		ContentType: req.ContentType,
 		Size:        totalSize,
 		Timestamp:   time.Now(),
+		ContentRoot: contentRoot,
 	}, nil
+}
+
+// anchorContentRoot computes the SHA-256 Merkle root over the chunk CID leaves
+// and anchors it on Data L1. Returns the root (even if anchoring is disabled or
+// fails) so it can be surfaced to clients; returns "" when there are no CIDs.
+func (s *Service) anchorContentRoot(ctx context.Context, fileID string, cidLeaves []string) string {
+	if len(cidLeaves) == 0 {
+		return ""
+	}
+	root := metagraph.ComputeMerkleRoot(cidLeaves)
+	if s.DataL1 == nil {
+		return root
+	}
+	if _, err := s.DataL1.SubmitDataL1(ctx, metagraph.DataL1MerkleRootUpdate{
+		Root:      root,
+		LeafCount: len(cidLeaves),
+	}); err != nil {
+		log.Printf("media: content-root anchor failed for file %s: %v", fileID, err)
+	}
+	return root
 }
 
 // Download retrieves file metadata for download.
@@ -216,11 +259,13 @@ func NewMemoryStorage() *MemoryStorage {
 	return &MemoryStorage{data: make(map[string][]byte)}
 }
 
-func (m *MemoryStorage) Store(ctx context.Context, key string, data []byte) error {
+func (m *MemoryStorage) Store(ctx context.Context, key string, data []byte) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.data[key] = data
-	return nil
+	// Return a content hash as a stand-in CID so content-addressed code paths
+	// (e.g. Data L1 anchoring) are exercisable against the in-memory backend.
+	return fmt.Sprintf("%x", sha256.Sum256(data)), nil
 }
 
 func (m *MemoryStorage) Retrieve(ctx context.Context, key string) ([]byte, error) {

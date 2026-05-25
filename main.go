@@ -172,11 +172,13 @@ func (s *Server) Start() error {
 	}
 
 	emission := rewards.NewEmissionSchedule(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	mediaSvc := media.NewService(db, storage)
+	mediaSvc.DataL1 = router.DataL1 // D3: anchor media content roots on Data L1
 	router.V3 = &api.V3Handlers{
 		DB:           db,
 		Contacts:     contacts.NewService(db),
 		Notification: notification.NewService(db),
-		Media:        media.NewService(db, storage),
+		Media:        mediaSvc,
 		Rewards:      rewardsSvc.NewService(db, emission),
 		Groups:       groups.NewGroupService(),
 		Broadcasts:   broadcast_channels.NewChannelService(),

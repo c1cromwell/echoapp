@@ -201,7 +201,9 @@ func TestMemoryStorage(t *testing.T) {
 	ms := NewMemoryStorage()
 	ctx := context.Background()
 
-	ms.Store(ctx, "key1", []byte("data"))
+	if _, err := ms.Store(ctx, "key1", []byte("data")); err != nil {
+		t.Fatalf("Store: %v", err)
+	}
 
 	got, err := ms.Retrieve(ctx, "key1")
 	if err != nil {

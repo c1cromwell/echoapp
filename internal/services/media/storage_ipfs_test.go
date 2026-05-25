@@ -54,6 +54,14 @@ func fakeKuboMFS() (*httptest.Server, *sync.Map) {
 		w.WriteHeader(http.StatusOK)
 	})
 
+	mux.HandleFunc("/api/v0/files/stat", func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := store.Load(r.URL.Query().Get("arg")); !ok {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		_, _ = w.Write([]byte(`{"Hash":"QmTestCID123","Size":0}`))
+	})
+
 	return httptest.NewServer(mux), &store
 }
 
@@ -68,8 +76,12 @@ func TestIPFSStorage_RoundTrip(t *testing.T) {
 	ctx := context.Background()
 	data := []byte("encrypted-media-blob")
 
-	if err := st.Store(ctx, "media/abc123", data); err != nil {
+	cid, err := st.Store(ctx, "media/abc123", data)
+	if err != nil {
 		t.Fatalf("store: %v", err)
+	}
+	if cid != "QmTestCID123" {
+		t.Fatalf("Store should return the CID from files/stat, got %q", cid)
 	}
 	got, err := st.Retrieve(ctx, "media/abc123")
 	if err != nil {
@@ -91,7 +103,7 @@ func TestIPFSStorage_RejectsTraversalKeys(t *testing.T) {
 	st, _ := NewIPFSStorage(IPFSConfig{APIURL: "http://unused"})
 	ctx := context.Background()
 	for _, bad := range []string{"", "../escape", "a/../../etc", "/"} {
-		if err := st.Store(ctx, bad, []byte("x")); err == nil {
+		if _, err := st.Store(ctx, bad, []byte("x")); err == nil {
 			t.Fatalf("key %q should be rejected", bad)
 		}
 	}

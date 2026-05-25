@@ -59,7 +59,7 @@ func NewS3Storage(ctx context.Context, cfg S3Config) (*S3Storage, error) {
 }
 
 // Store uploads an encrypted blob to S3/Storj.
-func (s *S3Storage) Store(ctx context.Context, key string, data []byte) error {
+func (s *S3Storage) Store(ctx context.Context, key string, data []byte) (string, error) {
 	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:      aws.String(s.bucket),
 		Key:         aws.String(key),
@@ -67,9 +67,10 @@ func (s *S3Storage) Store(ctx context.Context, key string, data []byte) error {
 		ContentType: aws.String("application/octet-stream"),
 	})
 	if err != nil {
-		return fmt.Errorf("s3 put %s: %w", key, err)
+		return "", fmt.Errorf("s3 put %s: %w", key, err)
 	}
-	return nil
+	// S3/Storj is location-addressed, not content-addressed — no CID to anchor.
+	return "", nil
 }
 
 // Retrieve downloads an encrypted blob from S3/Storj.
