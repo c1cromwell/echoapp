@@ -41,7 +41,6 @@ final class WalletCredentialEnrollmentViewModel {
         }
     }
 }
-#endif
 
 // MARK: - View
 

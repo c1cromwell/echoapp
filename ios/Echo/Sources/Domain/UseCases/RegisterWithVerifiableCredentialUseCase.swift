@@ -54,8 +54,8 @@ struct RegisterWithVerifiableCredentialUseCase {
 }
 
 /// Opens ASWebAuthenticationSession for wallet / verifier UI handoff.
-@MainActor
 struct WalletConnector {
+    @MainActor
     func present(url: URL, callbackScheme: String) async throws -> URL {
         try await withCheckedThrowingContinuation { continuation in
             let session = ASWebAuthenticationSession(

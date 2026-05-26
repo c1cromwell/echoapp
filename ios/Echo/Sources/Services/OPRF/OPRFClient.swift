@@ -15,7 +15,7 @@ struct OPRFBlindResult: Sendable {
 }
 
 /// In-memory mock for unit tests — returns deterministic keys from phone hash (not production safe).
-struct MockOPRFClient: OPRFClient {
+final class MockOPRFClient: OPRFClient, @unchecked Sendable {
     private struct Session { let phones: [String] }
 
     private let lock = NSLock()
