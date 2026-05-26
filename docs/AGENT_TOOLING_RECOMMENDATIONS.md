@@ -1,7 +1,7 @@
 # Agent Tooling Recommendations — Echo
 
 **Created:** 2026-05-26  
-**Status:** Accepted (Steps 1–3 implemented 2026-05-26)  
+**Status:** Accepted (Steps 1–4 implemented 2026-05-26)  
 **Purpose:** Record planning choices for Cursor skills, MCP services, and agent harnesses so future you (and agents) know what was decided and why.
 
 ---
@@ -61,16 +61,16 @@ Also added: **`AGENTS.md`** at repo root (entry point for agents).
 
 Phase doc headers (`docs/phase-*-work-orders.md`) synced with Software Factory same day.
 
-### Tier 2 — Phase-specific (later)
+### Tier 2 — Implemented (Step 4, 2026-05-26)
 
-| Skill | When |
-|-------|------|
-| `echo-phase1-validate` | TestFlight / Phase 1 go-no-go |
-| `echo-phase2-gaps` | Onboarding, contacts, VC (see `PHASE2_GAP_AUDIT.md`) |
-| `echo-phase3-ios-wire` | Xcode wiring after agent lands messaging logic |
-| `echo-metagraph-scala` | Scala L1 validator changes |
+| Skill | Location | Trigger |
+|-------|----------|---------|
+| `echo-phase1-validate` | `.cursor/skills/echo-phase1-validate/` | TestFlight / Phase 1 go/no-go |
+| `echo-phase2-gaps` | `.cursor/skills/echo-phase2-gaps/` | Onboarding, contacts, VC (see gap audit) |
+| `echo-phase3-ios-wire` | `.cursor/skills/echo-phase3-ios-wire/` | Xcode wiring after agent lands messaging logic |
+| `echo-metagraph-scala` | `.cursor/skills/echo-metagraph-scala/` | Scala L1 validator changes |
 
-### Tier 3 — Optional
+### Tier 3 — Optional (not yet implemented)
 
 | Skill | When |
 |-------|------|
@@ -115,7 +115,7 @@ Phase doc headers (`docs/phase-*-work-orders.md`) synced with Software Factory s
 | WO reconciler | Agent + `echo-work-order-sync` + SF MCP after merge windows |
 | Phase 1 gate | Agent + `echo-local-dev` MCP → GO/NO-GO report |
 | PR babysitter | Existing Cursor **`babysit`** skill on CI failures |
-| Phase 3 iOS wire | Human/Xcode + `echo-phase3-ios-wire` skill (future) |
+| Phase 3 iOS wire | Human/Xcode + **`echo-phase3-ios-wire`** skill |
 | Security reviewer | Agent + `echo-t0-t7-review` before chain-touching PRs |
 
 ---
@@ -140,7 +140,7 @@ Do **not** load `Echo_Combined_Requirements.md` or full blueprints by default in
 Step 1 (done 2026-05-26): AGENTS.md + echo-repo-map + echo-auth-contracts + echo-ios-agent-vs-xcode
 Step 2 (done 2026-05-26): echo-work-order-sync + echo-t0-t7-review; sync phase doc headers
 Step 3 (done 2026-05-26): echo-local-dev MCP (tools/echo-local-dev-mcp + .cursor/mcp.json)
-Step 4: Phase-specific skills as phases activate
+Step 4 (done 2026-05-26): echo-phase1-validate, echo-phase2-gaps, echo-phase3-ios-wire, echo-metagraph-scala
 ```
 
 ---
@@ -152,3 +152,4 @@ Step 4: Phase-specific skills as phases activate
 | 2026-05-26 | Initial recommendations documented; Step 1 skills + AGENTS.md implemented |
 | 2026-05-26 | Step 2: echo-work-order-sync + echo-t0-t7-review; phase WO headers synced |
 | 2026-05-26 | Step 3: echo-local-dev MCP server + project `.cursor/mcp.json` |
+| 2026-05-26 | Step 4: four phase-specific skills (validate, phase2 gaps, phase3 wire, metagraph) |

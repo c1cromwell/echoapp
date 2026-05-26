@@ -12,6 +12,10 @@ Quick entry point for Cursor agents working in this repo. Read this first, then 
 | Update work order status | Skill: **`echo-work-order-sync`** + MCP `software-factory-echo` |
 | Chain / submission / PII review | Skill: **`echo-t0-t7-review`** + `docs/data-classification.md` |
 | Local cluster / validate / release check | MCP **`echo-local-dev`** (see `.cursor/mcp.json`) |
+| TestFlight / Phase 1 go-no-go | Skill: **`echo-phase1-validate`** + MCP `echo-local-dev` |
+| Phase 2 onboarding / VC / contacts | Skill: **`echo-phase2-gaps`** |
+| Phase 3 messaging UI (Xcode wiring) | Skill: **`echo-phase3-ios-wire`** |
+| Metagraph Scala L1 validators | Skill: **`echo-metagraph-scala`** |
 
 Planning history and MCP roadmap: [`docs/AGENT_TOOLING_RECOMMENDATIONS.md`](docs/AGENT_TOOLING_RECOMMENDATIONS.md).
 
@@ -78,3 +82,7 @@ Full setup: [`CONTRIBUTING.md`](CONTRIBUTING.md). TestFlight: [`docs/PHASE1_LAUN
 | `echo-ios-agent-vs-xcode` | ✅ Step 1 |
 | `echo-work-order-sync` | ✅ Step 2 |
 | `echo-t0-t7-review` | ✅ Step 2 |
+| `echo-phase1-validate` | ✅ Step 4 |
+| `echo-phase2-gaps` | ✅ Step 4 |
+| `echo-phase3-ios-wire` | ✅ Step 4 |
+| `echo-metagraph-scala` | ✅ Step 4 |
