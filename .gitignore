@@ -102,6 +102,7 @@ metagraph/target/
 # MCP local dev server
 tools/echo-local-dev-mcp/.venv/
 tools/echo-local-dev-mcp/.uv/
+tools/echo-local-dev-mcp/**/__pycache__/
 
 # Terraform
 *.tfstate
