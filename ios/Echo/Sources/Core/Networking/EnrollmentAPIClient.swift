@@ -10,12 +10,21 @@ import Foundation
 actor EnrollmentAPIClient {
     static let shared = EnrollmentAPIClient()
 
-    private let baseURL = URL(string: "https://api.echo.app")!
-    private let session: URLSession = .shared
+    private let baseURL: URL
+    private let session: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
 
-    init() {
+    init(baseURL: URL? = nil, session: URLSession = .shared) {
+        if let baseURL {
+            self.baseURL = baseURL
+        } else if let raw = ProcessInfo.processInfo.environment["ECHO_API_URL"] ?? ProcessInfo.processInfo.environment["API_URL"],
+                  let url = URL(string: raw) {
+            self.baseURL = url
+        } else {
+            self.baseURL = APIConfiguration.default.baseURL
+        }
+        self.session = session
         self.decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         self.encoder = JSONEncoder()

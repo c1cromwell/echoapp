@@ -20,6 +20,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/infra"
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
 	"github.com/thechadcromwell/echoapp/pkg/credentials"
+	"github.com/thechadcromwell/echoapp/pkg/credentials/oidc4vc"
 )
 
 // contextKey is an unexported type for context keys to avoid collisions.
@@ -67,8 +68,13 @@ type Router struct {
 	IdentityL1           *metagraph.MetagraphClient // WO-274 trust-tier commitments
 	DataL1               *metagraph.MetagraphClient // WO-230 Data L1 Merkle proxy (optional)
 	CredentialService    *credentials.Service       // WO-274 VC issuance (optional)
-	OIDC                 *gin.Engine                // OpenID4VCI issuer mount (optional)
+	OIDC                 *gin.Engine                // OpenID4VCI issuer + verifier mount (optional)
+	OIDCVerifier         *oidc4vc.Verifier          // OIDC4VC presentation verifier (optional)
+	OIDCVerifierBaseURL  string                     // Public verifier base URL for iOS wallet handoff
 	tokenService         *auth.TokenService         // ES256 JWT token service
+
+	enrollmentVCMu       sync.Mutex
+	enrollmentVCSessions map[string]enrollmentVCSession
 
 	// smsSessions is an in-memory fallback OTP-session store used only when
 	// Redis is not configured (dev/test); prod uses Redis. Guarded by smsSessionsMu.
@@ -116,6 +122,22 @@ func (rt *Router) TokenService() *auth.TokenService {
 	return rt.tokenService
 }
 
+func isOpenIDCredentialPath(path string) bool {
+	if isOpenIDCredentialIssuerPath(path) {
+		return true
+	}
+	switch {
+	case strings.HasPrefix(path, "/.well-known/openid-credential-verifier"):
+		return true
+	case strings.HasPrefix(path, "/verification/"):
+		return true
+	case strings.HasPrefix(path, "/presentation_definition/"):
+		return true
+	default:
+		return false
+	}
+}
+
 func isOpenIDCredentialIssuerPath(path string) bool {
 	switch {
 	case path == "/notification":
@@ -136,7 +158,7 @@ func isOpenIDCredentialIssuerPath(path string) bool {
 // Handler returns the fully wrapped http.Handler with all middleware applied.
 func (rt *Router) Handler() http.Handler {
 	core := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if rt.OIDC != nil && isOpenIDCredentialIssuerPath(r.URL.Path) {
+		if rt.OIDC != nil && isOpenIDCredentialPath(r.URL.Path) {
 			rt.OIDC.ServeHTTP(w, r)
 			return
 		}
@@ -291,7 +313,7 @@ func (rt *Router) authMiddleware(next http.Handler) http.Handler {
 		// did:key resolution (which is local-only and inherently public) bypass auth.
 		if r.URL.Path == "/health" || r.URL.Path == "/ws" || publicPaths[r.URL.Path] ||
 			identityRequestExemptFromAuth(r.URL.Path, r.Method) ||
-			isOpenIDCredentialIssuerPath(r.URL.Path) {
+			isOpenIDCredentialPath(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}

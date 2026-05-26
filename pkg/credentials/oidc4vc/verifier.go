@@ -98,14 +98,59 @@ func (v *Verifier) RegisterRoutes(router *gin.Engine) {
 	vg := router.Group("/verification")
 	vg.GET("/request", v.CreatePresentationRequest)
 	vg.POST("/submit", v.SubmitPresentation)
+	vg.GET("/ui", v.ServePresentationUI)
 	vg.GET("/:presentationId/status", v.GetVerificationStatus)
 
 	router.GET("/presentation_definition/:definitionId", v.GetPresentationDefinition)
 }
 
+// ServePresentationUI hosts a minimal wallet handoff page for ASWebAuthenticationSession.
+func (v *Verifier) ServePresentationUI(c *gin.Context) {
+	state := c.Query("state")
+	credentialType := c.Query("credential_type")
+	if state == "" || credentialType == "" {
+		c.String(http.StatusBadRequest, "state and credential_type are required")
+		return
+	}
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	c.String(http.StatusOK, `<!DOCTYPE html><html><head><meta charset="utf-8"><title>ECHO credential</title></head><body>
+<h1>Present credential</h1>
+<p>Open your wallet app to share a <strong>%s</strong> credential, or paste a VP token below (dev).</p>
+<form method="GET" action="echo-enroll://callback">
+<input type="hidden" name="state" value="%s"/>
+<label>VP token <input name="vp_token" size="80"/></label>
+<button type="submit">Continue</button>
+</form>
+</body></html>`, credentialType, state)
+}
+
 // GetMetadata returns OIDC4VC verifier metadata.
 func (v *Verifier) GetMetadata(c *gin.Context) {
 	c.JSON(http.StatusOK, v.metadata)
+}
+
+// Metadata returns verifier metadata for enrollment / client discovery.
+func (v *Verifier) Metadata() *VerifierMetadata {
+	return v.metadata
+}
+
+// BeginPresentation issues a single-use presentation request for wallet / OIDC4VC clients.
+func (v *Verifier) BeginPresentation(credentialType, redirectURI string) (*PresentationRequest, error) {
+	if credentialType == "" {
+		return nil, fmt.Errorf("credential_type is required")
+	}
+	clientID := v.metadata.VerifierID
+	if redirectURI == "" {
+		base := strings.TrimSuffix(v.metadata.VerificationEndpoint, "/submit")
+		redirectURI = base + "/submit"
+	}
+	state, err := generateRandomCode(16)
+	if err != nil {
+		return nil, err
+	}
+	v.storeChallenge(state)
+	req := v.metadataManager.GeneratePresentationRequest(clientID, redirectURI, state, credentialType)
+	return req, nil
 }
 
 // CreatePresentationRequest creates a presentation request for a given credential type.
@@ -115,21 +160,12 @@ func (v *Verifier) CreatePresentationRequest(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "credential_type is required"})
 		return
 	}
-
-	clientID := c.Query("client_id")
-	if clientID == "" {
-		clientID = v.metadata.VerifierID
-	}
-
 	redirectURI := c.Query("redirect_uri")
-	if redirectURI == "" {
-		base := strings.TrimSuffix(v.metadata.VerificationEndpoint, "/submit")
-		redirectURI = base + "/submit"
+	req, err := v.BeginPresentation(credentialType, redirectURI)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
-
-	state, _ := generateRandomCode(16)
-	v.storeChallenge(state) // single-use; must be presented back on /submit
-	req := v.metadataManager.GeneratePresentationRequest(clientID, redirectURI, state, credentialType)
 	c.JSON(http.StatusOK, req)
 }
 
@@ -154,18 +190,7 @@ func (v *Verifier) SubmitPresentation(c *gin.Context) {
 		return
 	}
 
-	// S8: the state must be a challenge this verifier issued and has not yet
-	// consumed — this rejects forged states and replays of a prior submission.
-	if !v.consumeChallenge(req.State) {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":             "invalid_request",
-			"error_description": "unknown, expired, or already-used state",
-		})
-		return
-	}
-
-	presentationID := "pres_" + req.State
-	result, err := v.verifyPresentation(c.Request.Context(), req.VPToken, req.PresentationSubmission, req.State)
+	result, err := v.AcceptPresentation(c.Request.Context(), req.VPToken, req.PresentationSubmission, req.State)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":             "verification_failed",
@@ -173,6 +198,7 @@ func (v *Verifier) SubmitPresentation(c *gin.Context) {
 		})
 		return
 	}
+	presentationID := "pres_" + req.State
 	result.PresentationID = presentationID
 
 	v.resultsMu.Lock()
@@ -188,6 +214,14 @@ func (v *Verifier) SubmitPresentation(c *gin.Context) {
 			"credentials": result.Credentials,
 		},
 	})
+}
+
+// AcceptPresentation verifies a VP against a previously issued state challenge.
+func (v *Verifier) AcceptPresentation(ctx context.Context, vpToken string, submission *PresentationSubmission, state string) (*VPVerificationResult, error) {
+	if !v.consumeChallenge(state) {
+		return nil, fmt.Errorf("unknown, expired, or already-used state")
+	}
+	return v.verifyPresentation(ctx, vpToken, submission, state)
 }
 
 // GetVerificationStatus returns the stored result for a previous submission.

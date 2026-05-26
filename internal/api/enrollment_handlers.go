@@ -207,15 +207,6 @@ func (rt *Router) handleRestoreDID(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleEnrollmentVC handles POST /v1/enrollment/vc/start and /vc/finish.
-func (rt *Router) handleEnrollmentVC(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
-		return
-	}
-	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok", "request_id": r.Header.Get("X-Request-ID")})
-}
-
 // handleEnrollmentMDL handles POST /v1/enrollment/mdl/start and /mdl/finish.
 func (rt *Router) handleEnrollmentMDL(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

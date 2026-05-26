@@ -41,6 +41,21 @@ public struct ContactsListView: View {
                     trailingAction: {},
                     trailingIcon: Image(systemName: "person.badge.plus")
                 )
+
+                NavigationLink {
+                    ContactDiscoveryView()
+                } label: {
+                    HStack {
+                        Image(systemName: "person.2.circle")
+                        Text("Find contacts on ECHO")
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, Spacing.lg.rawValue)
+                    .padding(.vertical, Spacing.sm.rawValue)
+                }
                 
                 VStack(spacing: Spacing.lg.rawValue) {
                     // Search Bar

@@ -169,6 +169,14 @@
 		0B4FE7EA463245E7B6531EEA /* VIPStandardIDVView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E6EA147E2FF4D5F80E78EB1 /* VIPStandardIDVView.swift */; };
 		D40F41C357A240FD9CC3B02C /* VIPSuccessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E53DD00F80A34C11ADAECDD4 /* VIPSuccessView.swift */; };
 		AC357D766BDD4417A4EAF20C /* StepUpAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3141640DB14B49719F5CD49A /* StepUpAuthManager.swift */; };
+		F1A2B3C4012345678900002 /* OIDC4VCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900001 /* OIDC4VCClient.swift */; };
+		F1A2B3C4012345678900004 /* RegisterWithVerifiableCredentialUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900003 /* RegisterWithVerifiableCredentialUseCase.swift */; };
+		F1A2B3C4012345678900006 /* ContactDiscoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900005 /* ContactDiscoveryView.swift */; };
+		F1A2B3C4012345678900008 /* ContactDiscoveryAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900007 /* ContactDiscoveryAPIClient.swift */; };
+		F1A2B3C401234567890000A /* ContactDiscoveryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900009 /* ContactDiscoveryService.swift */; };
+		F1A2B3C401234567890000C /* PhoneNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C401234567890000B /* PhoneNormalizer.swift */; };
+		F1A2B3C401234567890000E /* OPRFClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C401234567890000D /* OPRFClient.swift */; };
+		F1A2B3C4012345678900010 /* LiveOPRFClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C401234567890000F /* LiveOPRFClient.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -335,6 +343,15 @@
 		5E6EA147E2FF4D5F80E78EB1 /* VIPStandardIDVView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/VIP/VIPStandardIDVView.swift; sourceTree = "<group>"; };
 		E53DD00F80A34C11ADAECDD4 /* VIPSuccessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/VIP/VIPSuccessView.swift; sourceTree = "<group>"; };
 		3141640DB14B49719F5CD49A /* StepUpAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Core/Security/StepUpAuthManager.swift; sourceTree = "<group>"; };
+		F1A2B3C4012345678900001 /* OIDC4VCClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OIDC4VCClient.swift; sourceTree = "<group>"; };
+		F1A2B3C4012345678900003 /* RegisterWithVerifiableCredentialUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterWithVerifiableCredentialUseCase.swift; sourceTree = "<group>"; };
+		F1A2B3C4012345678900005 /* ContactDiscoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDiscoveryView.swift; sourceTree = "<group>"; };
+		F1A2B3C4012345678900007 /* ContactDiscoveryAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDiscoveryAPIClient.swift; sourceTree = "<group>"; };
+		F1A2B3C4012345678900009 /* ContactDiscoveryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDiscoveryService.swift; sourceTree = "<group>"; };
+		F1A2B3C401234567890000B /* PhoneNormalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneNormalizer.swift; sourceTree = "<group>"; };
+		F1A2B3C401234567890000D /* OPRFClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OPRFClient.swift; sourceTree = "<group>"; };
+		F1A2B3C401234567890000F /* LiveOPRFClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveOPRFClient.swift; sourceTree = "<group>"; };
+		F1A2B3C4012345678900012 /* EchoApp-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "EchoApp-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -383,6 +400,7 @@
 				C170891BE3D56A3B4727E7D9 /* APIClient.swift */,
 				B53E64017DF46F0C1D4DF28E /* Endpoints.swift */,
 				A6F05E1329999CB64D520138 /* EnrollmentAPIClient.swift */,
+				F1A2B3C4012345678900001 /* OIDC4VCClient.swift */,
 				415CE72A39C18837771B8B2B /* WebSocketClient.swift */,
 			);
 			path = Networking;
@@ -463,12 +481,25 @@
 		339EB235F1F451CB4F00B53E /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				F1A2B3C4012345678900007 /* ContactDiscoveryAPIClient.swift */,
+				F1A2B3C4012345678900009 /* ContactDiscoveryService.swift */,
 				90587F281B224F38E70F2137 /* IdentityService.swift */,
 				F4C447DAD513014EBF6EA4FE /* MessagingService.swift */,
+				F1A2B3C4012345678900011 /* OPRF */,
+				F1A2B3C401234567890000B /* PhoneNormalizer.swift */,
 				449BB08C4DB7AF394D798FE4 /* Service.swift */,
 				B8F4E2A1039C4D7E8F1A0023 /* UsernameAvailabilityService.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		F1A2B3C4012345678900011 /* OPRF */ = {
+			isa = PBXGroup;
+			children = (
+				F1A2B3C401234567890000F /* LiveOPRFClient.swift */,
+				F1A2B3C401234567890000D /* OPRFClient.swift */,
+			);
+			path = OPRF;
 			sourceTree = "<group>";
 		};
 		33C1DE3B69CA3FB6182CA1B4 /* Domain */ = {
@@ -571,6 +602,7 @@
 		5E4CDFB2391F0B722E046A6D /* UseCases */ = {
 			isa = PBXGroup;
 			children = (
+				F1A2B3C4012345678900003 /* RegisterWithVerifiableCredentialUseCase.swift */,
 				73D743AC0EC9162DF830D09D /* UseCases.swift */,
 			);
 			path = UseCases;
@@ -664,9 +696,18 @@
 		7FAD8E9B6523B82CFD5D0E0D = {
 			isa = PBXGroup;
 			children = (
+				F1A2B3C4012345678900012 /* EchoApp-Info.plist */,
+				F1A2B3C4012345678900013 /* Libraries */,
 				E13B5ED1C6725744C9FA2FBD /* Sources */,
 				290D02D64F0CB90A283D9880 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		F1A2B3C4012345678900013 /* Libraries */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Libraries;
 			sourceTree = "<group>";
 		};
 		819ECB477101FF3F3C7B76D4 /* Messaging */ = {
@@ -832,6 +873,7 @@
 			children = (
 				F36BE0D7C763283B1DD09A78 /* ContactDetailView.swift */,
 				7A0F02E0B74FC3D3CD2E6188 /* ContactDetailViewModel.swift */,
+				F1A2B3C4012345678900005 /* ContactDiscoveryView.swift */,
 			);
 			path = Contacts;
 			sourceTree = "<group>";
@@ -1227,6 +1269,14 @@
 				20236D6707154AA4AABBF37A /* IdentityCardView.swift in Sources */,
 				EECBE178A0D0465BACA697E7 /* BiometricLockoutView.swift in Sources */,
 				D8CCBC09BC79427FABFDFF91 /* StorageLockedView.swift in Sources */,
+				F1A2B3C4012345678900002 /* OIDC4VCClient.swift in Sources */,
+				F1A2B3C4012345678900004 /* RegisterWithVerifiableCredentialUseCase.swift in Sources */,
+				F1A2B3C4012345678900006 /* ContactDiscoveryView.swift in Sources */,
+				F1A2B3C4012345678900008 /* ContactDiscoveryAPIClient.swift in Sources */,
+				F1A2B3C401234567890000A /* ContactDiscoveryService.swift in Sources */,
+				F1A2B3C401234567890000C /* PhoneNormalizer.swift in Sources */,
+				F1A2B3C401234567890000E /* OPRFClient.swift in Sources */,
+				F1A2B3C4012345678900010 /* LiveOPRFClient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1304,6 +1354,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = EchoApp-Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -1327,6 +1378,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = EchoApp-Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

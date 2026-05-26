@@ -11,6 +11,7 @@ dist/
 # iOS
 ios/Pods/
 ios/build/
+ios/Echo/Libraries/*.xcframework/
 ios/*.xcworkspace
 ios/*.xcodeproj/xcuserdata
 ios/*.xcodeproj/project.xcworkspace

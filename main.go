@@ -136,11 +136,21 @@ func (s *Server) Start() error {
 					credCfg.OIDC4VCConfig.VerifierBaseURL,
 				)
 				oidcIss.SetCredentialService(credSvc)
+				oidcVer := oidc4vc.NewVerifier(
+					credCfg.VerifierConfig.VerifierDID,
+					credCfg.IssuerConfig.IssuerDID,
+					credCfg.OIDC4VCConfig.VerifierBaseURL,
+					credCfg.OIDC4VCConfig.IssuerBaseURL,
+				)
+				oidcVer.SetCredentialService(credSvc)
 				g := gin.New()
 				g.Use(gin.Recovery())
 				oidcIss.RegisterRoutes(g)
+				oidcVer.RegisterRoutes(g)
 				router.OIDC = g
-				log.Println("OpenID4VCI issuer mounted at /.well-known/openid-credential-issuer, /oauth/*, /credential")
+				router.OIDCVerifier = oidcVer
+				router.OIDCVerifierBaseURL = credCfg.OIDC4VCConfig.VerifierBaseURL
+				log.Println("OpenID4VCI issuer + verifier mounted (/.well-known/*, /oauth/*, /credential, /verification/*)")
 			}
 		}
 	}

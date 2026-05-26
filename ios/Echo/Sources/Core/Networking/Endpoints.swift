@@ -759,4 +759,21 @@ struct AddBadgeRequest: Codable {
     let verifiable: Bool
     let proof: String?
 }
+
+// MARK: - Contacts / PSI (WO-221)
+
+enum ContactsEndpoint: APIEndpoint {
+    case psiEvaluate
+    case identityResolve(did: String)
+
+    var path: String {
+        switch self {
+        case .psiEvaluate:
+            return "/v3/contacts/psi"
+        case .identityResolve(let did):
+            let encoded = did.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? did
+            return "/v3/identity/\(encoded)"
+        }
+    }
+}
 #endif

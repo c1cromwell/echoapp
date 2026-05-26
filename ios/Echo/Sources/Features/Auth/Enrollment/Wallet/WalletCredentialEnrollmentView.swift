@@ -30,22 +30,8 @@ final class WalletCredentialEnrollmentViewModel {
         state = .generatingRequest
 
         do {
-            let session = try await api.startWalletPresentation(
-                claims: .minimumForTier4
-            )
-
-            state = .awaitingWallet
-            let callback = try await openAuthSession(
-                url: session.verifierURL,
-                callbackScheme: "echo-enroll"
-            )
-
-            state = .verifying
-            let bundle = try await api.finishWalletPresentation(
-                sessionID: session.id,
-                callbackURL: callback
-            )
-
+            let useCase = RegisterWithVerifiableCredentialUseCase(enrollmentAPI: api)
+            let bundle = try await useCase.execute(claims: .minimumForTier4)
             state = .success(bundle)
             coordinator.credentialVerified(bundle)
         } catch let error as EnrollmentError {
@@ -54,37 +40,8 @@ final class WalletCredentialEnrollmentViewModel {
             state = .failure(.transportFailed(underlying: error.localizedDescription))
         }
     }
-
-    private func openAuthSession(url: URL, callbackScheme: String) async throws -> URL {
-        try await withCheckedThrowingContinuation { continuation in
-            let session = ASWebAuthenticationSession(
-                url: url,
-                callbackURLScheme: callbackScheme
-            ) { callbackURL, error in
-                if let error {
-                    if case ASWebAuthenticationSessionError.canceledLogin = error {
-                        continuation.resume(throwing: EnrollmentError.userCancelled)
-                    } else {
-                        continuation.resume(throwing: EnrollmentError.transportFailed(
-                            underlying: error.localizedDescription
-                        ))
-                    }
-                    return
-                }
-                guard let callbackURL else {
-                    continuation.resume(throwing: EnrollmentError.transportFailed(
-                        underlying: "Empty callback"
-                    ))
-                    return
-                }
-                continuation.resume(returning: callbackURL)
-            }
-            session.prefersEphemeralWebBrowserSession = true
-            session.presentationContextProvider = AuthPresentationContextProvider.shared
-            session.start()
-        }
-    }
 }
+#endif
 
 // MARK: - View
 
