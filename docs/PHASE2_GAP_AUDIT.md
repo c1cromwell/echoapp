@@ -19,11 +19,11 @@
   - Refresh tokens are **durable via Redis** when configured (`TokenService.SetRedisBackend`, `token_redisbackend_test.go`).
   - OPRF-PSI contact discovery backend is **implemented** (not stubbed): `OPRFService`, `POST /v3/contacts/psi`, durable discovery index (`cf18573`, `5a33252`).
 - **Remaining Phase 2 backend gaps** are narrower: enrollment IDV/mDL/VC stubs, universal onboarding orchestration (WO-203), Prove integration, trust-registry durability, profile auto-generation, PSI tier opt-in policy, and credential-engine consolidation.
-- **Remaining Phase 2 iOS gaps** are still the largest slice: WO-100 OIDC4VC client, WO-14 credential-path onboarding views, WO-221 PSI client, WO-39 contact use-cases, WO-228 privacy settings consolidation.
+- **Remaining Phase 2 iOS gaps** are still the largest slice: WO-100 OIDC4VC client, WO-221 PSI client, WO-39 contact use-cases, WO-228 privacy settings consolidation. **WO-14 closed** via formal re-scope to `FirstRunCoordinator` (`docs/WO-14_ONBOARDING_RESCOPE.md`).
 - **Cardano cleanup:** codebase remains essentially Cardano-free. Doc-side debt in blueprints/requirements persists (§5).
 
-**Status tally (26 WOs):** ✅ Done 3 · 🟩 Substantially done 4 · 🟨 Partial 11 · 🟥 Stub 3 · ⬜ Missing 3 · ⛔ Obsolete 2  
-*(Aligned with Software Factory: 3 completed · 4 in progress · 17 backlog · 2 blocked)*
+**Status tally (26 WOs):** ✅ Done 4 · 🟩 Substantially done 4 · 🟨 Partial 10 · 🟥 Stub 3 · ⬜ Missing 3 · ⛔ Obsolete 2  
+*(Aligned with Software Factory: 4 completed · 3 in progress · 17 backlog · 2 blocked)*
 
 ---
 
@@ -59,7 +59,7 @@ Legend: ✅ Done · 🟩 Substantially done · 🟨 Partial · 🟥 Stub · ⬜ 
 | **180** | DID Management (Atala PRISM/Cardano) | ⛔ | **Do not implement.** Superseded by WO-273 → `pkg/did/`. |
 | **182** | VC Management (Cardano) | ⛔ | **Do not implement.** Superseded by WO-274 → `pkg/credentials/`. |
 | **287** | Session JWT refresh / revocation (backend) | ✅ | `POST /v3/auth/refresh`, `/v3/auth/revoke` wired; Redis durable refresh (`SetRedisBackend`); tests in `auth_token_handlers_test.go`, `token_redisbackend_test.go`. SF: **completed**. |
-| **14** | Credential-path onboarding (iOS) | 🟨 | Phase 1 `FirstRunCoordinator` + WO-292 done. `GET /v1/users/check-username` now reachable. **Gap:** WO-14 named coordinator/views (`UsernameView`, credential-path VC flow) not built; SF: **in_progress**. |
+| **14** | Credential-path onboarding (iOS) | ✅ | Re-scoped to `FirstRunCoordinator` (WO-292). `DisplayNameEntryView` polls `GET /v1/users/check-username` via `UsernameAvailabilityService`; `UsernameValidator` matches Go rules. OIDC4VC wallet path = WO-100. See `docs/WO-14_ONBOARDING_RESCOPE.md`. SF: **completed**. |
 | **234** | BIP-39 recovery UI (iOS) | ✅ | `ios/.../Onboarding/Recovery/` complete. SF: **completed**. |
 | **288** | New-device QR + recovery phrase (iOS) | 🟨 | `DeviceManagementView`, `QRIdentityView`, `RestoreFromPhraseView` exist. **Gap:** E2E controller-signed device transfer vs `/identity/devices` not verified. |
 
@@ -145,7 +145,7 @@ Legend: ✅ Done · 🟩 Substantially done · 🟨 Partial · 🟥 Stub · ⬜ 
 |---|------|--------|
 | A.1 | Mount `GET /v1/users/check-username` | ✅ Done |
 | A.2 | Expose refresh/revoke + Redis refresh store | ✅ Done |
-| A.3 | Consolidate credential verifiers onto `pkg/credentials/verifier.go` | 🔜 Open |
+| A.3 | Consolidate onboarding credential proof onto `pkg/credentials` crypto | ✅ Done (`credentials_bridge.go`, Ed25519 verify when issuer key published) |
 
 **Wave B — stubs → real implementations:**
 
@@ -160,7 +160,7 @@ Legend: ✅ Done · 🟩 Substantially done · 🟨 Partial · 🟥 Stub · ⬜ 
 
 | # | Item | Status |
 |---|------|--------|
-| C.1 | WO-14 credential-path onboarding OR formal re-scope to `FirstRunCoordinator` | 🟨 In progress |
+| C.1 | WO-14 credential-path onboarding OR formal re-scope to `FirstRunCoordinator` | ✅ Done (re-scope + username availability UI) |
 | C.2 | WO-100 OIDC4VC client + WO-132 wallet polish | 🔜 Open / in progress |
 | C.3 | WO-221 PSI iOS client + WO-39 contact use-cases | 🔜 Open |
 | C.4 | WO-228 privacy settings / account deletion UI | 🔜 Open |
@@ -180,8 +180,8 @@ Pick based on current sprint (Phase 3 Xcode wiring is parallel, not blocking the
 
 1. **WO-100** — OIDC4VC iOS client against shipped backend (`oidc4vc/`). Highest Phase 2 credential gap.
 2. **WO-221** — iOS OPRF-PSI client to consume `/v3/contacts/psi` (unblocks contact discovery E2E with WO-220).
-3. **WO-14** — Either implement credential-path `OnboardingCoordinator` views or document formal re-scope to `FirstRunCoordinator` + close WO.
-4. **Wave A.3** — Retire simulated verifier in `onboarding/credentials.go` (small Go refactor, prevents drift).
+3. ~~**WO-14**~~ — ✅ Re-scoped to `FirstRunCoordinator`; username availability wired in `DisplayNameEntryView`.
+4. ~~**Wave A.3**~~ — ✅ Onboarding credential proofs delegate to `pkg/credentials` when issuer publishes `VerificationPublicKeyBase64`.
 
 ---
 

@@ -1,8 +1,8 @@
 #if os(iOS)
 // Features/Onboarding/FirstRun/FirstRunCoordinator.swift
-// Onboarding flow:
+// Onboarding flow (WO-14 / WO-292):
 //   1. EchoWelcomeView      — brand entry
-//   2. DisplayNameEntryView — username only
+//   2. DisplayNameEntryView — username + availability check (WO-14 UsernameView)
 //   3. OnboardingOptionsView — Face ID (mandatory) + VIP opt-in checkbox
 //      • No VIP → RecoverySetupView → done (trustTier 0)
 //      • VIP    → VIPPathView → digital ID or standard IDV → VIPSuccessView
@@ -56,7 +56,7 @@ public final class FirstRunCoordinator {
 
     func displayNameSubmitted(_ name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard DisplayNameValidator.isValid(trimmed) else { return }
+        guard UsernameValidator.isValid(trimmed) else { return }
         displayName = trimmed
         path.append(.onboardingOptions)
     }
@@ -210,17 +210,8 @@ public struct FirstRunCoordinatorView: View {
     }
 }
 
-// MARK: - Display Name Validator
+// MARK: - Username validation (WO-14)
 
-enum DisplayNameValidator {
-    static func isValid(_ raw: String) -> Bool {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard (1...32).contains(trimmed.count) else { return false }
-        let allowed = CharacterSet.letters
-            .union(.decimalDigits)
-            .union(CharacterSet(charactersIn: " -_'"))
-        return trimmed.unicodeScalars.allSatisfy { allowed.contains($0) }
-    }
-}
+typealias DisplayNameValidator = UsernameValidator
 
 #endif

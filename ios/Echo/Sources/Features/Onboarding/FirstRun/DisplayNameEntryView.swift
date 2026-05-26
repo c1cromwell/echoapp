@@ -1,22 +1,31 @@
 #if os(iOS)
-// Features/Onboarding/FirstRun/DisplayNameEntryView.swift
-// Page 2 of the first-run flow: single display-name field, privacy helper card,
-// gradient "Start messaging" CTA, and a muted "Restore" link.
-
 import SwiftUI
 
 public struct DisplayNameEntryView: View {
     @Bindable var coordinator: FirstRunCoordinator
     @FocusState private var nameFieldFocused: Bool
 
-    public init(coordinator: FirstRunCoordinator) {
+    private let availabilityClient: any UsernameAvailabilityClient
+    @State private var availability: AvailabilityState = .idle
+    @State private var debounceTask: Task<Void, Never>?
+
+    public init(
+        coordinator: FirstRunCoordinator,
+        availabilityClient: (any UsernameAvailabilityClient)? = nil
+    ) {
         self.coordinator = coordinator
+        self.availabilityClient = availabilityClient ?? UsernameAvailabilityService()
     }
 
     private var trimmed: String {
         coordinator.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
-    private var isValid: Bool { DisplayNameValidator.isValid(coordinator.displayName) }
+
+    private var formatValid: Bool { UsernameValidator.isValid(coordinator.displayName) }
+
+    private var canContinue: Bool {
+        formatValid && availability == .available
+    }
 
     public var body: some View {
         ZStack {
@@ -31,6 +40,10 @@ public struct DisplayNameEntryView: View {
                 nameField
                     .padding(.horizontal, 24)
                     .padding(.top, 28)
+
+                availabilityHint
+                    .padding(.horizontal, 24)
+                    .padding(.top, 8)
 
                 helperCard
                     .padding(.horizontal, 24)
@@ -73,6 +86,9 @@ public struct DisplayNameEntryView: View {
                 nameFieldFocused = true
             }
         }
+        .onChange(of: coordinator.displayName) { _, newValue in
+            scheduleAvailabilityCheck(for: newValue)
+        }
     }
 
     // MARK: - Subviews
@@ -84,7 +100,7 @@ public struct DisplayNameEntryView: View {
                 .kerning(-0.3)
                 .foregroundStyle(Color.Echo.onSurface)
                 .lineSpacing(2)
-            Text("This is your display name — change it anytime from your profile.")
+            Text("3–30 characters: letters, numbers, and underscores. Checked against the network.")
                 .font(.system(size: 13))
                 .foregroundStyle(Color.Echo.onSurfaceVariant)
                 .lineSpacing(2)
@@ -99,20 +115,22 @@ public struct DisplayNameEntryView: View {
                 .kerning(-0.1)
                 .foregroundStyle(Color.Echo.onSurface)
                 .focused($nameFieldFocused)
-                .textInputAutocapitalization(.words)
-                .textContentType(.nickname)
+                .textInputAutocapitalization(.never)
                 .autocorrectionDisabled(true)
+                .keyboardType(.asciiCapable)
                 .submitLabel(.go)
                 .onSubmit {
-                    if isValid { coordinator.displayNameSubmitted(coordinator.displayName) }
+                    if canContinue { coordinator.displayNameSubmitted(coordinator.displayName) }
                 }
-                .accessibilityLabel("Display name")
-                .accessibilityHint("What others will see when you message them")
+                .accessibilityLabel("Username")
+                .accessibilityHint("Your public handle on Echo")
 
-            Text("\(trimmed.count)/32")
+            availabilityIcon
+
+            Text("\(trimmed.count)/30")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(
-                    trimmed.count > 32
+                    trimmed.count > 30 || !formatValid && !trimmed.isEmpty
                         ? Color.red
                         : Color.Echo.onSurfaceVariant.opacity(0.6)
                 )
@@ -126,14 +144,52 @@ public struct DisplayNameEntryView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(
-                    nameFieldFocused
-                        ? Color.Echo.primaryContainer.opacity(0.45)
-                        : Color.Echo.primaryContainer.opacity(0.15),
-                    lineWidth: 0.5
-                )
+                .strokeBorder(fieldBorderColor, lineWidth: 0.5)
         )
         .animation(.easeInOut(duration: 0.15), value: nameFieldFocused)
+        .animation(.easeInOut(duration: 0.15), value: availability)
+    }
+
+    @ViewBuilder
+    private var availabilityIcon: some View {
+        switch availability {
+        case .idle:
+            EmptyView()
+        case .checking:
+            ProgressView()
+                .controlSize(.small)
+        case .available:
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(Color.echoTrustGreen)
+        case .taken, .invalid, .unavailable:
+            Image(systemName: "xmark.circle.fill")
+                .foregroundStyle(Color.red.opacity(0.85))
+        case .error:
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Color.orange)
+        }
+    }
+
+    private var fieldBorderColor: Color {
+        switch availability {
+        case .available:
+            return Color.echoTrustGreen.opacity(0.45)
+        case .taken, .invalid, .unavailable:
+            return Color.red.opacity(0.45)
+        default:
+            return nameFieldFocused
+                ? Color.Echo.primaryContainer.opacity(0.45)
+                : Color.Echo.primaryContainer.opacity(0.15)
+        }
+    }
+
+    @ViewBuilder
+    private var availabilityHint: some View {
+        if let message = availability.message {
+            Text(message)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(availability.isNegative ? Color.red.opacity(0.9) : Color.echoTrustGreen)
+        }
     }
 
     private var helperCard: some View {
@@ -181,14 +237,14 @@ public struct DisplayNameEntryView: View {
                 ),
                 in: RoundedRectangle(cornerRadius: 22, style: .continuous)
             )
-            .opacity(isValid ? 1 : 0.55)
+            .opacity(canContinue ? 1 : 0.55)
         }
         .buttonStyle(SpringPressStyle())
-        .disabled(!isValid)
+        .disabled(!canContinue)
         .accessibilityHint(
-            isValid
-                ? "Provisions your identity and opens Messages"
-                : "Enter a display name to continue"
+            canContinue
+                ? "Continue to secure your account with Face ID"
+                : "Enter an available username to continue"
         )
     }
 
@@ -200,6 +256,80 @@ public struct DisplayNameEntryView: View {
             Button("Restore") { coordinator.restoreTapped() }
                 .font(.system(size: 11.5, weight: .semibold))
                 .foregroundStyle(Color.Echo.primaryContainer)
+        }
+    }
+
+    // MARK: - Availability
+
+    private func scheduleAvailabilityCheck(for raw: String) {
+        debounceTask?.cancel()
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmed.isEmpty else {
+            availability = .idle
+            return
+        }
+        guard UsernameValidator.isValid(trimmed) else {
+            availability = .invalid
+            return
+        }
+
+        availability = .checking
+        debounceTask = Task {
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            guard !Task.isCancelled else { return }
+            do {
+                let result = try await availabilityClient.checkAvailability(username: trimmed)
+                guard !Task.isCancelled else { return }
+                if result.available {
+                    availability = .available
+                } else if result.reason == "invalid_format" {
+                    availability = .invalid
+                } else if result.reason == "taken" {
+                    availability = .taken
+                } else {
+                    availability = .unavailable
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+                availability = .error
+            }
+        }
+    }
+
+    private enum AvailabilityState: Equatable {
+        case idle
+        case checking
+        case available
+        case taken
+        case invalid
+        case unavailable
+        case error
+
+        var isNegative: Bool {
+            switch self {
+            case .available, .idle, .checking:
+                return false
+            default:
+                return true
+            }
+        }
+
+        var message: String? {
+            switch self {
+            case .idle, .checking:
+                return nil
+            case .available:
+                return "Username is available"
+            case .taken:
+                return "That username is taken — try another"
+            case .invalid:
+                return "Use 3–30 letters, numbers, or underscores"
+            case .unavailable:
+                return "Username is not available"
+            case .error:
+                return "Could not check availability — try again"
+            }
         }
     }
 }

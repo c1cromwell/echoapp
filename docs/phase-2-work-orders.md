@@ -1,7 +1,7 @@
 # Phase 2: Onboarding, Identity & Credentials
 
 **Total Work Orders:** 26  
-**Status Summary:** 3 Completed, 4 In Progress, 17 Backlog, 2 Blocked  
+**Status Summary:** 4 Completed, 3 In Progress, 17 Backlog, 2 Blocked  
 **Last synced with Software Factory:** 2026-05-26
 
 ---
@@ -9,6 +9,8 @@
 ## Ready (3)
 
 ### WO-14: Build Streamlined User Onboarding Flow
+
+**Status:** ✅ Completed (2026-05-26) — re-scoped to `FirstRunCoordinator`; see `docs/WO-14_ONBOARDING_RESCOPE.md`. OIDC4VC wallet path remains WO-100.
 
 **Blueprint:** Decentralized Identity and Authentication
 

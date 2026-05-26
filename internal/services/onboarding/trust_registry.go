@@ -69,6 +69,9 @@ type TrustedIssuer struct {
 	EstablishedDate      time.Time
 	ContactEmail         string
 	DocumentationURL     string
+	// VerificationPublicKeyBase64 is optional base64 Ed25519 public key used by
+	// pkg/credentials crypto when verifying onboarding credential proofs (Wave A.3).
+	VerificationPublicKeyBase64 string
 }
 
 // TrustRegistryService manages the list of trusted issuers

@@ -99,6 +99,8 @@
 		9ADF6348876A119C3368695A /* AuthAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608C077CD78AA0FC9741CB50 /* AuthAPIClient.swift */; };
 		9AF9CE03DC7122EF55DAA57A /* ViewModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BAAA4EFEABE86AC5430837 /* ViewModels.swift */; };
 		9E907E104A04ACF540F617AB /* DisplayNameEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50817FADA36E4A64D063463D /* DisplayNameEntryView.swift */; };
+		B8F4E2A1039C4D7E8F1A0022 /* UsernameValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8F4E2A1039C4D7E8F1A0021 /* UsernameValidator.swift */; };
+		B8F4E2A1039C4D7E8F1A0024 /* UsernameAvailabilityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8F4E2A1039C4D7E8F1A0023 /* UsernameAvailabilityService.swift */; };
 		9EFFC1D22C27CD50E7EEFD4F /* FirstRunCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6197E3CE5113FD3073710C05 /* FirstRunCoordinator.swift */; };
 		9FCF66C6917A6C8B271F5323 /* EchoTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A305A0E3763671F7D28B71 /* EchoTabBar.swift */; };
 		A36686A3CDC4F794588D5DE5 /* EnrollmentAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6F05E1329999CB64D520138 /* EnrollmentAPIClient.swift */; };
@@ -219,6 +221,8 @@
 		4F4610B4C101F03754584AB5 /* PasskeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasskeyManager.swift; sourceTree = "<group>"; };
 		4FD52A976FDB88EED97832E1 /* ProposalListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProposalListView.swift; sourceTree = "<group>"; };
 		50817FADA36E4A64D063463D /* DisplayNameEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayNameEntryView.swift; sourceTree = "<group>"; };
+		B8F4E2A1039C4D7E8F1A0021 /* UsernameValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsernameValidator.swift; sourceTree = "<group>"; };
+		B8F4E2A1039C4D7E8F1A0023 /* UsernameAvailabilityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsernameAvailabilityService.swift; sourceTree = "<group>"; };
 		54792599802AE8F510254EB3 /* AuthToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthToken.swift; sourceTree = "<group>"; };
 		56BFC00502030305A3ADCD52 /* RecoveryCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryCoordinator.swift; sourceTree = "<group>"; };
 		5814F26DB11386DBE407C083 /* OfflineQueueManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineQueueManager.swift; sourceTree = "<group>"; };
@@ -462,6 +466,7 @@
 				90587F281B224F38E70F2137 /* IdentityService.swift */,
 				F4C447DAD513014EBF6EA4FE /* MessagingService.swift */,
 				449BB08C4DB7AF394D798FE4 /* Service.swift */,
+				B8F4E2A1039C4D7E8F1A0023 /* UsernameAvailabilityService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -745,6 +750,7 @@
 			children = (
 				F9DEBA8DCFC9752097356342 /* FirstRun */,
 				98913BD5A7336B792D0A3319 /* Recovery */,
+				B8F4E2A1039C4D7E8F1A0021 /* UsernameValidator.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -1093,6 +1099,8 @@
 				93BFA1978B41BFA95536D9D7 /* DeviceManagementViewModel.swift in Sources */,
 				0FE66933DF0640D2D48559B4 /* DigitalEvidenceBridge.swift in Sources */,
 				9E907E104A04ACF540F617AB /* DisplayNameEntryView.swift in Sources */,
+				B8F4E2A1039C4D7E8F1A0022 /* UsernameValidator.swift in Sources */,
+				B8F4E2A1039C4D7E8F1A0024 /* UsernameAvailabilityService.swift in Sources */,
 				2EBDB781E9F9E3338A380A54 /* DriversLicenseEnrollmentView.swift in Sources */,
 				C8E44B1DDE4EB56B73389E6D /* ECHOError.swift in Sources */,
 				312161CDFC3760FC0C664259 /* EchoApp.swift in Sources */,

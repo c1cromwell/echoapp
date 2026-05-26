@@ -4,6 +4,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"time"
+
+	pkgcred "github.com/thechadcromwell/echoapp/pkg/credentials"
 )
 
 // CredentialType represents the type of verifiable credential
@@ -86,6 +88,7 @@ type CredentialVerificationService struct {
 	trustRegistry   *TrustRegistryService
 	revokedCreds    map[string]bool // credentialID -> isRevoked
 	usedCredentials map[string]bool // credentialHash -> used
+	crypto          *pkgcred.CryptoUtils
 }
 
 // NewCredentialVerificationService creates the verification service
@@ -94,6 +97,7 @@ func NewCredentialVerificationService(registry *TrustRegistryService) *Credentia
 		trustRegistry:   registry,
 		revokedCreds:    make(map[string]bool),
 		usedCredentials: make(map[string]bool),
+		crypto:          pkgcred.NewCryptoUtils(),
 	}
 }
 
@@ -180,14 +184,13 @@ func (cvs *CredentialVerificationService) verifyCredential(vc *VerifiableCredent
 	result.Issuer = issuer
 	result.IssuanceTrustLevel = issuer.TrustLevel
 
-	// Stage 3: Cryptographic verification (simulated)
-	// In production, would verify signature using issuer's public keys
-	if vc.ProofValue == "" {
-		result.Error = "credential has no valid signature"
+	// Stage 3: Cryptographic verification via pkg/credentials when issuer key published
+	if err := verifyCredentialProof(cvs.crypto, issuer, vc); err != nil {
+		result.Error = err.Error()
 		return result
 	}
 
-	// Stage 4: Check revocation status (simulated)
+	// Stage 4: Check revocation status
 	if vc.CredentialStatus != nil {
 		credHash := fmt.Sprintf("%s:%s", vc.Issuer, vc.ID)
 		if cvs.revokedCreds[credHash] {
