@@ -26,6 +26,29 @@ type WSControlMessage struct {
 	Data   map[string]string `json:"data,omitempty"`
 }
 
+// ephemeralSignalTypes are real-time conversation signals that are relayed once
+// to a specific recipient and never persisted. They MUST carry an explicit
+// recipient (`to`) — they are never broadcast to all connected clients, since
+// that would leak who is typing / reading to everyone online.
+var ephemeralSignalTypes = map[string]bool{
+	"typing":       true, // payload: TypingSignal
+	"read_receipt": true, // payload: ReadReceiptSignal
+}
+
+// TypingSignal is the payload of a Type:"typing" WS message (ephemeral).
+type TypingSignal struct {
+	ConversationID string `json:"conversation_id"`
+	State          string `json:"state"` // "start" | "stop"
+}
+
+// ReadReceiptSignal is the payload of a Type:"read_receipt" WS message: the
+// sender is told which of their messages the recipient has now read.
+type ReadReceiptSignal struct {
+	ConversationID string   `json:"conversation_id"`
+	MessageIDs     []string `json:"message_ids"`
+	ReadAt         string   `json:"read_at"`
+}
+
 // Client represents a single WebSocket connection.
 type Client struct {
 	hub    *Hub
@@ -226,17 +249,34 @@ func (c *Client) readPump() {
 			continue
 		}
 
-		outBytes, err := json.Marshal(msg)
-		if err != nil {
-			continue
-		}
+		c.routeInbound(msg)
+	}
+}
 
-		// Route: if To is set, send to specific user; otherwise broadcast
-		if msg.To != "" {
-			c.hub.SendToUser(msg.To, outBytes)
-		} else {
-			c.hub.broadcast <- outBytes
+// routeInbound relays a parsed inbound message. Ephemeral conversation signals
+// (typing, read receipts) are delivered only to their explicit recipient and are
+// dropped if none is set — they are never broadcast to all connected clients.
+// Other messages preserve the existing behavior: direct when `to` is set, else
+// broadcast.
+func (c *Client) routeInbound(msg WSMessage) {
+	outBytes, err := json.Marshal(msg)
+	if err != nil {
+		return
+	}
+
+	if ephemeralSignalTypes[msg.Type] {
+		if msg.To == "" || msg.To == c.userID {
+			// No recipient (or self) — drop. Never broadcast an ephemeral signal.
+			return
 		}
+		c.hub.SendToUser(msg.To, outBytes)
+		return
+	}
+
+	if msg.To != "" {
+		c.hub.SendToUser(msg.To, outBytes)
+	} else {
+		c.hub.broadcast <- outBytes
 	}
 }
 
