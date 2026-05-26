@@ -9,8 +9,8 @@ Quick entry point for Cursor agents working in this repo. Read this first, then 
 | Any work in this repo | Skill: **`echo-repo-map`** |
 | Auth, WebSocket, signed API | Skill: **`echo-auth-contracts`** |
 | iOS implementation | Skill: **`echo-ios-agent-vs-xcode`** |
-| Update work order status | Skill: **`echo-work-order-sync`** (Step 2) + MCP `software-factory-echo` |
-| Chain / submission / PII review | Skill: **`echo-t0-t7-review`** (Step 2) + `docs/data-classification.md` |
+| Update work order status | Skill: **`echo-work-order-sync`** + MCP `software-factory-echo` |
+| Chain / submission / PII review | Skill: **`echo-t0-t7-review`** + `docs/data-classification.md` |
 
 Planning history and MCP roadmap: [`docs/AGENT_TOOLING_RECOMMENDATIONS.md`](docs/AGENT_TOOLING_RECOMMENDATIONS.md).
 
@@ -66,5 +66,5 @@ Full setup: [`CONTRIBUTING.md`](CONTRIBUTING.md). TestFlight: [`docs/PHASE1_LAUN
 | `echo-repo-map` | ✅ Step 1 |
 | `echo-auth-contracts` | ✅ Step 1 |
 | `echo-ios-agent-vs-xcode` | ✅ Step 1 |
-| `echo-work-order-sync` | 🔜 Step 2 |
-| `echo-t0-t7-review` | 🔜 Step 2 |
+| `echo-work-order-sync` | ✅ Step 2 |
+| `echo-t0-t7-review` | ✅ Step 2 |

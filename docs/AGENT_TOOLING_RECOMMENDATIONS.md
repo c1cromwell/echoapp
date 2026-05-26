@@ -1,7 +1,7 @@
 # Agent Tooling Recommendations — Echo
 
 **Created:** 2026-05-26  
-**Status:** Accepted (Step 1 implemented same day)  
+**Status:** Accepted (Steps 1–2 implemented 2026-05-26)  
 **Purpose:** Record planning choices for Cursor skills, MCP services, and agent harnesses so future you (and agents) know what was decided and why.
 
 ---
@@ -52,12 +52,14 @@ Echo is a **multi-stack, phase-gated** product (Go backend, Scala metagraph, iOS
 
 Also added: **`AGENTS.md`** at repo root (entry point for agents).
 
-### Tier 1 — Planned next (Step 2)
+### Tier 1 — Implemented (Step 2, 2026-05-26)
 
-| Skill | Trigger |
-|-------|---------|
-| `echo-work-order-sync` | Update WOs, sync Software Factory after merges |
-| `echo-t0-t7-review` | Go/Scala changes touching chain or submissions |
+| Skill | Location | Trigger |
+|-------|----------|---------|
+| `echo-work-order-sync` | `.cursor/skills/echo-work-order-sync/` | Update WOs, sync Software Factory after merges |
+| `echo-t0-t7-review` | `.cursor/skills/echo-t0-t7-review/` | Go/Scala changes touching chain or submissions |
+
+Phase doc headers (`docs/phase-*-work-orders.md`) synced with Software Factory same day.
 
 ### Tier 2 — Phase-specific (later)
 
@@ -136,7 +138,7 @@ Do **not** load `Echo_Combined_Requirements.md` or full blueprints by default in
 
 ```text
 Step 1 (done 2026-05-26): AGENTS.md + echo-repo-map + echo-auth-contracts + echo-ios-agent-vs-xcode
-Step 2: echo-work-order-sync + echo-t0-t7-review; sync phase doc headers
+Step 2 (done 2026-05-26): echo-work-order-sync + echo-t0-t7-review; sync phase doc headers
 Step 3: echo-local-dev MCP
 Step 4: Phase-specific skills as phases activate
 ```
@@ -148,3 +150,4 @@ Step 4: Phase-specific skills as phases activate
 | Date | Change |
 |------|--------|
 | 2026-05-26 | Initial recommendations documented; Step 1 skills + AGENTS.md implemented |
+| 2026-05-26 | Step 2: echo-work-order-sync + echo-t0-t7-review; phase WO headers synced |
