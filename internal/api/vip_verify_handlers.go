@@ -79,10 +79,10 @@ func (rt *Router) handleVIPVerify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"did":          record.DID,
-		"trust_tier":   record.TrustTier,
+		"did":           record.DID,
+		"trust_tier":    record.TrustTier,
 		"evidence_type": record.EvidenceType,
-		"updated_at":   record.UpdatedAt.Format(time.RFC3339),
-		"request_id":   r.Header.Get("X-Request-ID"),
+		"updated_at":    record.UpdatedAt.Format(time.RFC3339),
+		"request_id":    r.Header.Get("X-Request-ID"),
 	})
 }

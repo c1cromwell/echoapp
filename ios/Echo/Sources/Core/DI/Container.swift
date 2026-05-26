@@ -95,6 +95,19 @@ final class DIContainer {
         registerFactory(ServiceKeys.webSocketClient) {
             WebSocketClient(configuration: WebSocketConfiguration.default)
         }
+
+        // Phase 3: typing / read receipts / reactions (WO-192)
+        registerFactory(ServiceKeys.conversationSignalService) {
+            let apiBase = WebSocketURLBuilder.apiBaseURLFromEnvironment()
+                ?? APIConfiguration.default.baseURL
+            return ConversationSignalService(apiBaseURL: apiBase)
+        }
+
+        registerFactory(ServiceKeys.reactionsAPI) { [weak self] () -> ReactionsAPI in
+            let client: APIClient = self?.resolve(ServiceKeys.apiClient)
+                ?? APIClient(configuration: .default)
+            return ReactionsAPI(apiClient: client)
+        }
         
         // Storage Services
         registerFactory(ServiceKeys.localStorage) {
@@ -174,6 +187,8 @@ enum ServiceKeys {
     static let apiClient = "networking.apiClient"
     static let certificatePinner = "networking.certificatePinner"
     static let webSocketClient = "networking.webSocketClient"
+    static let conversationSignalService = "networking.conversationSignalService"
+    static let reactionsAPI = "networking.reactionsAPI"
     
     // Storage
     static let localStorage = "storage.localStorage"
@@ -233,6 +248,14 @@ extension DIContainer {
     
     func resolveTokenRepository() -> TokenRepository? {
         resolve(ServiceKeys.tokenRepository)
+    }
+
+    func resolveConversationSignalService() -> ConversationSignalService? {
+        resolve(ServiceKeys.conversationSignalService)
+    }
+
+    func resolveReactionsAPI() -> ReactionsAPI? {
+        resolve(ServiceKeys.reactionsAPI)
     }
 }
 #endif

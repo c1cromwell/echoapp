@@ -49,7 +49,7 @@ func (rt *Router) handleLoginChallenge(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"challenge":  challengeB64,
 		"timeout":    60,
-		"rp_id":     "echo.app",
+		"rp_id":      "echo.app",
 		"request_id": r.Header.Get("X-Request-ID"),
 	})
 }

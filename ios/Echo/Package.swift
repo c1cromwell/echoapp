@@ -34,5 +34,10 @@ let package = Package(
             dependencies: ["Echo"],
             path: "SecurityTests"
         ),
+        .testTarget(
+            name: "EchoPhase3Tests",
+            dependencies: ["Echo"],
+            path: "Phase3Tests"
+        ),
     ]
 )

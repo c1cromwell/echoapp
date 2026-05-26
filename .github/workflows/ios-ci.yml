@@ -45,6 +45,13 @@ jobs:
         run: swift test --filter EchoSecurityTests 2>&1 | tee /tmp/security_test_output.txt; \
              grep -E "passed|failed" /tmp/security_test_output.txt || true
 
+      - name: Build Phase 3 tests (WO-192) — hard gate
+        run: swift build --target EchoPhase3Tests
+
+      - name: Run Phase 3 tests
+        run: swift test --filter EchoPhase3Tests 2>&1 | tee /tmp/phase3_test_output.txt; \
+             grep -E "passed|failed" /tmp/phase3_test_output.txt || true
+
       - name: Run full test suite
         # Pre-existing EchoTests compilation issues do not fail CI.
         run: swift test 2>&1 || echo "::warning::EchoTests has pre-existing compilation issues — tracked separately"

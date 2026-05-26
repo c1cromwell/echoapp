@@ -36,6 +36,10 @@ cp .env.example .env
 # (Euclid metagraph is optional for most iOS testing — see 1b)
 make dev
 ```
+# 3. (Optional) Start Identity nodes for VC / trust-tier features
+#    Identity L0 + L1 are custom Echo modules not managed by Euclid hydra.
+#    They run via docker-compose.identity.yml using the sbt assembly JARs.
+make start-identity
 
 Verify:
 

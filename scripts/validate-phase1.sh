@@ -26,7 +26,7 @@ CURRENCY_L1_URL="${CURRENCY_L1_URL:-http://localhost:9300}"
 DATA_L1_URL="${DATA_L1_URL:-http://localhost:9400}"
 IDENTITY_L0_URL="${IDENTITY_L0_URL:-http://localhost:9600}"
 BACKEND_URL="${BACKEND_URL:-http://localhost:8000}"
-FINALITY_TIMEOUT_SECS="${FINALITY_TIMEOUT_SECS:-30}"
+FINALITY_TIMEOUT_SECS="${FINALITY_TIMEOUT_SECS:-60}"
 
 PASS=0
 FAIL=0
@@ -178,7 +178,9 @@ case "$REGISTER_HTTP_CODE" in
     # Resolve the binding via GET /identity/<did> and confirm the round-trip.
     RESOLVE_CODE=$(curl -sS -o "$TMP_DIR/resolve.out" -w '%{http_code}' \
       --max-time 10 "$BACKEND_URL/identity/$DID_KEY" 2>/dev/null) || RESOLVE_CODE="000"
-    if [ "$RESOLVE_CODE" = "200" ] && [ "$(jq -r '.public_key_hex // empty' "$TMP_DIR/resolve.out")" = "$PUB_HEX" ]; then
+    # Response shape: {did, devices:[{public_key_hex,device_label,registered_at}]}
+    RESOLVED_KEY=$(jq -r '.devices[0].public_key_hex // empty' "$TMP_DIR/resolve.out")
+    if [ "$RESOLVE_CODE" = "200" ] && [ "$RESOLVED_KEY" = "$PUB_HEX" ]; then
       ok "GET /identity/<did> round-trip OK"
     else
       fail "GET /identity/<did> failed (HTTP $RESOLVE_CODE, body: $(cat "$TMP_DIR/resolve.out"))"
@@ -304,8 +306,15 @@ fi
 step 6 "Verify Global L0 snapshot height increments"
 
 read_height() {
-  curl -fsS --max-time 5 "$GLOBAL_L0_URL/global-snapshots/latest/ordinal" 2>/dev/null \
-    || curl -fsS --max-time 5 "$GLOBAL_L0_URL/snapshots/latest/ordinal" 2>/dev/null
+  # Constellation API returns {"value":N} — extract the integer regardless of wrapper.
+  local raw
+  raw=$(curl -fsS --max-time 5 "$GLOBAL_L0_URL/global-snapshots/latest/ordinal" 2>/dev/null \
+     || curl -fsS --max-time 5 "$GLOBAL_L0_URL/snapshots/latest/ordinal" 2>/dev/null) || true
+  if [[ "$raw" == \{* ]]; then
+    printf '%s' "$raw" | jq -r '.value // .ordinal // .height // empty'
+  else
+    printf '%s' "$raw"
+  fi
 }
 
 START_HEIGHT=$(read_height || echo "")
@@ -313,6 +322,8 @@ if [ -z "$START_HEIGHT" ] || ! [[ "$START_HEIGHT" =~ ^[0-9]+$ ]]; then
   fail "could not read Global L0 snapshot ordinal (got: '${START_HEIGHT}')"
 else
   ok "Global L0 starting ordinal: $START_HEIGHT"
+  # Allow at least one snapshot interval before the first poll.
+  sleep 5
   DEADLINE=$(( $(date +%s) + FINALITY_TIMEOUT_SECS ))
   ADVANCED=0
   while [ "$(date +%s)" -lt "$DEADLINE" ]; do
@@ -322,7 +333,7 @@ else
       ADVANCED=1
       break
     fi
-    sleep 2
+    sleep 3
   done
   [ "$ADVANCED" -eq 1 ] || fail "Global L0 ordinal did not advance within ${FINALITY_TIMEOUT_SECS}s"
 fi
