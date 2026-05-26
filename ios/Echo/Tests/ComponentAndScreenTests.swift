@@ -1,7 +1,13 @@
 import XCTest
-import XCTest
 import SwiftUI
 @testable import Echo
+
+private final class StubTestTransport: ConversationSignalTransport, @unchecked Sendable {
+    var onTextMessage: (@Sendable (String) -> Void)?
+    func connect(accessToken: String) async throws {}
+    func disconnect() async {}
+    func send(text: String) async throws {}
+}
 
 // MARK: - Design System Tests
 
@@ -257,8 +263,10 @@ final class MessagingScreenTests: XCTestCase {
         XCTAssertNotNil(list)
     }
     
+    @MainActor
     func testChatViewInitialization() {
-        let chat = ChatView(contactName: "John Doe")
+        let vm = ChatDetailViewModel(signalService: ConversationSignalService(transport: StubTestTransport()))
+        let chat = ChatView(viewModel: vm, contactName: "John Doe")
         XCTAssertNotNil(chat)
     }
 }

@@ -185,16 +185,28 @@ final class ConversationListViewInteractionTests: XCTestCase {
 
 // MARK: - Chat View Tests
 
+private final class StubTransport: ConversationSignalTransport, @unchecked Sendable {
+    var onTextMessage: (@Sendable (String) -> Void)?
+    func connect(accessToken: String) async throws {}
+    func disconnect() async {}
+    func send(text: String) async throws {}
+}
+
 final class ChatViewInteractionTests: XCTestCase {
 
+    @MainActor
     func testChatViewInitWithContactName() {
-        let view = ChatView(contactName: "John Doe")
+        let vm = ChatDetailViewModel(signalService: ConversationSignalService(transport: StubTransport()))
+        let view = ChatView(viewModel: vm, contactName: "John Doe")
         XCTAssertEqual(view.contactName, "John Doe")
     }
 
+    @MainActor
     func testChatViewSendMessageCallback() {
         var sentMessage: String?
+        let vm = ChatDetailViewModel(signalService: ConversationSignalService(transport: StubTransport()))
         let view = ChatView(
+            viewModel: vm,
             contactName: "John Doe",
             onSendMessage: { msg in sentMessage = msg }
         )
@@ -202,10 +214,11 @@ final class ChatViewInteractionTests: XCTestCase {
         XCTAssertEqual(sentMessage, "Hello!")
     }
 
+    @MainActor
     func testChatViewDefaultCallbackDoesNotCrash() {
-        let view = ChatView(contactName: "Test")
+        let vm = ChatDetailViewModel(signalService: ConversationSignalService(transport: StubTransport()))
+        let view = ChatView(viewModel: vm, contactName: "Test")
         view.onSendMessage("test message")
-        // No crash = pass
     }
 }
 

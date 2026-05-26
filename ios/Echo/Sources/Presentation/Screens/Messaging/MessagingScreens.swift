@@ -132,21 +132,32 @@ struct ConversationItem: Identifiable {
 
 public struct ChatView: View {
     @Environment(\.dismiss) var dismiss
+    @Bindable var viewModel: ChatDetailViewModel
     @State private var messageText = ""
-    @State private var messages: [ChatMessage] = [
-        ChatMessage(id: "1", content: "Hey! How are you?", isSent: false, status: .read, timestamp: "10:30 AM"),
-        ChatMessage(id: "2", content: "I'm doing great!", isSent: true, status: .read, timestamp: "10:31 AM"),
-        ChatMessage(id: "3", content: "That's awesome! Want to grab coffee?", isSent: false, status: .read, timestamp: "10:32 AM")
-    ]
-    
+    @State private var reactionTargetId: String?
+
     let contactName: String
+    let conversationId: String
+    let peerDID: String
+    let currentUserDID: String
     let onSendMessage: (String) -> Void
-    
-    public init(contactName: String = "", onSendMessage: @escaping (String) -> Void = { _ in }) {
+
+    init(
+        viewModel: ChatDetailViewModel,
+        contactName: String = "",
+        conversationId: String = "",
+        peerDID: String = "",
+        currentUserDID: String = "",
+        onSendMessage: @escaping (String) -> Void = { _ in }
+    ) {
+        self.viewModel = viewModel
         self.contactName = contactName
+        self.conversationId = conversationId
+        self.peerDID = peerDID
+        self.currentUserDID = currentUserDID
         self.onSendMessage = onSendMessage
     }
-    
+
     public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
@@ -160,37 +171,95 @@ public struct ChatView: View {
                     trailingIcon: Image(systemName: "info.circle")
                 )
 
-                // WO-208: Encryption indicator — 2px pulsing line confirms E2E
                 SecureThreadIndicator()
 
-                // Messages List
                 ScrollViewReader { proxy in
                     List {
-                        ForEach(messages) { message in
-                            MessageBubble(
-                                message: message.content,
-                                isSent: message.isSent,
-                                status: message.status,
-                                timestamp: message.timestamp
-                            )
+                        ForEach(viewModel.messages) { message in
+                            VStack(
+                                alignment: message.isFromCurrentUser ? .trailing : .leading,
+                                spacing: 4
+                            ) {
+                                MessageBubble(
+                                    message: message.content,
+                                    isSent: message.isFromCurrentUser,
+                                    status: mapDeliveryStatus(message.deliveryStatus),
+                                    timestamp: message.timestamp
+                                )
+                                .onAppear {
+                                    if !message.isFromCurrentUser {
+                                        Task {
+                                            await viewModel.onMessageAppeared(
+                                                messageId: message.id,
+                                                senderDID: message.senderDID
+                                            )
+                                        }
+                                    }
+                                }
+                                .onLongPressGesture {
+                                    withAnimation(.glacialPress) {
+                                        reactionTargetId = reactionTargetId == message.id ? nil : message.id
+                                    }
+                                }
+
+                                if !message.reactions.isEmpty {
+                                    ReactionChipsView(
+                                        reactions: message.reactions,
+                                        currentUserDID: viewModel.currentUserDID,
+                                        onTap: { emoji in
+                                            Task {
+                                                await viewModel.toggleReaction(
+                                                    messageId: message.id,
+                                                    emoji: emoji
+                                                )
+                                            }
+                                        }
+                                    )
+                                }
+                            }
                             .listRowSeparator(.hidden)
                             .listRowInsets(.init())
                             .listRowBackground(Color.clear)
                             .id(message.id)
+                            .overlay(alignment: message.isFromCurrentUser ? .bottomTrailing : .bottomLeading) {
+                                if reactionTargetId == message.id {
+                                    ReactionPickerView(
+                                        onSelect: { emoji in
+                                            Task {
+                                                await viewModel.toggleReaction(
+                                                    messageId: message.id,
+                                                    emoji: emoji
+                                                )
+                                            }
+                                            withAnimation(.glacialPress) { reactionTargetId = nil }
+                                        },
+                                        onDismiss: {
+                                            withAnimation(.glacialPress) { reactionTargetId = nil }
+                                        }
+                                    )
+                                    .transition(.scale.combined(with: .opacity))
+                                    .offset(y: -44)
+                                }
+                            }
                         }
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
-                    .onChange(of: messages.count) { _ in
-                        if let lastMessage = messages.last {
+                    .onChange(of: viewModel.messages.count) {
+                        if let last = viewModel.messages.last {
                             withAnimation {
-                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                                proxy.scrollTo(last.id, anchor: .bottom)
                             }
                         }
                     }
                 }
-                
-                // Message Input
+
+                if viewModel.peerIsTyping {
+                    TypingIndicatorView()
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                        .padding(.vertical, 4)
+                }
+
                 VStack(spacing: Spacing.sm.rawValue) {
                     HStack(spacing: Spacing.md.rawValue) {
                         Button(action: {}) {
@@ -199,23 +268,28 @@ public struct ChatView: View {
                                 .foregroundColor(.echoPrimary)
                         }
                         .accessibility(label: Text("Add attachment"))
-                        
+
                         TextField("Message...", text: $messageText)
                             .textFieldStyle(.roundedBorder)
-                        
-                        Button(action: {
-                            if !messageText.isEmpty {
-                                let newMessage = ChatMessage(
-                                    id: UUID().uuidString,
-                                    content: messageText,
-                                    isSent: true,
-                                    status: .sent,
-                                    timestamp: "Now"
-                                )
-                                messages.append(newMessage)
-                                onSendMessage(messageText)
-                                messageText = ""
+                            .onChange(of: messageText) { _, newValue in
+                                viewModel.onInputChanged(newValue)
                             }
+
+                        Button(action: {
+                            guard !messageText.isEmpty else { return }
+                            let text = messageText
+                            let newMessage = ChatDetailMessage(
+                                id: UUID().uuidString,
+                                senderDID: currentUserDID,
+                                currentUserDID: currentUserDID,
+                                content: text,
+                                timestamp: "Now",
+                                deliveryStatus: .sending
+                            )
+                            viewModel.messages.append(newMessage)
+                            onSendMessage(text)
+                            messageText = ""
+                            Task { await viewModel.onSendTapped() }
                         }) {
                             Image(systemName: "paperplane.fill")
                                 .font(.system(size: 18))
@@ -229,6 +303,36 @@ public struct ChatView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
+        .task {
+            let reactions: ReactionsAPI? = DIContainer.shared.resolveReactionsAPI()
+            viewModel.configure(
+                conversationId: conversationId,
+                peerDID: peerDID,
+                currentUserDID: currentUserDID,
+                reactionsAPI: reactions
+            )
+            if let token = try? await KeychainManager.shared.getAuthToken() {
+                await viewModel.connect(accessToken: token)
+            }
+        }
+        .onTapGesture {
+            if reactionTargetId != nil {
+                withAnimation(.glacialPress) { reactionTargetId = nil }
+            }
+        }
+    }
+
+    private func mapDeliveryStatus(_ status: DeliveryStatus?) -> MessageStatus {
+        guard let status else { return .sent }
+        switch status {
+        case .sending:   return .sending
+        case .sent:      return .sent
+        case .delivered:  return .delivered
+        case .read:      return .read
+        case .failed:    return .failed
+        case .anchored:  return .anchored
+        case .verified:  return .verified
+        }
     }
 }
 

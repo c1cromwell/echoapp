@@ -275,6 +275,8 @@ struct ChatDetailMessage: Identifiable, Equatable {
     let id: String
     let senderDID: String
     var isFromCurrentUser: Bool
+    var content: String
+    var timestamp: String
     var deliveryStatus: DeliveryStatus?
     var reactions: [ReactionCount]
     var isRead: Bool
@@ -283,6 +285,8 @@ struct ChatDetailMessage: Identifiable, Equatable {
         id: String,
         senderDID: String,
         currentUserDID: String,
+        content: String = "",
+        timestamp: String = "",
         deliveryStatus: DeliveryStatus? = nil,
         reactions: [ReactionCount] = [],
         isRead: Bool = false
@@ -290,6 +294,8 @@ struct ChatDetailMessage: Identifiable, Equatable {
         self.id = id
         self.senderDID = senderDID
         self.isFromCurrentUser = senderDID == currentUserDID
+        self.content = content
+        self.timestamp = timestamp
         self.deliveryStatus = deliveryStatus
         self.reactions = reactions
         self.isRead = isRead

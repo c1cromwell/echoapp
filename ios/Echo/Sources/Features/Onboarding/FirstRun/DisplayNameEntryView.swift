@@ -9,7 +9,7 @@ public struct DisplayNameEntryView: View {
     @State private var availability: AvailabilityState = .idle
     @State private var debounceTask: Task<Void, Never>?
 
-    public init(
+    init(
         coordinator: FirstRunCoordinator,
         availabilityClient: (any UsernameAvailabilityClient)? = nil
     ) {
