@@ -13,6 +13,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -120,21 +121,37 @@ func (h *V3Handlers) handleContactsPSI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// OPRF-PSI (D2): the client sends base64 blinded phone elements; the server
+	// evaluates them under its secret key (learning nothing) and returns the
+	// evaluations plus the {hex(OPRF_k(phone)) -> DID} index. The client finalizes
+	// and matches LOCALLY — it must never send its OPRF outputs back, since the
+	// server could brute-force them to phone numbers with its key.
 	var req struct {
-		PhoneHashes []string `json:"phoneHashes"`
+		Blinded []string `json:"blinded"`
 	}
 	if err := h.readJSON(r, &req); err != nil {
 		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
 		return
 	}
 
-	result, err := h.Contacts.PSIDiscovery(r.Context(), h.getDID(r), req.PhoneHashes)
+	evaluated, err := h.Contacts.OPRFEvaluate(req.Blinded)
 	if err != nil {
-		WriteError(w, http.StatusTooManyRequests, "RATE_LIMITED", err.Error(), r.Header.Get("X-Request-ID"))
+		switch {
+		case errors.Is(err, contacts.ErrRateLimited):
+			WriteError(w, http.StatusTooManyRequests, "RATE_LIMITED", err.Error(), r.Header.Get("X-Request-ID"))
+		case errors.Is(err, contacts.ErrOPRFUnavailable):
+			WriteError(w, http.StatusServiceUnavailable, "DISCOVERY_UNAVAILABLE", err.Error(), r.Header.Get("X-Request-ID"))
+		default:
+			WriteError(w, http.StatusBadRequest, "INVALID_BLINDED", err.Error(), r.Header.Get("X-Request-ID"))
+		}
 		return
 	}
 
-	WriteJSON(w, http.StatusOK, result)
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"evaluated":  evaluated,
+		"index":      h.Contacts.DiscoveryIndex(),
+		"request_id": r.Header.Get("X-Request-ID"),
+	})
 }
 
 func (h *V3Handlers) handleContactsSearch(w http.ResponseWriter, r *http.Request) {

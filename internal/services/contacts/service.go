@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/argon2"
@@ -13,11 +14,14 @@ import (
 )
 
 var (
-	ErrSelfContact    = errors.New("cannot add yourself as a contact")
-	ErrTier1Limit     = errors.New("tier 1 accounts limited to 10 contacts")
-	ErrAlreadyBlocked = errors.New("contact is already blocked")
-	ErrInvalidInvite  = errors.New("invalid or expired invite code")
-	ErrRateLimited    = errors.New("PSI discovery rate limited")
+	ErrSelfContact     = errors.New("cannot add yourself as a contact")
+	ErrTier1Limit      = errors.New("tier 1 accounts limited to 10 contacts")
+	ErrAlreadyBlocked  = errors.New("contact is already blocked")
+	ErrInvalidInvite   = errors.New("invalid or expired invite code")
+	ErrRateLimited     = errors.New("PSI discovery rate limited")
+	ErrOPRFUnavailable = errors.New("contact discovery is not configured")
+
+	maxBlindedPerRequest = 1000 // cap blinded elements per discovery request
 )
 
 const (
@@ -32,30 +36,81 @@ const (
 // Service provides contact management operations.
 type Service struct {
 	db database.DB
+
+	// oprf + oprfIndex back private (OPRF-PSI) contact discovery. oprfIndex maps
+	// hex(OPRF_k(phone)) -> DID; raw phone numbers are never stored. Nil oprf
+	// disables discovery. NOTE: this in-memory index is single-instance; a
+	// durable/shared store is a follow-up (see PHASE2_GAP_AUDIT D2).
+	oprf      *OPRFService
+	mu        sync.RWMutex
+	oprfIndex map[string]string
 }
 
 // NewService creates a contacts service.
 func NewService(db database.DB) *Service {
-	return &Service{db: db}
+	return &Service{db: db, oprfIndex: make(map[string]string)}
 }
 
-// PSIDiscovery performs privacy-preserving set intersection to find contacts.
-// Accepts pre-hashed phone numbers and returns matching DIDs.
-func (s *Service) PSIDiscovery(ctx context.Context, callerDID string, phoneHashes []string) ([]map[string]string, error) {
-	if len(phoneHashes) > 1000 {
+// SetOPRF wires the OPRF engine used for private contact discovery.
+func (s *Service) SetOPRF(o *OPRFService) { s.oprf = o }
+
+// DiscoveryKey computes the OPRF index key hex(OPRF_k(phone)) for a raw number.
+// It is pseudorandom and safe to hold transiently (e.g. in an OTP session) until
+// the number is confirmed; the raw number itself is never stored.
+func (s *Service) DiscoveryKey(e164 string) (string, error) {
+	if s.oprf == nil {
+		return "", ErrOPRFUnavailable
+	}
+	return s.oprf.IndexKey(e164)
+}
+
+// CommitDiscoveryKey records a confirmed OPRF index key -> DID binding, making
+// the number discoverable. Called after phone ownership is verified (e.g. OTP).
+func (s *Service) CommitDiscoveryKey(key, did string) {
+	if key == "" {
+		return
+	}
+	s.mu.Lock()
+	s.oprfIndex[key] = did
+	s.mu.Unlock()
+}
+
+// RegisterPhoneForDiscovery computes and commits the discovery binding in one
+// step (raw number used transiently, never persisted). Convenience for callers
+// that already hold a confirmed number.
+func (s *Service) RegisterPhoneForDiscovery(did, e164 string) error {
+	key, err := s.DiscoveryKey(e164)
+	if err != nil {
+		return err
+	}
+	s.CommitDiscoveryKey(key, did)
+	return nil
+}
+
+// OPRFEvaluate runs the oblivious server step over client-blinded phone numbers.
+// The server learns nothing about the numbers — only blinded group elements.
+func (s *Service) OPRFEvaluate(blindedB64 []string) ([]string, error) {
+	if s.oprf == nil {
+		return nil, ErrOPRFUnavailable
+	}
+	if len(blindedB64) > maxBlindedPerRequest {
 		return nil, ErrRateLimited
 	}
+	return s.oprf.Evaluate(blindedB64)
+}
 
-	var matches []map[string]string
-	for _, hash := range phoneHashes {
-		// In production, this would query the hashed phone index.
-		// For now, return structure showing the matching interface.
-		_ = hash
+// DiscoveryIndex returns a copy of the {hex(OPRF_k(phone)) -> DID} index for
+// CLIENT-SIDE matching. The client finalizes its evaluated elements locally and
+// looks them up here, so the server never receives the client's OPRF outputs
+// (which it could otherwise brute-force back to phone numbers using its key).
+func (s *Service) DiscoveryIndex() map[string]string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make(map[string]string, len(s.oprfIndex))
+	for k, v := range s.oprfIndex {
+		out[k] = v
 	}
-	if matches == nil {
-		matches = make([]map[string]string, 0)
-	}
-	return matches, nil
+	return out
 }
 
 // SearchByUsername searches for users by handle.

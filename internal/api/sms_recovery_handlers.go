@@ -39,7 +39,8 @@ type smsOTPSession struct {
 	OTP       string    `json:"otp"`
 	DID       string    `json:"did,omitempty"`
 	ExpiresAt time.Time `json:"expires_at"`
-	Attempts  int       `json:"attempts"` // failed verification count (S6 brute-force lockout)
+	Attempts  int       `json:"attempts"`           // failed verification count (S6 brute-force lockout)
+	OPRFKey   string    `json:"oprf_key,omitempty"` // D2: hex(OPRF_k(phone)), committed to the discovery index on verify
 }
 
 // --- POST /v1/auth/sms-recovery/register ---
@@ -151,6 +152,11 @@ func (rt *Router) handleSMSRecoveryVerify(w http.ResponseWriter, r *http.Request
 		}
 		WriteError(w, http.StatusUnauthorized, "INVALID_OTP", "OTP does not match", r.Header.Get("X-Request-ID"))
 		return
+	}
+
+	// D2: phone ownership is now proven — make it discoverable (OPRF key -> DID).
+	if session.OPRFKey != "" && rt.V3 != nil && rt.V3.Contacts != nil {
+		rt.V3.Contacts.CommitDiscoveryKey(session.OPRFKey, session.DID)
 	}
 
 	// Single-use: delete session immediately after successful verification.
@@ -281,6 +287,14 @@ func (rt *Router) dispatchOTP(ctx context.Context, phoneRaw, phoneHash, did stri
 		OTP:       otp,
 		DID:       did,
 		ExpiresAt: time.Now().Add(infra.SMSOTPSessionTTL),
+	}
+	// D2: precompute the OPRF discovery key from the raw number now (it's never
+	// stored raw); commit it to the discovery index only once ownership is
+	// verified (handleSMSRecoveryVerify).
+	if rt.V3 != nil && rt.V3.Contacts != nil {
+		if key, kerr := rt.V3.Contacts.DiscoveryKey(phoneRaw); kerr == nil {
+			session.OPRFKey = key
+		}
 	}
 	if err := rt.putSMSSession(ctx, sessionToken, session); err != nil {
 		return "", "", fmt.Errorf("store OTP session: %w", err)

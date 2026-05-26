@@ -21,30 +21,6 @@ func TestPhoneHashing(t *testing.T) {
 	}
 }
 
-func TestPSIDiscovery(t *testing.T) {
-	svc, _ := setupTest()
-	ctx := context.Background()
-
-	result, err := svc.PSIDiscovery(ctx, "did:alice", []string{"hash1", "hash2"})
-	if err != nil {
-		t.Fatalf("PSIDiscovery: %v", err)
-	}
-	if result == nil {
-		t.Fatal("expected non-nil result")
-	}
-}
-
-func TestPSIDiscoveryRateLimit(t *testing.T) {
-	svc, _ := setupTest()
-	ctx := context.Background()
-
-	hashes := make([]string, 1001)
-	_, err := svc.PSIDiscovery(ctx, "did:alice", hashes)
-	if err != ErrRateLimited {
-		t.Errorf("expected ErrRateLimited, got %v", err)
-	}
-}
-
 func TestSearchByUsername(t *testing.T) {
 	svc, db := setupTest()
 	ctx := context.Background()

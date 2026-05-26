@@ -174,9 +174,20 @@ func (s *Server) Start() error {
 	emission := rewards.NewEmissionSchedule(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
 	mediaSvc := media.NewService(db, storage)
 	mediaSvc.DataL1 = router.DataL1 // D3: anchor media content roots on Data L1
+
+	// D2: private (OPRF-PSI) contact discovery. Degrades gracefully — if the key
+	// is unset in production, discovery is disabled rather than failing startup.
+	contactsSvc := contacts.NewService(db)
+	if oprfSvc, oerr := contacts.NewOPRFService(); oerr != nil {
+		log.Printf("Contact discovery disabled: %v", oerr)
+	} else {
+		contactsSvc.SetOPRF(oprfSvc)
+		log.Println("Private contact discovery enabled (OPRF-PSI)")
+	}
+
 	router.V3 = &api.V3Handlers{
 		DB:           db,
-		Contacts:     contacts.NewService(db),
+		Contacts:     contactsSvc,
 		Notification: notification.NewService(db),
 		Media:        mediaSvc,
 		Rewards:      rewardsSvc.NewService(db, emission),
