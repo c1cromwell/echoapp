@@ -1,21 +1,29 @@
 # Phase 2 Gap Audit — Onboarding, Identity & Credentials
 
-**Date:** 2026-05-24
-**Guide / source of truth:** `docs/Echo_Combined_Blueprints-2026-05-08.md`
-**Scope:** All 26 Phase 2 work orders (`docs/phase-2-work-orders.md`)
+**Date:** 2026-05-26 (refreshed)  
+**Prior audit:** 2026-05-24  
+**Guide / source of truth:** `docs/Echo_Combined_Blueprints-2026-05-08.md`  
+**Scope:** All 26 Phase 2 work orders (`docs/phase-2-work-orders.md`)  
+**Software Factory sync:** 2026-05-26 — see phase doc headers  
 **Architecture baseline:** `did:key` + Constellation Identity Metagraph. **Cardano is removed from Phase 1–2** (blueprint decision 2026-04-25; ADR-0001). Cardano/Midnight survive only as Phase 3+ ZK-circuit evaluation candidates.
 
 ---
 
 ## 1. Executive summary
 
-- **WO-180 and WO-182 must NOT be implemented as written.** Both are explicitly marked *"⚠ Blocked — Do not implement"* in the WO doc. They specify Atala PRISM, `did:prism:cardano:` DIDs, Cardano anchoring, and Plutus-UTXO revocation — all obsolete. They were **superseded by WO-273 (did:key) and WO-274 (W3C VC 2.0 + StatusList2021 on Constellation)**.
-- **Those replacements are already built and tested** in `pkg/did/`, `pkg/credentials/`, and `pkg/credentials/oidc4vc/`. There is **no greenfield "backend foundation" to build** for identity/VC. The G5 "OIDC4VP always-succeeds" stub noted in prior Phase-1 analysis is **resolved** — real VP/credential signature verification now exists.
-- **The real Phase 2 backend gaps** are a thin integration layer the iOS work orders depend on: an unreachable username-availability endpoint, unexposed session refresh/revoke endpoints, a stubbed PSI discovery query, stubbed IDV/mDL enrollment handlers, and missing orchestration/profile-generation/Prove integrations.
-- **The real Phase 2 iOS gaps** are larger: WO-14's named onboarding coordinator/views, the WO-100 OIDC4VC client, and the WO-39/221 contact use-cases do not exist yet (equivalent Phase 1 `FirstRunCoordinator` onboarding does exist).
-- **Cardano cleanup:** the **codebase is already essentially Cardano-free** (one vestigial Makefile string, now removed). The remaining Cardano debt is **doc-side** — primarily the blueprint, which still contains a stale duplicate DID-management section and ~180 Cardano mentions. See §5.
+- **WO-180 and WO-182 must NOT be implemented as written.** Both remain *blocked* in Software Factory. They specify Atala PRISM, `did:prism:cardano:` DIDs, Cardano anchoring, and Plutus-UTXO revocation — all obsolete. Superseded by **WO-273 (did:key)** and **WO-274 (W3C VC 2.0 + StatusList2021 on Constellation)**, both shipped.
+- **Identity/VC backend foundations are done.** `pkg/did/`, `pkg/credentials/`, and `pkg/credentials/oidc4vc/` are real (no OIDC4VP always-succeeds stub). Do not rebuild.
+- **Wave A integration gaps are largely closed** since the 2026-05-24 audit:
+  - `GET /v1/users/check-username` is **mounted and tested** (`internal/api/username_handlers.go`, `router.go`).
+  - `POST /v3/auth/refresh` and `/v3/auth/revoke` are **exposed** (`auth_token_handlers.go`, `router.go`).
+  - Refresh tokens are **durable via Redis** when configured (`TokenService.SetRedisBackend`, `token_redisbackend_test.go`).
+  - OPRF-PSI contact discovery backend is **implemented** (not stubbed): `OPRFService`, `POST /v3/contacts/psi`, durable discovery index (`cf18573`, `5a33252`).
+- **Remaining Phase 2 backend gaps** are narrower: enrollment IDV/mDL/VC stubs, universal onboarding orchestration (WO-203), Prove integration, trust-registry durability, profile auto-generation, PSI tier opt-in policy, and credential-engine consolidation.
+- **Remaining Phase 2 iOS gaps** are still the largest slice: WO-100 OIDC4VC client, WO-14 credential-path onboarding views, WO-221 PSI client, WO-39 contact use-cases, WO-228 privacy settings consolidation.
+- **Cardano cleanup:** codebase remains essentially Cardano-free. Doc-side debt in blueprints/requirements persists (§5).
 
-**Status tally (26 WOs):** Done 1 · Substantially done 4 · Partial 9 · Stub 4 · Missing 6 · Obsolete (do-not-implement) 2.
+**Status tally (26 WOs):** ✅ Done 3 · 🟩 Substantially done 4 · 🟨 Partial 11 · 🟥 Stub 3 · ⬜ Missing 3 · ⛔ Obsolete 2  
+*(Aligned with Software Factory: 3 completed · 4 in progress · 17 backlog · 2 blocked)*
 
 ---
 
@@ -23,15 +31,20 @@
 
 | Capability | Where | State |
 |---|---|---|
-| `did:key` derivation, registration, resolution, multi-device controller pattern | `pkg/did/` (`service.go`, `multidevice.go`, `resolver.go`, `repository.go`, `cache.go`, `handlers.go`); `pkg/didkey/` | **Done** (= WO-273) |
+| `did:key` derivation, registration, resolution, multi-device controller | `pkg/did/`, `pkg/didkey/` | **Done** (= WO-273) |
 | W3C VC 2.0 issuance (JSON-LD / JWT / SD-JWT) | `pkg/credentials/issuer_vc2.go`, `formats.go`, `issuer.go` | **Done** (= WO-274) |
-| Credential verification w/ **real ECDSA** signature check, structure, expiry, revocation | `pkg/credentials/verifier.go:301`, `crypto.go:315` | **Done** |
-| StatusList2021 revocation (Postgres + Identity-L1 publish) | `pkg/credentials/statuslist_pg.go`, `statuslist_l1_*.go`, `identity_l1_publish.go` | **Done** |
-| OIDC4VC issuer + verifier (real `VerifyPresentation`, VP-JWT parse, holder-sig check) | `pkg/credentials/oidc4vc/` (`issuer.go`, `verifier.go:190`, `metadata.go`, `flows.go`) | **Done** (gated by `OIDC4VC_ENABLED`; mounted via `router.OIDC` in `main.go`) |
-| Passkey body-signature auth middleware (X-Sender-DID + X-Signature) | `internal/api/passkey_auth.go`, `router.go:258` | **Done** |
-| ES256 JWT issuance + refresh-token rotation w/ reuse detection + JTI blocklist | `internal/auth/token.go` | **Logic done, not fully wired** — see WO-287 |
-| Trust scoring / tiers (0–100 → Tier 1–5) | `internal/services/trust/`, `internal/services/onboarding/credentials.go` (TrustScoreCalculator) | **Substantially done** |
+| Credential verification w/ real ECDSA, structure, expiry, revocation | `pkg/credentials/verifier.go`, `crypto.go` | **Done** |
+| StatusList2021 revocation (Postgres + Identity-L1 publish) | `pkg/credentials/statuslist_pg.go`, `statuslist_l1_*.go` | **Done** |
+| OIDC4VC issuer + verifier (VP-JWT, holder-sig check) | `pkg/credentials/oidc4vc/` | **Done** (gated `OIDC4VC_ENABLED`) |
+| Passkey body-signature auth middleware | `internal/api/passkey_auth.go` | **Done** |
+| JWT issuance + refresh rotation + reuse detection + JTI blocklist | `internal/auth/token.go` | **Done** |
+| Refresh/revoke HTTP + Redis-backed refresh store | `auth_token_handlers.go`, `router.go`, `main.go` | **Done** (= WO-287) |
+| Username availability (pre-auth) | `username_handlers.go`, `router.go` | **Done** (WO-14 dep) |
+| OPRF-PSI server + discovery index | `contacts/oprf.go`, `contacts/service.go`, `/v3/contacts/psi` | **Substantially done** (WO-220) |
+| `@username` → DID metagraph anchor | `v3_handlers.go` `anchorUsername`, `username_anchor_test.go` | **Substantially done** (WO-222 D1) |
+| Trust scoring / tiers | `internal/services/trust/`, onboarding calculators | **Substantially done** |
 | BIP-39 24-word recovery (iOS) | `ios/.../Onboarding/Recovery/*` | **Done** (= WO-234) |
+| Phase 1 Glacial first-run onboarding | `FirstRunCoordinator`, WO-292 | **Done** |
 
 ---
 
@@ -43,120 +56,142 @@ Legend: ✅ Done · 🟩 Substantially done · 🟨 Partial · 🟥 Stub · ⬜ 
 
 | WO | Title | Status | Evidence / Gap |
 |---|---|---|---|
-| **180** | DID Management (Atala PRISM/Cardano) | ⛔ | **Do not implement.** Obsolete. Superseded by WO-273 → `pkg/did/` (done). |
-| **182** | VC Management (Cardano) | ⛔ | **Do not implement.** Obsolete. Superseded by WO-274 → `pkg/credentials/` (done). |
-| **287** | Session JWT issuance / refresh / revocation (backend) | 🟨 | `internal/auth/token.go` has issue, `RotateRefreshToken` (reuse-detection → revoke), `BlocklistToken`. **Gaps:** refresh tokens stored in an **in-memory map** (`refreshTokens`), not durable; **no HTTP routes** (`/v3/auth/refresh`, `/v3/auth/revoke` absent from `v3_handlers.go`). |
-| **14** | Streamlined onboarding flow (iOS) | 🟨 | Equivalent Phase 1 flow exists (`FirstRunCoordinator`, `NameAndKeyView`, `PasskeySetupView`, recovery, VIP). **Gap:** WO-14's named `OnboardingCoordinator`, `UsernameView`, `DIDCreationProgressView`, `OptionalVerificationView`, `OnboardingCompleteView` do not exist; `GET /v1/users/check-username` is **unreachable** (see below). |
-| **234** | 24-word BIP-39 recovery UI (iOS) | ✅ | `ios/.../Onboarding/Recovery/` complete (wordlist, display, confirm, restore, scheduler). |
-| **288** | New-device login via QR transfer + recovery phrase (iOS) | 🟨 | `DeviceManagementView`, `QRIdentityView`, `MDLQRScannerView`, `EnrollmentCoordinator`, `RestoreFromPhraseView` exist. **Gap:** end-to-end QR device-transfer handshake (controller-signed nonce → secondary `did:key` → `DeviceAttestationCredential`) not verified wired against backend `/identity/devices`. |
+| **180** | DID Management (Atala PRISM/Cardano) | ⛔ | **Do not implement.** Superseded by WO-273 → `pkg/did/`. |
+| **182** | VC Management (Cardano) | ⛔ | **Do not implement.** Superseded by WO-274 → `pkg/credentials/`. |
+| **287** | Session JWT refresh / revocation (backend) | ✅ | `POST /v3/auth/refresh`, `/v3/auth/revoke` wired; Redis durable refresh (`SetRedisBackend`); tests in `auth_token_handlers_test.go`, `token_redisbackend_test.go`. SF: **completed**. |
+| **14** | Credential-path onboarding (iOS) | 🟨 | Phase 1 `FirstRunCoordinator` + WO-292 done. `GET /v1/users/check-username` now reachable. **Gap:** WO-14 named coordinator/views (`UsernameView`, credential-path VC flow) not built; SF: **in_progress**. |
+| **234** | BIP-39 recovery UI (iOS) | ✅ | `ios/.../Onboarding/Recovery/` complete. SF: **completed**. |
+| **288** | New-device QR + recovery phrase (iOS) | 🟨 | `DeviceManagementView`, `QRIdentityView`, `RestoreFromPhraseView` exist. **Gap:** E2E controller-signed device transfer vs `/identity/devices` not verified. |
 
 ### Credentials / Verification / Trust
 
 | WO | Title | Status | Evidence / Gap |
 |---|---|---|---|
-| **100** | OIDC4VC protocol client (iOS) | ⬜ | Backend verifier done (`oidc4vc/verifier.go`). **iOS client missing:** no `RegisterWithVerifiableCredentialUseCase`, `WalletConnectionView`, OIDC4VC request construction, or `submitPresentation` call. |
-| **132** | VC issuance + wallet integration (iOS) | 🟨 | `WalletCredentialEnrollmentView`, `EnrollmentCoordinator`, `EnrollmentModels`, `EnrollmentAPIClient` exist. **Gap:** not a full OIDC4VC credential-offer/wallet flow. |
-| **109** | VC verification engine + trust registry | 🟩 | Real engine in `pkg/credentials/verifier.go`. **Note:** a second, in-memory engine with *simulated* signature check exists in `internal/services/onboarding/credentials.go:183` — consolidation needed to avoid divergence. |
-| **118** | Trust registry mgmt for issuer verification | 🟨 | `internal/services/onboarding/trust_registry.go` (`GetIssuer`, issuer status/level). **Gap:** appears in-memory; no durable store or admin/issuer-onboarding API surface verified. |
-| **129** | Automatic profile generation w/ verified data | ⬜ | No profile-generation service found. Trust badges/score exist but auto-population of profile from verified VC claims is absent. |
-| **199** | ISO/IEC 18013-5 mDL verification | 🟥 | `handleEnrollmentMDL` returns `{"status":"ok"}` (`enrollment_handlers.go:220`). iOS has `AppleWalletMDLBridge` + `MDLQRScannerView` scaffold. Real mDL device-engagement / issuer-data verification missing. |
+| **100** | OIDC4VC protocol client (iOS) | ⬜ | Backend done. **iOS client missing:** no full OIDC4VC registration/presentation flow (`RegisterWithVerifiableCredentialUseCase`, wallet connection). Enrollment scaffold only (`WalletCredentialEnrollmentView`). SF: **in_progress**. |
+| **132** | VC issuance + wallet integration (iOS) | 🟨 | `EnrollmentCoordinator`, `EnrollmentAPIClient` exist. **Gap:** not full OIDC4VC credential-offer/wallet path. SF: **completed** (Constellation path; iOS polish remains). |
+| **109** | VC verification engine + trust registry | 🟩 | Real engine in `pkg/credentials/verifier.go`. **Gap:** duplicate simulated engine in `onboarding/credentials.go` — consolidate. |
+| **118** | Trust registry mgmt | 🟨 | `trust_registry.go` in-memory. **Gap:** durable store + issuer-admin API. |
+| **129** | Auto profile generation from VC claims | ⬜ | Not implemented. |
+| **199** | ISO 18013-5 mDL verification | 🟥 | `handleEnrollmentMDL` still stub `{"status":"ok"}`. iOS `AppleWalletMDLBridge` + scanner scaffold only. |
 
 ### Universal onboarding / SMS / phone
 
 | WO | Title | Status | Evidence / Gap |
 |---|---|---|---|
-| **202** | SMS verification (Twilio + Prove) | 🟨 | Twilio **real** (`internal/infra/sms_provider.go` `TwilioSMSProvider`), SMS-recovery handlers wired, OTP flow works. **Gap:** **Prove** identity integration missing. |
-| **203** | Universal onboarding backend orchestration | ⬜ | No orchestration service. Component pieces (phone, passkey, DID, VC) exist independently; the phone-number-first universal flow coordinator is absent. |
-| **204** | Universal onboarding UI flow (iOS) | ⬜ | Depends on WO-203. Phone-number onboarding UI not present (current onboarding is username + passkey first-run). |
-| **205** | Phone number mgmt + optional deletion | 🟨 | `internal/services/onboarding/phone.go` exists. **Gap:** deletion endpoint/flow and management UI not verified. |
-| **199**/IDV | `/v1/enrollment/vc|idv` tail | 🟥 | `handleEnrollmentVC`, `handleEnrollmentIDV` are stubs returning `{"status":"ok"}` (`enrollment_handlers.go:211,229`). No Prove/Daon/Darwinium integration. |
+| **202** | SMS verification (Twilio + Prove) | 🟨 | Twilio real; OTP/SMS recovery wired. **Gap:** Prove integration missing. |
+| **203** | Universal onboarding orchestration | ⬜ | No phone-first coordinator service. |
+| **204** | Universal onboarding UI (iOS) | ⬜ | Depends on WO-203. |
+| **205** | Phone number mgmt + deletion | 🟨 | `onboarding/phone.go` exists; deletion flow unverified. |
+| **199**/IDV | `/v1/enrollment/{vc,idv,mdl}` | 🟥 | Still stub bodies in `enrollment_handlers.go`. |
 
 ### Contacts / discovery / privacy
 
 | WO | Title | Status | Evidence / Gap |
 |---|---|---|---|
-| **220** | PSI contact discovery backend | 🟥 | `internal/services/contacts/service.go:44` `PSIDiscovery` is a **stub** (`_ = hash // In production, this would query the hashed phone index`). `HashPhone` (Argon2id) is real. `/v3/contacts/psi` is wired but returns stub data. No OPRF. |
-| **221** | PSI contact discovery iOS client | ⬜ | No Argon2id hashing or PSI client on iOS. |
-| **222** | Username index, QR, invite links | 🟨 | DB-backed invite links + username search (`contacts/service.go`), plus in-memory `trustnet/discovery.go` (QR, username). **Gap:** two parallel impls; username index on Identity Metagraph not present; consolidation needed. |
-| **39** | User mgmt + contact system w/ privacy controls (iOS) | ⬜ | `ContactDetailView` exists, but the WO-39 `Contacts/` feature folder + 4 use-cases (`ContactDiscoveryUseCase` w/ Argon2id, `QRContactExchangeUseCase`, `InviteLinkUseCase`, `UsernameSearchUseCase`) are missing. |
-| **187** | User profiles + contact mgmt | 🟨 | `ProfileScreens`, `ContactDetailView`, backend contacts CRUD (`/v3/contacts/*`). Partial UI. |
-| **190** | Contact blocking + privacy control | 🟨 | Backend `BlockContact`/`UnblockContact` + `/v3/contacts/block` wired. iOS per-setting privacy controls partial. |
-| **228** | Privacy settings screen + encryption indicator + account deletion UI (iOS) | 🟨 | References in `ProfileScreens`, `Models`, `ViewModels`, `Endpoints`. **Gap:** dedicated privacy-settings screen, encryption indicator, and account-deletion UI not consolidated. |
+| **220** | PSI contact discovery backend | 🟨 | **Upgraded from stub:** `OPRFService` (RFC 9497), `OPRFEvaluate`, durable `DiscoveryIndex`, `POST /v3/contacts/psi`, tests (`oprf_test.go`). SMS verify commits OPRF keys (`sms_recovery_handlers.go`). **Gaps:** Tier 3+ discoverability filter, ops key rotation policy, WO spec used `/v1/contacts/psi/blind-eval` path name. SF: **in_progress**. |
+| **221** | PSI contact discovery iOS client | ⬜ | No client-side OPRF blind/evaluate/finalize flow on iOS. |
+| **222** | Username index, QR, invite links | 🟨 | Username search + invite links (`/v3/contacts/search`, `/invite`); metagraph anchor on register (`anchorUsername`); iOS `QRIdentityView`. **Gaps:** parallel `trustnet/discovery.go` vs `contacts/service.go`; deep links `echo://invite`; public unauthenticated lookup API. SF: **in_progress**. |
+| **39** | User mgmt + contacts w/ privacy (iOS) | ⬜ | `ContactDetailView` exists; WO-39 use-case folder (PSI, QR, invite, username search) missing. |
+| **187** | User profiles + contact mgmt | 🟨 | `ProfileScreens`, backend `/v3/contacts/*` partial. |
+| **190** | Contact blocking + privacy | 🟨 | Backend block/unblock wired; iOS privacy controls partial. |
+| **228** | Privacy settings + deletion UI (iOS) | 🟨 | Models/settings refs exist; dedicated screen + account deletion not consolidated. |
 
 ### Onboarding support / analytics
 
 | WO | Title | Status | Evidence / Gap |
 |---|---|---|---|
-| **144** | Onboarding analytics + support | 🟨 | `internal/services/onboarding/analytics.go` exists. Support side not built. |
-| **159** | Verification retry + error handling + user guidance | ⬜ | No dedicated retry/error-guidance service found. |
-| **169** | Onboarding support docs + help resources | ⬜ | Not present (largely content/help-center, not backend code). |
+| **144** | Onboarding analytics + support | 🟨 | `analytics.go` exists; support side not built. |
+| **159** | Verification retry + guidance | ⬜ | Not implemented. |
+| **169** | Onboarding help resources | ⬜ | Content/help-center work, not code. |
 
 ---
 
-## 4. Unreachable / unexposed endpoints (live router vs. blueprint)
+## 4. Endpoint reachability (updated 2026-05-26)
 
-Implemented logic exists but is **not reachable** on the running server (`internal/api/router.go`):
-
-1. **`GET /v1/users/check-username`** (WO-14 dependency) — handler exists at `pkg/api/v2/profile_handlers.go:455` but **`pkg/api/v2` is never imported/mounted**; `OnboardingService.CheckUsernameAvailability` (`onboarding.go:613`) is not on a route. `handleV1`/`handleV2` only serve `/v1/users`, `/v1/users/profile`, `/v2/users`, `/v2/users/profile`.
-2. **`POST /v3/auth/refresh` and `/v3/auth/revoke`** (WO-287) — `token.go` has the rotation/revocation logic; no routes register it (`v3_handlers.go:45`).
-3. **`/v1/enrollment/{vc,mdl,idv}`** — wired but **stub bodies** (`{"status":"ok"}`).
-4. **`/v3/contacts/psi`** — wired but backed by the stubbed `PSIDiscovery`.
+| Endpoint | Prior audit | Now |
+|---|---|---|
+| `GET /v1/users/check-username` | ❌ Unreachable | ✅ `username_handlers.go` + public route (`b71db7b`) |
+| `POST /v3/auth/refresh`, `/v3/auth/revoke` | ❌ No routes | ✅ `auth_token_handlers.go` (`c590dbb`) |
+| Refresh token storage | ❌ In-memory only | ✅ Redis when backend configured (`1cf5ac8`) |
+| `POST /v3/contacts/psi` | ❌ Stub `PSIDiscovery` | ✅ OPRF evaluate + discovery index (`cf18573`, `5a33252`) |
+| `/v1/enrollment/{vc,mdl,idv}` | 🟥 Stub | 🟥 Still stub (`enrollment_handlers.go`) |
 
 ---
 
 ## 5. Cardano remnant inventory & removal plan
 
+*(Unchanged in substance — code clean; doc debt remains.)*
+
 ### 5a. Code / config — **essentially clean**
 
-| Location | Match | Verdict |
-|---|---|---|
-| `Makefile:179-180` | `cardanoidentity` stale-binary guard | **Removed** in this pass (obsolete binary). |
-| `Makefile`, `docker-compose.*.yml`, `trustnet/blockchain.go:239` | `hydra` | **Keep — not Cardano.** `hydra` = Constellation/Euclid metagraph deploy tool. |
-| `IdentityCardView.swift:204`, `DemoFlows.swift:286` | `username: "ada"` | **Keep — not Cardano.** Sample username (Ada Lovelace), not the ADA token. |
-| `metagraph/.../ValidationsSpec.scala:190` | `"rejects did:prism strings"` | **Keep — defensive.** Test asserts `did:prism` is *rejected* as obsolete PII. |
-| `CHANGELOG.md:12,71` | "No Cardano/PRISM dependency", "replaced by did:key" | **Keep — historical record** of the removal. |
+| Location | Verdict |
+|---|---|
+| `Makefile` `cardanoidentity` guard | **Removed** |
+| `hydra` in Makefile / compose | **Keep** — Euclid metagraph tool, not Cardano |
+| `ValidationsSpec.scala` rejects `did:prism` | **Keep** — defensive test |
+| Sample username `"ada"` in demos | **Keep** — not ADA token |
 
-### 5b. Docs — **the real debt** (recommended follow-up sweep)
+### 5b. Docs — **the real debt**
 
-The guide doc (`Echo_Combined_Blueprints-2026-05-08.md`, dated *after* the 2026-04-25 removal) still has **~180 Cardano mentions**. Two classes:
-
-- **KEEP / lightly trim** — deliberate "Cardano not used in Phase 1–2; Phase 3 ZK-eval only" statements that document the decision: lines ~1952, 2076, 2107–2122, 2130, 2568, 2610, 4201, 4231, 4518.
-- **REMOVE / rewrite** — stale content that presents Cardano as live Phase 1–2 spec:
-  - **`#### Decentralized Identifier (DID) Management` duplicate at lines ~4655–4710** — an entire **stale legacy copy** ("generates a new DID using Atala PRISM infrastructure", "anchored to Cardano blockchain", `did:prism:cardano:abc123` doc + `verifiableCredential` embedded in DID doc). Directly contradicts the canonical did:key section at line 4227. **Delete this duplicate block.** (Note: subsections "Streamlined Onboarding" / "In-App High-Assurance" also appear twice — 4562/5116 and 4577/5130 — indicating a broader stale mirror region to reconcile.)
-  - Lines 4480 ("Credential is returned to backend and stored on Cardano") and 4481 ("added to user's DID document") → should read "anchored on the Constellation Identity Metagraph" and drop DID-doc embedding (per the note at line 4279).
-  - Backend/Data-Layer/Secure-Enclave/Privacy stale refs: ~192, 209, 517, 2150, 2198, 2202, 2411, 2466, 2597, 2604, 2815, 2818, 2912, 2976.
-  - Later-phase feature sections (out of Phase 2 scope but heavily Cardano): Portable Social Graph (~3656–3767), PQ Mode (~3866–3914), Privacy Commons Treasury (~3973–4056).
-- **Also:** `docs/Echo_Combined_Requirements.md` (~77 mentions) and `docs/phase-1..7-work-orders.md` carry Cardano; WO-180/182 "original content preserved for reference" blocks are historical archives — flag, don't gut.
-
-> **Recommendation:** the doc sweep is a bounded but sizable edit to the canonical source-of-truth (~180 mentions, multiple duplicate regions, all 7 phases). It deserves its own focused pass with a reviewable diff rather than being bundled with code work. Code/config cleanup is complete.
+`Echo_Combined_Blueprints-2026-05-08.md` still has ~180 Cardano mentions including stale duplicate DID-management blocks. `phase-*-work-orders.md` WO-180/182 archive blocks are historical. Recommend a focused doc sweep (not bundled with feature work).
 
 ---
 
 ## 6. Dependency-ordered remediation plan
 
-**Wave A — backend integration gaps (unblocks iOS; small, testable in Go):**
-1. Mount `GET /v1/users/check-username` (reuse `OnboardingService.CheckUsernameAvailability`) + tests. *(WO-14 dep)*
-2. Expose `POST /v3/auth/refresh` + `/v3/auth/revoke` over `token.go`; move refresh-token store to durable backing (Postgres/Redis) + tests. *(WO-287)*
-3. Consolidate the two credential-verification engines onto `pkg/credentials/verifier.go`; retire the simulated one in `onboarding/credentials.go`. *(WO-109)*
+**Wave A — backend integration (mostly ✅):**
 
-**Wave B — real implementations behind existing stubs:**
-4. Implement PSI discovery query (OPRF over the Argon2id hashed-phone index) behind `/v3/contacts/psi`. *(WO-220)*
-5. Implement `/v1/enrollment/{idv,mdl,vc}` against a real IDV provider (Prove) + mDL ISO 18013-5 verification. *(WO-199, WO-202)*
-6. Universal onboarding orchestration service + phone management/deletion. *(WO-203, WO-205)*
-7. Trust-registry durability + issuer-admin API. *(WO-118)*; automatic profile generation. *(WO-129)*
+| # | Item | Status |
+|---|------|--------|
+| A.1 | Mount `GET /v1/users/check-username` | ✅ Done |
+| A.2 | Expose refresh/revoke + Redis refresh store | ✅ Done |
+| A.3 | Consolidate credential verifiers onto `pkg/credentials/verifier.go` | 🔜 Open |
 
-**Wave C — iOS feature builds (largest effort):**
-8. WO-14 `OnboardingCoordinator` + named views (or formally re-scope to the existing `FirstRunCoordinator`).
-9. WO-100 OIDC4VC client + WO-132 wallet credential flow.
-10. WO-39/WO-221 contacts feature folder + 4 use-cases (Argon2id) + PSI client.
-11. WO-228 privacy settings / encryption indicator / account deletion UI; WO-204 universal onboarding UI.
+**Wave B — stubs → real implementations:**
+
+| # | Item | Status |
+|---|------|--------|
+| B.1 | OPRF-PSI backend | 🟨 Core done; tier opt-in + ops hardening remain (WO-220) |
+| B.2 | `/v1/enrollment/{idv,mdl,vc}` + Prove/mDL | 🔜 Open (WO-199, WO-202) |
+| B.3 | Universal onboarding orchestration + phone deletion | 🔜 Open (WO-203, WO-205) |
+| B.4 | Trust registry durability + profile auto-gen | 🔜 Open (WO-118, WO-129) |
+
+**Wave C — iOS (largest remaining effort):**
+
+| # | Item | Status |
+|---|------|--------|
+| C.1 | WO-14 credential-path onboarding OR formal re-scope to `FirstRunCoordinator` | 🟨 In progress |
+| C.2 | WO-100 OIDC4VC client + WO-132 wallet polish | 🔜 Open / in progress |
+| C.3 | WO-221 PSI iOS client + WO-39 contact use-cases | 🔜 Open |
+| C.4 | WO-228 privacy settings / account deletion UI | 🔜 Open |
 
 **Wave D — support & docs:**
-12. WO-144 support, WO-159 retry/guidance, WO-169 help resources.
-13. Full Cardano doc sweep (§5b).
+
+| # | Item | Status |
+|---|------|--------|
+| D.1 | WO-144/159/169 support surfaces | 🔜 Open |
+| D.2 | Cardano doc sweep (§5b) | 🔜 Open |
 
 ---
 
-## 7. Recommended immediate next step
+## 7. Recommended immediate next steps
 
-Start **Wave A.1** — wire `GET /v1/users/check-username` with tests. It's the smallest concrete gap, unblocks WO-14, is fully testable in Go here, and validates the audit's "logic exists but unreachable" finding end-to-end.
+Pick based on current sprint (Phase 3 Xcode wiring is parallel, not blocking these):
+
+1. **WO-100** — OIDC4VC iOS client against shipped backend (`oidc4vc/`). Highest Phase 2 credential gap.
+2. **WO-221** — iOS OPRF-PSI client to consume `/v3/contacts/psi` (unblocks contact discovery E2E with WO-220).
+3. **WO-14** — Either implement credential-path `OnboardingCoordinator` views or document formal re-scope to `FirstRunCoordinator` + close WO.
+4. **Wave A.3** — Retire simulated verifier in `onboarding/credentials.go` (small Go refactor, prevents drift).
+
+---
+
+## 8. Related Phase 3 work (out of Phase 2 scope but active)
+
+Software Factory **in_progress** on Phase 3 messaging signals (adjacent to Phase 2 contacts/privacy):
+
+| WO | Title | Note |
+|---|---|---|
+| **192** | Typing indicators + read receipts | Backend + iOS agent layer shipped; Xcode UI wiring in progress |
+| **10** | Emoji reactions | REST + WS backend shipped; iOS UI partial |
+
+See `docs/PHASE3_IOS_UI_SPEC.md` and skill `echo-phase3-ios-wire`.
