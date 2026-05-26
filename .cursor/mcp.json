@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "echo-local-dev": {
+      "command": "bash",
+      "args": ["tools/echo-local-dev-mcp/run.sh"],
+      "env": {
+        "ECHO_REPO_ROOT": "${workspaceFolder}"
+      }
+    }
+  }
+}

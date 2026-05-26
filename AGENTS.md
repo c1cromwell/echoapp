@@ -11,8 +11,18 @@ Quick entry point for Cursor agents working in this repo. Read this first, then 
 | iOS implementation | Skill: **`echo-ios-agent-vs-xcode`** |
 | Update work order status | Skill: **`echo-work-order-sync`** + MCP `software-factory-echo` |
 | Chain / submission / PII review | Skill: **`echo-t0-t7-review`** + `docs/data-classification.md` |
+| Local cluster / validate / release check | MCP **`echo-local-dev`** (see `.cursor/mcp.json`) |
 
 Planning history and MCP roadmap: [`docs/AGENT_TOOLING_RECOMMENDATIONS.md`](docs/AGENT_TOOLING_RECOMMENDATIONS.md).
+
+## MCP servers
+
+| Server | Purpose |
+|--------|---------|
+| `software-factory-echo` | Work orders, blueprints, requirements (user/global config) |
+| `echo-local-dev` | `make dev-status`, `release-check`, `validate-phase1`, `metagraph-test`, iOS Phase 3 tests, `/health` |
+
+Reload MCP in Cursor after pulling. Setup: [`tools/echo-local-dev-mcp/README.md`](tools/echo-local-dev-mcp/README.md).
 
 ## Architecture (one screen)
 

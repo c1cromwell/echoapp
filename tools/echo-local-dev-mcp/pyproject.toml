@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "echo-local-dev-mcp"
+version = "0.1.0"
+description = "Cursor MCP server — thin wrapper over Echo Makefile dev/validate commands"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "mcp>=1.2.0",
+]
+
+[project.scripts]
+echo-local-dev-mcp = "echo_local_dev_mcp.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["echo_local_dev_mcp"]

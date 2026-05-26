@@ -99,6 +99,10 @@ metagraph/project/target/
 metagraph/project/project/
 metagraph/target/
 
+# MCP local dev server
+tools/echo-local-dev-mcp/.venv/
+tools/echo-local-dev-mcp/.uv/
+
 # Terraform
 *.tfstate
 *.tfstate.backup

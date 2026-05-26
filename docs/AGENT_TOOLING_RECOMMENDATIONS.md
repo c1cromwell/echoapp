@@ -1,7 +1,7 @@
 # Agent Tooling Recommendations — Echo
 
 **Created:** 2026-05-26  
-**Status:** Accepted (Steps 1–2 implemented 2026-05-26)  
+**Status:** Accepted (Steps 1–3 implemented 2026-05-26)  
 **Purpose:** Record planning choices for Cursor skills, MCP services, and agent harnesses so future you (and agents) know what was decided and why.
 
 ---
@@ -81,9 +81,9 @@ Phase doc headers (`docs/phase-*-work-orders.md`) synced with Software Factory s
 
 ## MCP services — tiered plan
 
-### Tier 1 — Build next (Step 3)
+### Tier 1 — Implemented (Step 3, 2026-05-26)
 
-**`echo-local-dev` MCP** — thin wrapper over Makefile/scripts:
+**`echo-local-dev` MCP** — [`tools/echo-local-dev-mcp/`](../tools/echo-local-dev-mcp/), registered in [`.cursor/mcp.json`](../.cursor/mcp.json):
 
 | Tool | Wraps |
 |------|--------|
@@ -139,7 +139,7 @@ Do **not** load `Echo_Combined_Requirements.md` or full blueprints by default in
 ```text
 Step 1 (done 2026-05-26): AGENTS.md + echo-repo-map + echo-auth-contracts + echo-ios-agent-vs-xcode
 Step 2 (done 2026-05-26): echo-work-order-sync + echo-t0-t7-review; sync phase doc headers
-Step 3: echo-local-dev MCP
+Step 3 (done 2026-05-26): echo-local-dev MCP (tools/echo-local-dev-mcp + .cursor/mcp.json)
 Step 4: Phase-specific skills as phases activate
 ```
 
@@ -151,3 +151,4 @@ Step 4: Phase-specific skills as phases activate
 |------|--------|
 | 2026-05-26 | Initial recommendations documented; Step 1 skills + AGENTS.md implemented |
 | 2026-05-26 | Step 2: echo-work-order-sync + echo-t0-t7-review; phase WO headers synced |
+| 2026-05-26 | Step 3: echo-local-dev MCP server + project `.cursor/mcp.json` |
