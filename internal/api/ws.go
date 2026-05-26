@@ -33,6 +33,7 @@ type WSControlMessage struct {
 var ephemeralSignalTypes = map[string]bool{
 	"typing":       true, // payload: TypingSignal
 	"read_receipt": true, // payload: ReadReceiptSignal
+	"reaction":     true, // payload: ReactionSignal (live update; durable truth is the reactions API)
 }
 
 // TypingSignal is the payload of a Type:"typing" WS message (ephemeral).
@@ -47,6 +48,15 @@ type ReadReceiptSignal struct {
 	ConversationID string   `json:"conversation_id"`
 	MessageIDs     []string `json:"message_ids"`
 	ReadAt         string   `json:"read_at"`
+}
+
+// ReactionSignal is the payload of a Type:"reaction" WS message — a live reaction
+// update relayed to the conversation peer. Empty Emoji means the reaction was
+// removed. The persisted reactions API is the source of truth.
+type ReactionSignal struct {
+	ConversationID string `json:"conversation_id"`
+	MessageID      string `json:"message_id"`
+	Emoji          string `json:"emoji"` // empty = removed
 }
 
 // Client represents a single WebSocket connection.

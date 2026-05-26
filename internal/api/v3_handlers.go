@@ -28,6 +28,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/services/contacts"
 	"github.com/thechadcromwell/echoapp/internal/services/groups"
 	"github.com/thechadcromwell/echoapp/internal/services/media"
+	"github.com/thechadcromwell/echoapp/internal/services/messaging"
 	"github.com/thechadcromwell/echoapp/internal/services/notification"
 	"github.com/thechadcromwell/echoapp/internal/services/rewards"
 	"github.com/thechadcromwell/echoapp/pkg/didkey"
@@ -44,6 +45,7 @@ type V3Handlers struct {
 	Broadcasts   *broadcast_channels.ChannelService
 	RateLimiter  *infra.RateLimiter         // optional; enforces per-DID claim velocity (WO-35)
 	IdentityL1   *metagraph.MetagraphClient // optional; anchors @username -> DID on the Identity Metagraph (D1)
+	Reactions    *messaging.ReactionStore   // optional; emoji reactions on messages (Phase 3)
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.
@@ -82,6 +84,8 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/v3/media/", h.handleMediaGet)
 
 	// Message receipt endpoint
+	mux.HandleFunc("/v3/messages/react", h.handleMessageReact)
+	mux.HandleFunc("/v3/messages/reactions", h.handleMessageReactions)
 	mux.HandleFunc("/v3/messages/", h.handleMessageReceipt)
 
 	// Group endpoints
@@ -735,6 +739,64 @@ func (h *V3Handlers) handleTrustScoreBatch(w http.ResponseWriter, r *http.Reques
 }
 
 // --- Message Receipt Handler ---
+
+// handleMessageReact adds, replaces, or removes (empty emoji) the caller's emoji
+// reaction on a message and returns the updated aggregated reactions. The live
+// update to the peer travels over the WS "reaction" signal; this endpoint is the
+// durable source of truth.
+func (h *V3Handlers) handleMessageReact(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Reactions == nil {
+		WriteError(w, http.StatusServiceUnavailable, "REACTIONS_UNAVAILABLE", "reactions not configured", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		MessageID string `json:"message_id"`
+		Emoji     string `json:"emoji"`
+	}
+	if err := h.readJSON(r, &req); err != nil || req.MessageID == "" {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "message_id is required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	did := h.getDID(r)
+	if did == "" {
+		WriteError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "authentication required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if req.Emoji == "" {
+		h.Reactions.Remove(req.MessageID, did)
+	} else {
+		h.Reactions.Add(req.MessageID, did, req.Emoji)
+	}
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"message_id": req.MessageID,
+		"reactions":  h.Reactions.List(req.MessageID),
+	})
+}
+
+// handleMessageReactions returns the aggregated reactions for a message.
+func (h *V3Handlers) handleMessageReactions(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Reactions == nil {
+		WriteError(w, http.StatusServiceUnavailable, "REACTIONS_UNAVAILABLE", "reactions not configured", r.Header.Get("X-Request-ID"))
+		return
+	}
+	messageID := r.URL.Query().Get("message_id")
+	if messageID == "" {
+		WriteError(w, http.StatusBadRequest, "MISSING_MESSAGE_ID", "message_id query parameter is required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"message_id": messageID,
+		"reactions":  h.Reactions.List(messageID),
+	})
+}
 
 func (h *V3Handlers) handleMessageReceipt(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

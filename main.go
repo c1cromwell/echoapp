@@ -25,6 +25,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/services/contacts"
 	"github.com/thechadcromwell/echoapp/internal/services/groups"
 	"github.com/thechadcromwell/echoapp/internal/services/media"
+	"github.com/thechadcromwell/echoapp/internal/services/messaging"
 	"github.com/thechadcromwell/echoapp/internal/services/notification"
 	rewardsSvc "github.com/thechadcromwell/echoapp/internal/services/rewards"
 	"github.com/thechadcromwell/echoapp/pkg/credentials"
@@ -194,7 +195,8 @@ func (s *Server) Start() error {
 		Groups:       groups.NewGroupService(),
 		Broadcasts:   broadcast_channels.NewChannelService(),
 		RateLimiter:  rateLimiter,
-		IdentityL1:   router.IdentityL1, // D1: anchor @username -> DID on registration
+		IdentityL1:   router.IdentityL1,            // D1: anchor @username -> DID on registration
+		Reactions:    messaging.NewReactionStore(), // Phase 3: emoji reactions
 	}
 
 	// WO-53: Start audit log publisher background goroutine.
