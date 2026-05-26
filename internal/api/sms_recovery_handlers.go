@@ -156,7 +156,9 @@ func (rt *Router) handleSMSRecoveryVerify(w http.ResponseWriter, r *http.Request
 
 	// D2: phone ownership is now proven — make it discoverable (OPRF key -> DID).
 	if session.OPRFKey != "" && rt.V3 != nil && rt.V3.Contacts != nil {
-		rt.V3.Contacts.CommitDiscoveryKey(session.OPRFKey, session.DID)
+		if err := rt.V3.Contacts.CommitDiscoveryKey(r.Context(), session.OPRFKey, session.DID); err != nil {
+			log.Printf("contacts: commit discovery key failed for %s: %v", session.DID, err)
+		}
 	}
 
 	// Single-use: delete session immediately after successful verification.

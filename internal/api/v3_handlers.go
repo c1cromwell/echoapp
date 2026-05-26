@@ -45,7 +45,6 @@ type V3Handlers struct {
 	Broadcasts   *broadcast_channels.ChannelService
 	RateLimiter  *infra.RateLimiter         // optional; enforces per-DID claim velocity (WO-35)
 	IdentityL1   *metagraph.MetagraphClient // optional; anchors @username -> DID on the Identity Metagraph (D1)
-	Reactions    *messaging.ReactionStore   // optional; emoji reactions on messages (Phase 3)
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.
@@ -151,9 +150,14 @@ func (h *V3Handlers) handleContactsPSI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	index, err := h.Contacts.DiscoveryIndex(r.Context())
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "DISCOVERY_INDEX_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"evaluated":  evaluated,
-		"index":      h.Contacts.DiscoveryIndex(),
+		"index":      index,
 		"request_id": r.Header.Get("X-Request-ID"),
 	})
 }
@@ -749,7 +753,7 @@ func (h *V3Handlers) handleMessageReact(w http.ResponseWriter, r *http.Request) 
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
 		return
 	}
-	if h.Reactions == nil {
+	if h.DB == nil {
 		WriteError(w, http.StatusServiceUnavailable, "REACTIONS_UNAVAILABLE", "reactions not configured", r.Header.Get("X-Request-ID"))
 		return
 	}
@@ -766,14 +770,24 @@ func (h *V3Handlers) handleMessageReact(w http.ResponseWriter, r *http.Request) 
 		WriteError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "authentication required", r.Header.Get("X-Request-ID"))
 		return
 	}
+	var err error
 	if req.Emoji == "" {
-		h.Reactions.Remove(req.MessageID, did)
+		err = h.DB.RemoveReaction(r.Context(), req.MessageID, did)
 	} else {
-		h.Reactions.Add(req.MessageID, did, req.Emoji)
+		err = h.DB.AddReaction(r.Context(), req.MessageID, did, req.Emoji)
+	}
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "REACTION_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	rows, err := h.DB.GetReactions(r.Context(), req.MessageID)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "REACTION_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+		return
 	}
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"message_id": req.MessageID,
-		"reactions":  h.Reactions.List(req.MessageID),
+		"reactions":  messaging.AggregateReactions(rows),
 	})
 }
 
@@ -783,7 +797,7 @@ func (h *V3Handlers) handleMessageReactions(w http.ResponseWriter, r *http.Reque
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
 		return
 	}
-	if h.Reactions == nil {
+	if h.DB == nil {
 		WriteError(w, http.StatusServiceUnavailable, "REACTIONS_UNAVAILABLE", "reactions not configured", r.Header.Get("X-Request-ID"))
 		return
 	}
@@ -792,9 +806,14 @@ func (h *V3Handlers) handleMessageReactions(w http.ResponseWriter, r *http.Reque
 		WriteError(w, http.StatusBadRequest, "MISSING_MESSAGE_ID", "message_id query parameter is required", r.Header.Get("X-Request-ID"))
 		return
 	}
+	rows, err := h.DB.GetReactions(r.Context(), messageID)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "REACTION_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"message_id": messageID,
-		"reactions":  h.Reactions.List(messageID),
+		"reactions":  messaging.AggregateReactions(rows),
 	})
 }
 

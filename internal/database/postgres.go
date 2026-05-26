@@ -677,3 +677,68 @@ func indexOf(s, sub string) int {
 	}
 	return -1
 }
+
+// --- Reactions (PostgresDB) ---
+
+func (p *PostgresDB) AddReaction(ctx context.Context, messageID, reactorDID, emoji string) error {
+	_, err := p.pool.Exec(ctx, `
+		INSERT INTO message_reactions (message_id, reactor_did, emoji, updated_at)
+		VALUES ($1, $2, $3, NOW())
+		ON CONFLICT (message_id, reactor_did) DO UPDATE SET emoji = EXCLUDED.emoji, updated_at = NOW()
+	`, messageID, reactorDID, emoji)
+	return err
+}
+
+func (p *PostgresDB) RemoveReaction(ctx context.Context, messageID, reactorDID string) error {
+	_, err := p.pool.Exec(ctx,
+		`DELETE FROM message_reactions WHERE message_id = $1 AND reactor_did = $2`,
+		messageID, reactorDID)
+	return err
+}
+
+func (p *PostgresDB) GetReactions(ctx context.Context, messageID string) ([]ReactionRow, error) {
+	rows, err := p.pool.Query(ctx,
+		`SELECT message_id, reactor_did, emoji FROM message_reactions WHERE message_id = $1`,
+		messageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []ReactionRow
+	for rows.Next() {
+		var r ReactionRow
+		if err := rows.Scan(&r.MessageID, &r.ReactorDID, &r.Emoji); err != nil {
+			return nil, err
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
+// --- Contact discovery index (PostgresDB) ---
+
+func (p *PostgresDB) PutDiscoveryKey(ctx context.Context, oprfKey, did string) error {
+	_, err := p.pool.Exec(ctx, `
+		INSERT INTO contact_discovery_index (oprf_key, did, updated_at)
+		VALUES ($1, $2, NOW())
+		ON CONFLICT (oprf_key) DO UPDATE SET did = EXCLUDED.did, updated_at = NOW()
+	`, oprfKey, did)
+	return err
+}
+
+func (p *PostgresDB) AllDiscoveryKeys(ctx context.Context) (map[string]string, error) {
+	rows, err := p.pool.Query(ctx, `SELECT oprf_key, did FROM contact_discovery_index`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make(map[string]string)
+	for rows.Next() {
+		var key, did string
+		if err := rows.Scan(&key, &did); err != nil {
+			return nil, err
+		}
+		out[key] = did
+	}
+	return out, rows.Err()
+}

@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/thechadcromwell/echoapp/internal/database"
 	"github.com/thechadcromwell/echoapp/internal/services/messaging"
 )
 
@@ -24,7 +25,7 @@ func withDID(req *http.Request, did string) *http.Request {
 }
 
 func reactionRouter() *Router {
-	return &Router{V3: &V3Handlers{Reactions: messaging.NewReactionStore()}}
+	return &Router{V3: &V3Handlers{DB: database.NewMemoryDB()}}
 }
 
 func TestMessageReact_AddAndList(t *testing.T) {

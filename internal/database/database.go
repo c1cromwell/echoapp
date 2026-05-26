@@ -228,6 +228,34 @@ type DB interface {
 	NotificationStore
 	LogIndexStore
 	SMSRecoveryStore
+	ReactionStore
+	ContactDiscoveryStore
+}
+
+// ReactionRow is a single emoji reaction by one reactor on one message.
+type ReactionRow struct {
+	MessageID  string
+	ReactorDID string
+	Emoji      string
+}
+
+// ReactionStore persists emoji reactions (one emoji per reactor per message).
+type ReactionStore interface {
+	// AddReaction upserts the reactor's emoji on a message (replaces any prior).
+	AddReaction(ctx context.Context, messageID, reactorDID, emoji string) error
+	// RemoveReaction clears the reactor's reaction on a message (no-op if absent).
+	RemoveReaction(ctx context.Context, messageID, reactorDID string) error
+	// GetReactions returns all reaction rows for a message (unaggregated).
+	GetReactions(ctx context.Context, messageID string) ([]ReactionRow, error)
+}
+
+// ContactDiscoveryStore persists the OPRF contact-discovery index:
+// hex(OPRF_k(phone)) -> DID. Raw phone numbers are never stored.
+type ContactDiscoveryStore interface {
+	// PutDiscoveryKey upserts an OPRF index key -> DID binding.
+	PutDiscoveryKey(ctx context.Context, oprfKey, did string) error
+	// AllDiscoveryKeys returns the whole index for client-side matching.
+	AllDiscoveryKeys(ctx context.Context) (map[string]string, error)
 }
 
 // --- In-Memory Implementation ---
@@ -268,6 +296,9 @@ type MemoryDB struct {
 
 	smsRecoveryByDID   map[string]string // did → phone_hash
 	smsRecoveryByPhone map[string]string // phone_hash → did
+
+	reactions      map[string]map[string]string // messageID → reactorDID → emoji
+	discoveryIndex map[string]string            // hex(OPRF_k(phone)) → did
 }
 
 func NewMemoryDB() *MemoryDB {
@@ -289,7 +320,62 @@ func NewMemoryDB() *MemoryDB {
 		notificationPrefs:  make(map[string]*NotificationPrefs),
 		smsRecoveryByDID:   make(map[string]string),
 		smsRecoveryByPhone: make(map[string]string),
+		reactions:          make(map[string]map[string]string),
+		discoveryIndex:     make(map[string]string),
 	}
+}
+
+// --- Reactions (MemoryDB) ---
+
+func (m *MemoryDB) AddReaction(_ context.Context, messageID, reactorDID, emoji string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.reactions[messageID] == nil {
+		m.reactions[messageID] = make(map[string]string)
+	}
+	m.reactions[messageID][reactorDID] = emoji
+	return nil
+}
+
+func (m *MemoryDB) RemoveReaction(_ context.Context, messageID, reactorDID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if r := m.reactions[messageID]; r != nil {
+		delete(r, reactorDID)
+		if len(r) == 0 {
+			delete(m.reactions, messageID)
+		}
+	}
+	return nil
+}
+
+func (m *MemoryDB) GetReactions(_ context.Context, messageID string) ([]ReactionRow, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	rows := make([]ReactionRow, 0, len(m.reactions[messageID]))
+	for did, emoji := range m.reactions[messageID] {
+		rows = append(rows, ReactionRow{MessageID: messageID, ReactorDID: did, Emoji: emoji})
+	}
+	return rows, nil
+}
+
+// --- Contact discovery index (MemoryDB) ---
+
+func (m *MemoryDB) PutDiscoveryKey(_ context.Context, oprfKey, did string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.discoveryIndex[oprfKey] = did
+	return nil
+}
+
+func (m *MemoryDB) AllDiscoveryKeys(_ context.Context) (map[string]string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make(map[string]string, len(m.discoveryIndex))
+	for k, v := range m.discoveryIndex {
+		out[k] = v
+	}
+	return out, nil
 }
 
 // --- SMS Recovery Store ---

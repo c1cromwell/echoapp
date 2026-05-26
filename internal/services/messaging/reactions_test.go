@@ -1,6 +1,10 @@
 package messaging
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/thechadcromwell/echoapp/internal/database"
+)
 
 func find(list []ReactionCount, emoji string) (ReactionCount, bool) {
 	for _, r := range list {
@@ -11,58 +15,39 @@ func find(list []ReactionCount, emoji string) (ReactionCount, bool) {
 	return ReactionCount{}, false
 }
 
-func TestReactionStore_AddReplaceRemove(t *testing.T) {
-	s := NewReactionStore()
-
-	s.Add("m1", "did:alice", "👍")
-	s.Add("m1", "did:bob", "👍")
-	s.Add("m1", "did:carol", "❤️")
-
-	list := s.List("m1")
+func TestAggregateReactions_GroupsAndCounts(t *testing.T) {
+	rows := []database.ReactionRow{
+		{MessageID: "m1", ReactorDID: "did:alice", Emoji: "👍"},
+		{MessageID: "m1", ReactorDID: "did:bob", Emoji: "👍"},
+		{MessageID: "m1", ReactorDID: "did:carol", Emoji: "❤️"},
+	}
+	list := AggregateReactions(rows)
 	if thumbs, ok := find(list, "👍"); !ok || thumbs.Count != 2 {
 		t.Fatalf("👍 should have count 2, got %+v ok=%v", thumbs, ok)
 	}
 	if heart, ok := find(list, "❤️"); !ok || heart.Count != 1 {
 		t.Fatalf("❤️ should have count 1, got %+v ok=%v", heart, ok)
 	}
-
-	// Re-reacting replaces the same reactor's emoji (no double counting).
-	s.Add("m1", "did:alice", "❤️")
-	list = s.List("m1")
-	if thumbs, _ := find(list, "👍"); thumbs.Count != 1 {
-		t.Fatalf("after alice switches, 👍 count should be 1, got %d", thumbs.Count)
-	}
-	if heart, _ := find(list, "❤️"); heart.Count != 2 {
-		t.Fatalf("after alice switches, ❤️ count should be 2, got %d", heart.Count)
-	}
-
-	// Remove drops the reactor's reaction; removing both ❤️ reactors clears it.
-	s.Remove("m1", "did:alice")
-	s.Remove("m1", "did:carol")
-	list = s.List("m1")
-	if _, ok := find(list, "❤️"); ok {
-		t.Fatalf("after removing both ❤️ reactors, ❤️ should be gone, got %+v", list)
-	}
-	if thumbs, _ := find(list, "👍"); thumbs.Count != 1 {
-		t.Fatalf("👍 should remain at 1 (bob), got %d", thumbs.Count)
-	}
 }
 
-func TestReactionStore_OrderingDeterministic(t *testing.T) {
-	s := NewReactionStore()
-	s.Add("m", "d1", "🙂")
-	s.Add("m", "d2", "👍")
-	s.Add("m", "d3", "👍")
-	list := s.List("m")
-	// Higher count first.
+func TestAggregateReactions_OrderingDeterministic(t *testing.T) {
+	rows := []database.ReactionRow{
+		{ReactorDID: "d1", Emoji: "🙂"},
+		{ReactorDID: "d2", Emoji: "👍"},
+		{ReactorDID: "d3", Emoji: "👍"},
+	}
+	list := AggregateReactions(rows)
 	if list[0].Emoji != "👍" || list[0].Count != 2 {
 		t.Fatalf("expected 👍(2) first, got %+v", list)
 	}
+	// Reactors within an emoji are sorted.
+	if list[0].Reactors[0] != "d2" || list[0].Reactors[1] != "d3" {
+		t.Fatalf("reactors should be sorted, got %+v", list[0].Reactors)
+	}
 }
 
-func TestReactionStore_EmptyMessage(t *testing.T) {
-	s := NewReactionStore()
-	if got := s.List("nope"); len(got) != 0 {
-		t.Fatalf("empty message should have no reactions, got %d", len(got))
+func TestAggregateReactions_Empty(t *testing.T) {
+	if got := AggregateReactions(nil); len(got) != 0 {
+		t.Fatalf("nil rows should aggregate to empty, got %d", len(got))
 	}
 }

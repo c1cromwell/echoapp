@@ -1,11 +1,14 @@
 package contacts
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"testing"
 
 	"github.com/cloudflare/circl/oprf"
+
+	"github.com/thechadcromwell/echoapp/internal/database"
 )
 
 // newTestOPRFService builds an OPRFService with a fixed key so results are stable.
@@ -101,15 +104,19 @@ func TestOPRF_ObliviousEqualsServerEvaluate(t *testing.T) {
 // TestOPRF_DiscoveryFindsRegisteredOnly verifies a registered number is found via
 // the client-side index match and an unregistered one is not.
 func TestOPRF_DiscoveryFindsRegisteredOnly(t *testing.T) {
-	svc := NewService(nil)
+	svc := NewService(database.NewMemoryDB())
 	svc.SetOPRF(newTestOPRFService(t))
+	ctx := context.Background()
 
-	if err := svc.RegisterPhoneForDiscovery("did:key:zAlice", "+15551111"); err != nil {
+	if err := svc.RegisterPhoneForDiscovery(ctx, "did:key:zAlice", "+15551111"); err != nil {
 		t.Fatal(err)
 	}
 
 	outputs := clientFinalize(t, svc, []string{"+15551111", "+15559999"})
-	index := svc.DiscoveryIndex()
+	index, err := svc.DiscoveryIndex(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if did, ok := index[outputs[0]]; !ok || did != "did:key:zAlice" {
 		t.Fatalf("registered number should resolve to did:key:zAlice, got ok=%v did=%q", ok, did)

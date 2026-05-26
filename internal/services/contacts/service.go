@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"sync"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/argon2"
@@ -37,18 +36,16 @@ const (
 type Service struct {
 	db database.DB
 
-	// oprf + oprfIndex back private (OPRF-PSI) contact discovery. oprfIndex maps
-	// hex(OPRF_k(phone)) -> DID; raw phone numbers are never stored. Nil oprf
-	// disables discovery. NOTE: this in-memory index is single-instance; a
-	// durable/shared store is a follow-up (see PHASE2_GAP_AUDIT D2).
-	oprf      *OPRFService
-	mu        sync.RWMutex
-	oprfIndex map[string]string
+	// oprf powers private (OPRF-PSI) contact discovery. The index
+	// (hex(OPRF_k(phone)) -> DID) is persisted via the durable
+	// database.ContactDiscoveryStore; raw phone numbers are never stored.
+	// Nil oprf disables discovery.
+	oprf *OPRFService
 }
 
 // NewService creates a contacts service.
 func NewService(db database.DB) *Service {
-	return &Service{db: db, oprfIndex: make(map[string]string)}
+	return &Service{db: db}
 }
 
 // SetOPRF wires the OPRF engine used for private contact discovery.
@@ -64,27 +61,25 @@ func (s *Service) DiscoveryKey(e164 string) (string, error) {
 	return s.oprf.IndexKey(e164)
 }
 
-// CommitDiscoveryKey records a confirmed OPRF index key -> DID binding, making
-// the number discoverable. Called after phone ownership is verified (e.g. OTP).
-func (s *Service) CommitDiscoveryKey(key, did string) {
+// CommitDiscoveryKey records a confirmed OPRF index key -> DID binding in the
+// durable store, making the number discoverable. Called after phone ownership is
+// verified (e.g. OTP).
+func (s *Service) CommitDiscoveryKey(ctx context.Context, key, did string) error {
 	if key == "" {
-		return
+		return nil
 	}
-	s.mu.Lock()
-	s.oprfIndex[key] = did
-	s.mu.Unlock()
+	return s.db.PutDiscoveryKey(ctx, key, did)
 }
 
 // RegisterPhoneForDiscovery computes and commits the discovery binding in one
 // step (raw number used transiently, never persisted). Convenience for callers
 // that already hold a confirmed number.
-func (s *Service) RegisterPhoneForDiscovery(did, e164 string) error {
+func (s *Service) RegisterPhoneForDiscovery(ctx context.Context, did, e164 string) error {
 	key, err := s.DiscoveryKey(e164)
 	if err != nil {
 		return err
 	}
-	s.CommitDiscoveryKey(key, did)
-	return nil
+	return s.CommitDiscoveryKey(ctx, key, did)
 }
 
 // OPRFEvaluate runs the oblivious server step over client-blinded phone numbers.
@@ -99,18 +94,12 @@ func (s *Service) OPRFEvaluate(blindedB64 []string) ([]string, error) {
 	return s.oprf.Evaluate(blindedB64)
 }
 
-// DiscoveryIndex returns a copy of the {hex(OPRF_k(phone)) -> DID} index for
+// DiscoveryIndex returns the durable {hex(OPRF_k(phone)) -> DID} index for
 // CLIENT-SIDE matching. The client finalizes its evaluated elements locally and
 // looks them up here, so the server never receives the client's OPRF outputs
 // (which it could otherwise brute-force back to phone numbers using its key).
-func (s *Service) DiscoveryIndex() map[string]string {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	out := make(map[string]string, len(s.oprfIndex))
-	for k, v := range s.oprfIndex {
-		out[k] = v
-	}
-	return out
+func (s *Service) DiscoveryIndex(ctx context.Context) (map[string]string, error) {
+	return s.db.AllDiscoveryKeys(ctx)
 }
 
 // SearchByUsername searches for users by handle.

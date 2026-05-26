@@ -1,24 +1,6 @@
 package messaging
 
-import "sync"
-
-// ReactionStore holds emoji reactions on messages. Each (message, reactor) pair
-// has at most one emoji — re-reacting replaces it. This is the durable truth for
-// reactions; the live WS "reaction" signal is just a latency optimization that
-// clients reconcile against this store.
-//
-// NOTE: in-memory/single-instance for now — a durable/shared store is a follow-up
-// (tracked alongside the other Phase 2/3 in-memory stores).
-type ReactionStore struct {
-	mu sync.RWMutex
-	// messageID -> reactorDID -> emoji
-	byMessage map[string]map[string]string
-}
-
-// NewReactionStore creates an empty reaction store.
-func NewReactionStore() *ReactionStore {
-	return &ReactionStore{byMessage: make(map[string]map[string]string)}
-}
+import "github.com/thechadcromwell/echoapp/internal/database"
 
 // ReactionCount is an aggregated reaction for a message.
 type ReactionCount struct {
@@ -27,37 +9,13 @@ type ReactionCount struct {
 	Reactors []string `json:"reactors"` // DIDs that reacted with this emoji
 }
 
-// Add sets (or replaces) a reactor's emoji on a message.
-func (s *ReactionStore) Add(messageID, reactorDID, emoji string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.byMessage[messageID] == nil {
-		s.byMessage[messageID] = make(map[string]string)
-	}
-	s.byMessage[messageID][reactorDID] = emoji
-}
-
-// Remove clears a reactor's reaction on a message (no-op if absent).
-func (s *ReactionStore) Remove(messageID, reactorDID string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if m := s.byMessage[messageID]; m != nil {
-		delete(m, reactorDID)
-		if len(m) == 0 {
-			delete(s.byMessage, messageID)
-		}
-	}
-}
-
-// List returns reactions on a message aggregated by emoji, with stable ordering
-// (by descending count, then emoji) so responses are deterministic.
-func (s *ReactionStore) List(messageID string) []ReactionCount {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
+// AggregateReactions groups raw reaction rows by emoji with stable ordering
+// (descending count, then emoji) so responses are deterministic. The durable
+// store is database.ReactionStore; this is the read-model projection over it.
+func AggregateReactions(rows []database.ReactionRow) []ReactionCount {
 	byEmoji := make(map[string][]string)
-	for did, emoji := range s.byMessage[messageID] {
-		byEmoji[emoji] = append(byEmoji[emoji], did)
+	for _, r := range rows {
+		byEmoji[r.Emoji] = append(byEmoji[r.Emoji], r.ReactorDID)
 	}
 
 	out := make([]ReactionCount, 0, len(byEmoji))
