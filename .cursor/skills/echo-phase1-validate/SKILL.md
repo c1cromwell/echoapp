@@ -8,7 +8,7 @@ description: >-
 
 # Echo Phase 1 validate
 
-Primary doc: [`docs/PHASE1_LAUNCH.md`](../../docs/PHASE1_LAUNCH.md). WO: **WO-230**.
+Primary doc: [`docs/TESTING.md`](../../docs/TESTING.md) (full matrix). Launch detail: [`docs/PHASE1_LAUNCH.md`](../../docs/PHASE1_LAUNCH.md). WO: **WO-230**.
 
 ## Gate order (run top to bottom)
 
@@ -70,5 +70,6 @@ make start-identity   # L0 :9600, L1 :9500
 
 ## Related
 
+- [`docs/TESTING.md`](../../docs/TESTING.md) — full launch & regression matrix
 - [`CONTRIBUTING.md`](../../CONTRIBUTING.md) — first-time dev setup
-- Skill: `echo-local-dev` MCP + `echo-ios-agent-vs-xcode`
+- Skill: `echo-testing`, `echo-local-dev` MCP + `echo-ios-agent-vs-xcode`

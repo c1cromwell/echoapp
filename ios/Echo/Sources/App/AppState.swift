@@ -19,6 +19,8 @@ final class AppState {
     var selectedTab: AppTab = .messages
     var displayName: String = ""
     var trustTier: Int = 0
+    /// Set when user opens echo://invite?code=… (Wave 0.4).
+    var pendingInviteCode: String?
 
     let provisionService: SilentProvisionService
 
@@ -96,6 +98,18 @@ struct EchoRootView: View {
             case .authenticated:
                 MainTabView()
                     .environment(appState)
+                    .onOpenURL { url in
+                        if url.scheme == "echo-enroll" {
+                            return
+                        }
+                        if url.host == "invite",
+                           let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+                           let code = components.queryItems?.first(where: { $0.name == "code" })?.value {
+                            appState.pendingInviteCode = code
+                        } else {
+                            DeepLinkHandler.shared.handle(url)
+                        }
+                    }
             }
         }
     }

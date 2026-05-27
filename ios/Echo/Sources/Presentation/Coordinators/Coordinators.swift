@@ -334,6 +334,10 @@ class RouteManager: ObservableObject {
 
 // MARK: - Deep Link Handler
 
+extension Notification.Name {
+    static let echoPendingInvite = Notification.Name("echo.pendingInvite")
+}
+
 @MainActor
 class DeepLinkHandler {
     private static var _shared: DeepLinkHandler?
@@ -380,6 +384,14 @@ class DeepLinkHandler {
                 appCoordinator.navigate(to: .backup)
             case "qr":
                 appCoordinator.navigate(to: .qrIdentity)
+            case "invite":
+                if let code = components.queryItems?.first(where: { $0.name == "code" })?.value {
+                    NotificationCenter.default.post(
+                        name: .echoPendingInvite,
+                        object: nil,
+                        userInfo: ["code": code]
+                    )
+                }
             case "search":
                 appCoordinator.navigate(to: .search)
             default:

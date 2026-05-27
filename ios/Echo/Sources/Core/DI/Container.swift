@@ -116,6 +116,12 @@ final class DIContainer {
             let api = ContactDiscoveryAPIClient(apiClient: client)
             return ContactDiscoveryService(oprf: OPRFClientFactory.makeDefault(), api: api)
         }
+
+        registerFactory(ServiceKeys.contactSocialAPI) { [weak self] () -> ContactSocialAPIClient in
+            let client: APIClient = self?.resolve(ServiceKeys.apiClient)
+                ?? APIClient(configuration: .default)
+            return ContactSocialAPIClient(apiClient: client)
+        }
         
         // Storage Services
         registerFactory(ServiceKeys.localStorage) {
@@ -198,6 +204,7 @@ enum ServiceKeys {
     static let conversationSignalService = "networking.conversationSignalService"
     static let reactionsAPI = "networking.reactionsAPI"
     static let contactDiscoveryService = "services.contactDiscovery"
+    static let contactSocialAPI = "services.contactSocialAPI"
     
     // Storage
     static let localStorage = "storage.localStorage"
@@ -269,6 +276,20 @@ extension DIContainer {
 
     func resolveContactDiscoveryService() -> ContactDiscoveryService? {
         resolve(ServiceKeys.contactDiscoveryService)
+    }
+
+    func resolveContactSocialAPI() -> ContactSocialAPIClient? {
+        resolve(ServiceKeys.contactSocialAPI)
+    }
+
+    /// Factory for Phase 3 chat detail (WO-192) — uses registered `ConversationSignalService`.
+    func makeChatDetailViewModel() -> ChatDetailViewModel {
+        let service: ConversationSignalService = resolve(ServiceKeys.conversationSignalService)
+            ?? ConversationSignalService(
+                apiBaseURL: WebSocketURLBuilder.apiBaseURLFromEnvironment()
+                    ?? APIConfiguration.default.baseURL
+            )
+        return ChatDetailViewModel(signalService: service)
     }
 }
 #endif

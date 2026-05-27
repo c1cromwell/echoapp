@@ -187,7 +187,22 @@ public struct ProfileTabView: View {
             VStack(spacing: 0) {
                 SettingsNavRow(icon: "person.fill", title: "Account", action: onAccountSettings)
                 Divider().padding(.leading, 52)
-                SettingsNavRow(icon: "lock.fill", title: "Privacy & Security", action: onPrivacySettings)
+                NavigationLink {
+                    PrivacyHubView()
+                } label: {
+                    HStack(spacing: Spacing.md.rawValue) {
+                        Image(systemName: "lock.fill")
+                            .frame(width: 24)
+                            .foregroundColor(.echoPrimary)
+                        Text("Privacy & Security")
+                            .typographyStyle(.body, color: .echoPrimaryText)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.echoGray400)
+                    }
+                    .padding(Spacing.md.rawValue)
+                }
                 Divider().padding(.leading, 52)
                 SettingsNavRow(icon: "bell.fill", title: "Notifications", action: onNotificationSettings)
                 Divider().padding(.leading, 52)

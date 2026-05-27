@@ -213,7 +213,9 @@ func (rt *Router) handleEnrollmentMDL(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
 		return
 	}
-	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok", "request_id": r.Header.Get("X-Request-ID")})
+	WriteError(w, http.StatusNotImplemented, "NOT_IMPLEMENTED",
+		"mDL enrollment is not yet available; use VC wallet enrollment or first-run onboarding",
+		r.Header.Get("X-Request-ID"))
 }
 
 // handleEnrollmentIDV handles POST /v1/enrollment/idv/start and /idv/await.
@@ -222,5 +224,7 @@ func (rt *Router) handleEnrollmentIDV(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
 		return
 	}
-	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok", "request_id": r.Header.Get("X-Request-ID")})
+	WriteError(w, http.StatusNotImplemented, "NOT_IMPLEMENTED",
+		"IDV enrollment is not yet available; use VC wallet enrollment or VIP verify",
+		r.Header.Get("X-Request-ID"))
 }

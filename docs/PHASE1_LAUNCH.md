@@ -10,6 +10,10 @@ This document is the **launch checklist**, not the developer onboarding guide
 
 ---
 
+> **Full testing matrix (automated + Xcode/Mac E2E + TestFlight regression):** [`TESTING.md`](TESTING.md)
+
+---
+
 ## Quick-start: are you already set up?
 
 ```bash
@@ -19,7 +23,7 @@ cd ios/Echo && DEVELOPER_DIR=/Applications/Xcode.app \
   swift build --target Echo --target EchoSecurityTests
 ```
 
-If both complete without errors, jump to [Section 3](#3-end-to-end-test-flows).
+If both complete without errors, jump to [Section 3](#3-end-to-end-test-flows) or the full matrix in [`TESTING.md`](TESTING.md).
 If not, complete `CONTRIBUTING.md` first, then come back here.
 
 ---

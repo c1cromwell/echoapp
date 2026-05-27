@@ -248,6 +248,7 @@ var publicPaths = map[string]bool{
 	"/v1/phase1/trust-tier-commitment": true,
 	"/v1/crypto/server-key":            true, // WO-13: public key endpoint, no auth
 	"/v1/users/check-username":         true, // WO-14: pre-auth username availability check
+	"/v1/onboarding/session/start":     true, // WO-203: universal onboarding orchestrator (Wave 0.6)
 	"/v3/auth/refresh":                 true, // A.2: refresh token is the credential; no access token yet
 	"/v1/auth/sms-recovery/register":   true, // Wave 12: phone commitment registration
 	"/v1/auth/sms-recovery/verify":     true, // Wave 12: OTP verification
@@ -266,6 +267,7 @@ const publicPreAuthAction = "public_pre_auth"
 // to key the per-DID limiter on, so the IP is used instead.
 var ipThrottledPublicPaths = map[string]bool{
 	"/v1/users/check-username":        true,
+	"/v1/onboarding/session/start":    true,
 	"/v1/auth/login/challenge":        true,
 	"/identity/register":              true,
 	"/v1/auth/sms-recovery/register":  true,
@@ -474,6 +476,10 @@ func (rt *Router) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.URL.Path, "/v1/onboarding/") {
+		rt.handleOnboardingSession(w, r)
+		return
+	}
 	switch r.URL.Path {
 	case "/v1/users":
 		rt.v1GetUsers(w, r)

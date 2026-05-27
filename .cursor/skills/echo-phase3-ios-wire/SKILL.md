@@ -99,7 +99,7 @@ Prerequisites: `make dev`, `API_URL` → LAN backend, **two signed-in accounts**
 | Reactions | Long-press 👍; toggle off; GET matches UI; offline reconcile |
 | Privacy leak | Account C not in thread receives **no** ephemeral signals |
 
-Full steps: `PHASE3_IOS_UI_SPEC.md` Step 5.
+Full steps: [`docs/TESTING.md`](../../docs/TESTING.md) §5.4 and `PHASE3_IOS_UI_SPEC.md` Step 5.
 
 ## Types — avoid dual paths
 

@@ -1,6 +1,6 @@
 .PHONY: help build run test clean install-deps lint fmt vet build-prod tls-cert \
 	dev dev-stop dev-status dev-logs dev-restart validate-phase1 metagraph-verify-skeleton metagraph-test \
-	testnet-up testnet-down release-check
+	testnet-up testnet-down release-check regression regression-quick regression-with-phase1
 
 # Variables
 BINARY_NAME=echoapp
@@ -18,6 +18,9 @@ help:
 	@echo "  make dev-restart     Restart the backend stack only (keeps metagraph running)"
 	@echo "  make dev-stop        Tear down backend stack (metagraph stays up — use 'hydra stop' for that)"
 	@echo "  make validate-phase1 Run scripts/validate-phase1.sh go/no-go check"
+	@echo "  make regression      Headless regression (Go + iOS SPM) — docs/TESTING.md"
+	@echo "  make regression-quick Go race tests only"
+	@echo "  make regression-with-phase1  regression + validate-phase1"
 	@echo "  make metagraph-verify-skeleton  Static WO-276 checks (euclid + build.sbt + sources; needs jq)"
 	@echo "  make metagraph-test     Scala tests: sharedData + identity metagraph layers (WO-272/277; sbt + JDK)"
 	@echo "  make testnet-up      Bring up backend stack only (assumes metagraph already running)"
@@ -377,5 +380,17 @@ dev-status: ## Show status of all testnet components
 validate-phase1: ## Run the WO-230 6-step go/no-go validation script
 	@chmod +x scripts/validate-phase1.sh
 	@./scripts/validate-phase1.sh
+
+regression: ## Headless regression — Go release-check + targeted suites + iOS SPM (docs/TESTING.md §2)
+	@chmod +x scripts/run-regression.sh
+	@./scripts/run-regression.sh
+
+regression-quick: ## Go race tests only (no iOS, no validate-phase1)
+	@chmod +x scripts/run-regression.sh
+	@./scripts/run-regression.sh --quick
+
+regression-with-phase1: ## regression + make validate-phase1 (needs Docker + Euclid)
+	@chmod +x scripts/run-regression.sh
+	@./scripts/run-regression.sh --with-phase1
 
 .DEFAULT_GOAL := help

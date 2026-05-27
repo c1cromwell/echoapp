@@ -4,6 +4,8 @@ import SwiftUI
 public struct ContactsListView: View {
     @State private var searchText = ""
     @State private var selectedFilter = "All"
+    @State private var showInviteSheet = false
+    @State private var showUsernameSearch = false
     @State private var contacts: [ContactModel] = [
         ContactModel(id: "1", name: "John Doe", username: "johndoe", trustLevel: "Verified"),
         ContactModel(id: "2", name: "Jane Smith", username: "janesmith", trustLevel: "Trusted"),
@@ -38,9 +40,24 @@ public struct ContactsListView: View {
                 EchoNavBar(
                     title: "Contacts",
                     showBackButton: false,
-                    trailingAction: {},
+                    trailingAction: { showInviteSheet = true },
                     trailingIcon: Image(systemName: "person.badge.plus")
                 )
+
+                NavigationLink {
+                    UsernameSearchView()
+                } label: {
+                    HStack {
+                        Image(systemName: "at")
+                        Text("Search by @username")
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, Spacing.lg.rawValue)
+                    .padding(.vertical, Spacing.sm.rawValue)
+                }
 
                 NavigationLink {
                     ContactDiscoveryView()
@@ -123,6 +140,46 @@ public struct ContactsListView: View {
                 }
                 .echoSpacing(.lg)
             }
+        }
+        .sheet(isPresented: $showInviteSheet) {
+            InviteLinkSheet()
+        }
+    }
+}
+
+/// Authenticated handle search (WO-222).
+struct UsernameSearchView: View {
+    @State private var handle = ""
+    @State private var results: [UsernameSearchHit] = []
+    @State private var errorMessage: String?
+
+    var body: some View {
+        List {
+            Section {
+                TextField("@username", text: $handle)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .onSubmit { Task { await search() } }
+            }
+            if let errorMessage {
+                Text(errorMessage).foregroundStyle(.red).font(.footnote)
+            }
+            ForEach(results) { hit in
+                VStack(alignment: .leading) {
+                    Text("@\(hit.username)").font(.headline)
+                    Text(hit.did).font(.caption2).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .navigationTitle("Find people")
+    }
+
+    private func search() async {
+        guard let client = DIContainer.shared.resolveAPIClient() else { return }
+        do {
+            results = try await ContactSocialAPIClient(apiClient: client).searchUsername(handle)
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 }

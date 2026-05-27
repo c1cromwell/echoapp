@@ -4,6 +4,8 @@
 **Scope:** Review four messengers' current (2025–2026) direction and audit features Echo might add, filtered through Echo's privacy-first, decentralized, `did:key` + tokenomics thesis.
 **Relationship to other docs:** complements the per-phase work orders (`docs/phase-{2..7}-work-orders.md`) and the Phase 2 gap audit (`docs/PHASE2_GAP_AUDIT.md`). Focuses on **net-new themes** beyond the already-tracked messaging backlog (typing/reactions/calls/search).
 
+**Implementation plan:** [`COMPETITIVE_AUDIT_IMPLEMENTATION_PLAN.md`](COMPETITIVE_AUDIT_IMPLEMENTATION_PLAN.md) — prioritized waves, dependencies, and 90-day sprint mapping.
+
 ---
 
 ## 1. Competitor snapshots (2025–2026)

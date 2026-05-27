@@ -765,6 +765,10 @@ struct AddBadgeRequest: Codable {
 enum ContactsEndpoint: APIEndpoint {
     case psiEvaluate
     case identityResolve(did: String)
+    case search(handle: String)
+    case invite
+    case verifyInvite
+    case list
 
     var path: String {
         switch self {
@@ -773,6 +777,15 @@ enum ContactsEndpoint: APIEndpoint {
         case .identityResolve(let did):
             let encoded = did.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? did
             return "/v3/identity/\(encoded)"
+        case .search(let handle):
+            let encoded = handle.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? handle
+            return "/v3/contacts/search?handle=\(encoded)"
+        case .invite:
+            return "/v3/contacts/invite"
+        case .verifyInvite:
+            return "/v3/contacts/verify"
+        case .list:
+            return "/v3/contacts"
         }
     }
 }
