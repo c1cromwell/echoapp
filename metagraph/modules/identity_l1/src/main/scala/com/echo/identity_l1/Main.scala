@@ -82,5 +82,12 @@ object Main extends CurrencyL1App(
 
     case u: DeviceKeyRegistrationUpdate =>
       IdentityValidations.validateDeviceKeyRegistration(u, sender, authorizedSenderDid, nowMs)
+
+    case u: UsernameRegistrationUpdate =>
+      // Mempool stage validates sender / format / did:key. Case-insensitive
+      // uniqueness needs the on-chain username index (calculated state), which is
+      // enforced at the combiner — same as the other update types' state folding —
+      // so currentOwnerDID is None here.
+      IdentityValidations.validateUsernameRegistration(u, sender, authorizedSenderDid, None, nowMs)
   }
 }
