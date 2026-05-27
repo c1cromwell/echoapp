@@ -1,18 +1,18 @@
 # Contributing to Echo
 
-Welcome. This guide gets a new developer from "fresh laptop" to "passing
-`make validate-phase1`" with the minimum amount of yak shaving. If
-anything here is wrong or missing, please update it as part of the same
-PR — onboarding docs only stay accurate when we treat them as code.
+Welcome. This guide takes a new developer from "fresh laptop" to a passing
+`make validate-phase1`. Keep it accurate — if something here is wrong, fix it in
+the same PR; onboarding docs only stay correct when we treat them as code.
 
-> **Audience:** engineers working on the Phase-1 Echo stack — Go backend,
-> Scala metagraph modules, iOS app prototype, and the Constellation
-> Euclid SDK testnet that ties them together.
-
-> **Targeting a TestFlight launch?** See [`docs/E2E_LAUNCH_AND_TESTING.md`](docs/E2E_LAUNCH_AND_TESTING.md)
-> for the end-to-end test checklist, code signing walkthrough, and the
-> June 1 countdown. This file covers developer setup; that file covers
-> shipping.
+> **Audience:** engineers on the Phase-1 Echo stack — Go backend, Scala metagraph
+> modules, the iOS app, and the Constellation Euclid testnet that ties them together.
+>
+> **Working with an AI agent / Cursor?** See [`AGENTS.md`](AGENTS.md) — architecture
+> map, source-of-truth hierarchy, common commands, and agent constraints.
+>
+> **Shipping (TestFlight / end-to-end)?** This file is developer setup;
+> [`docs/E2E_LAUNCH_AND_TESTING.md`](docs/E2E_LAUNCH_AND_TESTING.md) covers testing
+> tiers and release.
 
 ## Table of contents
 
@@ -32,20 +32,17 @@ PR — onboarding docs only stay accurate when we treat them as code.
 
 | Tool             | Version           | Why                                                |
 | ---------------- | ----------------- | -------------------------------------------------- |
-| macOS or Linux   | recent            | Phase-1 is built and tested on macOS 14+ and **Ubuntu 22.04 Server** (no GUI needed; Server image is lighter). |
-| Homebrew         | latest            | Package manager (macOS install path below).        |
+| macOS or Linux   | macOS 14+ / Ubuntu 22.04 Server | Phase-1 is built and tested on both (Server image is lighter; no GUI needed). |
 | JDK              | **21** (Temurin)  | Tessellation 4.0.0-rc.0 requires JDK 21.           |
 | sbt              | 1.9+              | Builds the metagraph Scala modules.                |
 | Scala            | 2.13.10           | Pinned by `metagraph/build.sbt`.                   |
-| Coursier (`cs`)  | latest            | Installs Scala + scalafmt cleanly.                 |
-| Docker Desktop   | latest, **8 GB+ RAM**, **4+ CPUs** | Runs Postgres, Redis, NATS, MinIO, and the Euclid metagraph cluster. |
-| Docker Compose   | v2 (`docker compose`) | Used by `docker-compose.testnet.yml`.          |
 | Go               | 1.21+             | Builds the backend.                                |
-| Xcode            | 15+ (macOS only)  | iOS prototype (`ios/Echo/`).                       |
-| `jq`, `yq`, `argc` | latest          | Required by `metagraph/scripts/setup-euclid.sh`. `argc` is in Homebrew core — `brew install argc`. |
-| Ansible          | **2.16+**         | Required by Euclid `hydra` scripts to orchestrate the metagraph cluster. |
-| g8 (Giter8)      | latest            | Scala template processor used by `hydra install` to scaffold the project. Install via `cs install giter8`. |
-| Git LFS          | optional          | Needed only if you touch large binary fixtures.    |
+| Docker + Compose v2 | **8 GB+ RAM, 4+ CPUs** | Runs Postgres, Redis, NATS, MinIO, and the Euclid cluster. |
+| Xcode            | 15+ (macOS only)  | iOS app (`ios/Echo/`).                             |
+| `jq`, `yq`, `argc`, Ansible 2.16+, g8 (giter8) | latest | Required by `metagraph/scripts/setup-euclid.sh` and Euclid `hydra`. |
+
+`metagraph/scripts/setup-euclid.sh` (run in step 2d) is the source of truth — it
+checks every prerequisite and tells you exactly what's missing.
 
 ---
 
@@ -54,185 +51,101 @@ PR — onboarding docs only stay accurate when we treat them as code.
 ### 2a. macOS (Apple Silicon or Intel)
 
 ```bash
-# Homebrew (skip if already installed)
+# Homebrew (skip if installed) — follow its PATH hint on Apple Silicon.
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-# Apple Silicon: follow the post-install hint to add brew to PATH, e.g.
-# echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zshrc
 
-# JDK 21 first so it wins on PATH
-brew install --cask temurin@21
-
-# sbt + Scala + scalafmt via Coursier
-brew install sbt coursier/formulas/coursier
-cs install scala:2.13.10 scalafmt
-
-# Euclid prerequisites (jq, yq, argc, ansible, g8)
-brew install jq yq argc ansible      # argc moved to Homebrew core; no tap needed
-cs install giter8                    # g8 — Scala template processor for hydra install
-
-# Docker Desktop (then launch it once so the VM is created)
-brew install --cask docker
-open -a Docker
-
-# Go (matches go.mod toolchain)
-brew install go
-
-# Xcode from the App Store, plus command-line tools:
+brew install --cask temurin@21          # JDK 21 first so it wins on PATH
+brew install sbt coursier/formulas/coursier go jq yq argc ansible
+cs install scala:2.13.10 scalafmt giter8
+brew install --cask docker && open -a Docker   # launch once to create the VM
 xcode-select --install
 ```
 
-In Docker Desktop → **Settings → Resources** bump **Memory ≥ 8 GB** and
-**CPUs ≥ 4** before continuing. Euclid will warn (and eventually fail)
-below this.
+Then in Docker Desktop → **Settings → Resources**, set **Memory ≥ 8 GB** and
+**CPUs ≥ 4** (Euclid warns, then fails, below this).
 
 ### 2b. Ubuntu 22.04+ / Debian (Server image recommended)
 
-Use **Ubuntu Server** (not Desktop) — no GUI is needed and Server is
-significantly lighter (2 GB image vs. 4+ GB Desktop). Download from
-[ubuntu.com/download/server](https://ubuntu.com/download/server).
-The commands below work identically on both images and on Debian 12.
-
 ```bash
-sudo apt update && sudo apt install -y curl gnupg jq git build-essential python3-pip
-sudo pip3 install --user 'ansible>=2.16'
-echo 'export PATH="$PATH:$HOME/.local/bin"' >> ~/.bashrc && source ~/.bashrc
+# Base packages
+sudo apt update && sudo apt install -y curl git jq build-essential python3-pip
+sudo pip3 install --user 'ansible>=2.16' && echo 'export PATH="$PATH:$HOME/.local/bin"' >> ~/.bashrc
 
-# yq — pre-built binary (apt version is too old)
-sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_arm64 -O /usr/local/bin/yq
-sudo chmod +x /usr/local/bin/yq
-# (swap arm64 → amd64 above if on x86_64)
-
-# Remove any stale sbt apt sources (left over from earlier failed attempts).
-# The Docker installer runs apt update internally and will fail if these exist.
-sudo rm -f /etc/apt/sources.list.d/sbt.list \
-           /etc/apt/sources.list.d/sbt-old.list \
-           /usr/share/keyrings/sbt.gpg
-
-# JDK 21 (Temurin)
-curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public \
-  | sudo gpg --dearmor -o /usr/share/keyrings/adoptium.gpg
-echo "deb [signed-by=/usr/share/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb $(lsb_release -cs) main" \
-  | sudo tee /etc/apt/sources.list.d/adoptium.list
-sudo apt update && sudo apt install -y temurin-21-jdk
-
-# sbt + Scala via SDKMAN (handles x86_64 and ARM64 automatically, no GPG needed)
-curl -s "https://get.sdkman.io" | bash
-source "$HOME/.sdkman/bin/sdkman-init.sh"
-sdk install sbt 1.9.9
-sdk install scala 2.13.10
-cs install giter8                    # g8 — required by hydra install
-
-# scalafmt (optional — only needed when editing metagraph Scala sources)
-# Install via sbt plugin or skip; standalone binary has its own arch issues.
-
-# argc — pre-built binary (pick the line matching your arch: uname -m)
-# aarch64:
-curl -fsSL https://github.com/sigoden/argc/releases/download/v1.23.0/argc-v1.23.0-aarch64-unknown-linux-musl.tar.gz -o /tmp/argc.tar.gz
-# x86_64:
-# curl -fsSL https://github.com/sigoden/argc/releases/download/v1.23.0/argc-v1.23.0-x86_64-unknown-linux-musl.tar.gz -o /tmp/argc.tar.gz
-tar -xzf /tmp/argc.tar.gz -C /tmp
-sudo mv /tmp/argc /usr/local/bin/
+# JDK 21 + sbt + Scala via SDKMAN (handles x86_64 and ARM64; no GPG/apt-source dance)
+curl -s "https://get.sdkman.io" | bash && source "$HOME/.sdkman/bin/sdkman-init.sh"
+sdk install java 21.0.5-tem && sdk install sbt 1.9.9 && sdk install scala 2.13.10
 
 # Docker Engine + Compose v2
-curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker "$USER"   # log out / back in for this to take effect
+curl -fsSL https://get.docker.com | sudo sh && sudo usermod -aG docker "$USER"   # re-login to apply
 
-# Go — fetch latest stable, detect arch (works on x86_64 and ARM64)
-GO_ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+# Go (matches go.mod toolchain)
 GO_VER=$(curl -fsSL "https://go.dev/VERSION?m=text" | head -1)
-curl -fsSL "https://go.dev/dl/${GO_VER}.linux-${GO_ARCH}.tar.gz" \
-  | sudo tar -C /usr/local -xz
+GO_ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+curl -fsSL "https://go.dev/dl/${GO_VER}.linux-${GO_ARCH}.tar.gz" | sudo tar -C /usr/local -xz
 echo 'export PATH="$PATH:/usr/local/go/bin"' >> ~/.bashrc
 ```
 
+For the remaining tools, grab the binary for your arch from upstream releases:
+**yq** (github.com/mikefarah/yq), **argc** (github.com/sigoden/argc), and **g8**
+(`cs install giter8` once [Coursier](https://get-coursier.io) is installed).
+
 ### 2c. Verify the toolchain
 
-Run each of these and confirm the expected output:
-
 ```bash
-java -version          # openjdk version "21.x.x" ... Temurin
-javac -version         # javac 21.x.x
-sbt --version          # sbt script version: 1.9.x or 1.10.x
-scala -version         # 2.13.10
-go version             # go1.21+ (1.22 recommended)
-docker version         # client + server both report
-docker compose version # v2.x.y
-jq --version
-yq --version
-argc --version
+java -version   # 21.x Temurin
+sbt --version   # 1.9.x / 1.10.x
+scala -version  # 2.13.10
+go version       # 1.21+
+docker version && docker compose version
 ```
 
-If `java -version` reports anything older than 21, set `JAVA_HOME`
-explicitly (macOS):
+If `java` resolves to an older JDK on macOS, pin it:
+`echo 'export JAVA_HOME=$(/usr/libexec/java_home -v 21)' >> ~/.zshrc`
+
+### 2d. Clone and bootstrap
 
 ```bash
-echo 'export JAVA_HOME=$(/usr/libexec/java_home -v 21)' >> ~/.zshrc
-echo 'export PATH="$JAVA_HOME/bin:$PATH"' >> ~/.zshrc
-```
-
-### 2d. Clone and bootstrap the repo
-
-```bash
-git clone git@github.com:c1cromwell/echoapp.git
-cd echoapp
-
-# Local environment file
-cp .env.example .env
-# Edit .env if you need to override ports, identity service DID, etc.
-
-# Pull Go dependencies
+git clone git@github.com:c1cromwell/echoapp.git && cd echoapp
+cp .env.example .env          # edit if you need to override ports / DIDs
 go mod download
-
-# One-shot Euclid prereq check + clone of euclid-development-environment
-# into ../euclid-development-environment (sibling to this repo).
-cd metagraph && ./scripts/setup-euclid.sh && cd ..
+cd metagraph && ./scripts/setup-euclid.sh && cd ..   # prereq check + Euclid clone (sibling dir)
 ```
 
-`setup-euclid.sh` will print `✓ All prerequisites found` if step 2c
-worked. If something is missing, fix it and re-run.
+`setup-euclid.sh` prints `✓ All prerequisites found` when step 2c is complete.
 
 ---
 
 ## 3. First boot
 
 ```bash
-# 1. Build the metagraph fat JARs (~5-10 min first run; jars cached after)
-# sbt assembly is required — sbt compile alone does not produce runnable JARs.
+# 1. Build the metagraph fat JARs (~5–10 min first run; cached after).
+#    `sbt assembly` is required — `sbt compile` alone does not produce runnable JARs.
 cd metagraph && sbt assembly && cd ..
 
-# 2. Bring up the core Phase-1 cluster
-#    - Euclid (via hydra): Global L0 (9000), Metagraph L0 (9200),
-#                          Currency L1 (9300), Data L1 (9400)
-#    - Backend: Postgres, Redis, NATS, MinIO, echoapp (8000)
-#    - Identity L0/L1 are optional — see note below
+# 2. Bring up the Phase-1 cluster: Euclid metagraph + Postgres/Redis/NATS/MinIO + echoapp:8000.
 make dev
 
-# 3. (Optional) Start Identity nodes for VC / trust-tier features
-#    Identity L0 + L1 are custom Echo modules not managed by Euclid hydra.
-#    They run via docker-compose.identity.yml using the sbt assembly JARs.
+# 3. (Optional) Identity L0/L1 for VC / trust-tier features — custom Echo modules
+#    run from the assembly JARs (not managed by Euclid hydra).
 make start-identity
 
-# 4. Run the WO-230 6-step go/no-go validation
+# 4. Run the WO-230 go/no-go validation.
 make validate-phase1
 ```
 
-Expected: the script reports `ok` for steps 0, 1, 2, 3 (Identity L0/L1
-reachability), 4, and 6, and `skip` for steps 3 (VC issuance assertion —
-WO-273) and 5 (Data L1 anchor — separate WO).
+`validate-phase1` runs 7 steps: **0** prerequisites · **1** derive did:key ·
+**2** register DID · **3** anchor a trust-tier commitment (Identity Metagraph) ·
+**4** relay a test message · **5** commit a Merkle root to Data L1 + finality ·
+**6** Global L0 height increments. Steps **3** and **5** report `skip` when the
+Identity Metagraph / Data L1 read API aren't up — expected for backend-only work;
+the run still prints **GO (with N pending steps)**.
 
-Other useful targets (`make help` shows the full list):
-
-```bash
-make dev-status       # show status of all testnet components
-make dev-logs         # tail backend stack logs
-make dev-restart      # restart backend only (metagraph keeps running)
-make dev-stop         # tear down backend stack
-```
-
-To stop the metagraph itself:
+Stop things when done:
 
 ```bash
-cd ../euclid-development-environment && scripts/hydra stop
+make dev-stop                                              # backend stack (metagraph stays up)
+make stop-identity                                         # Identity L0/L1 nodes
+cd ../euclid-development-environment && scripts/hydra stop  # the metagraph itself
 ```
 
 ---
@@ -240,32 +153,21 @@ cd ../euclid-development-environment && scripts/hydra stop
 ## 4. Daily workflow
 
 ```bash
-# Start of day
-make dev                    # idempotent — re-uses running containers
-make dev-status             # sanity check
+make dev && make dev-status         # start of day (idempotent; reuses containers)
 
-# Iterate on Go backend
-make run                    # foreground server with live env vars
-make test                   # full Go test suite
-make lint && make vet       # static checks
-make fmt                    # gofmt + goimports
+# Go backend
+make run                            # foreground server with live env
+make test                           # full Go suite
+make lint && make vet && make fmt   # static checks + `go fmt`
 
-# Iterate on Scala metagraph
-cd metagraph
-sbt 'sharedData/test'              # fastest feedback (pure validators)
-sbt 'identityL1/test'              # wired-validator integration spec
-sbt test                            # everything
-sbt scalafmtAll                     # formatter
-# Or from repo root:  make metagraph-test   # sharedData + identityL0 + identityL1 (WO-272/277)
+# Scala metagraph (run from metagraph/)
+sbt 'sharedData/test'               # fastest feedback (pure validators)
+sbt 'identityL1/test'               # wired-validator integration
+sbt test                            # everything · sbt scalafmtAll to format
+# or from repo root: make metagraph-test
 
-# Iterate on iOS
+# iOS — open in Xcode, use the "Debug-Local" scheme (→ http://localhost:8000)
 open ios/Echo/EchoApp.xcodeproj
-# Use the "Debug-Local" scheme — points to http://localhost:8000
-
-# End of day
-make dev-stop                       # backend down (metagraph stays up)
-# OR fully clean:
-cd ../euclid-development-environment && scripts/hydra stop
 ```
 
 Before opening a PR:
@@ -273,8 +175,10 @@ Before opening a PR:
 ```bash
 make fmt && make lint && make vet && make test
 cd metagraph && sbt scalafmtCheckAll && sbt test && cd ..
-make validate-phase1         # full go/no-go must still pass
+make validate-phase1                # go/no-go must still pass
 ```
+
+`make release-check` is the full pre-tag gate (build + race tests + vet + gofmt).
 
 ---
 
@@ -282,129 +186,76 @@ make validate-phase1         # full go/no-go must still pass
 
 ```
 echoapp/
-├── cmd/                   # Go entry points (server, didkey CLI, etc.)
-├── internal/              # Go backend internals
-│   ├── api/               # HTTP routers + handlers (incl. /identity/register)
-│   ├── database/          # Postgres + in-memory adapters
-│   └── ...
-├── pkg/                   # Reusable Go packages
-│   ├── didkey/            # Canonical W3C did:key derivation (P-256)
-│   ├── did/               # DID HTTP glue + errors (Phase 1: did:key; see ADR-0001)
-│   └── identity/          # Identity service (legacy gin handlers)
-├── metagraph/             # Scala / Tessellation 4.0.0-rc.0 modules
-│   ├── build.sbt          # 6 sub-projects (sharedData + 5 layers)
-│   ├── euclid.json        # Container topology + port allocation
-│   ├── modules/
-│   │   ├── shared_data/   # Pure validators, types, ClusterIds
-│   │   ├── l0/            # Currency Metagraph L0
-│   │   ├── l1/            # Currency L1 (token ops)
-│   │   ├── data_l1/       # Data L1 (Merkle roots, trust commitments)
-│   │   ├── identity_l0/   # Identity Metagraph L0 (consensus)
-│   │   └── identity_l1/   # Identity Metagraph L1 (VC, StatusList2021, OrgRole)
-│   └── scripts/setup-euclid.sh
-├── ios/Echo/              # iOS app prototype
-├── docs/
-│   ├── PRD.md             # Product requirements
-│   ├── adr/               # Architecture Decision Records
-│   └── api/               # API reference
-├── scripts/
-│   ├── validate-phase1.sh # 6-step Phase-1 go/no-go
-│   └── ...
-├── docker-compose.yml         # Local Postgres/Redis/etc. (no metagraph)
-├── docker-compose.testnet.yml # Backend stack pointing at host metagraph
-├── Makefile               # `make help` for the full menu
-└── .env.example           # Copy to .env
+├── cmd/        # Go entry points (server, didkey CLI)
+├── internal/   # Go backend: api/ database/ services/ auth/ metagraph/ infra/ logging/ …
+├── pkg/        # Reusable Go: didkey/ did/ credentials/ (+ credentials/oidc4vc) …
+├── metagraph/  # Scala / Tessellation 4.0.0-rc.0 (shared_data + 5 L0/L1 layer modules)
+├── ios/Echo/   # iOS app
+├── docs/       # PRD, ADRs, phase work orders, audits, launch & testing guides
+├── scripts/    # validate-phase1.sh and friends
+└── Makefile    # `make help` for the full menu
 ```
+
+For the architecture map, per-module responsibilities, and the source-of-truth
+hierarchy, see [`AGENTS.md`](AGENTS.md).
 
 ---
 
 ## 6. Running tests
 
-| Surface                | Command                                              | Notes                                  |
-| ---------------------- | ---------------------------------------------------- | -------------------------------------- |
-| Go unit + integration  | `make test`                                          | Uses `go test ./... -count=1`.         |
-| Go endpoint smoke      | `make test-endpoints`                                | Hits a running `make run` instance.    |
-| Go did:key derivation  | `go test ./pkg/didkey/...`                           | 11 tests, < 1s.                        |
-| Identity register API  | `go test ./internal/api/...`                         | 9 handler tests, < 1s.                 |
-| Scala pure validators  | `cd metagraph && sbt 'sharedData/test'`              | ~70 ScalaTest assertions, < 30s after warm-up. |
-| Scala wired validators | `cd metagraph && sbt 'identityL1/test' 'l1/test' 'data_l1/test'` | Demonstrates `Main.dispatch` wiring.   |
-| Phase-1 go/no-go       | `make validate-phase1`                               | Requires `make dev` to be running.     |
-| iOS                    | Open in Xcode → `Cmd+U` against the iOS simulator    | "Debug-Local" scheme points at localhost backend. |
+| Surface                | Command                                                          |
+| ---------------------- | ---------------------------------------------------------------- |
+| Go (unit + integration)| `make test`                                                      |
+| Go endpoint smoke      | `make test-endpoints` (against a running `make run`)             |
+| Scala pure validators  | `cd metagraph && sbt 'sharedData/test'`                          |
+| Scala wired validators | `cd metagraph && sbt 'identityL1/test' 'l1/test' 'data_l1/test'` |
+| Phase-1 go/no-go       | `make validate-phase1` (needs `make dev` up)                     |
+| iOS                    | Xcode → `Cmd+U`, "Debug-Local" scheme                            |
+
+Full test matrix, regression tiers, and CI gates:
+[`docs/TESTING.md`](docs/TESTING.md) and
+[`docs/E2E_LAUNCH_AND_TESTING.md`](docs/E2E_LAUNCH_AND_TESTING.md).
 
 ---
 
 ## 7. Submitting Scala L1 validation changes
 
-The Scala L1 modules use a layered pattern that keeps the rules unit-testable:
+The Scala L1 modules keep rules unit-testable with a layered pattern:
 
-1. **Add the rule** to a pure function in
-   `metagraph/modules/shared_data/src/main/scala/com/echo/shared_data/validations/`.
-   Functions return `Either[String, Unit]` and take all dependencies as
-   parameters (no I/O, no clocks — inject `now: Long` if you need time).
-2. **Wire it** into the relevant `Main.dispatch` (in `identity_l1`,
-   `l1`, or `data_l1`). Don't put rule logic in `Main.dispatch` itself —
-   it's just a router.
-3. **Add a pure-function test** in
-   `shared_data/src/test/scala/.../validations/` covering happy path +
-   every failure branch.
-4. **Add a wired-validator test** in the L1 module's `MainSpec.scala`
-   showing the rule fires through `Main.dispatch` end-to-end. Per
-   WO-277 acceptance criterion #3, every wired validator must have at
-   least one such test.
-5. Run `cd metagraph && sbt scalafmtAll && sbt test` and make sure it's
-   green before pushing.
+1. **Add the rule** as a pure function in
+   `metagraph/modules/shared_data/.../validations/` — returns `Either[String, Unit]`,
+   takes all dependencies as parameters (no I/O or clocks; inject `now: Long`).
+2. **Wire it** into the relevant `Main.dispatch` (`identity_l1`, `l1`, or `data_l1`).
+   `Main.dispatch` is just a router — no rule logic there.
+3. **Add a pure-function test** covering happy path + every failure branch.
+4. **Add a wired-validator test** in the L1 module's `MainSpec.scala` (WO-277 #3:
+   every wired validator needs at least one).
+5. `cd metagraph && sbt scalafmtAll && sbt test` must be green before pushing.
 
-If you're adding a new on-chain field, also update:
-
-- `IdentityTypes.scala` (or `Types.scala` for currency/data)
-- The corresponding `IdentityCalculatedState` / `EchoCalculatedState`
-  combiner if it should be queryable.
-- `docs/adr/` if the change is architecturally meaningful.
+If you add a new on-chain field or `IdentityUpdate`/`EchoUpdate` **variant**, also
+update its `Encoder` in `IdentityTypes.scala` / `Types.scala` **and every
+`Main.dispatch`** — the build runs under **`-Werror`**, so a non-exhaustive `match`
+fails compilation. Run `sbt compile` (all modules), not just `sbt 'sharedData/test'`.
+Update the calculated-state combiner if the field should be queryable, and `docs/adr/`
+if the change is architecturally meaningful.
 
 ---
 
 ## 8. Common gotchas
 
-- **`sbt: command not found` after install.** Open a fresh terminal so
-  the new PATH is picked up.
-- **`docker: Cannot connect to the Docker daemon`.** Docker Desktop
-  isn't running yet — launch it from Spotlight and wait for the whale
-  icon to stop animating.
-- **`hydra install` fails.** Usually a wrong tag on the Euclid clone.
-  `git -C ../euclid-development-environment checkout v0.19.0` fixes it.
-- **Port already in use.** Anything sitting on 9000-9002, 9600-9602,
-  9200-9202, 9300-9302, 9400-9402, 9500-9502 will conflict. Find
-  squatters with:
-  ```bash
-  lsof -nP -iTCP -sTCP:LISTEN | awk '$9 ~ /:(9[0-5][0-9][0-9])$/'
-  ```
-- **`sbt compile` is super slow on the first run.** Expected — it pulls
-  the Tessellation 4.0.0-rc.0 SDK from `mavenLocal` + Constellation's
-  repo. Subsequent runs hit `~/.cache/coursier/` and finish in seconds.
-- **JVM picks an old JDK.** macOS sometimes resolves `java` to
-  whatever's first on PATH. Force JDK 21 with
-  `export JAVA_HOME=$(/usr/libexec/java_home -v 21)`.
-- **Apple Silicon + Tessellation jars.** They're JVM bytecode so the
-  chip doesn't matter, but Docker images may pull `linux/amd64` and run
-  under Rosetta. That's fine for dev; expect ~2× CPU.
-- **`make dev` reports backend healthy but Identity L0/L1 unreachable.**
-  Hydra is still starting the JVMs — give it 30-60s, then re-run
-  `make dev-status`. If it stays down, `cd ../euclid-development-environment
-  && scripts/hydra logs identity-l0`.
-- **`IDENTITY_SERVICE_DID` not set.** Identity L1 will reject every
-  submission because the authorized-sender check fails. Generate a DID
-  with `go run ./cmd/didkey -in /path/to/key.pem` and put it in `.env`.
+- **`sbt`/`go` not found after install.** Open a fresh terminal so the new PATH loads.
+- **`docker: Cannot connect to the Docker daemon`.** Docker Desktop isn't running — launch it and wait for the whale icon to settle.
+- **`sbt assembly` slow on first run.** Expected — it pulls the Tessellation SDK; later runs hit the Coursier cache and finish in seconds.
+- **JVM picks an old JDK.** Force 21: `export JAVA_HOME=$(/usr/libexec/java_home -v 21)` (macOS).
+- **Port already in use.** Euclid/Identity use the 9000–9602 range. Find squatters: `lsof -nP -iTCP -sTCP:LISTEN | awk '$9 ~ /:(9[0-6][0-9][0-9])$/'`.
+- **`make dev` healthy but Identity L0/L1 unreachable.** Hydra is still starting the JVMs — wait 30–60s, then `make dev-status`; logs via `cd ../euclid-development-environment && scripts/hydra logs identity-l0`.
+- **`IDENTITY_SERVICE_DID` not set.** Identity L1 rejects every submission (authorized-sender check). Generate one: `go run ./cmd/didkey -in /path/to/key.pem`, then set it in `.env`.
+- **Env vars.** Required values live in `.env.example`. Notable: `IDENTITY_SERVICE_DID`, `JWT_SIGNING_KEY` (**required in production**), `CONTACT_OPRF_KEY` (contact discovery), `LOG_MASTER_KEY` (audit log). Generation steps are in `docs/E2E_LAUNCH_AND_TESTING.md §3`.
 
 ---
 
 ## 9. Where to ask for help
 
-- **Architecture / blueprint questions.** Read `docs/PRD.md` and
-  `docs/adr/` first; if the answer isn't there, open a discussion or
-  ping the relevant blueprint owner in `software-factory-echo`.
-- **Tessellation SDK questions.** Constellation's docs:
-  <https://docs.constellationnetwork.io/sdk> — and the Euclid repo
-  itself: <https://github.com/Constellation-Labs/euclid-development-environment>.
-- **Stuck on a Phase-1 work order.** The work order in
-  `software-factory-echo` has hand-off notes; check those before pinging
-  the WO assignee.
+- **Architecture / blueprint.** Read `AGENTS.md`, `docs/PRD.md`, and `docs/adr/` first; then open a discussion or ping the blueprint owner in `software-factory-echo`.
+- **Tessellation SDK.** Constellation docs (<https://docs.constellationnetwork.io/sdk>) and the [Euclid repo](https://github.com/Constellation-Labs/euclid-development-environment).
+- **Stuck on a Phase-1 work order.** Check the work order's hand-off notes in `software-factory-echo` before pinging the assignee.
