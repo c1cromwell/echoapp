@@ -1,44 +1,40 @@
 import SwiftUI
 
-import SwiftUI
-
 /// Messaging - Conversation List Screen
-public struct ConversationListView: View {
+struct ConversationListView: View {
     @State private var searchText = ""
-    @State private var conversations: [ConversationItem] = [
-        ConversationItem(id: "1", contactName: "John Doe", lastMessage: "That sounds great!", timestamp: "2:45 PM", unreadCount: 3, isOnline: true),
-        ConversationItem(id: "2", contactName: "Jane Smith", lastMessage: "See you tomorrow", timestamp: "Yesterday", unreadCount: 0, isOnline: false),
-        ConversationItem(id: "3", contactName: "Alice Johnson", lastMessage: "Perfect! Thanks for the help", timestamp: "Mon", unreadCount: 1, isOnline: true)
-    ]
+    let conversations: [StoredConversation]
     @State private var pinnedItems: [PinnedItem] = []
 
     let onSelectConversation: (String) -> Void
     let onPinnedItemTap: (PinnedItem) -> Void
     let onEditPinned: () -> Void
 
-    public init(
+    init(
+        conversations: [StoredConversation] = [],
         onSelectConversation: @escaping (String) -> Void = { _ in },
         onPinnedItemTap: @escaping (PinnedItem) -> Void = { _ in },
         onEditPinned: @escaping () -> Void = {},
         pinnedItems: [PinnedItem] = []
     ) {
+        self.conversations = conversations
         self.onSelectConversation = onSelectConversation
         self.onPinnedItemTap = onPinnedItemTap
         self.onEditPinned = onEditPinned
         self._pinnedItems = State(initialValue: pinnedItems)
     }
     
-    var filteredConversations: [ConversationItem] {
+    var filteredConversations: [StoredConversation] {
         if searchText.isEmpty {
             return conversations.sorted { ($0.unreadCount > 0) && ($1.unreadCount == 0) }
         }
         return conversations.filter { $0.contactName.localizedCaseInsensitiveContains(searchText) }
     }
     
-    public var body: some View {
+    var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
-            
+
             VStack(spacing: 0) {
                 EchoNavBar(
                     title: "Messages",
@@ -128,9 +124,11 @@ struct ConversationItem: Identifiable {
     let isOnline: Bool
 }
 
+// StoredConversation lives in Services/ConversationStore.swift (Wave 0.1).
+
 // MARK: - Chat View
 
-public struct ChatView: View {
+struct ChatView: View {
     @Environment(\.dismiss) var dismiss
     @Bindable var viewModel: ChatDetailViewModel
     @State private var messageText = ""
@@ -158,7 +156,7 @@ public struct ChatView: View {
         self.onSendMessage = onSendMessage
     }
 
-    public var body: some View {
+    var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
 
@@ -305,12 +303,14 @@ public struct ChatView: View {
         .navigationBarBackButtonHidden(true)
         .task {
             let reactions: ReactionsAPI? = DIContainer.shared.resolveReactionsAPI()
+            let signalService: ConversationSignalService? = DIContainer.shared.resolveConversationSignalService()
             viewModel.configure(
                 conversationId: conversationId,
                 peerDID: peerDID,
                 currentUserDID: currentUserDID,
                 reactionsAPI: reactions
             )
+            _ = signalService
             if let token = try? await KeychainManager.shared.getAuthToken() {
                 await viewModel.connect(accessToken: token)
             }

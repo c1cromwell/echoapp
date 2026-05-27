@@ -1,63 +1,91 @@
 #if os(iOS)
 // Features/Messaging/EmptyState/MessagesTabView.swift
-// Wraps the Messages tab with empty-state branching per v2.5.3:
-//
-//   hasSentFirstMessage = false AND no persisted conversations
-//     → MessagesEmptyStateView (welcome + trust banner + FAB)
-//   hasSentFirstMessage = true (all conversations deleted)
-//     → PostFirstMessageEmptyState (minimal — no welcome copy)
-//   otherwise
-//     → ConversationListView (existing)
+// Wraps the Messages tab with empty-state branching and Wave 0.1 chat navigation.
 
 import SwiftUI
 
 struct MessagesTabView: View {
     @Environment(AppState.self) private var appState
+    @Bindable private var conversationStore = ConversationStore.shared
 
     @State private var composeSheetPresented = false
     @State private var enrollmentSheetPresented = false
     @State private var recoveryPromptPresented = false
+    @State private var pendingInviteCode: String?
+    @State private var chatPath = SwiftUI.NavigationPath()
 
     var body: some View {
-        Group {
-            if !hasSentFirstMessage {
-                MessagesEmptyStateView(
-                    displayName: appState.displayName,
-                    trustTier: currentTrustTier,
-                    onComposeTapped: { composeSheetPresented = true },
-                    onUpgradeTrustTapped: { enrollmentSheetPresented = true }
-                )
-                .navigationTitle("Messages")
-                .navigationBarTitleDisplayMode(.inline)
-            } else {
-                ConversationListView()
+        NavigationStack(path: $chatPath) {
+            Group {
+                if !hasSentFirstMessage {
+                    MessagesEmptyStateView(
+                        displayName: appState.displayName,
+                        trustTier: currentTrustTier,
+                        onComposeTapped: { composeSheetPresented = true },
+                        onUpgradeTrustTapped: { enrollmentSheetPresented = true }
+                    )
+                    .navigationTitle("Messages")
+                    .navigationBarTitleDisplayMode(.inline)
+                } else {
+                    ConversationListView(
+                        conversations: conversationStore.conversations,
+                        onSelectConversation: { id in
+                            if let conversation = conversationStore.conversation(id: id) {
+                                chatPath.append(conversation)
+                            }
+                        }
+                    )
                     .overlay(alignment: .bottomTrailing) {
                         ComposeFAB { composeSheetPresented = true }
                             .padding(.trailing, 20)
                             .padding(.bottom, 26)
                     }
+                }
+            }
+            .navigationDestination(for: StoredConversation.self) { conversation in
+                ChatDestinationView(conversation: conversation)
             }
         }
         .sheet(isPresented: $composeSheetPresented) {
-            // Placeholder — swap in your real NewConversationSheet
-            Text("Start a new conversation")
-                .presentationDetents([.medium])
+            NewConversationSheet { conversation in
+                chatPath.append(conversation)
+            }
         }
         .sheet(isPresented: $enrollmentSheetPresented) {
             EnrollmentCoordinatorView(
                 coordinator: EnrollmentCoordinator(
                     onComplete: { _ in enrollmentSheetPresented = false },
-                    onCancel:   { enrollmentSheetPresented = false }
+                    onCancel: { enrollmentSheetPresented = false }
                 )
             )
         }
         .sheet(isPresented: $recoveryPromptPresented) {
             recoveryExportSheet
         }
+        .sheet(isPresented: Binding(
+            get: { pendingInviteCode != nil },
+            set: { if !$0 { pendingInviteCode = nil } }
+        )) {
+            if let code = pendingInviteCode {
+                AcceptInviteSheet(inviteCode: code) {
+                    pendingInviteCode = nil
+                }
+            }
+        }
         .onAppear {
-            // Check for overdue reminders (AC-RECOVERY-004.2) and first-message trigger.
             RecoveryPromptScheduler.shared.checkAndPresentIfOverdue {
                 recoveryPromptPresented = true
+            }
+            if let code = appState.pendingInviteCode {
+                pendingInviteCode = code
+                appState.pendingInviteCode = nil
+            }
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(for: .echoPendingInvite)
+        ) { notification in
+            if let code = notification.userInfo?["code"] as? String {
+                pendingInviteCode = code
             }
         }
         .onReceive(
@@ -67,8 +95,6 @@ struct MessagesTabView: View {
         }
     }
 
-    // MARK: - Recovery prompt
-
     private var recoveryExportSheet: some View {
         RecoveryCoordinatorView(
             coordinator: RecoveryCoordinator(
@@ -77,9 +103,6 @@ struct MessagesTabView: View {
                 onCancel: { recoveryPromptPresented = false }
             )
         )
-        .task {
-            // Start the export flow immediately when the sheet opens.
-        }
     }
 
     private func checkFirstMessageRecoveryPrompt() {
@@ -89,8 +112,6 @@ struct MessagesTabView: View {
         recoveryPromptPresented = true
     }
 
-    // MARK: - Helpers
-
     private var currentTrustTier: Int {
         if !appState.provisionService.hasMinimumIdentity { return 0 }
         return UserDefaults.standard.integer(forKey: "echo.trustTier")
@@ -98,13 +119,12 @@ struct MessagesTabView: View {
 
     private var hasSentFirstMessage: Bool {
         UserDefaults.standard.bool(forKey: "echo.hasSentFirstMessage")
+            || !conversationStore.conversations.isEmpty
     }
 }
 
 // MARK: - Post-first-message empty state
 
-/// Shown when the user has had conversations before but cleared them all.
-/// No welcome framing — just the FAB.
 struct PostFirstMessageEmptyState: View {
     let onComposeTapped: () -> Void
 
