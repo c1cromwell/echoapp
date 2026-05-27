@@ -19,7 +19,7 @@ Echo is a **multi-stack, phase-gated** product (Go backend, Scala metagraph, iOS
 | Asset | Role |
 |-------|------|
 | `docs/phase-{1–7}-work-orders.md` | Phase backlog (~278 WOs) |
-| `docs/PHASE1_LAUNCH.md`, `PHASE2_GAP_AUDIT.md`, `PHASE3_IOS_UI_SPEC.md` | Launch / gap / feature specs |
+| `docs/E2E_LAUNCH_AND_TESTING.md`, `PHASE2_GAP_AUDIT.md`, `PHASE3_IOS_UI_SPEC.md` | Launch / gap / feature specs |
 | `docs/data-classification.md` + `.semgrep/t0_t7_rules.yaml` | T0–T7 privacy invariant |
 | `docs/adr/0001-phase1-identity-method.md` | did:key; no Cardano Phase 1–2 |
 | `software-factory-echo` MCP | WOs, blueprints, requirements |

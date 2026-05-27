@@ -36,7 +36,7 @@ Already **ahead** of WhatsApp/Telegram/Signal/XChat on:
 - OPRF-PSI backend + iOS client (WO-220/221 landed, live OPRF + two-device E2E pending)
 - Phase 3 signals backend + iOS agent layer (WO-192/10; Xcode UI wiring in progress)
 
-See [`PHASE2_GAP_AUDIT.md`](PHASE2_GAP_AUDIT.md) and [`TESTING.md`](TESTING.md) for verification.
+See [`PHASE2_GAP_AUDIT.md`](PHASE2_GAP_AUDIT.md) and [`E2E_LAUNCH_AND_TESTING.md`](E2E_LAUNCH_AND_TESTING.md) for verification.
 
 ---
 
@@ -46,7 +46,7 @@ See [`PHASE2_GAP_AUDIT.md`](PHASE2_GAP_AUDIT.md) and [`TESTING.md`](TESTING.md) 
 
 | Order | Item | WOs | Gate / done when |
 |-------|------|-----|------------------|
-| 0.1 | Phase 3 messaging UI E2E | WO-192, WO-10 | Two-client typing, read receipts, reactions pass [`TESTING.md`](TESTING.md) §5.4 |
+| 0.1 | Phase 3 messaging UI E2E | WO-192, WO-10 | Two-client typing, read receipts, reactions pass [`E2E_LAUNCH_AND_TESTING.md`](E2E_LAUNCH_AND_TESTING.md) §6.4 |
 | 0.2 | OIDC4VC wallet enrollment E2E | WO-100 | Simulator + device: start/finish VC flow; `OIDC4VC_ENABLED=true` |
 | 0.3 | PSI contact discovery E2E | WO-220, WO-221 | Live `EchoOPRF.xcframework`; two devices, shared contact match |
 | 0.4 | Username / QR / invite discovery | WO-222 | `echo://invite` deep link; search + QR exchange documented in E2E |
@@ -219,14 +219,14 @@ flowchart TD
 | **Parallel (staff permitting)** | WO-23 polls, WO-228 privacy | Parity checklist |
 | **H2** | CA4 → CA1 → Tier 3 | Differentiation + platform |
 
-Adjust if Phase 1 TestFlight date (`PHASE1_LAUNCH.md`) slips — Wave 0 always wins.
+Adjust if TestFlight launch slips — Wave 0 always wins.
 
 ---
 
 ## Software Factory actions
 
 1. Assign formal WO numbers to **WO-CA1**–**WO-CA4** (phase docs already stubbed).
-2. Mark **WO-100**, **WO-221** `in_review` after E2E per [`TESTING.md`](TESTING.md).
+2. Mark **WO-100**, **WO-221** `in_review` after E2E per [`E2E_LAUNCH_AND_TESTING.md`](E2E_LAUNCH_AND_TESTING.md).
 3. Create or prioritize **WO-288** if not already active — blocks CA3.
 4. Link child WOs: CA3 → WO-73; CA2 → WO-64; CA1 → Bot Framework epic.
 
@@ -248,7 +248,7 @@ Adjust if Phase 1 TestFlight date (`PHASE1_LAUNCH.md`) slips — Wave 0 always w
 
 - [`COMPETITIVE_AUDIT_2026-05.md`](COMPETITIVE_AUDIT_2026-05.md) — source analysis
 - [`PHASE2_GAP_AUDIT.md`](PHASE2_GAP_AUDIT.md) — Phase 2 truth table
-- [`TESTING.md`](TESTING.md) — E2E gates per wave
+- [`E2E_LAUNCH_AND_TESTING.md`](E2E_LAUNCH_AND_TESTING.md) — E2E gates per wave
 - [`phase-3-work-orders.md`](phase-3-work-orders.md) — WO-CA3 stub
 - [`phase-5-work-orders.md`](phase-5-work-orders.md) — WO-CA2 stub
 - [`phase-7-work-orders.md`](phase-7-work-orders.md) — WO-CA1 / WO-CA4 stubs

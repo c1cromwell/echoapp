@@ -8,7 +8,7 @@ description: >-
 
 # Echo Phase 1 validate
 
-Primary doc: [`docs/TESTING.md`](../../docs/TESTING.md) (full matrix). Launch detail: [`docs/PHASE1_LAUNCH.md`](../../docs/PHASE1_LAUNCH.md). WO: **WO-230**.
+Primary doc: [`docs/E2E_LAUNCH_AND_TESTING.md`](../../docs/E2E_LAUNCH_AND_TESTING.md). WO: **WO-230**.
 
 ## Gate order (run top to bottom)
 
@@ -39,7 +39,7 @@ Script: `scripts/validate-phase1.sh`. Steps 3/5 may **skip** when Euclid is down
 
 ## Device testing
 
-Physical iPhone cannot use `localhost`. Set `API_URL` in Xcode build settings / `.env` per `PHASE1_LAUNCH.md` §1c (LAN IP of dev machine).
+Physical iPhone cannot use `localhost`. Set `API_URL` in Xcode / `.env` per `E2E_LAUNCH_AND_TESTING.md` §3c (LAN IP).
 
 Optional Identity nodes for VC/trust tier:
 
@@ -70,6 +70,6 @@ make start-identity   # L0 :9600, L1 :9500
 
 ## Related
 
-- [`docs/TESTING.md`](../../docs/TESTING.md) — full launch & regression matrix
+- [`docs/E2E_LAUNCH_AND_TESTING.md`](../../docs/E2E_LAUNCH_AND_TESTING.md) — full launch & regression guide
 - [`CONTRIBUTING.md`](../../CONTRIBUTING.md) — first-time dev setup
 - Skill: `echo-testing`, `echo-local-dev` MCP + `echo-ios-agent-vs-xcode`

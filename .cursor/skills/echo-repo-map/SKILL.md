@@ -23,7 +23,7 @@ Entry: `main.go` (backend), `ios/Echo/EchoApp.xcodeproj` (app), `ios/Echo/Packag
 
 | Phase | WO list | Actionable extras |
 |-------|---------|-------------------|
-| 1 | `docs/phase-1-work-orders.md` | `docs/PHASE1_LAUNCH.md`, `docs/data-classification.md` |
+| 1 | `docs/phase-1-work-orders.md` | `docs/E2E_LAUNCH_AND_TESTING.md`, `docs/data-classification.md` |
 | 2 | `docs/phase-2-work-orders.md` | `docs/PHASE2_GAP_AUDIT.md` |
 | 3 | `docs/phase-3-work-orders.md` | `docs/PHASE3_IOS_UI_SPEC.md` |
 | 4–7 | `docs/phase-4-work-orders.md` … `phase-7` | Blueprint refs in WOs |

@@ -12,8 +12,8 @@ Quick entry point for Cursor agents working in this repo. Read this first, then 
 | Update work order status | Skill: **`echo-work-order-sync`** + MCP `software-factory-echo` |
 | Chain / submission / PII review | Skill: **`echo-t0-t7-review`** + `docs/data-classification.md` |
 | Local cluster / validate / release check | MCP **`echo-local-dev`** (see `.cursor/mcp.json`) |
-| TestFlight / Phase 1 go-no-go | Skill: **`echo-phase1-validate`** + [`docs/TESTING.md`](docs/TESTING.md) |
-| Launch & regression testing (full matrix) | Skill: **`echo-testing`** + [`docs/TESTING.md`](docs/TESTING.md) |
+| TestFlight / Phase 1 go-no-go | Skill: **`echo-phase1-validate`** + [`docs/E2E_LAUNCH_AND_TESTING.md`](docs/E2E_LAUNCH_AND_TESTING.md) |
+| Launch & regression testing (full matrix) | Skill: **`echo-testing`** + [`docs/E2E_LAUNCH_AND_TESTING.md`](docs/E2E_LAUNCH_AND_TESTING.md) |
 | Phase 2 onboarding / VC / contacts | Skill: **`echo-phase2-gaps`** |
 | Phase 3 messaging UI (Xcode wiring) | Skill: **`echo-phase3-ios-wire`** |
 | Metagraph Scala L1 validators | Skill: **`echo-metagraph-scala`** |
@@ -65,7 +65,7 @@ make metagraph-test         # Scala L1 tests
 cd ios/Echo && swift test --filter EchoPhase3Tests
 ```
 
-Full setup: [`CONTRIBUTING.md`](CONTRIBUTING.md). TestFlight: [`docs/PHASE1_LAUNCH.md`](docs/PHASE1_LAUNCH.md).
+Full setup: [`CONTRIBUTING.md`](CONTRIBUTING.md). TestFlight & E2E: [`docs/E2E_LAUNCH_AND_TESTING.md`](docs/E2E_LAUNCH_AND_TESTING.md).
 
 ## Agent constraints
 

@@ -7,7 +7,7 @@
 #   ./scripts/run-regression.sh --with-phase1  # also run make validate-phase1 (needs Docker + Euclid)
 #   ./scripts/run-regression.sh --ios-only     # iOS SPM tests only
 #
-# Manual Xcode/device E2E is NOT run here — see docs/TESTING.md §5–6.
+# Manual Xcode/device E2E is NOT run here — see docs/E2E_LAUNCH_AND_TESTING.md §6–7.
 
 set -euo pipefail
 
@@ -53,7 +53,7 @@ run_ios_spm() {
     devdir="/Applications/Xcode_16.2.app/Contents/Developer"
   fi
   if [ -z "$devdir" ]; then
-    fail "Xcode.app not found — iOS SPM tests require full Xcode (see docs/TESTING.md §4)"
+    fail "Xcode.app not found — iOS SPM tests require full Xcode (see docs/E2E_LAUNCH_AND_TESTING.md §5)"
   fi
   export DEVELOPER_DIR="$devdir"
   (
@@ -102,4 +102,4 @@ fi
 
 section "Done"
 printf "%sRegression gate passed.%s\n" "$GREEN" "$RESET"
-printf "Next: run manual Xcode E2E checklists in docs/TESTING.md §5–7 before TestFlight.\n"
+printf "Next: run manual Xcode E2E checklists in docs/E2E_LAUNCH_AND_TESTING.md §6–8 before TestFlight.\n"

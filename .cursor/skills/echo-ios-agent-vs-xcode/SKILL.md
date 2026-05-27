@@ -45,7 +45,7 @@ CI uses macOS + Xcode 16.x (see `.github/workflows/ios-ci.yml`).
 - New Swift files → add to **`EchoApp.xcodeproj`** (SPM alone does not update app target)
 - SwiftUI views: `TypingIndicatorView`, `ReactionPickerView`, wiring `ChatView`
 - `@Bindable` / navigation integration with coordinators
-- Code signing, TestFlight (`docs/PHASE1_LAUNCH.md`)
+- Code signing, TestFlight (`docs/E2E_LAUNCH_AND_TESTING.md` §8)
 - Manual two-client tests vs `make dev` (see `PHASE3_IOS_UI_SPEC.md` Step 5)
 
 ## Canonical types (avoid duplicates)

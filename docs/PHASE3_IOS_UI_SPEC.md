@@ -310,7 +310,7 @@ After successful REST, also `sendReaction(...)` over WS.
 |------|-------|
 | Register `ConversationSignalService` singleton in `Container.swift` | Xcode app target |
 | Inject into chat ViewModel with `MessagingService` / repository | Agent + Xcode |
-| WS URL + REST URL from `API_URL` (`docs/PHASE1_LAUNCH.md` §1c) | Agent |
+| WS URL + REST URL from `API_URL` (`docs/E2E_LAUNCH_AND_TESTING.md` §3c) | Agent |
 | Connect signal service on conversation open / foreground; teardown on background | Xcode lifecycle |
 | Add new Swift files to **`EchoApp.xcodeproj`** (SPM library alone is not enough for app builds) | Xcode |
 

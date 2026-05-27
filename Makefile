@@ -18,7 +18,7 @@ help:
 	@echo "  make dev-restart     Restart the backend stack only (keeps metagraph running)"
 	@echo "  make dev-stop        Tear down backend stack (metagraph stays up — use 'hydra stop' for that)"
 	@echo "  make validate-phase1 Run scripts/validate-phase1.sh go/no-go check"
-	@echo "  make regression      Headless regression (Go + iOS SPM) — docs/TESTING.md"
+	@echo "  make regression      Headless regression (Go + iOS SPM) — docs/E2E_LAUNCH_AND_TESTING.md"
 	@echo "  make regression-quick Go race tests only"
 	@echo "  make regression-with-phase1  regression + validate-phase1"
 	@echo "  make metagraph-verify-skeleton  Static WO-276 checks (euclid + build.sbt + sources; needs jq)"
@@ -381,7 +381,7 @@ validate-phase1: ## Run the WO-230 6-step go/no-go validation script
 	@chmod +x scripts/validate-phase1.sh
 	@./scripts/validate-phase1.sh
 
-regression: ## Headless regression — Go release-check + targeted suites + iOS SPM (docs/TESTING.md §2)
+regression: ## Headless regression — Go release-check + targeted suites + iOS SPM (docs/E2E_LAUNCH_AND_TESTING.md §4)
 	@chmod +x scripts/run-regression.sh
 	@./scripts/run-regression.sh
 
