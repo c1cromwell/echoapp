@@ -2286,3 +2286,13 @@ Build the anonymous journalist and activist access credential issuance system �
 - Privacy Commons Treasury — Defines anonymous journalist/activist access credential issuance, eligibility criteria, press freedom org vouching process, anonymous Cardano credential structure, and REQ-PCT-002 identity non-storage requirement
 
 ---
+
+---
+
+## Competitive Audit Additions (2026-05-26)
+
+Proposed from `docs/COMPETITIVE_AUDIT_2026-05.md` (Tier 1). Provisional IDs — final WO numbers assigned by Software Factory.
+
+### WO-CA2: Consumer secure encrypted backups
+**Source:** competitive audit (Signal Secure Backups). **Extends:** WO-64; reuses BIP-39 recovery (WO-234).
+User-held recovery key (the 24-word phrase) encrypts a cloud backup of chats + opt-in media tiers, with cross-platform restore. The server never holds the key.

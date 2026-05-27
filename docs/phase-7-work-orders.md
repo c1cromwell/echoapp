@@ -4440,3 +4440,17 @@ Treasury (220M ECHO):
 - ECHO Token Economics and Founder Allocation — defines treasury allocation, FeeTransaction primitive usage, stablecoin reserve targets, and Phase 5 deflationary mechanisms
 
 ---
+
+---
+
+## Competitive Audit Additions (2026-05-26)
+
+Proposed from `docs/COMPETITIVE_AUDIT_2026-05.md` (Tier 1). Provisional IDs — final WO numbers assigned by Software Factory.
+
+### WO-CA1: Privacy-preserving in-chat AI assistant
+**Source:** competitive audit (vs Grok/Meta AI, which de-E2E content). **Blueprint:** Decentralized Bot Framework and Automation.
+On-device summaries/smart-replies/translation; any server-side assist gated by confidential-compute/ZK + explicit per-message consent + zero retention. Never sends plaintext to a cloud model by default.
+
+### WO-CA4: In-chat ECHO economy (tips / gifts / paid content)
+**Source:** competitive audit (Telegram Stars, done decentralized). **Depends:** wallet + ECHO tokenomics.
+Send ECHO tips/gifts in chat, paid posts/unlocks — all on-chain via the existing wallet. No custodial in-app currency.

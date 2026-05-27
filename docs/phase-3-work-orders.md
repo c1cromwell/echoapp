@@ -2409,3 +2409,13 @@ type OfflineQueueEntry struct {
 - Backend — Defines overflow message backup to IPFS when queue exceeds 1000 messages, CID-based queue metadata, and on-reconnect delivery of overflow manifest
 
 ---
+
+---
+
+## Competitive Audit Additions (2026-05-26)
+
+Proposed from `docs/COMPETITIVE_AUDIT_2026-05.md` (Tier 1). Provisional IDs — final WO numbers assigned by Software Factory.
+
+### WO-CA3: did:key-scoped multi-device message sync
+**Source:** competitive audit (Signal multi-device sync). **Extends:** WO-73 (cross-device search-index sync).
+Sync message history across a user's registered devices keyed by `did:key` (controller pattern), E2E re-encrypted per device; no plaintext server copy.
