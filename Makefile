@@ -215,8 +215,9 @@ info:
 #
 # Brings up the full local development environment in a single command:
 #   1. Euclid SDK metagraph cluster (Global L0 + Metagraph L0 + Currency L1 +
-#      Data L1 + Identity L0/L1) via `hydra` in the sibling
-#      ../euclid-development-environment directory.
+#      Data L1) via `hydra` in the sibling ../euclid-development-environment
+#      directory. Identity L0/L1 are NOT managed by hydra — start them
+#      separately with `make start-identity` (see that target).
 #   2. Backend stack (Go API + Postgres + Redis + NATS + MinIO) via
 #      docker-compose.testnet.yml.
 #
@@ -248,16 +249,17 @@ dev: ## Bring up full Phase-1 cluster
 		echo "  ⚠ hydra start-genesis returned non-zero (cluster may already be running)"; \
 	}
 	@echo ""
-	@echo "[4/5] Waiting for metagraph endpoints to come up..."
+	@echo "[4/5] Waiting for core metagraph endpoints to come up..."
+	@# Only the core hydra-managed layers are waited on here. Identity L0/L1 are
+	@# started separately (`make start-identity`), so waiting for them would just
+	@# burn the timeout while they're down — they are intentionally not listed.
 	@deadline=$$(( $$(date +%s) + $(HYDRA_HEALTH_TIMEOUT) )); \
 	for endpoint in \
-	  "Global L0=http://localhost:9000/node/info=required" \
-	  "Metagraph L0=http://localhost:9200/node/info=required" \
-	  "Currency L1=http://localhost:9300/node/info=required" \
-	  "Data L1=http://localhost:9400/node/info=required" \
-	  "Identity L0=http://localhost:9600/node/info=optional" \
-	  "Identity L1=http://localhost:9500/node/info=optional"; do \
-	  label=$${endpoint%%=*}; rest=$${endpoint#*=}; url=$${rest%=*}; required=$${rest##*=}; \
+	  "Global L0=http://localhost:9000/node/info" \
+	  "Metagraph L0=http://localhost:9200/node/info" \
+	  "Currency L1=http://localhost:9300/node/info" \
+	  "Data L1=http://localhost:9400/node/info"; do \
+	  label=$${endpoint%%=*}; url=$${endpoint#*=}; \
 	  printf "  waiting for %-14s ... " "$$label"; \
 	  while [ $$(date +%s) -lt $$deadline ]; do \
 	    if curl -fsS --max-time 2 "$$url" >/dev/null 2>&1; then \
@@ -266,13 +268,9 @@ dev: ## Bring up full Phase-1 cluster
 	    sleep 2; \
 	  done; \
 	  if ! curl -fsS --max-time 2 "$$url" >/dev/null 2>&1; then \
-	    if [ "$$required" = "required" ]; then \
-	      echo "✗ TIMEOUT"; \
-	      echo "    Check 'cd $(EUCLID_DIR) && scripts/hydra status'"; \
-	      exit 1; \
-	    else \
-	      echo "⚠ not running (optional — run 'make start-identity' to enable VC features)"; \
-	    fi; \
+	    echo "✗ TIMEOUT"; \
+	    echo "    Check 'cd $(EUCLID_DIR) && scripts/hydra status'"; \
+	    exit 1; \
 	  fi; \
 	done
 	@echo ""
@@ -294,8 +292,8 @@ dev: ## Bring up full Phase-1 cluster
 	@echo "  Metagraph L0:   http://localhost:9200"
 	@echo "  Currency L1:    http://localhost:9300"
 	@echo "  Data L1:        http://localhost:9400"
-	@echo "  Identity L0:    http://localhost:9600  (VC / trust tier / StatusList2021)"
-	@echo "  Identity L1:    http://localhost:9500  (VC / StatusList / org-role + device-key submissions)"
+	@echo "  Identity L0/L1: 9600 / 9500  (optional, not started by 'make dev' —"
+	@echo "                  run 'make start-identity' for VC / trust-tier features)"
 	@echo ""
 	@echo "Next: make validate-phase1"
 
