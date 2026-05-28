@@ -13,8 +13,9 @@ ios/Pods/
 ios/build/
 ios/Echo/Libraries/*.xcframework/
 ios/*.xcworkspace
-ios/*.xcodeproj/xcuserdata
 ios/*.xcodeproj/project.xcworkspace
+**/xcuserdata/
+*.xcuserstate
 *.ipa
 *.dSYM.zip
 *.dSYM
