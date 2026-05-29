@@ -1,44 +1,47 @@
 # docker-compose.identity.yml
 # Starts the custom Identity L0 and Identity L1 metagraph nodes.
-# These are NOT managed by Euclid hydra — they require the assembled JARs
-# produced by: cd metagraph && sbt assembly
+#
+# The Identity metagraph is a SEPARATE metagraph from the Euclid currency/data
+# metagraph and is intentionally NOT managed by Euclid hydra: stock hydra
+# (euclid v0.19.0) only orchestrates a single metagraph (global-l0, metagraph-l0,
+# currency-l1, data-l1) and has no concept of identity layers. See
+# docs/adr/0002-identity-metagraph-deployment.md.
+#
+# Prerequisites:
+#   1. Euclid dev cluster running (`make dev`) — provides the Global L0 at
+#      172.50.0.10:9000 on the `custom-network` Docker network, and the
+#      `metagraph-base-image:latest` image (which bundles the cl-wallet /
+#      cl-keytool CLI tools and a genesis.csv this compose reuses).
+#   2. Assembled fat JARs:  cd metagraph && sbt identityL0/assembly identityL1/assembly
 #
 # Usage:
-#   make start-identity   (preferred — checks JARs exist first)
-#   docker compose -f docker-compose.identity.yml up -d --build
+#   make start-identity        (preferred — checks JARs + base image first)
+#   docker compose -f docker-compose.identity.yml up -d
 #
-# Ports:
-#   Identity L0: 9600 (public), 9601 (p2p), 9602 (cli)
-#   Identity L1: 9500 (public), 9501 (p2p), 9502 (cli)
+# Ports / static IPs (custom-network, subnet 172.50.0.0/24; Euclid nodes use
+# .10/.20/.30 so Identity uses .50/.51 to avoid collisions):
+#   Identity L0: 172.50.0.50  -> 9600 (public) 9601 (p2p) 9602 (cli)
+#   Identity L1: 172.50.0.51  -> 9500 (public) 9501 (p2p) 9502 (cli)
 #
-# Both nodes join the same Docker network as the Euclid cluster (custom-network,
-# subnet 172.50.0.0/24, created by Euclid's ansible — metagraph-node-1 = 172.50.0.10).
-#
-# STATUS: NOT YET FUNCTIONAL — nodes crash-loop on startup. Remaining blockers
-# (deferred to WO-273/274 Identity/VC bring-up):
-#   1. L0 uses subcommand `run-initial-validator`, which the L0 app rejects — it
-#      only accepts create-genesis | run-genesis | run-validator | run-rollback.
-#      Identity L0 needs a genesis flow (create-genesis then run-genesis), like
-#      the currency metagraph-l0.
-#   2. L1 aborts: required CL_L0_PEER_ID / CL_GLOBAL_L0_PEER_ID are unset, and
-#      CL_L0_PEER_HTTP_HOST points at metagraph-node-1 (172.50.0.10:9600) instead
-#      of the identity-l0 container. L1 must peer with identity-l0's ID/host.
-#   3. No genesis snapshot, peer IDs (derive from the p12 keys), or static IP
-#      assignment — the full L0<->L1<->Global-L0 wiring hydra normally provides.
-# NOTE: metagraph/euclid.json also lists identity_l0/identity_l1 as hydra layers;
-# that path is likewise not yet working. Pick one mechanism when doing the bring-up.
+# Boot flow mirrors Euclid's metagraph-l0 genesis + currency-l1 initial-validator
+# for Tessellation 4.0.0-rc.0; the per-node logic lives in scripts/identity/*.sh.
 
 x-identity-base: &identity-base
   image: metagraph-base-image:latest
   restart: unless-stopped
-  environment:
+  environment: &identity-env
     CL_APP_ENV: dev
     CL_COLLATERAL: "0"
-    CL_KEYSTORE: token-key.p12
-    CL_KEYALIAS: alias
+    # Dedicated Identity metagraph key (generated on first boot into the shared
+    # volume). MUST differ from the cluster's token-key.p12 — reusing that key's
+    # owner address fails Global L0 registration with AddressAlreadyInUse, since
+    # it already owns the main currency metagraph.
+    CL_KEYSTORE: /shared-identity/identity.p12
+    CL_KEYALIAS: identity
     CL_PASSWORD: password
-  networks:
-    - custom-network
+    # Global L0 lead (Euclid node-1) reachable on the shared hydra network.
+    CL_GLOBAL_L0_PEER_HTTP_HOST: "172.50.0.10"
+    CL_GLOBAL_L0_PEER_HTTP_PORT: "9000"
 
 services:
 
@@ -50,34 +53,20 @@ services:
       - "9601:9601"
       - "9602:9602"
     volumes:
-      # Pre-built fat JAR from sbt assembly
       - ./metagraph/modules/identity_l0/target/scala-2.13:/jars:ro
-      # Reuse the dev key file that Euclid generated
-      - ../euclid-development-environment/source/p12-files/token-key.p12:/code/identity-l0/token-key.p12:ro
+      - ./scripts/identity/l0-entrypoint.sh:/identity/l0-entrypoint.sh:ro
+      # Holds the generated identity.p12 key + the published genesis address.
+      - identity-shared:/shared-identity
     environment:
-      CL_APP_ENV: dev
-      CL_COLLATERAL: "0"
-      CL_KEYSTORE: token-key.p12
-      CL_KEYALIAS: alias
-      CL_PASSWORD: password
+      <<: *identity-env
       CL_PUBLIC_HTTP_PORT: "9600"
       CL_P2P_HTTP_PORT: "9601"
       CL_CLI_HTTP_PORT: "9602"
-      CL_L0_PEER_HTTP_HOST: "172.50.0.10"
-      CL_L0_PEER_HTTP_PORT: "9200"
-      CL_GLOBAL_L0_PEER_HTTP_HOST: "172.50.0.10"
-      CL_GLOBAL_L0_PEER_HTTP_PORT: "9000"
-    command: >
-      bash -c "
-        set -e
-        mkdir -p /code/identity-l0
-        JAR=$$(ls /jars/*assembly*.jar | head -1)
-        cp $$JAR /code/identity-l0/identity-l0.jar
-        cp /code/currency-l1/cl-wallet.jar /code/identity-l0/cl-wallet.jar 2>/dev/null || true
-        cp /code/currency-l1/cl-keytool.jar /code/identity-l0/cl-keytool.jar 2>/dev/null || true
-        cd /code/identity-l0
-        nohup java -jar identity-l0.jar run-initial-validator --ip 0.0.0.0 > identity-l0.log 2>&1
-      "
+      IDENTITY_L0_IP: "172.50.0.50"
+    networks:
+      custom-network:
+        ipv4_address: 172.50.0.50
+    command: ["bash", "/identity/l0-entrypoint.sh"]
 
   identity-l1:
     <<: *identity-base
@@ -88,34 +77,29 @@ services:
       - "9502:9502"
     volumes:
       - ./metagraph/modules/identity_l1/target/scala-2.13:/jars:ro
-      - ../euclid-development-environment/source/p12-files/token-key-1.p12:/code/identity-l1/token-key.p12:ro
+      - ./scripts/identity/l1-entrypoint.sh:/identity/l1-entrypoint.sh:ro
+      # Shares identity-l0's generated key (same node identity runs L0 + L1, as in
+      # hydra) and reads the published genesis address.
+      - identity-shared:/shared-identity
     environment:
-      CL_APP_ENV: dev
-      CL_COLLATERAL: "0"
-      CL_KEYSTORE: token-key.p12
-      CL_KEYALIAS: alias
-      CL_PASSWORD: password
+      <<: *identity-env
       CL_PUBLIC_HTTP_PORT: "9500"
       CL_P2P_HTTP_PORT: "9501"
       CL_CLI_HTTP_PORT: "9502"
-      CL_L0_PEER_HTTP_HOST: "172.50.0.10"
+      # Dial identity-l0 (this metagraph's own L0), not the Global L0.
+      CL_L0_PEER_HTTP_HOST: "172.50.0.50"
       CL_L0_PEER_HTTP_PORT: "9600"
-      CL_GLOBAL_L0_PEER_HTTP_HOST: "172.50.0.10"
-      CL_GLOBAL_L0_PEER_HTTP_PORT: "9000"
-    command: >
-      bash -c "
-        set -e
-        mkdir -p /code/identity-l1
-        JAR=$$(ls /jars/*assembly*.jar | head -1)
-        cp $$JAR /code/identity-l1/identity-l1.jar
-        cp /code/currency-l1/cl-wallet.jar /code/identity-l1/cl-wallet.jar 2>/dev/null || true
-        cp /code/currency-l1/cl-keytool.jar /code/identity-l1/cl-keytool.jar 2>/dev/null || true
-        cd /code/identity-l1
-        nohup java -jar identity-l1.jar run-initial-validator --ip 0.0.0.0 > identity-l1.log 2>&1
-      "
+      IDENTITY_L1_IP: "172.50.0.51"
+    networks:
+      custom-network:
+        ipv4_address: 172.50.0.51
+    command: ["bash", "/identity/l1-entrypoint.sh"]
     depends_on:
       - identity-l0
 
 networks:
   custom-network:
     external: true
+
+volumes:
+  identity-shared:
