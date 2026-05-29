@@ -51,6 +51,35 @@ func TestCredentialVerificationService(t *testing.T) {
 		}
 	})
 
+	t.Run("verify_credential_issuer_by_did", func(t *testing.T) {
+		issuer := &TrustedIssuer{
+			ID:              "did_lookup_issuer",
+			Name:            "DID Lookup Issuer",
+			DID:             "did:key:z6MkDidLookupIssuer123",
+			Type:            IssuerTypeGovernment,
+			TrustLevel:      TrustLevelHigh,
+			Status:          "active",
+			CredentialTypes: []CredentialType{CredTypePassport},
+		}
+		registry.RegisterIssuer(issuer)
+
+		credential := &VerifiableCredential{
+			ID:             "cred_did_ref",
+			Issuer:         issuer.DID,
+			IssuanceDate:   time.Now().Add(-time.Hour).Format(time.RFC3339),
+			ExpirationDate: time.Now().Add(24 * time.Hour).Format(time.RFC3339),
+			ProofValue:     "sig_did_ref",
+			CredentialSubject: map[string]interface{}{
+				"passportNumber": "ZZ999",
+			},
+		}
+
+		result := cvs.verifyCredential(credential)
+		if !result.Valid {
+			t.Fatalf("expected valid credential when issuer referenced by DID, got: %s", result.Error)
+		}
+	})
+
 	t.Run("reject_invalid_credential_missing_issuer", func(t *testing.T) {
 		credential := &VerifiableCredential{
 			ID:           "invalid_123",

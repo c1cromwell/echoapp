@@ -26,6 +26,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/services/groups"
 	"github.com/thechadcromwell/echoapp/internal/services/media"
 	"github.com/thechadcromwell/echoapp/internal/services/notification"
+	"github.com/thechadcromwell/echoapp/internal/services/onboarding"
 	rewardsSvc "github.com/thechadcromwell/echoapp/internal/services/rewards"
 	"github.com/thechadcromwell/echoapp/pkg/credentials"
 	"github.com/thechadcromwell/echoapp/pkg/credentials/oidc4vc"
@@ -95,6 +96,12 @@ func (s *Server) Start() error {
 	if pgDB != nil {
 		router.DIDRegistry = api.NewPostgresDIDRegistry(pgDB.Pool())
 		router.CredentialStatusPool = pgDB.Pool()
+		store := onboarding.NewPostgresTrustRegistryStore(pgDB)
+		if err := router.TrustRegistry.AttachStore(context.Background(), store); err != nil {
+			log.Printf("Trust registry PG attach failed, using in-memory: %v", err)
+		} else {
+			log.Println("Trust registry backed by PostgreSQL (WO-118)")
+		}
 	}
 	router.Redis = redisClient
 	if redisClient != nil {

@@ -154,6 +154,7 @@
 		DBFA163045353CCD11F92008 /* TrustScoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF624401C05323ECB4F3DA03 /* TrustScoreView.swift */; };
 		DE32CBC7A45FAEC445285B65 /* CallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF63CD1AB50EF7D840F6A9E1 /* CallView.swift */; };
 		DE4CA1FE4A226C77C87467C2 /* UseCases.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73D743AC0EC9162DF830D09D /* UseCases.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* ContactUseCases.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* ContactUseCases.swift */; };
 		DE847C0061CDD1E519F15D1A /* GlacialLoginScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 319937810E718ADD0D2844FB /* GlacialLoginScreen.swift */; };
 		E01B487E0CAC107ED3FD0A20 /* EchoNavBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D0D9373E76E4406DC0C55A4 /* EchoNavBar.swift */; };
 		E0E9190EC0E0FF81AED09F94 /* OfflineQueueManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5814F26DB11386DBE407C083 /* OfflineQueueManager.swift */; };
@@ -278,6 +279,7 @@
 		720AB150B7C1EEBD3C0675F9 /* RecoveryPhraseConfirmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPhraseConfirmView.swift; sourceTree = "<group>"; };
 		7246CB638513849A8078572F /* ProposalListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProposalListViewModel.swift; sourceTree = "<group>"; };
 		73D743AC0EC9162DF830D09D /* UseCases.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UseCases.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5D /* ContactUseCases.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Contacts/ContactUseCases.swift; sourceTree = "<group>"; };
 		78A096DCD53AAA92D864E318 /* DeliveryStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryStatus.swift; sourceTree = "<group>"; };
 		7A0F02E0B74FC3D3CD2E6188 /* ContactDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDetailViewModel.swift; sourceTree = "<group>"; };
 		7B3C0C127DF32B5035EB2473 /* CertificatePinner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CertificatePinner.swift; sourceTree = "<group>"; };
@@ -672,6 +674,7 @@
 			isa = PBXGroup;
 			children = (
 				F1A2B3C4012345678900003 /* RegisterWithVerifiableCredentialUseCase.swift */,
+				A1B2C3D4E5F60718293A4B5D /* ContactUseCases.swift */,
 				73D743AC0EC9162DF830D09D /* UseCases.swift */,
 			);
 			path = UseCases;
@@ -1332,6 +1335,7 @@
 				113D1831CE8D691664096254 /* TrustTierBadge.swift in Sources */,
 				74170DDC67A80BC7FBF7F88D /* Typography.swift in Sources */,
 				DE4CA1FE4A226C77C87467C2 /* UseCases.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* ContactUseCases.swift in Sources */,
 				525D25BB94FEF888F6B75010 /* ValidatorBrowserView.swift in Sources */,
 				9AF9CE03DC7122EF55DAA57A /* ViewModels.swift in Sources */,
 				6A4F135010DBFF76BEAC013F /* VoteConfirmationView.swift in Sources */,

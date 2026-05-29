@@ -60,6 +60,7 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 
 	// Contacts endpoints
 	mux.HandleFunc("/v3/contacts/psi", h.handleContactsPSI)
+	mux.HandleFunc("/v3/contacts/discovery-settings", h.handleContactsDiscoverySettings)
 	mux.HandleFunc("/v3/contacts/search", h.handleContactsSearch)
 	mux.HandleFunc("/v3/contacts/invite", h.handleContactsInvite)
 	mux.HandleFunc("/v3/contacts/verify", h.handleContactsVerify)
@@ -160,6 +161,47 @@ func (h *V3Handlers) handleContactsPSI(w http.ResponseWriter, r *http.Request) {
 		"index":      index,
 		"request_id": r.Header.Get("X-Request-ID"),
 	})
+}
+
+func (h *V3Handlers) handleContactsDiscoverySettings(w http.ResponseWriter, r *http.Request) {
+	if h.Contacts == nil {
+		WriteError(w, http.StatusServiceUnavailable, "DISCOVERY_UNAVAILABLE", "Contacts service not configured", r.Header.Get("X-Request-ID"))
+		return
+	}
+	did := h.getDID(r)
+	if did == "" {
+		WriteError(w, http.StatusUnauthorized, "MISSING_DID", "Authenticated DID required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	switch r.Method {
+	case http.MethodGet:
+		settings, err := h.Contacts.GetPhoneDiscoverySettings(r.Context(), did)
+		if err != nil {
+			WriteError(w, http.StatusNotFound, "USER_NOT_FOUND", err.Error(), r.Header.Get("X-Request-ID"))
+			return
+		}
+		WriteJSON(w, http.StatusOK, settings)
+	case http.MethodPatch, http.MethodPut:
+		var req struct {
+			OptIn bool `json:"phone_discovery_opt_in"`
+		}
+		if err := h.readJSON(r, &req); err != nil {
+			WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+			return
+		}
+		if err := h.Contacts.SetPhoneDiscoveryOptIn(r.Context(), did, req.OptIn); err != nil {
+			WriteError(w, http.StatusBadRequest, "UPDATE_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+			return
+		}
+		settings, err := h.Contacts.GetPhoneDiscoverySettings(r.Context(), did)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "SETTINGS_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+			return
+		}
+		WriteJSON(w, http.StatusOK, settings)
+	default:
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method not allowed", r.Header.Get("X-Request-ID"))
+	}
 }
 
 func (h *V3Handlers) handleContactsSearch(w http.ResponseWriter, r *http.Request) {

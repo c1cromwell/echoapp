@@ -25,8 +25,31 @@ struct ContactDiscoveryAPIClient: Sendable {
         let display_name: String?
     }
 
+    struct DiscoverySettings: Decodable, Sendable {
+        let did: String?
+        let trust_tier: Int?
+        let phone_discovery_opt_in: Bool?
+        let phone_discoverable: Bool?
+        let tier_default_discoverable: Bool?
+    }
+
+    struct DiscoverySettingsUpdate: Encodable, Sendable {
+        let phone_discovery_opt_in: Bool
+    }
+
     func evaluate(blinded: [String]) async throws -> PSIResponse {
         try await apiClient.post(endpoint: ContactsEndpoint.psiEvaluate, body: PSIRequest(blinded: blinded))
+    }
+
+    func fetchDiscoverySettings() async throws -> DiscoverySettings {
+        try await apiClient.get(endpoint: ContactsEndpoint.discoverySettings)
+    }
+
+    func updateDiscoveryOptIn(_ enabled: Bool) async throws -> DiscoverySettings {
+        try await apiClient.patch(
+            endpoint: ContactsEndpoint.discoverySettings,
+            body: DiscoverySettingsUpdate(phone_discovery_opt_in: enabled)
+        )
     }
 
     func resolveIdentity(did: String) async throws -> IdentityProfile {

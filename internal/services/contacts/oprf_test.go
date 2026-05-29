@@ -104,10 +104,16 @@ func TestOPRF_ObliviousEqualsServerEvaluate(t *testing.T) {
 // TestOPRF_DiscoveryFindsRegisteredOnly verifies a registered number is found via
 // the client-side index match and an unregistered one is not.
 func TestOPRF_DiscoveryFindsRegisteredOnly(t *testing.T) {
-	svc := NewService(database.NewMemoryDB())
+	db := database.NewMemoryDB()
+	svc := NewService(db)
 	svc.SetOPRF(newTestOPRFService(t))
 	ctx := context.Background()
 
+	if err := db.CreateUser(ctx, &database.User{
+		DID: "did:key:zAlice", Username: "alice", TrustTier: 3,
+	}); err != nil {
+		t.Fatal(err)
+	}
 	if err := svc.RegisterPhoneForDiscovery(ctx, "did:key:zAlice", "+15551111"); err != nil {
 		t.Fatal(err)
 	}

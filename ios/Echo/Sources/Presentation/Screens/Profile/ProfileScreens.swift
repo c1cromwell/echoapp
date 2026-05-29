@@ -7,6 +7,9 @@ public struct ProfileTabView: View {
     @State private var showEditProfile = false
     @State private var showPersonas = false
     @State private var showSettings = false
+    @State private var sessionDID: String = ""
+    @State private var sessionUsername: String = ""
+    @State private var sessionTrustTier: Int = 0
 
     let profile: ProfileData
     let personas: [Persona]
@@ -76,6 +79,14 @@ public struct ProfileTabView: View {
                         // Profile Header
                         profileHeader
 
+                        if !sessionDID.isEmpty {
+                            IdentityCardView(
+                                username: sessionUsername.isEmpty ? profile.username : sessionUsername,
+                                did: sessionDID,
+                                trustTier: sessionTrustTier > 0 ? sessionTrustTier : nil
+                            )
+                        }
+
                         // Personas Section
                         personasSection
 
@@ -88,6 +99,13 @@ public struct ProfileTabView: View {
                     .echoSpacing(.lg)
                 }
             }
+        }
+        .task {
+            if let did = await CurrentUserSession.currentDID() {
+                sessionDID = did
+            }
+            sessionUsername = await CurrentUserSession.currentUsername()
+            sessionTrustTier = CurrentUserSession.trustTier()
         }
     }
 

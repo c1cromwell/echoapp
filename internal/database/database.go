@@ -19,12 +19,13 @@ var ErrDuplicate = errors.New("duplicate record")
 
 // User represents an Echo user account.
 type User struct {
-	UserID    string    `json:"userId"`
-	DID       string    `json:"did"`
-	Username  string    `json:"username"`
-	TrustTier int       `json:"trustTier"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	UserID              string    `json:"userId"`
+	DID                 string    `json:"did"`
+	Username            string    `json:"username"`
+	TrustTier           int       `json:"trustTier"`
+	PhoneDiscoveryOptIn *bool     `json:"phoneDiscoveryOptIn,omitempty"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
 }
 
 // TrustScore represents a cached trust score for a DID.
@@ -144,6 +145,7 @@ type UserStore interface {
 	CreateUser(ctx context.Context, user *User) error
 	GetUserByDID(ctx context.Context, did string) (*User, error)
 	GetUserByUsername(ctx context.Context, username string) (*User, error)
+	UpdatePhoneDiscoveryOptIn(ctx context.Context, did string, optIn *bool) error
 }
 
 type TrustScoreStore interface {
@@ -256,6 +258,8 @@ type ContactDiscoveryStore interface {
 	PutDiscoveryKey(ctx context.Context, oprfKey, did string) error
 	// AllDiscoveryKeys returns the whole index for client-side matching.
 	AllDiscoveryKeys(ctx context.Context) (map[string]string, error)
+	// DeleteDiscoveryKeysForDID removes all PSI index entries for a user.
+	DeleteDiscoveryKeysForDID(ctx context.Context, did string) error
 }
 
 // --- In-Memory Implementation ---
@@ -444,6 +448,34 @@ func (m *MemoryDB) GetUserByUsername(ctx context.Context, username string) (*Use
 		return nil, ErrNotFound
 	}
 	return u, nil
+}
+
+func (m *MemoryDB) UpdatePhoneDiscoveryOptIn(_ context.Context, did string, optIn *bool) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	u, ok := m.users[did]
+	if !ok {
+		return ErrNotFound
+	}
+	if optIn == nil {
+		u.PhoneDiscoveryOptIn = nil
+	} else {
+		v := *optIn
+		u.PhoneDiscoveryOptIn = &v
+	}
+	u.UpdatedAt = time.Now()
+	return nil
+}
+
+func (m *MemoryDB) DeleteDiscoveryKeysForDID(_ context.Context, did string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for key, owner := range m.discoveryIndex {
+		if owner == did {
+			delete(m.discoveryIndex, key)
+		}
+	}
+	return nil
 }
 
 // --- Trust Score Store ---

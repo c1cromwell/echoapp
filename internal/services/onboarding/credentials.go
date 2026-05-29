@@ -169,8 +169,8 @@ func (cvs *CredentialVerificationService) verifyCredential(vc *VerifiableCredent
 		return result
 	}
 
-	// Stage 2: Issuer trust verification
-	issuer, err := cvs.trustRegistry.GetIssuer(vc.Issuer)
+	// Stage 2: Issuer trust verification (by issuer ID or DID — WO-109)
+	issuer, err := cvs.trustRegistry.ResolveIssuer(vc.Issuer)
 	if err != nil || issuer == nil {
 		result.Error = "issuer not found in trust registry"
 		return result

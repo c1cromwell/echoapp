@@ -19,6 +19,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/auth"
 	"github.com/thechadcromwell/echoapp/internal/infra"
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/services/onboarding"
 	"github.com/thechadcromwell/echoapp/pkg/credentials"
 	"github.com/thechadcromwell/echoapp/pkg/credentials/oidc4vc"
 )
@@ -71,6 +72,7 @@ type Router struct {
 	OIDC                 *gin.Engine                // OpenID4VCI issuer + verifier mount (optional)
 	OIDCVerifier         *oidc4vc.Verifier          // OIDC4VC presentation verifier (optional)
 	OIDCVerifierBaseURL  string                     // Public verifier base URL for iOS wallet handoff
+	TrustRegistry        *onboarding.TrustRegistryService // WO-118 issuer trust registry
 	tokenService         *auth.TokenService         // ES256 JWT token service
 
 	enrollmentVCMu       sync.Mutex
@@ -98,6 +100,7 @@ func NewRouter(allowedOrigins []string) *Router {
 		StartTime:      time.Now(),
 		WSHub:          hub,
 		DIDRegistry:    NewMemoryDIDRegistry(),
+		TrustRegistry:  onboarding.NewTrustRegistryService(),
 		tokenService:   tokenService,
 	}
 
@@ -309,13 +312,44 @@ func identityRequestExemptFromAuth(path, method string) bool {
 	}
 }
 
+func trustRegistryPublicRead(path, method string) bool {
+	if method != http.MethodGet {
+		return false
+	}
+	return path == "/v1/trust-registry/issuers" || strings.HasPrefix(path, "/v1/trust-registry/issuers/")
+}
+
+func trustRegistryAdminMutation(path, method string, r *http.Request) bool {
+	if method != http.MethodPost {
+		return false
+	}
+	return path == "/v1/trust-registry/issuers" || strings.Contains(path, "/v1/trust-registry/issuers/")
+}
+
+func onboardingSessionPublic(path, method string) bool {
+	if !strings.HasPrefix(path, "/v1/onboarding/session") {
+		return false
+	}
+	switch method {
+	case http.MethodPost:
+		return path == "/v1/onboarding/session/start" || strings.HasSuffix(path, "/advance")
+	case http.MethodGet:
+		return strings.HasPrefix(path, "/v1/onboarding/session/")
+	default:
+		return false
+	}
+}
+
 func (rt *Router) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Health check, WebSocket, public registration endpoints, and
 		// did:key resolution (which is local-only and inherently public) bypass auth.
 		if r.URL.Path == "/health" || r.URL.Path == "/ws" || publicPaths[r.URL.Path] ||
 			identityRequestExemptFromAuth(r.URL.Path, r.Method) ||
-			isOpenIDCredentialPath(r.URL.Path) {
+			isOpenIDCredentialPath(r.URL.Path) ||
+			trustRegistryPublicRead(r.URL.Path, r.Method) ||
+			trustRegistryAdminMutation(r.URL.Path, r.Method, r) ||
+			onboardingSessionPublic(r.URL.Path, r.Method) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -476,6 +510,10 @@ func (rt *Router) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.URL.Path, "/v1/trust-registry/") {
+		rt.handleTrustRegistry(w, r)
+		return
+	}
 	if strings.HasPrefix(r.URL.Path, "/v1/onboarding/") {
 		rt.handleOnboardingSession(w, r)
 		return

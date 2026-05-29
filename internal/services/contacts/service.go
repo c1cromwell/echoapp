@@ -62,10 +62,16 @@ func (s *Service) DiscoveryKey(e164 string) (string, error) {
 }
 
 // CommitDiscoveryKey records a confirmed OPRF index key -> DID binding in the
-// durable store, making the number discoverable. Called after phone ownership is
-// verified (e.g. OTP).
+// durable store when the user is discoverable per tier/opt-in policy (WO-220).
 func (s *Service) CommitDiscoveryKey(ctx context.Context, key, did string) error {
 	if key == "" {
+		return nil
+	}
+	user, err := s.db.GetUserByDID(ctx, did)
+	if err != nil {
+		return nil
+	}
+	if !IsPhoneDiscoverable(user.TrustTier, user.PhoneDiscoveryOptIn) {
 		return nil
 	}
 	return s.db.PutDiscoveryKey(ctx, key, did)
@@ -94,12 +100,57 @@ func (s *Service) OPRFEvaluate(blindedB64 []string) ([]string, error) {
 	return s.oprf.Evaluate(blindedB64)
 }
 
-// DiscoveryIndex returns the durable {hex(OPRF_k(phone)) -> DID} index for
-// CLIENT-SIDE matching. The client finalizes its evaluated elements locally and
-// looks them up here, so the server never receives the client's OPRF outputs
-// (which it could otherwise brute-force back to phone numbers using its key).
+// DiscoveryIndex returns discoverable {hex(OPRF_k(phone)) -> DID} entries only.
 func (s *Service) DiscoveryIndex(ctx context.Context) (map[string]string, error) {
-	return s.db.AllDiscoveryKeys(ctx)
+	raw, err := s.db.AllDiscoveryKeys(ctx)
+	if err != nil {
+		return nil, err
+	}
+	filtered := make(map[string]string, len(raw))
+	for key, did := range raw {
+		user, err := s.db.GetUserByDID(ctx, did)
+		if err != nil {
+			continue
+		}
+		if IsPhoneDiscoverable(user.TrustTier, user.PhoneDiscoveryOptIn) {
+			filtered[key] = did
+		}
+	}
+	return filtered, nil
+}
+
+// SetPhoneDiscoveryOptIn updates the user's PSI discoverability preference.
+// When disabled, existing index entries for the DID are removed.
+func (s *Service) SetPhoneDiscoveryOptIn(ctx context.Context, did string, optIn bool) error {
+	val := optIn
+	if err := s.db.UpdatePhoneDiscoveryOptIn(ctx, did, &val); err != nil {
+		return err
+	}
+	if !optIn {
+		return s.db.DeleteDiscoveryKeysForDID(ctx, did)
+	}
+	return nil
+}
+
+// GetPhoneDiscoverySettings returns the effective discoverability state for a user.
+func (s *Service) GetPhoneDiscoverySettings(ctx context.Context, did string) (map[string]interface{}, error) {
+	user, err := s.db.GetUserByDID(ctx, did)
+	if err != nil {
+		return nil, err
+	}
+	discoverable := IsPhoneDiscoverable(user.TrustTier, user.PhoneDiscoveryOptIn)
+	var explicit *bool
+	if user.PhoneDiscoveryOptIn != nil {
+		v := *user.PhoneDiscoveryOptIn
+		explicit = &v
+	}
+	return map[string]interface{}{
+		"did":                      did,
+		"trust_tier":               user.TrustTier,
+		"phone_discovery_opt_in":   explicit,
+		"phone_discoverable":       discoverable,
+		"tier_default_discoverable": user.TrustTier >= minTierForDefaultPhoneDiscovery,
+	}, nil
 }
 
 // SearchByUsername searches for users by handle.

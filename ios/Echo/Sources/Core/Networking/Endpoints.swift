@@ -764,6 +764,7 @@ struct AddBadgeRequest: Codable {
 
 enum ContactsEndpoint: APIEndpoint {
     case psiEvaluate
+    case discoverySettings
     case identityResolve(did: String)
     case search(handle: String)
     case invite
@@ -774,6 +775,8 @@ enum ContactsEndpoint: APIEndpoint {
         switch self {
         case .psiEvaluate:
             return "/v3/contacts/psi"
+        case .discoverySettings:
+            return "/v3/contacts/discovery-settings"
         case .identityResolve(let did):
             let encoded = did.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? did
             return "/v3/identity/\(encoded)"

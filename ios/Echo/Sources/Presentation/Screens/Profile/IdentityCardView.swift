@@ -9,14 +9,16 @@ public struct IdentityCardView: View {
     let username: String
     let did: String
     let joinDate: Date?
+    let trustTier: Int?
 
     @State private var showQR = false
     @State private var copied = false
 
-    public init(username: String, did: String, joinDate: Date? = nil) {
+    public init(username: String, did: String, joinDate: Date? = nil, trustTier: Int? = nil) {
         self.username = username
         self.did = did
         self.joinDate = joinDate
+        self.trustTier = trustTier
     }
 
     private var shortDID: String {
@@ -45,6 +47,11 @@ public struct IdentityCardView: View {
                         .font(.system(size: 18, weight: .semibold))
                         .tracking(-0.3)
                         .foregroundStyle(Color.echoInk)
+                    if let tier = trustTier {
+                        Text("Trust tier T\(tier)")
+                            .font(.echomono(11))
+                            .foregroundStyle(Color.echoTrustGreen)
+                    }
                     if let d = joinDate {
                         Text("joined \(d.formatted(.dateTime.year().month().day()))")
                             .font(.echomono(11))
@@ -98,7 +105,7 @@ public struct IdentityCardView: View {
         .background(Color.echoPaperDim, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.echoHair, lineWidth: 1))
         .sheet(isPresented: $showQR) {
-            QRIdentitySheet(did: did, username: username)
+            QRIdentitySheet(did: did, username: username, trustTier: trustTier ?? 0)
         }
     }
 
@@ -170,29 +177,47 @@ public struct IdentityProtectedList: View {
     }
 }
 
-// MARK: - QR sheet stub
+// MARK: - QR sheet (uses QRIdentityViewModel payload)
 
 private struct QRIdentitySheet: View {
     let did: String
     let username: String
+    let trustTier: Int
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var viewModel = QRIdentityViewModel()
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 24) {
                 Text("Share your public key")
                     .font(.system(size: 17, weight: .semibold))
-                // Real implementation renders QRIdentityView
+
+                if let qrImage = viewModel.qrCodeImage {
+                    Image(uiImage: qrImage)
+                        .interpolation(.none)
+                        .resizable()
+                        .frame(width: 200, height: 200)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+
+                Text("@\(username)")
+                    .font(.system(size: 15, weight: .semibold))
                 Text(did)
                     .font(.echomono(11))
                     .foregroundStyle(Color.echoInk55)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
+
+                Button("Share Link") { viewModel.shareLink() }
+                    .font(.system(size: 14, weight: .medium))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.echoPaper.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
+            .onAppear {
+                viewModel.configure(did: did, username: username, trustTier: trustTier)
+            }
         }
     }
 }

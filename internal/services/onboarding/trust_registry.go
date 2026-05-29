@@ -1,6 +1,7 @@
 package onboarding
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -81,6 +82,7 @@ type TrustRegistryService struct {
 	dids             map[string]*TrustedIssuer // DID -> TrustedIssuer (reverse lookup)
 	suspendedIssuers map[string]time.Time      // issuerID -> suspension time
 	revokedIssuers   map[string]bool           // issuerID -> revoked
+	store            TrustRegistryStore
 }
 
 // NewTrustRegistryService creates a new trust registry
@@ -96,6 +98,95 @@ func NewTrustRegistryService() *TrustRegistryService {
 	registry.initializeWellKnownIssuers()
 
 	return registry
+}
+
+// AttachStore loads issuers from Postgres when present; otherwise seeds the store from
+// the in-memory well-known issuers (WO-118).
+func (tr *TrustRegistryService) AttachStore(ctx context.Context, store TrustRegistryStore) error {
+	if store == nil {
+		return nil
+	}
+	tr.mu.Lock()
+	tr.store = store
+	tr.mu.Unlock()
+
+	loaded, err := store.ListIssuers(ctx)
+	if err != nil {
+		return err
+	}
+	if len(loaded) == 0 {
+		tr.mu.RLock()
+		seed := make([]*TrustedIssuer, 0, len(tr.issuers))
+		for _, issuer := range tr.issuers {
+			seed = append(seed, issuer)
+		}
+		tr.mu.RUnlock()
+		for _, issuer := range seed {
+			if err := store.SaveIssuer(ctx, issuer, nil, nil); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+	tr.issuers = make(map[string]*TrustedIssuer)
+	tr.dids = make(map[string]*TrustedIssuer)
+	tr.suspendedIssuers = make(map[string]time.Time)
+	tr.revokedIssuers = make(map[string]bool)
+	for _, issuer := range loaded {
+		tr.issuers[issuer.ID] = issuer
+		tr.dids[issuer.DID] = issuer
+		if issuer.Status == "suspended" {
+			tr.suspendedIssuers[issuer.ID] = issuer.LastVerificationDate
+		}
+		if issuer.Status == "revoked" {
+			tr.revokedIssuers[issuer.ID] = true
+		}
+	}
+	return nil
+}
+
+func (tr *TrustRegistryService) persistIssuer(ctx context.Context, issuerID string) {
+	if tr.store == nil {
+		return
+	}
+	tr.mu.RLock()
+	issuer, ok := tr.issuers[issuerID]
+	var suspendedAt *time.Time
+	if t, suspended := tr.suspendedIssuers[issuerID]; suspended {
+		suspendedAt = &t
+	}
+	var revokedAt *time.Time
+	if tr.revokedIssuers[issuerID] {
+		now := time.Now()
+		revokedAt = &now
+	}
+	tr.mu.RUnlock()
+	if !ok || issuer == nil {
+		return
+	}
+	_ = tr.store.SaveIssuer(ctx, issuer, suspendedAt, revokedAt)
+}
+
+// ResolveIssuer looks up an issuer by ID or DID (WO-109).
+func (tr *TrustRegistryService) ResolveIssuer(issuerRef string) (*TrustedIssuer, error) {
+	if issuer, err := tr.GetIssuer(issuerRef); err == nil {
+		return issuer, nil
+	}
+	return tr.GetIssuerByDID(issuerRef)
+}
+
+// ListIssuers returns all issuers including suspended/revoked (admin/list API).
+func (tr *TrustRegistryService) ListIssuers() []*TrustedIssuer {
+	tr.mu.RLock()
+	defer tr.mu.RUnlock()
+	out := make([]*TrustedIssuer, 0, len(tr.issuers))
+	for _, issuer := range tr.issuers {
+		out = append(out, issuer)
+	}
+	return out
 }
 
 // RegisterIssuer adds a new issuer to the trust registry
@@ -117,6 +208,14 @@ func (tr *TrustRegistryService) RegisterIssuer(issuer *TrustedIssuer) error {
 
 	tr.issuers[issuer.ID] = issuer
 	tr.dids[issuer.DID] = issuer
+
+	if tr.store != nil {
+		if err := tr.store.SaveIssuer(context.Background(), issuer, nil, nil); err != nil {
+			delete(tr.issuers, issuer.ID)
+			delete(tr.dids, issuer.DID)
+			return fmt.Errorf("persist issuer: %w", err)
+		}
+	}
 
 	return nil
 }
@@ -158,12 +257,17 @@ func (tr *TrustRegistryService) GetIssuerByDID(did string) (*TrustedIssuer, erro
 		return nil, fmt.Errorf("issuer with DID %s not found", did)
 	}
 
-	// Check if active/not revoked
-	if !tr.revokedIssuers[issuer.ID] && issuer.Status == "active" {
-		return issuer, nil
+	if tr.revokedIssuers[issuer.ID] {
+		return nil, fmt.Errorf("issuer with DID %s has been revoked", did)
+	}
+	if suspensionTime, suspended := tr.suspendedIssuers[issuer.ID]; suspended {
+		return nil, fmt.Errorf("issuer with DID %s is suspended since %v", did, suspensionTime)
+	}
+	if issuer.Status != "active" {
+		return nil, fmt.Errorf("issuer with DID %s is not active", did)
 	}
 
-	return nil, fmt.Errorf("issuer with DID %s is not active", did)
+	return issuer, nil
 }
 
 // VerifyCredentialType checks if an issuer can issue a specific credential type
@@ -192,6 +296,7 @@ func (tr *TrustRegistryService) SuspendIssuer(issuerID string) error {
 	}
 
 	tr.suspendedIssuers[issuerID] = time.Now()
+	tr.persistIssuer(context.Background(), issuerID)
 	return nil
 }
 
@@ -205,6 +310,7 @@ func (tr *TrustRegistryService) ResumeIssuer(issuerID string) error {
 	}
 
 	delete(tr.suspendedIssuers, issuerID)
+	tr.persistIssuer(context.Background(), issuerID)
 	return nil
 }
 
@@ -218,6 +324,7 @@ func (tr *TrustRegistryService) RevokeIssuer(issuerID string) error {
 	}
 
 	tr.revokedIssuers[issuerID] = true
+	tr.persistIssuer(context.Background(), issuerID)
 	return nil
 }
 
@@ -285,6 +392,7 @@ func (tr *TrustRegistryService) UpdateIssuerStatus(issuerID, status string) erro
 
 	issuer.Status = status
 	issuer.LastVerificationDate = time.Now()
+	tr.persistIssuer(context.Background(), issuerID)
 	return nil
 }
 

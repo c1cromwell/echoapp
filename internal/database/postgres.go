@@ -91,32 +91,54 @@ func (p *PostgresDB) CreateUser(ctx context.Context, user *User) error {
 
 func (p *PostgresDB) GetUserByDID(ctx context.Context, did string) (*User, error) {
 	var u User
+	var optIn *bool
 	err := p.pool.QueryRow(ctx,
-		`SELECT user_id, did, username, trust_tier, created_at, updated_at
+		`SELECT user_id, did, username, trust_tier, phone_discovery_opt_in, created_at, updated_at
 		 FROM users WHERE did = $1`, did).
-		Scan(&u.UserID, &u.DID, &u.Username, &u.TrustTier, &u.CreatedAt, &u.UpdatedAt)
+		Scan(&u.UserID, &u.DID, &u.Username, &u.TrustTier, &optIn, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("get user by did: %w", err)
 	}
+	u.PhoneDiscoveryOptIn = optIn
 	return &u, nil
 }
 
 func (p *PostgresDB) GetUserByUsername(ctx context.Context, username string) (*User, error) {
 	var u User
+	var optIn *bool
 	err := p.pool.QueryRow(ctx,
-		`SELECT user_id, did, username, trust_tier, created_at, updated_at
+		`SELECT user_id, did, username, trust_tier, phone_discovery_opt_in, created_at, updated_at
 		 FROM users WHERE username = $1`, username).
-		Scan(&u.UserID, &u.DID, &u.Username, &u.TrustTier, &u.CreatedAt, &u.UpdatedAt)
+		Scan(&u.UserID, &u.DID, &u.Username, &u.TrustTier, &optIn, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("get user by username: %w", err)
 	}
+	u.PhoneDiscoveryOptIn = optIn
 	return &u, nil
+}
+
+func (p *PostgresDB) UpdatePhoneDiscoveryOptIn(ctx context.Context, did string, optIn *bool) error {
+	tag, err := p.pool.Exec(ctx,
+		`UPDATE users SET phone_discovery_opt_in = $2, updated_at = NOW() WHERE did = $1`,
+		did, optIn)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (p *PostgresDB) DeleteDiscoveryKeysForDID(ctx context.Context, did string) error {
+	_, err := p.pool.Exec(ctx, `DELETE FROM contact_discovery_index WHERE did = $1`, did)
+	return err
 }
 
 // --- TrustScoreStore ---

@@ -57,7 +57,7 @@ public struct QRIdentityView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 10))
-                    Text("Trust Score: \(viewModel.trustScore)/100")
+                    Text("Trust tier T\(viewModel.trustTier)")
                         .font(Font.Echo.labelMd)
                 }
                 .foregroundStyle(Color.Echo.outline)
@@ -118,6 +118,7 @@ public struct QRIdentityView: View {
         }
         .icyBackground()
         .navigationTitle("My Identity")
+        .task { await viewModel.loadFromSession() }
         #if os(iOS)
         .fullScreenCover(isPresented: $showScanner) {
             QRScannerView(onScan: { did in
@@ -142,7 +143,7 @@ public struct QRIdentityView: View {
 class QRIdentityViewModel: ObservableObject {
     @Published var echoHandle: String = ""
     @Published var did: String = ""
-    @Published var trustScore: Int = 0
+    @Published var trustTier: Int = 0
     #if canImport(UIKit)
     @Published var qrCodeImage: UIImage?
     #elseif canImport(AppKit)
@@ -154,29 +155,47 @@ class QRIdentityViewModel: ObservableObject {
         return "\(did.prefix(12))...\(did.suffix(6))"
     }
 
-    init() {
-        // Load identity info
-        loadIdentity()
+    var shareURL: URL? {
+        guard !did.isEmpty else { return nil }
+        #if os(iOS)
+        return CurrentUserSession.identityShareURL(did: did, username: echoHandle.replacingOccurrences(of: "@", with: ""))
+        #else
+        return URL(string: "echo://profile?did=\(did)")
+        #endif
     }
 
-    func loadIdentity() {
-        // TODO: Load from identity service
-        echoHandle = "echo:user"
-        did = "did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9KbrL2g"
-        trustScore = 72
-        generateQRCode()
+    init() {}
+
+    func configure(did: String, username: String, trustTier: Int) {
+        self.did = did
+        self.echoHandle = username.hasPrefix("@") ? username : "@\(username)"
+        self.trustTier = trustTier
+        generateQRCode(payload: shareURL?.absoluteString ?? did)
     }
 
-    func generateQRCode() {
+    func loadFromSession() async {
+        #if os(iOS)
+        if let sessionDID = await CurrentUserSession.currentDID() {
+            did = sessionDID
+        }
+        let username = await CurrentUserSession.currentUsername()
+        echoHandle = username.hasPrefix("@") ? username : "@\(username)"
+        trustTier = CurrentUserSession.trustTier()
+        #endif
+        generateQRCode(payload: shareURL?.absoluteString ?? did)
+    }
+
+    func generateQRCode(payload: String? = nil) {
+        let message = payload ?? shareURL?.absoluteString ?? did
+        guard !message.isEmpty else { return }
+
         let context = CIContext()
         let filter = CIFilter.qrCodeGenerator()
-        let data = Data(did.utf8)
-        filter.setValue(data, forKey: "inputMessage")
+        filter.setValue(Data(message.utf8), forKey: "inputMessage")
         filter.setValue("M", forKey: "inputCorrectionLevel")
 
         guard let outputImage = filter.outputImage else { return }
 
-        // Scale up for crisp rendering
         let transform = CGAffineTransform(scaleX: 10, y: 10)
         let scaledImage = outputImage.transformed(by: transform)
 
@@ -188,12 +207,29 @@ class QRIdentityViewModel: ObservableObject {
         #endif
     }
 
-    func handleScannedDID(_ did: String) {
-        // TODO: Validate DID and initiate trust handshake
+    func handleScannedDID(_ scanned: String) {
+        // Accept raw did:key or echo://profile deep links.
+        if scanned.hasPrefix("echo://"), let url = URL(string: scanned),
+           let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+           let didItem = components.queryItems?.first(where: { $0.name == "did" }),
+           let resolved = didItem.value {
+            _ = resolved
+            // Contact add flow is handled by Contacts feature (WO-222).
+        }
     }
 
     func shareLink() {
-        // TODO: Share via UIActivityViewController
+        guard let url = shareURL else { return }
+        #if os(iOS)
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { return }
+        var presenter = root
+        while let presented = presenter.presentedViewController {
+            presenter = presented
+        }
+        let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        presenter.present(activity, animated: true)
+        #endif
     }
 }
 
@@ -208,7 +244,6 @@ struct QRScannerView: View {
             Color.Echo.deepNavy.ignoresSafeArea()
 
             VStack(spacing: 24) {
-                // Camera preview placeholder
                 RoundedRectangle(cornerRadius: 32)
                     .fill(Color.Echo.surfaceContainerHigh.opacity(0.3))
                     .frame(width: 280, height: 280)
