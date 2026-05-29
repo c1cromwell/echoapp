@@ -11,7 +11,22 @@
 #   Identity L0: 9600 (public), 9601 (p2p), 9602 (cli)
 #   Identity L1: 9500 (public), 9501 (p2p), 9502 (cli)
 #
-# Both nodes join the same Docker network as the Euclid cluster (euclid_custom).
+# Both nodes join the same Docker network as the Euclid cluster (custom-network,
+# subnet 172.50.0.0/24, created by Euclid's ansible — metagraph-node-1 = 172.50.0.10).
+#
+# STATUS: NOT YET FUNCTIONAL — nodes crash-loop on startup. Remaining blockers
+# (deferred to WO-273/274 Identity/VC bring-up):
+#   1. L0 uses subcommand `run-initial-validator`, which the L0 app rejects — it
+#      only accepts create-genesis | run-genesis | run-validator | run-rollback.
+#      Identity L0 needs a genesis flow (create-genesis then run-genesis), like
+#      the currency metagraph-l0.
+#   2. L1 aborts: required CL_L0_PEER_ID / CL_GLOBAL_L0_PEER_ID are unset, and
+#      CL_L0_PEER_HTTP_HOST points at metagraph-node-1 (172.50.0.10:9600) instead
+#      of the identity-l0 container. L1 must peer with identity-l0's ID/host.
+#   3. No genesis snapshot, peer IDs (derive from the p12 keys), or static IP
+#      assignment — the full L0<->L1<->Global-L0 wiring hydra normally provides.
+# NOTE: metagraph/euclid.json also lists identity_l0/identity_l1 as hydra layers;
+# that path is likewise not yet working. Pick one mechanism when doing the bring-up.
 
 x-identity-base: &identity-base
   image: metagraph-base-image:latest
@@ -23,7 +38,7 @@ x-identity-base: &identity-base
     CL_KEYALIAS: alias
     CL_PASSWORD: password
   networks:
-    - euclid_custom
+    - custom-network
 
 services:
 
@@ -102,5 +117,5 @@ services:
       - identity-l0
 
 networks:
-  euclid_custom:
+  custom-network:
     external: true
