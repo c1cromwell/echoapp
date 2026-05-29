@@ -125,8 +125,9 @@ cd metagraph && sbt assembly && cd ..
 # 2. Bring up the Phase-1 cluster: Euclid metagraph + Postgres/Redis/NATS/MinIO + echoapp:8000.
 make dev
 
-# 3. (Optional) Identity L0/L1 for VC / trust-tier features — custom Echo modules
-#    run from the assembly JARs (not managed by Euclid hydra).
+# 3. (Optional) Identity L0/L1 for VC / trust-tier features — a SEPARATE metagraph
+#    run from the assembly JARs (not hydra-managed; see docs/adr/0002…). Requires
+#    step 2's cluster up: Identity L0 genesis-boots then peers with the Global L0.
 make start-identity
 
 # 4. Run the WO-230 go/no-go validation.
@@ -248,7 +249,7 @@ if the change is architecturally meaningful.
 - **`sbt assembly` slow on first run.** Expected — it pulls the Tessellation SDK; later runs hit the Coursier cache and finish in seconds.
 - **JVM picks an old JDK.** Force 21: `export JAVA_HOME=$(/usr/libexec/java_home -v 21)` (macOS).
 - **Port already in use.** Euclid/Identity use the 9000–9602 range. Find squatters: `lsof -nP -iTCP -sTCP:LISTEN | awk '$9 ~ /:(9[0-6][0-9][0-9])$/'`.
-- **`make dev` healthy but Identity L0/L1 unreachable.** Hydra is still starting the JVMs — wait 30–60s, then `make dev-status`; logs via `cd ../euclid-development-environment && scripts/hydra logs identity-l0`.
+- **Identity L0/L1 unreachable.** Identity is a **separate** metagraph — `make dev` does **not** start it (it's not hydra-managed; see [ADR-0002](docs/adr/0002-identity-metagraph-deployment.md)). Run `make start-identity` after the core cluster is up (it preflights the JARs, `metagraph-base-image`, and Global L0). L0 genesis takes ~30s to reach `Ready`. Logs via `docker logs identity-l0` / `docker logs identity-l1`.
 - **`IDENTITY_SERVICE_DID` not set.** Identity L1 rejects every submission (authorized-sender check). Generate one: `go run ./cmd/didkey -in /path/to/key.pem`, then set it in `.env`.
 - **Env vars.** Required values live in `.env.example`. Notable: `IDENTITY_SERVICE_DID`, `JWT_SIGNING_KEY` (**required in production**), `CONTACT_OPRF_KEY` (contact discovery), `LOG_MASTER_KEY` (audit log). Generation steps are in `docs/E2E_LAUNCH_AND_TESTING.md §3`.
 

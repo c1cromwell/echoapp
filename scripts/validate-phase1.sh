@@ -64,7 +64,7 @@ printf "Global L0:      %s\n" "$GLOBAL_L0_URL"
 printf "Metagraph L0:   %s\n" "$METAGRAPH_L0_URL"
 printf "Currency L1:    %s\n" "$CURRENCY_L1_URL"
 printf "Data L1:        %s\n" "$DATA_L1_URL"
-printf "Identity L0:    %s (pending WO-276)\n" "$IDENTITY_L0_URL"
+printf "Identity L0:    %s (separate metagraph — 'make start-identity')\n" "$IDENTITY_L0_URL"
 printf "Finality limit: %ss\n" "$FINALITY_TIMEOUT_SECS"
 
 step 0 "Prerequisites"
@@ -206,7 +206,7 @@ if curl -fsS --max-time 5 "$IDENTITY_L0_URL/node/info" >/dev/null 2>&1; then
   if curl -fsS --max-time 5 "$IDENTITY_L1_URL/node/info" >/dev/null 2>&1; then
     ok "Identity Metagraph L1 reachable ($IDENTITY_L1_URL)"
   else
-    fail "Identity L1 unreachable at $IDENTITY_L1_URL — check 'hydra status'"
+    fail "Identity L1 unreachable at $IDENTITY_L1_URL — start it with 'make start-identity' (separate from hydra)"
   fi
 
   NONCE="$(openssl rand -hex 16)"

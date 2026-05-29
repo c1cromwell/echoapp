@@ -60,10 +60,16 @@ make dev-status
 curl -s http://localhost:8000/health | jq .status   # → "operational"
 ```
 
-Optional Identity nodes (VC / trust tier):
+Optional Identity nodes (VC / trust tier). The Identity Metagraph is **separate**
+from the Euclid cluster and is **not** hydra-managed (see
+[ADR-0002](adr/0002-identity-metagraph-deployment.md)); start it only after
+`make dev` is up — it genesis-boots its own L0 and peers with the running Global L0:
 
 ```bash
-make start-identity   # L0 :9600, L1 :9500
+make start-identity                                  # L0 :9600, L1 :9500
+# verify both reach Ready (genesis takes ~30s):
+curl -s http://localhost:9600/node/info | jq .state  # → "Ready"
+curl -s http://localhost:9500/node/info | jq .state  # → "Ready"
 ```
 
 ### 3b. WO-230 go/no-go validation
@@ -85,7 +91,7 @@ Expected for a clean Phase 1 build:
 Go/No-Go: GO ✓
 ```
 
-Steps 3 and 5 may show `skip` when the Euclid cluster isn't running — fine for simulator-only. **All steps must be `ok` before TestFlight sign-off.**
+Step 3 needs `make start-identity` (separate metagraph) and Step 5 needs the Euclid cluster; both show `skip` when those aren't running — fine for simulator-only. **All steps must be `ok` before TestFlight sign-off.**
 
 Details: [`metagraph-backend-e2e-testing.md`](metagraph-backend-e2e-testing.md), skill **`echo-phase1-validate`**.
 

@@ -321,21 +321,36 @@ dev-stop: testnet-down ## Tear down backend stack (does not stop metagraph)
 # Identity nodes (L0 port 9600, L1 port 9500) are custom Echo modules not
 # managed by Euclid hydra. They require sbt assembly JARs and their own
 # Docker setup. Use these targets once the core cluster is running.
-start-identity: ## Start Identity L0 + L1 nodes (requires sbt assembly first)
+start-identity: ## Start Identity L0 + L1 nodes (requires sbt assembly + running cluster)
 	@echo "Starting Identity nodes..."
 	@JAR_L0=$$(ls metagraph/modules/identity_l0/target/scala-2.13/*assembly*.jar 2>/dev/null | head -1); \
 	JAR_L1=$$(ls metagraph/modules/identity_l1/target/scala-2.13/*assembly*.jar 2>/dev/null | head -1); \
 	if [ -z "$$JAR_L0" ] || [ -z "$$JAR_L1" ]; then \
-	  echo "  ✗ Identity JARs not found. Run: cd metagraph && sbt assembly"; \
+	  echo "  ✗ Identity JARs not found. Run: cd metagraph && sbt identityL0/assembly identityL1/assembly"; \
 	  exit 1; \
 	fi; \
 	echo "  ✓ Found $$JAR_L0"; \
 	echo "  ✓ Found $$JAR_L1"; \
-	docker compose -f docker-compose.identity.yml up -d --build
-	@echo "  Waiting for Identity L0 on :9600..."
-	@for i in $$(seq 1 30); do \
+	if ! docker image inspect metagraph-base-image:latest >/dev/null 2>&1; then \
+	  echo "  ✗ metagraph-base-image:latest not found — start the core cluster first: make dev"; \
+	  exit 1; \
+	fi; \
+	echo "  ✓ Base image present"; \
+	if ! curl -fsS --max-time 3 http://localhost:9000/node/info >/dev/null 2>&1; then \
+	  echo "  ✗ Global L0 not reachable on :9000 — Identity L0 peers with it. Run 'make dev' first."; \
+	  exit 1; \
+	fi; \
+	echo "  ✓ Global L0 reachable"
+	docker compose -f docker-compose.identity.yml up -d
+	@echo "  Waiting for Identity L0 on :9600 (genesis can take ~30s)..."
+	@for i in $$(seq 1 40); do \
 	  if curl -fsS --max-time 2 http://localhost:9600/node/info >/dev/null 2>&1; then \
 	    echo "  ✓ Identity L0 ready"; break; \
+	  fi; sleep 3; done
+	@echo "  Waiting for Identity L1 on :9500..."
+	@for i in $$(seq 1 40); do \
+	  if curl -fsS --max-time 2 http://localhost:9500/node/info >/dev/null 2>&1; then \
+	    echo "  ✓ Identity L1 ready"; break; \
 	  fi; sleep 3; done
 
 stop-identity: ## Stop Identity L0 + L1 nodes
