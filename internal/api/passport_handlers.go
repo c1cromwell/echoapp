@@ -41,6 +41,8 @@ func (rt *Router) handlePassport(w http.ResponseWriter, r *http.Request) {
 		rt.handlePassportPresent(w, r, path)
 	case path == "sync":
 		rt.handlePassportSync(w, r)
+	case strings.HasPrefix(path, "recovery/"):
+		rt.handlePassportRecovery(w, r, recoveryActionFromPath(path))
 	default:
 		WriteError(w, http.StatusNotFound, "NOT_FOUND", "Unknown passport path", r.Header.Get("X-Request-ID"))
 	}

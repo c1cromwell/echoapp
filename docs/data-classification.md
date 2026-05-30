@@ -149,6 +149,7 @@ These checks run at L1 consensus time. Any transaction that passes CI but fails 
 | `derivedKey`, `storageKey` | T1 | Re-derive on unlock; zero on background |
 | `encryptedContent`, `ciphertext` | T2 | Device-local AES-256-GCM only |
 | `passport_sync_blob.ciphertext`, `ciphertext_base64` (Passport sync) | T2 | Client-encrypted with `CredentialSyncKey`; server/IPFS store opaque bytes only |
+| `passport_recovery_share`, `passport_recovery_policy` (guardian DIDs, share index) | T7 | Metadata only — no Shamir share bytes or recovery secret server-side |
 | `offlineQueueBlob` | T3 | Postgres ephemeral TTL; never on-chain |
 | `auditCID` | T4 | Content-addressed CID to IPFS encrypted blob |
 | `merkleRoot` | T5 | SHA-256 of batch; only hash, never content |

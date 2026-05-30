@@ -124,6 +124,6 @@ guardianship. May be offered as *one* shareholder, not the root.
 ## Implementation status
 
 - [x] Wave 0 design complete (ADR 0004 Accepted; default 2-of-3, guardian VC sketch, threat model)
-- [ ] WO-296: `pkg/passport/recovery/` Shamir split/combine, guardian-acceptance VC, `passport_recovery_share`
+- [x] WO-296: `pkg/passport/recovery/` Shamir split/combine, guardian-acceptance VC, `passport_recovery_share`
 - [ ] WO-297: iOS recovery setup UI
 - [ ] WO-303: guardian bonds, device rotation, third-party audit

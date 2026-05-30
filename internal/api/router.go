@@ -23,6 +23,7 @@ import (
 	"github.com/thechadcromwell/echoapp/pkg/credentials"
 	"github.com/thechadcromwell/echoapp/pkg/credentials/oidc4vc"
 	"github.com/thechadcromwell/echoapp/pkg/passport"
+	"github.com/thechadcromwell/echoapp/pkg/passport/recovery"
 )
 
 // contextKey is an unexported type for context keys to avoid collisions.
@@ -76,6 +77,7 @@ type Router struct {
 	TrustRegistry        *onboarding.TrustRegistryService // WO-118 issuer trust registry
 	Passport             *passport.Service              // WO-293 Echo Passport holder refs
 	PassportSync         *passport.SyncService          // WO-294 client-encrypted credential sync
+	PassportRecovery     *recovery.Service              // WO-296 social-threshold recovery metadata
 	tokenService         *auth.TokenService         // ES256 JWT token service
 
 	enrollmentVCMu       sync.Mutex

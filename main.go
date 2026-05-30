@@ -31,6 +31,7 @@ import (
 	"github.com/thechadcromwell/echoapp/pkg/credentials"
 	"github.com/thechadcromwell/echoapp/pkg/credentials/oidc4vc"
 	"github.com/thechadcromwell/echoapp/pkg/passport"
+	"github.com/thechadcromwell/echoapp/pkg/passport/recovery"
 	"github.com/thechadcromwell/echoapp/pkg/storage/encblob"
 )
 
@@ -110,8 +111,10 @@ func (s *Server) Start() error {
 			blobStore = fallback
 		}
 		router.PassportSync = passport.NewSyncService(pgDB, blobStore)
+		router.PassportRecovery = recovery.NewService(pgDB)
 		log.Println("Echo Passport holder refs backed by PostgreSQL (WO-293)")
 		log.Println("Echo Passport credential sync enabled (WO-294)")
+		log.Println("Echo Passport social recovery enabled (WO-296)")
 	}
 	router.Redis = redisClient
 	if redisClient != nil {

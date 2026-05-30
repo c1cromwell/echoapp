@@ -1337,6 +1337,69 @@ paths:
         "200":
           description: Sync metadata stored
 
+  /passport/recovery/setup:
+    post:
+      tags: [Passport]
+      summary: Register social-threshold recovery policy
+      description: |
+        Stores M-of-N policy and guardian share metadata after client-side Shamir split (WO-296).
+        Never accepts share bytes or recovery secrets.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PassportRecoverySetupRequest"
+      responses:
+        "201":
+          description: Recovery policy registered
+
+  /passport/recovery/initiate:
+    post:
+      tags: [Passport]
+      summary: Begin social recovery session
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Recovery session with active guardians to contact
+
+  /passport/recovery/complete:
+    post:
+      tags: [Passport]
+      summary: Complete recovery after client-side reconstruction
+      description: Accepts root_key_commitment (SHA-256 hex) only — not the secret.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [session_id, root_key_commitment]
+              properties:
+                session_id:
+                  type: string
+                root_key_commitment:
+                  type: string
+                  description: hex(SHA-256(PassportRootKey)) attestation from new device
+      responses:
+        "200":
+          description: Recovery session completed
+
+  /passport/recovery/status:
+    get:
+      tags: [Passport]
+      summary: Get recovery policy and shareholder metadata
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Policy and shareholders
+
   /identity/credentials/{credentialId}/verify:
     get:
       tags: [Identity]
@@ -2385,6 +2448,35 @@ components:
         ciphertext_base64:
           type: string
           description: Client-encrypted blob (T2); server cannot decrypt
+
+    PassportRecoverySetupRequest:
+      type: object
+      required: [threshold_m, total_n, shareholders]
+      properties:
+        threshold_m:
+          type: integer
+          minimum: 2
+        total_n:
+          type: integer
+          minimum: 2
+        shareholders:
+          type: array
+          items:
+            type: object
+            required: [share_index, guardian_did, role]
+            properties:
+              share_index:
+                type: integer
+              guardian_did:
+                type: string
+              role:
+                type: string
+                enum: [device, contact, org]
+              status:
+                type: string
+                enum: [pending, active, revoked]
+              guardian_vc_id:
+                type: string
 
 # ──────────────── WebSocket Channels (documentation) ────────────────
 # WebSocket endpoint: wss://ws.echo.network/v1/ws

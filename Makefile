@@ -1,4 +1,4 @@
-.PHONY: help build run test clean install-deps lint fmt vet build-prod tls-cert \
+.PHONY: help build run test clean install-deps lint fmt vet build-prod tls-cert migrate \
 	dev dev-stop dev-status dev-logs dev-restart validate-phase1 metagraph-verify-skeleton metagraph-test \
 	testnet-up testnet-down release-check regression regression-quick regression-with-phase1
 
@@ -38,6 +38,7 @@ help:
 	@echo "  make vet             Run vet"
 	@echo "  make build-prod      Build production binary"
 	@echo "  make tls-cert        Generate self-signed TLS certificate"
+	@echo "  make migrate         Apply SQL migrations (needs DATABASE_HOST, etc.)"
 	@echo ""
 	@echo "Environment variables:"
 	@echo "  API_PORT=8080        Set API port (default: 8000)"
@@ -49,6 +50,9 @@ build:
 	$(GO) build $(GOFLAGS) -o $(BINARY_NAME) main.go
 	@echo "✅ Build complete: $(BINARY_NAME)"
 	@ls -lh $(BINARY_NAME)
+
+migrate: ## Apply pending SQL migrations to PostgreSQL
+	$(GO) run ./cmd/migrate
 
 run:
 	@echo "Starting server on port $(PORT)..."
