@@ -18,7 +18,7 @@ The Constellation Identity Metagraph and Data L1 validators reject any submissio
 |---|---|---|---|---|---|---|
 | **T0** | Secret — never persisted | Message plaintext, private keys, decrypted content | ❌ | ❌ | ❌ | Memory only |
 | **T1** | Device-local secret | Derived keys (HKDF output), biometric templates | ❌ | ❌ | ❌ | Secure Enclave only |
-| **T2** | Encrypted local | Message ciphertext, SwiftData encrypted rows | ❌ | ❌ | ❌ | AES-256-GCM at rest |
+| **T2** | Encrypted local | Message ciphertext, SwiftData encrypted rows, Passport credential sync blobs (client AES-256-GCM) | ❌ | Relay only (opaque BYTEA) | Encrypted CID | AES-256-GCM at rest |
 | **T3** | Relay-transient | Offline queue blobs, NATS messages | ❌ | Ephemeral TTL | ❌ | ❌ |
 | **T4** | Encrypted audit | Operational logs (no content, no DID linkage) | CID only | ❌ | Encrypted | ❌ |
 | **T5** | Hash commitment | Merkle roots of message batches (SHA-256) | ✅ | ❌ | — | — |
@@ -148,6 +148,7 @@ These checks run at L1 consensus time. Any transaction that passes CI but fails 
 | `privateKey`, `signingKey` | T0 | Secure Enclave only on iOS; never in Go code |
 | `derivedKey`, `storageKey` | T1 | Re-derive on unlock; zero on background |
 | `encryptedContent`, `ciphertext` | T2 | Device-local AES-256-GCM only |
+| `passport_sync_blob.ciphertext`, `ciphertext_base64` (Passport sync) | T2 | Client-encrypted with `CredentialSyncKey`; server/IPFS store opaque bytes only |
 | `offlineQueueBlob` | T3 | Postgres ephemeral TTL; never on-chain |
 | `auditCID` | T4 | Content-addressed CID to IPFS encrypted blob |
 | `merkleRoot` | T5 | SHA-256 of batch; only hash, never content |

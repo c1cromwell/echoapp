@@ -30,6 +30,8 @@ import (
 	rewardsSvc "github.com/thechadcromwell/echoapp/internal/services/rewards"
 	"github.com/thechadcromwell/echoapp/pkg/credentials"
 	"github.com/thechadcromwell/echoapp/pkg/credentials/oidc4vc"
+	"github.com/thechadcromwell/echoapp/pkg/passport"
+	"github.com/thechadcromwell/echoapp/pkg/storage/encblob"
 )
 
 // ServerConfig holds the server configuration.
@@ -102,6 +104,14 @@ func (s *Server) Start() error {
 		} else {
 			log.Println("Trust registry backed by PostgreSQL (WO-118)")
 		}
+		router.Passport = passport.NewService(pgDB, pgDB)
+		blobStore := encblob.Storage(encblob.NewStubStorage())
+		if fallback, err := encblob.NewFallbackStorage(); err == nil {
+			blobStore = fallback
+		}
+		router.PassportSync = passport.NewSyncService(pgDB, blobStore)
+		log.Println("Echo Passport holder refs backed by PostgreSQL (WO-293)")
+		log.Println("Echo Passport credential sync enabled (WO-294)")
 	}
 	router.Redis = redisClient
 	if redisClient != nil {

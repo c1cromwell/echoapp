@@ -1920,3 +1920,86 @@ From ECHO Tokenomics blueprint — Gamification Strategy, Mechanic 3: Quest Syst
 - ECHO Token Economics and Founder Allocation (Foundation) — Defines AtomicAction primitive and on-chain reward claiming infrastructure
 
 ---
+
+## Echo Passport — Pay-in-Chat + Trust Anchors — Wave B (3)
+
+> New product. Full plan: `docs/ECHO_PASSPORT_PLAN.md`. All Backlog. Echo stays the
+> identity + consent layer, **never the money transmitter** — P2P transfers between Echo users
+> are native (ECHO/stablecoin, self-custodied); each payment is a fresh, biometric-gated,
+> single-use approval.
+
+### WO-298: Echo Passport — Identity Metagraph Credential-Ref State + Validators (Trust Anchors)
+
+**Status:** 📋 Backlog · **Depends:** WO-272 (Identity L1), WO-293
+**Blueprint:** Decentralized Identity and Authentication
+
+## Summary
+
+Anchor Passport credential references on the Identity Metagraph so revocation/trust state is
+verifiable on-chain — hashes and status only, no PII.
+
+## In Scope
+
+- Extend `IdentityOnChainState` (`metagraph/.../IdentityTypes.scala`) with `passportCredentialRefs: Map[String, CredentialRef]` (opaque UUID → issuer DID, type, hash, status index).
+- Validators in `IdentityValidations.scala` mirroring `validateVCIssuance` / `validateStatusList2021`.
+- Go submission path via the existing Identity L1 client (`pkg/credentials/statuslist_l1.go` pattern).
+
+## Out of Scope
+
+- Currency L1 changes (spend primitives already exist). Off-chain holder model (WO-293).
+
+**Acceptance Criteria:**
+- New state validates issuer DID, hash format, and monotonic status sequence.
+- **Recompile ALL metagraph modules** after the sealed-trait change (`-Werror`); validator tests mirror existing `IdentityValidations` tests.
+- T0–T7 CI green: zero PII in on-chain state.
+
+### WO-299: Echo Passport — Pay-in-Chat (P2P) Consent + Spend (Wave B)
+
+**Status:** 📋 Backlog · **Depends:** WO-298, Currency L1 spend primitives
+**Blueprint:** ECHO Tokenomics, Founder Allocation, and Token Launch
+
+## Summary
+
+"Send money to @user" inside a chat: biometric consent → single-use, amount-capped, ~60s-TTL
+`AllowSpend` → `SpendTransaction` on Currency L1. Pays a *verified DID*, not a phone number —
+the Passport's proof-of-humanity VC is the anti-scam guard.
+
+## In Scope
+
+- `pkg/payments/consent/`: per-action authorization minting one-shot `AllowSpend`, executing `SpendTransaction`.
+- `POST /v1/pay/p2p`; recipient resolution via DID + proof-of-humanity VC check.
+- Reuse Currency L1 (`metagraph/modules/l1/.../Main.scala`) and Tessellation v3 `AllowSpend`/`SpendTransaction`/`FeeTransaction`.
+
+## Out of Scope
+
+- Merchant / external rails (WO-302, Phase 5). Standing/agent authority (Wave D, always per-action confirm).
+
+**Acceptance Criteria:**
+- `AllowSpend` is single-use and expires; replay rejected at L1.
+- Paying an unverified/spoofed recipient is blocked or clearly warned.
+- End-to-end: consent → `SpendTransaction` confirmed on Currency L1 under `make dev`.
+
+### WO-300: Echo Passport — iOS Pay-in-Chat UX (Wave B)
+
+**Status:** 📋 Backlog · **Depends:** WO-299, WO-297
+**Blueprint:** ECHO Tokenomics, Founder Allocation, and Token Launch
+
+## Summary
+
+Conversation-view entry point to send ECHO/stablecoin to a contact, with a biometric consent
+sheet showing recipient identity (verified DID), amount, and fee before signing.
+
+## In Scope
+
+- Pay entry point in the chat composer; consent sheet (recipient VC, amount, fee, TTL countdown).
+- Biometric gate; success/failure + on-chain receipt states.
+
+## Out of Scope
+
+- Merchant checkout UX (Phase 5). Backend spend logic (WO-299).
+
+**Acceptance Criteria:**
+- Consent sheet surfaces verified recipient identity; no send without biometric confirmation.
+- `swift build` library + security-test targets pass.
+
+---

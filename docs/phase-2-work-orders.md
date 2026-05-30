@@ -1747,3 +1747,168 @@ DELETE /v1/account/devices/:device_id  → Revoke a device (X-DID-Signature requ
 - Decentralized Identity and Authentication — specifies Identity Metagraph VC update for new device key registration and key rotation
 
 ---
+
+## Echo Passport — Verifiable Credential Wallet (4th Product) — Wave 0 + Wave A (6)
+
+> New product. Full plan: `docs/ECHO_PASSPORT_PLAN.md`. ADRs: `0003` (custody), `0004` (recovery).
+> All Backlog. Echo Passport is the holder-side wallet + selective-disclosure + presentation
+> layer over credentials Echo already issues — **not** a PII store. Hybrid custody (L1 credentials
+> client-encrypted + synced; L2 raw artifacts device-only by default; L3 on-chain hashes only).
+
+### Wave 0 — Recovery & Guardian Mini-Design ✅ (design complete)
+
+> **Note:** Software Factory **WO-292** is already taken (Phase 1 Glacial first-run onboarding).
+> Wave 0 is tracked here and in **ADR 0004** (Accepted 2026-05-29), not as a separate SF ticket.
+
+**Status:** ✅ Design complete · **Type:** Design spike (docs only) · **Output:** ADR `0004` + WO-296 spec
+**Blueprint:** Universal Onboarding and Identity Creation
+
+## Summary
+
+Design-only wave preceding any recovery code. Social/threshold recovery is the make-or-break for
+a non-custodial vault's UX; this WO settles the scheme before implementation so WO-296 builds
+against a reviewed design.
+
+## In Scope
+
+- Threshold scheme decision: Shamir M-of-N split of the Passport recovery secret.
+- Guardian model: user devices + optional trusted contacts + optional Comply org (institutional guardian).
+- Share distribution, rotation, and revocation UX; guardian-acceptance-as-signed-VC format.
+- Collusion / coercion / lost-share threat model; how it layers on the existing 24-word BIP-39 + SMS recovery.
+- Output `docs/adr/0004-echo-passport-recovery-model.md` and the WO-296 implementation spec.
+
+## Out of Scope
+
+- Any code. Guardian bonds / on-chain incentives (deferred to WO-303, Phase 5).
+
+**Acceptance Criteria:**
+- ADR 0004 merged with a chosen M-of-N scheme and guardian taxonomy.
+- Threat model enumerates collusion, coercion, and total-share-loss paths with mitigations.
+- **No design option permits a server-held decryption key** — verified against the T0–T7 invariant.
+
+### WO-293: Echo Passport — Holder Data Model + Aggregation API (Wave A)
+
+**Status:** 🔄 In Progress · **Depends:** WO-274 (VC 2.0), WO-272 (Identity L1), Wave 0 (ADR 0004)
+**Blueprint:** Decentralized Identity and Authentication
+
+## Summary
+
+Backend holder model and aggregation API: list/query/present credentials a user holds across
+issuers. Wraps the existing issuance/verification pipeline rather than re-implementing it.
+
+## In Scope
+
+- New `pkg/passport/` package: holder model (`CredentialRef` = opaque UUID → issuer DID, type, hash, status index; **no PII**).
+- `GET /v1/passport/credentials` (list/get), `POST /v1/passport/present` (begin/accept — reuse `pkg/credentials/oidc4vc/`).
+- Migration `passport_credential_ref`.
+- Reuse `pkg/credentials/{models,verifier,statuslist_l1,revocation}.go` for verification + revocation status.
+
+## Out of Scope
+
+- Client-side encryption / sync (WO-294). Selective disclosure derivation (WO-295). Metagraph state (WO-298, Phase 4).
+
+**Acceptance Criteria:**
+- Holder can enumerate credentials with live StatusList2021 status.
+- Presentation flow reuses OIDC4VCI; no new verification code path.
+- T0–T7 CI green: no PII in `passport_credential_ref` or API payloads.
+
+### WO-294: Echo Passport — Client-Encrypted Credential Sync (Wave A)
+
+**Status:** 📋 Backlog · **Depends:** WO-293, WO-33 (Pinata/Storj)
+**Blueprint:** Decentralized Identity and Authentication
+
+## Summary
+
+Make credentials available on web / glasses / agent without the phone, by syncing
+**client-encrypted** credential blobs. Server stores ciphertext + CID only.
+
+## In Scope
+
+- Generalize the encrypted-blob client out of `internal/logging/ipfs_clients.go` into `pkg/storage/encblob/`.
+- Key hierarchy (extend `internal/crypto/keyderivation.go`): `PassportRootKey` (Secure Enclave + recovery secret) → `CredentialSyncKey = HKDF(PassportRootKey, "echo-passport-credential-sync")` → AES-256-GCM.
+- `POST/GET /v1/passport/sync` (push/pull ciphertext); migration `passport_sync_blob`.
+- Update `docs/data-classification.md` to add the client-encrypted-sync case (T2) so CI rules don't false-positive.
+
+## Out of Scope
+
+- Layer-2 raw-artifact backup (opt-in; later). Recovery (WO-296).
+
+**Acceptance Criteria:**
+- Server can never decrypt synced blobs (no key material server-side) — verified by test fixtures that *should* trip Semgrep.
+- A second device with the recovery secret can pull + decrypt the credential set.
+- `data-classification.md` updated and CI green.
+
+### WO-295: Echo Passport — Selective Disclosure via SD-JWT (Wave A)
+
+**Status:** 📋 Backlog · **Depends:** WO-293
+**Blueprint:** Decentralized Identity and Authentication
+
+## Summary
+
+Present the minimum claim ("over 21", "verified resident") instead of the whole credential or the
+source document. Completes the SD-JWT path already stubbed in `pkg/credentials/formats.go`.
+
+## In Scope
+
+- `pkg/passport/disclosure/`: full SD-JWT per-claim disclosure derivation + verifier-side check.
+- Wire into `POST /v1/passport/present` so a verifier requests a claim subset.
+
+## Out of Scope
+
+- BBS+ / ZK predicate proofs (optional, Wave D / WO-308). Raw-artifact presentation (never — present the VC).
+
+**Acceptance Criteria:**
+- A presentation discloses only requested claims; undisclosed claims are cryptographically withheld.
+- Verifier validates the SD-JWT against issuer signature + StatusList2021.
+
+### WO-296: Echo Passport — Social-Threshold (Shamir) Recovery (Wave A)
+
+**Status:** 📋 Backlog · **Depends:** WO-274 (VC 2.0), WO-272 (Identity L1), Wave 0 (ADR 0004)
+**Blueprint:** Universal Onboarding and Identity Creation
+
+## Summary
+
+Implement the recovery model from ADR 0004: Shamir M-of-N split of the recovery secret across
+user devices + optional guardians, layered on the existing BIP-39 + SMS flow.
+
+## In Scope
+
+- `pkg/passport/recovery/`: Shamir split/combine, share distribution, guardian-acceptance VC, rotation.
+- Migration `passport_recovery_share` (holds **share metadata only**, never reconstructable material server-side).
+- `POST /v1/passport/recovery/{setup,initiate,complete}`.
+
+## Out of Scope
+
+- Guardian bonds / device-rotation hardening (WO-303, Phase 5).
+
+**Acceptance Criteria:**
+- M-of-N reconstruction round-trips; M-1 shares reveal nothing (unit test).
+- **No server-held key under any path** (honeypot line); CI green.
+- Lost-device recovery restores the synced credential set on a fresh device.
+
+### WO-297: Echo Passport — iOS Passport Module (Wave A)
+
+**Status:** 📋 Backlog · **Depends:** WO-293, WO-294, WO-295, WO-296
+**Blueprint:** Decentralized Identity and Authentication
+
+## Summary
+
+iOS surface for the Passport: credential list/detail, present flow (selective disclosure),
+recovery setup. SwiftData encrypted at rest (existing AES-256-GCM model); Secure Enclave for
+`PassportRootKey`.
+
+## In Scope
+
+- New iOS Passport module beside existing identity/credential code.
+- Credential list/detail, present-with-disclosure UI, recovery setup UI.
+- Biometric gate reuses the hidden-persona re-auth pattern.
+
+## Out of Scope
+
+- Pay-in-chat UX (WO-300, Phase 4). Agent/glasses surface (Wave D).
+
+**Acceptance Criteria:**
+- `swift build` library + security-test targets pass (hard gates).
+- Present flow shows only disclosed claims; raw artifacts never leave the device.
+
+---

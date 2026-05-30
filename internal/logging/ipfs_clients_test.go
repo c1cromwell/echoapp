@@ -58,7 +58,7 @@ func TestStubIPFSStorage_SamePayloadSameCID(t *testing.T) {
 func TestFallbackIPFSStorage_UsesPrimary(t *testing.T) {
 	primary := &StubIPFSStorage{}
 	secondary := &StubIPFSStorage{}
-	fallback := &FallbackIPFSStorage{primary: primary, secondary: secondary}
+	fallback := NewFallbackIPFSStorageWithProviders(primary, secondary)
 
 	ctx := context.Background()
 	cid, err := fallback.Store(ctx, []byte("batch-data"))
@@ -78,7 +78,7 @@ func TestFallbackIPFSStorage_UsesPrimary(t *testing.T) {
 func TestFallbackIPFSStorage_FallsBackOnPrimaryFailure(t *testing.T) {
 	primary := &errStorage{err: errors.New("primary down")}
 	secondary := &StubIPFSStorage{}
-	fallback := &FallbackIPFSStorage{primary: primary, secondary: secondary}
+	fallback := NewFallbackIPFSStorageWithProviders(primary, secondary)
 
 	ctx := context.Background()
 	cid, err := fallback.Store(ctx, []byte("batch-data"))
@@ -95,7 +95,7 @@ func TestFallbackIPFSStorage_FallsBackOnPrimaryFailure(t *testing.T) {
 func TestFallbackIPFSStorage_BothFailsReturnsError(t *testing.T) {
 	primary := &errStorage{err: errors.New("primary down")}
 	secondary := &errStorage{err: errors.New("secondary down")}
-	fallback := &FallbackIPFSStorage{primary: primary, secondary: secondary}
+	fallback := NewFallbackIPFSStorageWithProviders(primary, secondary)
 
 	_, err := fallback.Store(context.Background(), []byte("batch"))
 	if err == nil {

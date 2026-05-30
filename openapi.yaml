@@ -48,6 +48,8 @@ tags:
     description: ECHO token balance, transfers, staking, and rewards
   - name: Groups
     description: Group management and key distribution
+  - name: Passport
+    description: Echo Passport holder credential refs, sync, and selective presentation (WO-293–295)
   - name: WebSocket
     description: Real-time messaging and presence channels
 
@@ -1168,6 +1170,173 @@ paths:
         "503":
           description: Status store not configured (no Postgres)
 
+        "503":
+          description: Status store not configured (no Postgres)
+
+  /passport/credentials:
+    get:
+      tags: [Passport]
+      summary: List holder credential references
+      description: |
+        Returns metadata-only credential refs for the authenticated holder (WO-293).
+        No VC body or PII — only issuer DID, type, hash, and revocation status.
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Credential ref list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  credentials:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PassportCredentialRef"
+                  count:
+                    type: integer
+        "503":
+          description: Passport service not configured
+    post:
+      tags: [Passport]
+      summary: Register a credential reference
+      description: Registers holder-side metadata when a VC is added to the wallet.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PassportRegisterRefRequest"
+      responses:
+        "201":
+          description: Credential ref created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PassportCredentialRef"
+        "409":
+          description: Duplicate credential hash for holder
+
+  /passport/credentials/{refId}:
+    get:
+      tags: [Passport]
+      summary: Get a credential reference
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: refId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Credential ref
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PassportCredentialRef"
+        "404":
+          description: Not found
+
+  /passport/present/begin:
+    post:
+      tags: [Passport]
+      summary: Begin selective credential presentation
+      description: Starts OIDC4VC presentation flow for a registered credential ref (WO-293/295).
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [credential_ref_id]
+              properties:
+                credential_ref_id:
+                  type: string
+                redirect_uri:
+                  type: string
+                disclosure_fields:
+                  type: array
+                  items:
+                    type: string
+                  description: Optional SD-JWT claim subset the verifier may receive (WO-295)
+      responses:
+        "200":
+          description: Presentation session started
+        "409":
+          description: Credential revoked
+
+  /passport/present/accept:
+    post:
+      tags: [Passport]
+      summary: Accept wallet presentation
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                session_id:
+                  type: string
+                vp_token:
+                  type: string
+                state:
+                  type: string
+                callback_url:
+                  type: string
+      responses:
+        "200":
+          description: Presentation verified
+
+  /passport/sync:
+    get:
+      tags: [Passport]
+      summary: Pull client-encrypted credential sync blob
+      description: |
+        Returns the latest client-encrypted wallet blob (T2). Server cannot decrypt (WO-294).
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Sync blob metadata and ciphertext
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PassportSyncBlob"
+        "404":
+          description: No sync blob for holder
+    post:
+      tags: [Passport]
+      summary: Push client-encrypted credential sync blob
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ciphertext_base64]
+              properties:
+                ciphertext_base64:
+                  type: string
+                  description: AES-256-GCM ciphertext (client-side; PassportRootKey hierarchy)
+                content_hash:
+                  type: string
+                  description: Optional SHA-256 hex of ciphertext for integrity check
+      responses:
+        "200":
+          description: Sync metadata stored
+
   /identity/credentials/{credentialId}/verify:
     get:
       tags: [Identity]
@@ -2155,6 +2324,67 @@ components:
             type: string
             format: base64url
           description: Merkle proof for client-side verification (Phase 3+)
+
+    PassportCredentialRef:
+      type: object
+      properties:
+        ref_id:
+          type: string
+        holder_did:
+          type: string
+        issuer_did:
+          type: string
+        credential_type:
+          type: string
+        credential_hash:
+          type: string
+          description: hex(SHA-256) of canonical VC bytes
+        status_list_index:
+          type: integer
+        status_list_credential:
+          type: string
+        revocation_status:
+          type: string
+          enum: [active, revoked, unknown]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PassportRegisterRefRequest:
+      type: object
+      required: [issuer_did, credential_type, credential_hash]
+      properties:
+        issuer_did:
+          type: string
+        credential_type:
+          type: string
+        credential_hash:
+          type: string
+        status_list_index:
+          type: integer
+        status_list_credential:
+          type: string
+
+    PassportSyncBlob:
+      type: object
+      properties:
+        storage_uri:
+          type: string
+        content_hash:
+          type: string
+        byte_size:
+          type: integer
+        version:
+          type: integer
+        updated_at:
+          type: string
+          format: date-time
+        ciphertext_base64:
+          type: string
+          description: Client-encrypted blob (T2); server cannot decrypt
 
 # ──────────────── WebSocket Channels (documentation) ────────────────
 # WebSocket endpoint: wss://ws.echo.network/v1/ws

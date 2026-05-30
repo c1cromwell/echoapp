@@ -248,38 +248,7 @@ type AuditLogRecord struct {
 	TimeRange BatchTimeRange `json:"time_range"`
 }
 
-// IPFSStorage is the storage abstraction for pushing encrypted log batches.
-// Production implementations wrap Pinata/web3.storage; tests use StubIPFSStorage.
-type IPFSStorage interface {
-	// Store pushes encrypted bytes and returns an IPFS CID.
-	Store(ctx context.Context, encrypted []byte) (cid string, err error)
-}
-
-// StubIPFSStorage records batches in memory — used in tests and dev mode.
-type StubIPFSStorage struct {
-	mu      sync.Mutex
-	batches [][]byte
-	cids    []string
-}
-
-func (s *StubIPFSStorage) Store(_ context.Context, encrypted []byte) (string, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	h := sha256.Sum256(encrypted)
-	cid := "stub-cid-" + hex.EncodeToString(h[:8])
-	s.batches = append(s.batches, encrypted)
-	s.cids = append(s.cids, cid)
-	return cid, nil
-}
-
-// StoredCIDs returns all CIDs produced so far (for test assertions).
-func (s *StubIPFSStorage) StoredCIDs() []string {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	out := make([]string, len(s.cids))
-	copy(out, s.cids)
-	return out
-}
+// IPFSStorage is defined in ipfs_clients.go (pkg/storage/encblob).
 
 // FlushAndPublish flushes the buffer, encrypts the batch, pushes to IPFS, and
 // returns the AuditLogRecord to be submitted to Data L1.  Returns nil, nil if

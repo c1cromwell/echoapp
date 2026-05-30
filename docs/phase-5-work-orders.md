@@ -2296,3 +2296,105 @@ Proposed from `docs/COMPETITIVE_AUDIT_2026-05.md` (Tier 1). Provisional IDs — 
 ### WO-CA2: Consumer secure encrypted backups
 **Source:** competitive audit (Signal Secure Backups). **Extends:** WO-64; reuses BIP-39 recovery (WO-234).
 User-held recovery key (the 24-word phrase) encrypts a cloud backup of chats + opt-in media tiers, with cross-platform restore. The server never holds the key.
+
+---
+
+## Echo Passport — Verifier, External Rails & More Credentials — Wave C (4)
+
+> New product. Full plan: `docs/ECHO_PASSPORT_PLAN.md`. All Backlog. Makes the Passport useful
+> *outside* Echo and turns the verifier side into revenue. **Holder side stays feeless**;
+> monetize the verifier/enterprise side and external payment rails (existing 0.5–1.5% rail fee).
+
+### WO-301: Echo Passport — Verifier / Relying-Party API + ECHO Metering (Wave C)
+
+**Status:** 📋 Backlog · **Depends:** WO-295 (selective disclosure), WO-118 (trusted issuers)
+**Blueprint:** Decentralized Identity and Authentication
+
+## Summary
+
+Let a relying party request a presentation and pay per verification in ECHO. Verifier fee splits
+70% holder / 30% Privacy Commons Treasury (mirrors the existing Data-Sovereignty split).
+
+## In Scope
+
+- `pkg/passport/verifier/`: relying-party API (`POST /v1/verify/request`), per-presentation metering + fee split.
+- Reuse OIDC4VCI verifier flow + StatusList2021 revocation; verifier identity via `trusted_issuers`.
+
+## Out of Scope
+
+- Verifier marketplace UI/discovery (WO-305, Phase 7). External payment rails (WO-302).
+
+**Acceptance Criteria:**
+- A verifier receives only disclosed claims; fee split lands 70/30 on-chain.
+- Holder consents per presentation; no silent disclosure.
+
+### WO-302: Echo Passport — External Payment-Rail Adapter (Wave C)
+
+**Status:** 📋 Backlog · **Depends:** WO-299 (consent), licensed rail partner
+**Blueprint:** ECHO Tokenomics, Founder Allocation, and Token Launch
+
+## Summary
+
+Merchant payments via a licensed rail (card-network tokenization / Open Banking PISP partner).
+Echo orchestrates consent + presentation; the partner moves the money. Echo never holds a raw PAN.
+
+## In Scope
+
+- `pkg/payments/rails/`: adapter interface + one reference adapter.
+- Tokenized payment-instrument references (network token / Open Banking mandate id) held encrypted in Layer 2; the VC attests "verified Visa ending 1234", never the PAN.
+- Apply the existing 0.5–1.5% rail fee → community treasury.
+
+## Out of Scope
+
+- Echo acting as money transmitter (out of scope by design — partner-routed). P2P native (WO-299).
+
+**Acceptance Criteria:**
+- No raw PAN/account number in any VC, blob, or log (Semgrep fixtures that *should* trip).
+- Merchant payment completes via partner with per-action biometric consent.
+- **Open item:** confirm licensed partner + jurisdiction (US-first vs EU/eIDAS) before build.
+
+### WO-303: Echo Passport — Recovery Hardening (Wave C)
+
+**Status:** 📋 Backlog · **Depends:** WO-296 (Shamir recovery)
+**Blueprint:** Universal Onboarding and Identity Creation
+
+## Summary
+
+Harden recovery for higher-value credentials: guardian bonds, audited Shamir implementation, and
+account-abstraction-style device rotation.
+
+## In Scope
+
+- Optional guardian stake/bond (anti-collusion); device add/rotate/revoke flows.
+- Third-party audit hooks for the Shamir implementation.
+
+## Out of Scope
+
+- Base recovery (WO-296). Citizenship-tier recovery policy (Wave D).
+
+**Acceptance Criteria:**
+- Device rotation revokes old shares; quorum recompute verified.
+- Still no server-held key under any hardened path.
+
+### WO-304: Echo Passport — Legal-Document & Employment/Income Credentials (Wave C)
+
+**Status:** 📋 Backlog · **Depends:** WO-293, WO-118 (trusted issuers)
+**Blueprint:** Decentralized Identity and Authentication
+
+## Summary
+
+Add credential domains beyond identity: deeds/wills as **notarized-hash VCs** (issuer-attested
+hash + reference, never the legal instrument), plus verified job/income/housing from accredited issuers.
+
+## In Scope
+
+- Credential type definitions + schemas for legal-document (hash) and employment/income VCs.
+- Issuer onboarding via `trusted_issuers`; reuse issuance/verification pipeline.
+
+## Out of Scope
+
+- Echo issuing government ID or being the legal authority (always accredited third-party issuers).
+
+**Acceptance Criteria:**
+- Legal-doc VC stores only a hash + issuer attestation; raw document never on server/chain.
+- Employment/income VCs verify against accredited issuer signatures.

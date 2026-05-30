@@ -22,6 +22,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/services/onboarding"
 	"github.com/thechadcromwell/echoapp/pkg/credentials"
 	"github.com/thechadcromwell/echoapp/pkg/credentials/oidc4vc"
+	"github.com/thechadcromwell/echoapp/pkg/passport"
 )
 
 // contextKey is an unexported type for context keys to avoid collisions.
@@ -73,10 +74,13 @@ type Router struct {
 	OIDCVerifier         *oidc4vc.Verifier          // OIDC4VC presentation verifier (optional)
 	OIDCVerifierBaseURL  string                     // Public verifier base URL for iOS wallet handoff
 	TrustRegistry        *onboarding.TrustRegistryService // WO-118 issuer trust registry
+	Passport             *passport.Service              // WO-293 Echo Passport holder refs
+	PassportSync         *passport.SyncService          // WO-294 client-encrypted credential sync
 	tokenService         *auth.TokenService         // ES256 JWT token service
 
 	enrollmentVCMu       sync.Mutex
 	enrollmentVCSessions map[string]enrollmentVCSession
+	passportPresentSessions map[string]passportPresentSession
 
 	// smsSessions is an in-memory fallback OTP-session store used only when
 	// Redis is not configured (dev/test); prod uses Redis. Guarded by smsSessionsMu.
@@ -516,6 +520,10 @@ func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.HasPrefix(r.URL.Path, "/v1/onboarding/") {
 		rt.handleOnboardingSession(w, r)
+		return
+	}
+	if strings.HasPrefix(r.URL.Path, "/v1/passport/") {
+		rt.handlePassport(w, r)
 		return
 	}
 	switch r.URL.Path {

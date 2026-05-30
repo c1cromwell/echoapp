@@ -57,6 +57,13 @@ struct ContactDiscoveryAPIClient: Sendable {
     }
 }
 
+/// Abstraction for PSI evaluate (production client or test doubles).
+protocol ContactDiscoveryEvaluating: Sendable {
+    func evaluate(blinded: [String]) async throws -> ContactDiscoveryAPIClient.PSIResponse
+}
+
+extension ContactDiscoveryAPIClient: ContactDiscoveryEvaluating {}
+
 enum ContactDiscoveryError: LocalizedError, Sendable {
     case permissionDenied
     case oprfSessionExpired

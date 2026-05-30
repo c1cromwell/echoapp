@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/thechadcromwell/echoapp/pkg/passport/disclosure"
 )
 
 // FormatHandler handles credential format conversion
@@ -74,11 +76,34 @@ func (fh *FormatHandler) ToJWT(vc *VerifiableCredential, issuerPrivateKey string
 	return jwt, nil
 }
 
-// ToSDJWT converts credential to SD-JWT format
+// ToSDJWT converts credential to SD-JWT format with selective disclosure placeholders.
 func (fh *FormatHandler) ToSDJWT(vc *VerifiableCredential, issuerPrivateKey string, disclosureFields []string) (string, error) {
-	// SD-JWT allows selective disclosure of claims
-	// For now, return JWT (proper SD-JWT implementation would use sd-jwt library)
-	return fh.ToJWT(vc, issuerPrivateKey)
+	jwt, err := fh.ToJWT(vc, issuerPrivateKey)
+	if err != nil {
+		return "", err
+	}
+	if len(disclosureFields) == 0 {
+		return jwt + "~", nil
+	}
+	claims := make(map[string]interface{})
+	raw, _ := json.Marshal(vc.CredentialSubject)
+	var sub map[string]interface{}
+	if err := json.Unmarshal(raw, &sub); err != nil {
+		return "", err
+	}
+	for _, field := range disclosureFields {
+		if v, ok := sub[field]; ok {
+			claims[field] = v
+		}
+	}
+	if len(claims) == 0 {
+		return jwt + "~", nil
+	}
+	sd, _, err := disclosure.BuildFromSubjectClaims(jwt, claims)
+	if err != nil {
+		return "", NewCredentialErrorWithDetails(ErrCodeInvalidCredential, "failed to build SD-JWT", err.Error())
+	}
+	return sd, nil
 }
 
 // FromJSONLD parses JSON-LD credential

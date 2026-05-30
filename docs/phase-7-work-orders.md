@@ -4454,3 +4454,106 @@ On-device summaries/smart-replies/translation; any server-side assist gated by c
 ### WO-CA4: In-chat ECHO economy (tips / gifts / paid content)
 **Source:** competitive audit (Telegram Stars, done decentralized). **Depends:** wallet + ECHO tokenomics.
 Send ECHO tips/gifts in chat, paid posts/unlocks — all on-chain via the existing wallet. No custodial in-app currency.
+
+---
+
+## Echo Passport — Marketplace + Network State Capstone — Wave C/D (4)
+
+> New product. Full plan: `docs/ECHO_PASSPORT_PLAN.md`. All Backlog. This is the capstone: the
+> Passport becomes agentic and glasses-native, and holds the **Network State citizenship VC**.
+> Every payment — even agent-initiated — still requires a per-action confirmation. No standing
+> blank check, ever.
+
+### WO-305: Echo Passport — Verifier Marketplace Surface (Wave C marketplace)
+
+**Status:** 📋 Backlog · **Depends:** WO-301 (verifier API)
+**Blueprint:** Decentralized Bot Framework and Automation
+
+## Summary
+
+Discovery + onboarding surface for relying parties to find Echo Passport, request credential
+types, and pay per verification in ECHO. The consumer-facing front of WO-301.
+
+## In Scope
+
+- Verifier directory/onboarding; credential-type request templates; usage + billing dashboard (ECHO).
+- Reuse the marketplace patterns from the bot marketplace (Phase 7).
+
+## Out of Scope
+
+- Verifier API + metering (WO-301).
+
+**Acceptance Criteria:**
+- A verifier can self-onboard, request a credential type, and be billed in ECHO.
+- Trust/issuer status surfaced from `trusted_issuers`.
+
+### WO-306: Echo Passport — Network State Citizenship VC (Wave D)
+
+**Status:** 📋 Backlog · **Depends:** staking tiers, governance, WO-293
+**Blueprint:** ECHO Tokenomics, Founder Allocation, and Token Launch
+
+## Summary
+
+A **staking-gated citizenship credential** the Passport holds that gates membership-tier physical
+access in the Network State. Ties the vault → staking → governance.
+
+## In Scope
+
+- Citizenship VC issuance under governance; staking-tier (Bronze→Platinum) gating.
+- Presentation flow for physical/membership access; revocation via StatusList2021.
+
+## Out of Scope
+
+- Real-world asset / DAO-LLC mechanics (broader Network State program).
+
+**Acceptance Criteria:**
+- Citizenship VC issued only at/above the governance-set staking tier.
+- Presentable for access via selective disclosure; revocable.
+
+### WO-307: Echo Passport — Agentic / Glasses Presentation + Payment (Wave D)
+
+**Status:** 📋 Backlog · **Depends:** WO-299 (consent), WO-295 (disclosure)
+**Blueprint:** Decentralized Bot Framework and Automation
+
+## Summary
+
+Let an AI agent / smart glasses present credentials and initiate payments on the user's behalf
+under a GNAP-style grant — with a **per-action confirmation** (push to phone / glasses tap) on
+every payment. The agent never holds standing authority.
+
+## In Scope
+
+- `pkg/agent/consent/`: capability-token / GNAP grant model defining what the agent may present/spend.
+- Per-action confirmation channel; bind to single-use `AllowSpend` from Wave B.
+- Glasses/agent SDK surface for present + pay.
+
+## Out of Scope
+
+- Unlimited / standing approvals (explicitly disallowed).
+
+**Acceptance Criteria:**
+- Every agent-initiated payment requires a fresh per-action confirmation; no blanket approval path exists.
+- Grant scopes are least-privilege and revocable.
+
+### WO-308: Echo Passport — ZK Predicate Proofs (BBS+) (Wave D, optional)
+
+**Status:** 📋 Backlog · **Depends:** WO-295 (SD-JWT baseline)
+**Blueprint:** Decentralized Identity and Authentication
+
+## Summary
+
+Optional enhancement: unlinkable predicate proofs (BBS+) so a holder proves "resident of X" or
+"income > Y" without revealing the underlying claim. SD-JWT (WO-295) already covers the baseline.
+
+## In Scope
+
+- BBS+ credential issuance + predicate-proof presentation in `pkg/passport/disclosure/`.
+- Library selection + benchmark.
+
+## Out of Scope
+
+- Replacing SD-JWT (this is additive, not a dependency for earlier waves).
+
+**Acceptance Criteria:**
+- A verifier accepts a predicate proof without learning the source value.
+- Proofs are unlinkable across presentations.

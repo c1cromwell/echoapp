@@ -12,16 +12,22 @@ struct DiscoveredContact: Identifiable, Sendable, Equatable {
 /// Private contact discovery via OPRF-PSI (WO-221).
 actor ContactDiscoveryService {
     private let oprf: any OPRFClient
-    private let api: ContactDiscoveryAPIClient
+    private let api: any ContactDiscoveryEvaluating
     private let batchSize = 500
 
-    init(oprf: any OPRFClient, api: ContactDiscoveryAPIClient) {
+    init(oprf: any OPRFClient, api: any ContactDiscoveryEvaluating) {
         self.oprf = oprf
         self.api = api
     }
 
     func discoverFromDeviceContacts() async throws -> [DiscoveredContact] {
         let phones = try await fetchNormalizedPhoneNumbers()
+        guard !phones.isEmpty else { throw ContactDiscoveryError.noMatches }
+        return try await discover(normalized: phones)
+    }
+
+    /// Runs OPRF-PSI batches for pre-normalized phone numbers (unit tests / headless agents).
+    func discover(normalized phones: [LabeledPhone]) async throws -> [DiscoveredContact] {
         guard !phones.isEmpty else { throw ContactDiscoveryError.noMatches }
 
         var matches: [DiscoveredContact] = []
@@ -50,7 +56,7 @@ actor ContactDiscoveryService {
         return matches
     }
 
-    private struct LabeledPhone: Sendable {
+    struct LabeledPhone: Sendable {
         let e164: String
         let label: String
     }
@@ -74,7 +80,6 @@ actor ContactDiscoveryService {
                 results.append(LabeledPhone(e164: PhoneNormalizer.normalize(e164), label: label))
             }
         }
-        // De-dupe by E.164
         var seen = Set<String>()
         return results.filter { seen.insert($0.e164).inserted }
     }
