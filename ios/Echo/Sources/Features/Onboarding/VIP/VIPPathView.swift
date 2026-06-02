@@ -92,9 +92,9 @@ public struct VIPPathView: View {
         .sheet(isPresented: $showEnrollment) {
             EnrollmentCoordinatorView(
                 coordinator: EnrollmentCoordinator(
-                    onComplete: { _ in
+                    onComplete: { bundle in
                         showEnrollment = false
-                        onDigitalID(4)
+                        onDigitalID(bundle.assuranceLevel.trustTier)
                     },
                     onCancel: { showEnrollment = false }
                 )

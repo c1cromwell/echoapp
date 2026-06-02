@@ -1,0 +1,134 @@
+import SwiftUI
+
+/// Per-chat settings (spec §5.4). Signal conversation-settings analog: silent, disappearing
+/// timer, verify (DID safety-number analog), block/report. Persists via `ConversationPreferencesStore`.
+public struct ChatSettingsSheet: View {
+    let contactName: String
+    @State private var prefs: ConversationPreferences
+
+    let onChange: (ConversationPreferences) -> Void
+    let onVerify: () -> Void
+    let onBlock: () -> Void
+
+    public init(
+        contactName: String,
+        preferences: ConversationPreferences,
+        onChange: @escaping (ConversationPreferences) -> Void,
+        onVerify: @escaping () -> Void = {},
+        onBlock: @escaping () -> Void = {}
+    ) {
+        self.contactName = contactName
+        self._prefs = State(initialValue: preferences)
+        self.onChange = onChange
+        self.onVerify = onVerify
+        self.onBlock = onBlock
+    }
+
+    public var body: some View {
+        VStack(spacing: 0) {
+            Capsule()
+                .fill(Color.echoHair)
+                .frame(width: 38, height: 5)
+                .padding(.top, 8)
+                .padding(.bottom, 14)
+
+            Text(contactName)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.echoInk)
+                .padding(.bottom, 6)
+
+            // Silent notifications
+            row(icon: "bell.slash", title: "Silent notifications") {
+                Toggle("", isOn: Binding(
+                    get: { prefs.isMuted },
+                    set: { prefs.isMuted = $0; onChange(prefs) }
+                ))
+                .labelsHidden()
+                .tint(.echoSignal)
+            }
+
+            // Disappearing messages
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: Spacing.md.rawValue) {
+                    Image(systemName: "timer").frame(width: 24).foregroundColor(.echoInk55)
+                    Text("Disappearing messages")
+                        .font(.system(size: 15))
+                        .foregroundColor(.echoInk)
+                    Spacer()
+                }
+                Picker("", selection: Binding(
+                    get: { prefs.disappearing },
+                    set: { prefs.disappearing = $0; onChange(prefs) }
+                )) {
+                    ForEach(DisappearingTimer.allCases, id: \.self) { t in
+                        Text(t.label).tag(t)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+            .padding(.horizontal, Spacing.lg.rawValue)
+            .padding(.vertical, Spacing.md.rawValue)
+            .overlay(Divider(), alignment: .bottom)
+
+            // Verify (DID safety number analog)
+            Button(action: onVerify) {
+                row(icon: "checkmark.shield", title: "Verify identity", showChevron: true) { EmptyView() }
+            }
+            .buttonStyle(.plain)
+
+            // Block / report
+            Button(action: onBlock) {
+                HStack(spacing: Spacing.md.rawValue) {
+                    Image(systemName: "hand.raised").frame(width: 24)
+                    Text("Block & report")
+                        .font(.system(size: 15))
+                    Spacer()
+                }
+                .foregroundColor(.echoAlert)
+                .padding(.horizontal, Spacing.lg.rawValue)
+                .padding(.vertical, Spacing.md.rawValue)
+            }
+            .buttonStyle(.plain)
+
+            Spacer(minLength: 0)
+        }
+        .background(Color.echoPaper)
+    }
+
+    @ViewBuilder
+    private func row<Trailing: View>(
+        icon: String,
+        title: String,
+        showChevron: Bool = false,
+        @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
+        HStack(spacing: Spacing.md.rawValue) {
+            Image(systemName: icon).frame(width: 24).foregroundColor(.echoInk55)
+            Text(title)
+                .font(.system(size: 15))
+                .foregroundColor(.echoInk)
+            Spacer()
+            trailing()
+            if showChevron {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.echoInk40)
+            }
+        }
+        .padding(.horizontal, Spacing.lg.rawValue)
+        .padding(.vertical, Spacing.md.rawValue)
+        .overlay(Divider(), alignment: .bottom)
+    }
+}
+
+#if DEBUG
+struct ChatSettingsSheet_Previews: PreviewProvider {
+    static var previews: some View {
+        ChatSettingsSheet(
+            contactName: "Aria Rao",
+            preferences: ConversationPreferences(isMuted: true, disappearing: .h24),
+            onChange: { _ in }
+        )
+    }
+}
+#endif

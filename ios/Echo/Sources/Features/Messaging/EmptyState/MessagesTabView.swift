@@ -27,19 +27,18 @@ struct MessagesTabView: View {
                     .navigationTitle("Messages")
                     .navigationBarTitleDisplayMode(.inline)
                 } else {
-                    ConversationListView(
+                    MessagesHubView(
                         conversations: conversationStore.conversations,
+                        personas: appState.personas,
+                        activePersona: appState.activePersona,
                         onSelectConversation: { id in
                             if let conversation = conversationStore.conversation(id: id) {
                                 chatPath.append(conversation)
                             }
-                        }
+                        },
+                        onCompose: { composeSheetPresented = true },
+                        onSwitchPersona: { appState.switchPersona($0) }
                     )
-                    .overlay(alignment: .bottomTrailing) {
-                        ComposeFAB { composeSheetPresented = true }
-                            .padding(.trailing, 20)
-                            .padding(.bottom, 26)
-                    }
                 }
             }
             .navigationDestination(for: StoredConversation.self) { conversation in

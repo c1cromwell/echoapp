@@ -22,6 +22,9 @@ final class AppState {
     /// Set when user opens echo://invite?code=… (Wave 0.4).
     var pendingInviteCode: String?
 
+    var personas: [PersonaSummary] = []
+    var activePersona: PersonaSummary = PersonaSummary(id: "default", name: "Me", initials: "ME")
+
     let provisionService: SilentProvisionService
 
     init(provisionService: SilentProvisionService) {
@@ -29,6 +32,19 @@ final class AppState {
         self.displayName = UserDefaults.standard.string(forKey: "echo.displayName") ?? ""
         self.trustTier = UserDefaults.standard.integer(forKey: "echo.trustTier")
         self.root = Self.initialRoot()
+
+        let initials = Self.initials(from: displayName)
+        let defaultPersona = PersonaSummary(id: "default", name: displayName.isEmpty ? "Me" : displayName, initials: initials)
+        self.activePersona = defaultPersona
+        self.personas = [defaultPersona]
+    }
+
+    private static func initials(from name: String) -> String {
+        let parts = name.split(separator: " ")
+        if parts.count >= 2 {
+            return String(parts[0].prefix(1) + parts[1].prefix(1)).uppercased()
+        }
+        return String(name.prefix(2)).uppercased()
     }
 
     private static func initialRoot() -> Root {
@@ -63,6 +79,10 @@ final class AppState {
 
     func loggedOut() {
         root = .login
+    }
+
+    func switchPersona(_ persona: PersonaSummary) {
+        activePersona = persona
     }
 }
 

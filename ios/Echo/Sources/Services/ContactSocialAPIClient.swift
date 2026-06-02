@@ -74,5 +74,16 @@ struct ContactSocialAPIClient: Sendable {
         let decoded: ContactListResponse = try await apiClient.get(endpoint: ContactsEndpoint.list)
         return decoded.contacts ?? []
     }
+
+    func addContact(did: String, addedVia: String = "psi_discovery") async throws -> RemoteContact {
+        struct Body: Encodable {
+            let contactDid: String
+            let addedVia: String
+        }
+        return try await apiClient.post(
+            endpoint: ContactsEndpoint.add,
+            body: Body(contactDid: did, addedVia: addedVia)
+        )
+    }
 }
 #endif

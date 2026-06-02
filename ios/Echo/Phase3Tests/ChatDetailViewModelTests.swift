@@ -57,6 +57,34 @@ final class ChatDetailViewModelTests: XCTestCase {
         XCTAssertTrue(transport.sentTexts.contains(where: { $0.contains("\"state\":\"start\"") }))
     }
 
+    func testSendMessage_appendsOptimisticMessageAndRoutesToHook() async {
+        var sent: [String] = []
+        vm.configure(
+            conversationId: "conv-1",
+            peerDID: "did:key:peer",
+            currentUserDID: "did:key:me",
+            privacy: MessagingPrivacyPreferences(sendTypingIndicators: true, sendReadReceipts: true),
+            reactionsAPI: reactions,
+            onSend: { sent.append($0) }
+        )
+        let before = vm.messages.count
+        let id = await vm.sendMessage("hi there")
+        XCTAssertNotNil(id)
+        XCTAssertEqual(vm.messages.count, before + 1)
+        let appended = vm.messages.last
+        XCTAssertEqual(appended?.content, "hi there")
+        XCTAssertTrue(appended?.isFromCurrentUser == true)
+        XCTAssertEqual(appended?.deliveryStatus, .sending)
+        XCTAssertEqual(sent, ["hi there"])
+    }
+
+    func testSendMessage_ignoresWhitespaceOnly() async {
+        let before = vm.messages.count
+        let id = await vm.sendMessage("   \n  ")
+        XCTAssertNil(id)
+        XCTAssertEqual(vm.messages.count, before)
+    }
+
     func testReadReceiptDisabled_doesNotSend() async {
         vm.configure(
             conversationId: "conv-1",

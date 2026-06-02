@@ -23,13 +23,10 @@ enum WebSocketURLBuilder {
         return components.url
     }
 
-    /// Reads API host from env/build settings (same precedence as SilentProvisionService).
+    /// Reads API host from env/build settings (same precedence as `EchoAPIBaseURL`).
     static func apiBaseURLFromEnvironment() -> URL? {
-        let env = ProcessInfo.processInfo.environment
-        if let raw = env["ECHO_API_URL"] ?? env["API_URL"],
-           let url = URL(string: raw) {
-            return url
-        }
-        return nil
+        let resolved = EchoAPIBaseURL.resolved
+        let fallback = URL(string: "https://api.echo.local")!
+        return resolved == fallback ? nil : resolved
     }
 }

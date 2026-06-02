@@ -9,7 +9,7 @@ struct APIConfiguration {
     let headers: [String: String]
     
     static let `default` = APIConfiguration(
-        baseURL: URL(string: "https://api.echo.local")!,
+        baseURL: EchoAPIBaseURL.resolved,
         timeout: 30,
         headers: ["Content-Type": "application/json"]
     )

@@ -36,7 +36,7 @@ public struct MessageBubble: View {
     }
     
     var bubbleColor: Color {
-        isSent ? .echoPrimary : .echoGray200
+        isSent ? .echoSignal : .echoPaperDim
     }
     
     var textColor: Color {
@@ -67,13 +67,13 @@ public struct MessageBubble: View {
         case .failed:
             return .echoError
         case .read:
-            return .echoPrimary
+            return .echoSignal
         case .anchored:
             return .echoInfo
         case .verified:
-            return .echoSuccess
+            return .echoTrustGreen
         default:
-            return isSent ? .white.opacity(0.7) : .echoGray500
+            return isSent ? .white.opacity(0.7) : .echoInk40
         }
     }
     
@@ -102,7 +102,7 @@ public struct MessageBubble: View {
                 }
                 
                 Text(timestamp)
-                    .typographyStyle(.caption, color: .echoGray500)
+                    .typographyStyle(.caption, color: .echoInk40)
                 
                 if showDeliveryStatus, let statusIcon = statusIcon {
                     Image(systemName: statusIcon)

@@ -6,6 +6,14 @@ struct ContactDiscoveryView: View {
 
     var body: some View {
         List {
+            if let synced = viewModel.lastSyncedAt {
+                Section {
+                    Text("Last scan \(synced.formatted(date: .abbreviated, time: .shortened))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             if viewModel.isLoading {
                 HStack {
                     Spacer()
@@ -24,21 +32,13 @@ struct ContactDiscoveryView: View {
                 ContentUnavailableView {
                     Label("No matches yet", systemImage: "person.2.slash")
                 } description: {
-                    Text("Contacts on ECHO will appear here after a private scan.")
+                    Text("Contacts on ECHO will appear here after a private scan. Enable discovery in Settings → Privacy and add SMS backup during onboarding.")
                 } actions: {
                     Button("Scan contacts") { Task { await viewModel.sync() } }
                 }
             } else {
                 ForEach(viewModel.contacts) { contact in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(contact.displayName)
-                            .font(.headline)
-                        Text(contact.did)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                    .padding(.vertical, 4)
+                    discoveredRow(contact)
                 }
             }
         }
@@ -56,6 +56,50 @@ struct ContactDiscoveryView: View {
         .task {
             if viewModel.contacts.isEmpty { await viewModel.sync() }
         }
+        .alert("Couldn't add contact", isPresented: addErrorBinding) {
+            Button("OK", role: .cancel) { viewModel.addErrorMessage = nil }
+        } message: {
+            Text(viewModel.addErrorMessage ?? "")
+        }
+    }
+
+    private var addErrorBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.addErrorMessage != nil },
+            set: { if !$0 { viewModel.addErrorMessage = nil } }
+        )
+    }
+
+    @ViewBuilder
+    private func discoveredRow(_ contact: DiscoveredContact) -> some View {
+        let isAdded = viewModel.addedDIDs.contains(contact.did)
+        let isAdding = viewModel.addingDID == contact.did
+
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(contact.displayName)
+                    .font(.headline)
+                Text(contact.did)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            if isAdded {
+                Label("Added", systemImage: "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+            } else if isAdding {
+                ProgressView()
+            } else {
+                Button("Add") {
+                    Task { await viewModel.addContact(contact) }
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 
@@ -65,10 +109,15 @@ final class ContactDiscoveryViewModel {
     var contacts: [DiscoveredContact] = []
     var isLoading = false
     var errorMessage: String?
+    var lastSyncedAt: Date?
+    var addedDIDs: Set<String> = []
+    var addingDID: String?
+    var addErrorMessage: String?
 
     private let service: ContactDiscoveryService
+    private let socialAPI: ContactSocialAPIClient?
 
-    init(service: ContactDiscoveryService? = nil) {
+    init(service: ContactDiscoveryService? = nil, socialAPI: ContactSocialAPIClient? = nil) {
         if let service {
             self.service = service
         } else if let resolved: ContactDiscoveryService = DIContainer.shared.resolveContactDiscoveryService() {
@@ -81,6 +130,16 @@ final class ContactDiscoveryViewModel {
             let api = ContactDiscoveryAPIClient(apiClient: APIClient(configuration: config))
             self.service = ContactDiscoveryService(oprf: OPRFClientFactory.makeDefault(), api: api)
         }
+
+        if let socialAPI {
+            self.socialAPI = socialAPI
+        } else if let resolved = DIContainer.shared.resolveContactSocialAPI() {
+            self.socialAPI = resolved
+        } else if let client = DIContainer.shared.resolveAPIClient() {
+            self.socialAPI = ContactSocialAPIClient(apiClient: client)
+        } else {
+            self.socialAPI = nil
+        }
     }
 
     func sync() async {
@@ -89,8 +148,31 @@ final class ContactDiscoveryViewModel {
         defer { isLoading = false }
         do {
             contacts = try await service.discoverFromDeviceContacts()
+            lastSyncedAt = Date()
+        } catch ContactDiscoveryError.noMatches {
+            contacts = []
+            lastSyncedAt = Date()
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    func addContact(_ contact: DiscoveredContact) async {
+        guard let socialAPI else {
+            addErrorMessage = "Sign in required to add contacts."
+            return
+        }
+        guard !addedDIDs.contains(contact.did) else { return }
+
+        addingDID = contact.did
+        addErrorMessage = nil
+        defer { addingDID = nil }
+
+        do {
+            _ = try await socialAPI.addContact(did: contact.did, addedVia: "psi_discovery")
+            addedDIDs.insert(contact.did)
+        } catch {
+            addErrorMessage = error.localizedDescription
         }
     }
 }

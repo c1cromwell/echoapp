@@ -46,21 +46,21 @@ struct ConversationListView: View {
                     HStack {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 14))
-                            .foregroundColor(.echoGray500)
-                        
+                            .foregroundColor(.echoInk40)
+
                         TextField("Search conversations", text: $searchText)
                             .textFieldStyle(.roundedBorder)
-                        
+
                         if !searchText.isEmpty {
                             Button(action: { searchText = "" }) {
                                 Image(systemName: "xmark.circle.fill")
                                     .font(.system(size: 14))
-                                    .foregroundColor(.echoGray400)
+                                    .foregroundColor(.echoInk40)
                             }
                         }
                     }
                     .padding(Spacing.md.rawValue)
-                    .background(Color.echoSurface)
+                    .background(Color.echoPaperDim)
                     .cornerRadius(12)
 
                     // Pinned Section
@@ -79,11 +79,11 @@ struct ConversationListView: View {
                         VStack(spacing: Spacing.md.rawValue) {
                             Image(systemName: "bubble.left.and.bubble.right")
                                 .font(.system(size: 48))
-                                .foregroundColor(.echoGray400)
-                            
+                                .foregroundColor(.echoInk40)
+
                             Text("No conversations yet")
-                                .typographyStyle(.h4, color: .echoGray600)
-                            
+                                .typographyStyle(.h4, color: .echoInk70)
+
                             Text("Start messaging with your contacts")
                                 .typographyStyle(.body, color: .echoSecondaryText)
                         }
@@ -133,6 +133,7 @@ struct ChatView: View {
     @Bindable var viewModel: ChatDetailViewModel
     @State private var messageText = ""
     @State private var reactionTargetId: String?
+    @State private var showChatSettings = false
 
     let contactName: String
     let conversationId: String
@@ -165,7 +166,7 @@ struct ChatView: View {
                     title: contactName,
                     showBackButton: true,
                     onBackPressed: { dismiss() },
-                    trailingAction: {},
+                    trailingAction: { showChatSettings = true },
                     trailingIcon: Image(systemName: "info.circle")
                 )
 
@@ -276,18 +277,8 @@ struct ChatView: View {
                         Button(action: {
                             guard !messageText.isEmpty else { return }
                             let text = messageText
-                            let newMessage = ChatDetailMessage(
-                                id: UUID().uuidString,
-                                senderDID: currentUserDID,
-                                currentUserDID: currentUserDID,
-                                content: text,
-                                timestamp: "Now",
-                                deliveryStatus: .sending
-                            )
-                            viewModel.messages.append(newMessage)
-                            onSendMessage(text)
                             messageText = ""
-                            Task { await viewModel.onSendTapped() }
+                            Task { await viewModel.sendMessage(text) }
                         }) {
                             Image(systemName: "paperplane.fill")
                                 .font(.system(size: 18))
@@ -301,6 +292,14 @@ struct ChatView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
+        .sheet(isPresented: $showChatSettings) {
+            ChatSettingsSheet(
+                contactName: contactName,
+                preferences: ConversationPreferencesStore.shared.preferences(for: conversationId),
+                onChange: { ConversationPreferencesStore.shared.save($0, for: conversationId) }
+            )
+            .presentationDetents([.medium, .large])
+        }
         .task {
             let reactions: ReactionsAPI? = DIContainer.shared.resolveReactionsAPI()
             let signalService: ConversationSignalService? = DIContainer.shared.resolveConversationSignalService()
@@ -308,7 +307,8 @@ struct ChatView: View {
                 conversationId: conversationId,
                 peerDID: peerDID,
                 currentUserDID: currentUserDID,
-                reactionsAPI: reactions
+                reactionsAPI: reactions,
+                onSend: onSendMessage
             )
             _ = signalService
             if let token = try? await KeychainManager.shared.getAuthToken() {

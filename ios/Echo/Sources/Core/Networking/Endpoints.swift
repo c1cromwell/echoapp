@@ -770,6 +770,7 @@ enum ContactsEndpoint: APIEndpoint {
     case invite
     case verifyInvite
     case list
+    case add
 
     var path: String {
         switch self {
@@ -789,6 +790,8 @@ enum ContactsEndpoint: APIEndpoint {
             return "/v3/contacts/verify"
         case .list:
             return "/v3/contacts"
+        case .add:
+            return "/v3/contacts/add"
         }
     }
 }

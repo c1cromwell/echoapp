@@ -107,12 +107,17 @@ public struct BiometricEnrollmentView: View {
     // MARK: - Enrollment flow
 
     private func checkBiometricAvailability() {
+        #if targetEnvironment(simulator)
+        // Simulator may not have biometrics enrolled; allow proceeding for dev testing.
+        return
+        #else
         let ctx = LAContext()
         var error: NSError?
         guard ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
             onUnsupported()
             return
         }
+        #endif
     }
 
     private func enroll() async {
@@ -153,40 +158,25 @@ public struct BiometricEnrollmentView: View {
         }
     }
 
-    /// Derives the did:key from the public key and registers it with the backend.
+    /// Derives canonical `did:key` and registers with `POST /identity/register`.
     private func registerDID(publicKeyBase64: String) async throws -> String {
         guard let pubData = Data(base64Encoded: publicKeyBase64) else {
             throw EnrollError.invalidPublicKey
         }
         let pubHex = pubData.map { String(format: "%02x", $0) }.joined()
+        let did = try DidKeyDeriver.deriveFromPublicKeyHex(pubHex)
 
-        // Derive did:key locally (same algorithm as Go pkg/didkey).
-        // The DID is: did:key:z + base58(multicodec_prefix + compressed_p256_pubkey)
-        // For Phase 1 we use the hex as the identifier and let the backend derive it.
-        let body: [String: String] = [
-            "did": "did:key:z\(pubHex.prefix(32))", // placeholder — backend derives canonical DID
-            "public_key_hex": pubHex,
-            "display_name": username,
-        ]
-        let encoded = try JSONSerialization.data(withJSONObject: body)
-
-        var request = URLRequest(url: URL(string: "https://api.echo.local/identity/register")!)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = encoded
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse,
-              http.statusCode == 200 || http.statusCode == 201 else {
-            // If registration fails (network down, etc.), derive DID locally from pubkey.
-            return "did:key:z\(pubHex.prefix(44))"
-        }
-
-        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let did = json["did"] as? String {
+        do {
+            let response = try await IdentityService().registerDidKeyOnEchoAPI(
+                baseURL: EchoAPIBaseURL.resolved,
+                did: did,
+                publicKeyHex: pubHex
+            )
+            return response.did
+        } catch {
+            // Offline / unreachable backend: keep canonical DID for local Keychain use.
             return did
         }
-        return "did:key:z\(pubHex.prefix(44))"
     }
 }
 

@@ -122,7 +122,12 @@ final class DIContainer {
                 ?? APIClient(configuration: .default)
             return ContactSocialAPIClient(apiClient: client)
         }
-        
+
+        // Phase B: per-conversation preferences (mute / disappearing timer)
+        registerFactory(ServiceKeys.conversationPreferences) {
+            ConversationPreferencesStore()
+        }
+
         // Storage Services
         registerFactory(ServiceKeys.localStorage) {
             LocalDatabase.shared
@@ -205,6 +210,7 @@ enum ServiceKeys {
     static let reactionsAPI = "networking.reactionsAPI"
     static let contactDiscoveryService = "services.contactDiscovery"
     static let contactSocialAPI = "services.contactSocialAPI"
+    static let conversationPreferences = "services.conversationPreferences"
     
     // Storage
     static let localStorage = "storage.localStorage"
@@ -276,6 +282,10 @@ extension DIContainer {
 
     func resolveContactDiscoveryService() -> ContactDiscoveryService? {
         resolve(ServiceKeys.contactDiscoveryService)
+    }
+
+    func resolveConversationPreferences() -> ConversationPreferencesStore? {
+        resolve(ServiceKeys.conversationPreferences)
     }
 
     func resolveContactSocialAPI() -> ContactSocialAPIClient? {

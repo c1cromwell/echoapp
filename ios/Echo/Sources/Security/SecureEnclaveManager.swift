@@ -105,11 +105,50 @@ actor SecureEnclaveManager {
   ///
   /// - Parameter keyId: Unique label for the key (e.g. "echo-identity-signing")
   /// - Returns: Base64-encoded uncompressed P-256 public key for DID registration
+  private static var isSimulator: Bool {
+    #if targetEnvironment(simulator)
+    return true
+    #else
+    return false
+    #endif
+  }
+
   func generateBiometricProtectedKey(id keyId: String) async throws -> String {
+    if Self.isSimulator {
+      return try await generateSimulatorKey(id: keyId)
+    }
+    return try await generateSecureEnclaveKey(id: keyId)
+  }
+
+  /// Simulator-only: software P-256 key (no Secure Enclave available).
+  private func generateSimulatorKey(id keyId: String) async throws -> String {
+    let privateKey = P256.Signing.PrivateKey()
+    let pubData = privateKey.publicKey.x963Representation
+    let publicKeyBase64 = pubData.base64EncodedString()
+
+    // Store private key in Keychain so sign() can retrieve it
+    try await keychain.store(
+      data: privateKey.rawRepresentation,
+      key: "sim_privkey_\(keyId)"
+    )
+
+    try await keychain.store(
+      key: "key_metadata_\(keyId)",
+      value: KeyMetadata(
+        keyId: keyId,
+        createdAt: Date(),
+        rotatedAt: Date(),
+        algorithm: "P-256-SW",
+        publicKey: publicKeyBase64
+      )
+    )
+
+    return publicKeyBase64
+  }
+
+  private func generateSecureEnclaveKey(id keyId: String) async throws -> String {
     var cfError: Unmanaged<CFError>?
 
-    // Build access control: require biometric, invalidate on re-enrollment,
-    // device-only (no backup / no device transfer). WO-223.
     guard let access = SecAccessControlCreateWithFlags(
       kCFAllocatorDefault,
       kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
@@ -128,12 +167,10 @@ actor SecureEnclaveManager {
       kSecAttrTokenID as String:        kSecAttrTokenIDSecureEnclave,
       kSecAttrLabel as String:          keyId,
       kSecAttrAccessControl as String:  access,
-      // Explicit device-only: never synced across devices via iCloud Keychain
       kSecAttrSynchronizable as String: false,
       kSecReturnRef as String:          true,
     ]
 
-    // First delete any stale key with the same label
     let deleteQuery: [String: Any] = [
       kSecClass as String:     kSecClassKey,
       kSecAttrLabel as String: keyId,
@@ -147,7 +184,6 @@ actor SecureEnclaveManager {
       throw SecureEnclaveError.keyGenerationFailed("SecItemAdd: OSStatus \(status)")
     }
 
-    // Extract public key and serialize as uncompressed P-256 (04 || X || Y)
     guard let pubSecKey = SecKeyCopyPublicKey(secKey),
           let pubData = SecKeyCopyExternalRepresentation(pubSecKey, &cfError) as Data? else {
       let reason = cfError?.takeRetainedValue().localizedDescription ?? "could not export"
@@ -162,7 +198,7 @@ actor SecureEnclaveManager {
         keyId: keyId,
         createdAt: Date(),
         rotatedAt: Date(),
-        algorithm: "P-256-SE",   // "SE" marks Secure Enclave–bound key
+        algorithm: "P-256-SE",
         publicKey: publicKeyBase64
       )
     )
@@ -259,36 +295,41 @@ actor SecureEnclaveManager {
     data: Data,
     keyId: String
   ) async throws -> Data {
-    // Require biometric authentication
-    try await authenticateWithBiometric(
-      reason: "Sign message"
-    )
-    
-    do {
-      // Get key reference from Secure Enclave
-      guard let keyRef = try await getKeyReference(keyId) else {
-        throw SecureEnclaveError.keyNotFound(keyId)
-      }
-      
-      // Sign using SecureKey operations
-      var error: Unmanaged<CFError>?
-      
-      guard let signature = SecKeyCreateSignature(
-        keyRef,
-        .ecdsaSignatureMessageX962SHA256,
-        data as CFData,
-        &error
-      ) as Data? else {
-        let err = error?.takeRetainedValue()
-        throw SecureEnclaveError.operationFailed(
-          err?.localizedDescription ?? "Signature failed"
-        )
-      }
-      
-      return signature
-    } catch {
-      throw SecureEnclaveError.operationFailed(error.localizedDescription)
+    #if targetEnvironment(simulator)
+    return try await signSimulator(data: data, keyId: keyId)
+    #else
+    try await authenticateWithBiometric(reason: "Sign message")
+
+    guard let keyRef = try await getKeyReference(keyId) else {
+      throw SecureEnclaveError.keyNotFound(keyId)
     }
+
+    var error: Unmanaged<CFError>?
+    guard let signature = SecKeyCreateSignature(
+      keyRef,
+      .ecdsaSignatureMessageX962SHA256,
+      data as CFData,
+      &error
+    ) as Data? else {
+      let err = error?.takeRetainedValue()
+      throw SecureEnclaveError.operationFailed(
+        err?.localizedDescription ?? "Signature failed"
+      )
+    }
+    return signature
+    #endif
+  }
+
+  /// Simulator-only: sign with the software key stored in Keychain.
+  private func signSimulator(data: Data, keyId: String) async throws -> Data {
+    guard let keyData = try await keychain.retrieveData(
+      key: "sim_privkey_\(keyId)"
+    ) else {
+      throw SecureEnclaveError.keyNotFound(keyId)
+    }
+    let privateKey = try P256.Signing.PrivateKey(rawRepresentation: keyData)
+    let signature = try privateKey.signature(for: data)
+    return signature.rawRepresentation
   }
   
   /// Verify a signature (no biometric required)
@@ -412,6 +453,10 @@ actor SecureEnclaveManager {
   
   /// Authenticate user with biometric (Face ID or Touch ID)
   private func authenticateWithBiometric(reason: String) async throws {
+    #if targetEnvironment(simulator)
+    // Biometric evaluation is unreliable on the simulator; skip for dev builds.
+    return
+    #else
     try await withCheckedThrowingContinuation { continuation in
       DispatchQueue.main.async {
         self.context.evaluatePolicy(
@@ -429,6 +474,7 @@ actor SecureEnclaveManager {
         }
       }
     }
+    #endif
   }
   
   /// Get key reference from Secure Enclave

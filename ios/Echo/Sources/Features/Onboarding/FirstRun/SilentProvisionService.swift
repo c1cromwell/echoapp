@@ -209,22 +209,17 @@ final class RealProvisionSecureEnclave: ProvisionSecureEnclaveProtocol, @uncheck
 }
 
 final class RealProvisionAPI: ProvisionAPIProtocol, @unchecked Sendable {
-    private let baseURL: String
-
-    init() {
-        // Prefer environment override (set in Xcode Scheme → Run → Environment Variables)
-        self.baseURL = ProcessInfo.processInfo.environment["ECHO_API_URL"]
-            ?? APIConfiguration.default.baseURL.absoluteString
-    }
+    init() {}
 
     func registerDID(publicKey: Data, displayName: String, assuranceLevel: String) async throws -> String {
         let pubHex = publicKey.map { String(format: "%02x", $0) }.joined()
-        let body: [String: Any] = [
+        let did = try DidKeyDeriver.deriveFromPublicKeyHex(pubHex)
+
+        let body: [String: String] = [
+            "did": did,
             "public_key_hex": pubHex,
-            "display_name": displayName,
-            "assurance_level": assuranceLevel
         ]
-        var req = URLRequest(url: URL(string: "\(baseURL)/identity/register")!)
+        var req = URLRequest(url: EchoAPIBaseURL.url(path: "/identity/register"))
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -235,18 +230,17 @@ final class RealProvisionAPI: ProvisionAPIProtocol, @unchecked Sendable {
             if let http = response as? HTTPURLResponse,
                (200...201).contains(http.statusCode),
                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let did = json["did"] as? String {
-                return did
+               let registered = json["did"] as? String {
+                return registered
             }
         } catch { /* fall through to local derivation */ }
 
-        // Graceful fallback: derive DID locally if backend unreachable
-        return "did:key:z\(pubHex.prefix(44))"
+        return did
     }
 
     func linkWalletToDID(did: String, walletAddress: String) async throws {
         let body: [String: String] = ["did": did, "wallet_address": walletAddress]
-        var req = URLRequest(url: URL(string: "\(baseURL)/v1/identity/link-wallet")!)
+        var req = URLRequest(url: EchoAPIBaseURL.url(path: "/v1/identity/link-wallet"))
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
@@ -261,7 +255,7 @@ final class RealProvisionAPI: ProvisionAPIProtocol, @unchecked Sendable {
             "trust_tier": trustTier,
             "evidence_type": evidenceType
         ]
-        var req = URLRequest(url: URL(string: "\(baseURL)/v1/auth/vip-verify")!)
+        var req = URLRequest(url: EchoAPIBaseURL.url(path: "/v1/auth/vip-verify"))
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)

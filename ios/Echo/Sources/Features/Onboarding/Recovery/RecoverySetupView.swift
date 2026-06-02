@@ -53,8 +53,8 @@ public struct RecoverySetupView: View {
                         // SMS backup card
                         RecoveryOptionCard(
                             icon: "message",
-                            title: "SMS Backup (optional)",
-                            description: "Link a phone number as a recovery hint. Only a hash is stored — Echo never sees your number.",
+                            title: "SMS Backup (recommended)",
+                            description: "Link your phone for recovery and to find friends on ECHO via private contact discovery. Only a hash is stored.",
                             isConfigured: smsConfigured,
                             action: { showSMSSetup = true }
                         )

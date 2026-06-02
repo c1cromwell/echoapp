@@ -25,6 +25,10 @@ final class ChatDetailViewModel {
     private var reactionsAPI: (any ReactionsAPIClient)?
     private var privacy: MessagingPrivacyPreferences = .init()
 
+    /// Outbound send hook. Wire to `MessagingService` / `MessageRelayManager` from Xcode;
+    /// defaults to a no-op so the optimistic UI works headless and in previews.
+    private var onSend: (String) -> Void = { _ in }
+
     // MARK: - Internal state
 
     private var typingBurstActive = false
@@ -48,13 +52,15 @@ final class ChatDetailViewModel {
         peerDID: String,
         currentUserDID: String,
         privacy: MessagingPrivacyPreferences = .init(),
-        reactionsAPI: (any ReactionsAPIClient)? = nil
+        reactionsAPI: (any ReactionsAPIClient)? = nil,
+        onSend: ((String) -> Void)? = nil
     ) {
         self.conversationId = conversationId
         self.peerDID = peerDID
         self.currentUserDID = currentUserDID
         self.privacy = privacy
         self.reactionsAPI = reactionsAPI
+        if let onSend { self.onSend = onSend }
     }
 
     func connect(accessToken: String) async {
@@ -97,6 +103,31 @@ final class ChatDetailViewModel {
     func onSendTapped() async {
         await emitTypingStopIfNeeded()
         inputText = ""
+    }
+
+    // MARK: - Outbound send
+
+    /// Optimistically append an outbound message, route it to the send hook, and
+    /// emit a typing-stop. Returns the optimistic message id so callers can later
+    /// reconcile delivery status. Single source of truth for the send path —
+    /// `ChatView` calls this instead of mutating `messages` directly.
+    @discardableResult
+    func sendMessage(_ text: String) async -> String? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let message = ChatDetailMessage(
+            id: UUID().uuidString,
+            senderDID: currentUserDID,
+            currentUserDID: currentUserDID,
+            content: text,
+            timestamp: "Now",
+            deliveryStatus: .sending
+        )
+        messages.append(message)
+        onSend(text)
+        await onSendTapped()
+        return message.id
     }
 
     private func scheduleIdleStopIfNeeded(hasText: Bool) async {

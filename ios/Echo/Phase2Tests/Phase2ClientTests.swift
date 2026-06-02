@@ -90,4 +90,21 @@ private func mockOPRFKey(for phone: String) -> String {
     let digest = SHA256.hash(data: Data("mock-oprf:\(phone)".utf8))
     return digest.map { String(format: "%02x", $0) }.joined()
 }
+
+// MARK: - TestFlight onboarding helpers
+
+final class DidKeyDeriverTests: XCTestCase {
+    func testDeriveMatchesGoPkgDidkeyVector() throws {
+        let hex = "042a8db0febf8361d5b16c0bd5711625a78d22af9559d0e987666be09ed521459873ec2364e35aa21dbfeb8a63a0b52b61e5c56fbe06fc7ad8cc2143cb1929189a"
+        let did = try DidKeyDeriver.deriveFromPublicKeyHex(hex)
+        XCTAssertEqual(did, "did:key:zDnaeTJ5Uuw7xjUqbd8Dt6Gdq1sfEFai13hR8PRQP8RDNxWf1")
+    }
+}
+
+final class EchoAPIBaseURLTests: XCTestCase {
+    func testURLAppendsPathToBase() {
+        let url = EchoAPIBaseURL.url(path: "/v1/auth/sms-recovery/register")
+        XCTAssertTrue(url.path.hasSuffix("/v1/auth/sms-recovery/register"))
+    }
+}
 #endif

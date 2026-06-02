@@ -69,7 +69,7 @@ public struct SMSOTPSetupView: View {
                 Text("Add phone backup")
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.echoPrimaryText)
-                Text("We store only a hash of your number — Echo never sees it in plain text.")
+                Text("We store only a hash of your number. After verification you can opt in to private contact discovery on ECHO.")
                     .font(.system(size: 13))
                     .foregroundColor(.echoSecondaryText)
                     .multilineTextAlignment(.center)
@@ -147,7 +147,7 @@ public struct SMSOTPSetupView: View {
             Text("Phone backup added")
                 .font(.system(size: 20, weight: .bold))
                 .foregroundColor(.echoPrimaryText)
-            Text("Your phone number hash is stored as a recovery hint.")
+            Text("Your phone hash is stored for recovery and contact discovery. You can change discovery settings anytime in Privacy.")
                 .font(.system(size: 13))
                 .foregroundColor(.echoSecondaryText)
                 .multilineTextAlignment(.center)
@@ -166,10 +166,9 @@ public struct SMSOTPSetupView: View {
             "phone_raw": phone,
             "did": did,
         ]
-        guard let data = try? JSONSerialization.data(withJSONObject: body),
-              let url = URL(string: "https://api.echo.local/v1/auth/sms-recovery/register") else { return }
+        guard let data = try? JSONSerialization.data(withJSONObject: body) else { return }
 
-        var req = URLRequest(url: url)
+        var req = URLRequest(url: EchoAPIBaseURL.url(path: "/v1/auth/sms-recovery/register"))
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = data
@@ -192,10 +191,9 @@ public struct SMSOTPSetupView: View {
     private func verifyOTP() async {
         errorMessage = nil
         let body: [String: String] = ["session_token": sessionToken, "otp": otp]
-        guard let data = try? JSONSerialization.data(withJSONObject: body),
-              let url = URL(string: "https://api.echo.local/v1/auth/sms-recovery/verify") else { return }
+        guard let data = try? JSONSerialization.data(withJSONObject: body) else { return }
 
-        var req = URLRequest(url: url)
+        var req = URLRequest(url: EchoAPIBaseURL.url(path: "/v1/auth/sms-recovery/verify"))
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = data
@@ -208,6 +206,7 @@ public struct SMSOTPSetupView: View {
                     key: "echo.sms.phone_hash",
                     value: "sha256:\(sha256Hex(phone))"
                 )
+                await enableContactDiscoveryOptIn()
                 countdownTask?.cancel()
                 phase = .done
                 try? await Task.sleep(nanoseconds: 1_200_000_000)
@@ -241,6 +240,18 @@ public struct SMSOTPSetupView: View {
     private func sha256Hex(_ input: String) -> String {
         let hash = SHA256.hash(data: Data(input.utf8))
         return hash.compactMap { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Best-effort PSI opt-in after SMS backup (WO-221 / TestFlight onboarding).
+    private func enableContactDiscoveryOptIn() async {
+        guard let client = DIContainer.shared.resolveAPIClient() else { return }
+        let api = ContactDiscoveryAPIClient(apiClient: client)
+        do {
+            _ = try await api.updateDiscoveryOptIn(true)
+            UserDefaults.standard.set(true, forKey: "echo.discovery.opted_in")
+        } catch {
+            // User can enable later in Settings → Privacy.
+        }
     }
 }
 #endif
