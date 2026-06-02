@@ -31,6 +31,7 @@ struct MessagesTabView: View {
                         conversations: conversationStore.conversations,
                         personas: appState.personas,
                         activePersona: appState.activePersona,
+                        mutedIDs: mutedConversationIDs,
                         onSelectConversation: { id in
                             if let conversation = conversationStore.conversation(id: id) {
                                 chatPath.append(conversation)
@@ -119,6 +120,12 @@ struct MessagesTabView: View {
     private var hasSentFirstMessage: Bool {
         UserDefaults.standard.bool(forKey: "echo.hasSentFirstMessage")
             || !conversationStore.conversations.isEmpty
+    }
+
+    /// Conversations the user has muted — drives the mute badge on hub rows.
+    private var mutedConversationIDs: Set<String> {
+        let store = ConversationPreferencesStore.shared
+        return Set(conversationStore.conversations.map(\.id).filter { store.isMuted($0) })
     }
 }
 

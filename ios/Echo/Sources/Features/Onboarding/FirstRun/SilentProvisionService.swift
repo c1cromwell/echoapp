@@ -115,6 +115,12 @@ final class SilentProvisionService {
                 )
             }
 
+            // Identity now exists (Secure Enclave key + DID). Mirror the username
+            // and DID into the Keychain so the returning-user login recognises the
+            // account and messaging can resolve the current DID.
+            try? await KeychainManager.shared.store(key: "echo.username.current", value: displayName)
+            try? await KeychainManager.shared.store(key: "echo.did.current", value: did)
+
             stage = .provisioning(.wallet)
             let walletAddress = try await withRetry { try await self.stargazer.createWallet() }
             try await withRetry {

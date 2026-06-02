@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Echo uses Face ID to unlock the app, sign in to your account, and authorize sensitive actions. Your face is your key — it never leaves your device.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -10,6 +12,14 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>echo-enroll</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.echo.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>echo</string>
 			</array>
 		</dict>
 	</array>

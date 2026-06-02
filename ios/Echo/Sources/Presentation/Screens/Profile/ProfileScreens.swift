@@ -222,6 +222,23 @@ public struct ProfileTabView: View {
                     .padding(Spacing.md.rawValue)
                 }
                 Divider().padding(.leading, 52)
+                NavigationLink {
+                    TrustDashboardView(currentTier: sessionTrustTier)
+                } label: {
+                    HStack(spacing: Spacing.md.rawValue) {
+                        Image(systemName: "checkmark.shield.fill")
+                            .frame(width: 24)
+                            .foregroundColor(.echoPrimary)
+                        Text("Trust Dashboard")
+                            .typographyStyle(.body, color: .echoPrimaryText)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.echoGray400)
+                    }
+                    .padding(Spacing.md.rawValue)
+                }
+                Divider().padding(.leading, 52)
                 SettingsNavRow(icon: "bell.fill", title: "Notifications", action: onNotificationSettings)
                 Divider().padding(.leading, 52)
                 SettingsNavRow(icon: "paintbrush.fill", title: "Appearance", action: onAppearanceSettings)

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Echo — Chat Settings Sheet (Phase B)</title>
+<link rel="stylesheet" href="previews.css">
+</head>
+<body>
+<div class="frame-col">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>5G&nbsp;&nbsp;100%</span></div>
+
+    <div class="navbar">
+      <div class="icon">‹</div>
+      <div class="title" style="font-size:18px;">Aria Rao</div>
+      <div class="spacer"></div>
+      <div class="icon signal">ⓘ</div>
+    </div>
+    <div class="secure-thread"></div>
+
+    <div class="chat-scroll" style="opacity:.45;">
+      <div class="bubble-wrap recv"><div class="bubble recv">Perfect 🙏</div><div class="meta-row">9:31</div></div>
+    </div>
+
+    <div class="sheet-backdrop">
+      <div class="sheet">
+        <div class="grabber"></div>
+        <div style="text-align:center;font-size:17px;font-weight:600;margin-bottom:10px;">Aria Rao</div>
+
+        <div class="settings-row">
+          <span class="ic">🔕</span> Silent notifications
+          <span class="spacer"></span>
+          <span class="toggle"></span>
+        </div>
+
+        <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:10px;">
+          <div style="display:flex;align-items:center;gap:12px;"><span class="ic">⏱</span> Disappearing messages</div>
+          <div class="seg">
+            <span class="opt">Off</span>
+            <span class="opt">30s</span>
+            <span class="opt">5m</span>
+            <span class="opt">1h</span>
+            <span class="opt active">24h</span>
+            <span class="opt">7d</span>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <span class="ic">🛡</span> Verify identity
+          <span class="spacer"></span>
+          <span style="color:var(--echo-ink-40);">›</span>
+        </div>
+
+        <div class="settings-row danger">
+          <span class="ic">✋</span> Block &amp; report
+          <span class="spacer"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="caption"><b>Phase B · Chat settings sheet</b>Signal-style per-chat (spec §5.4) · Silent toggle · Disappearing timer (Off/30s/5m/1h/24h/7d) · Verify (DID safety-number analog) · Block &amp; report · persisted via ConversationPreferencesStore</div>
+</div>
+</body>
+</html>

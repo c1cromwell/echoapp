@@ -134,6 +134,7 @@ struct ChatView: View {
     @State private var messageText = ""
     @State private var reactionTargetId: String?
     @State private var showChatSettings = false
+    @State private var actionsTargetMessage: ChatDetailMessage?
 
     let contactName: String
     let conversationId: String
@@ -222,20 +223,38 @@ struct ChatView: View {
                             .id(message.id)
                             .overlay(alignment: message.isFromCurrentUser ? .bottomTrailing : .bottomLeading) {
                                 if reactionTargetId == message.id {
-                                    ReactionPickerView(
-                                        onSelect: { emoji in
-                                            Task {
-                                                await viewModel.toggleReaction(
-                                                    messageId: message.id,
-                                                    emoji: emoji
-                                                )
+                                    HStack(spacing: 6) {
+                                        ReactionPickerView(
+                                            onSelect: { emoji in
+                                                Task {
+                                                    await viewModel.toggleReaction(
+                                                        messageId: message.id,
+                                                        emoji: emoji
+                                                    )
+                                                }
+                                                withAnimation(.glacialPress) { reactionTargetId = nil }
+                                            },
+                                            onDismiss: {
+                                                withAnimation(.glacialPress) { reactionTargetId = nil }
                                             }
+                                        )
+
+                                        // "More" → full Telegram-style action grid (§5.3)
+                                        Button {
                                             withAnimation(.glacialPress) { reactionTargetId = nil }
-                                        },
-                                        onDismiss: {
-                                            withAnimation(.glacialPress) { reactionTargetId = nil }
+                                            actionsTargetMessage = message
+                                        } label: {
+                                            Image(systemName: "ellipsis")
+                                                .font(.system(size: 17, weight: .semibold))
+                                                .foregroundColor(.echoInk70)
+                                                .frame(width: 40, height: 40)
+                                                .background(Color.echoPaper)
+                                                .clipShape(Circle())
+                                                .overlay(Circle().stroke(Color.echoHair, lineWidth: 1))
                                         }
-                                    )
+                                        .buttonStyle(.plain)
+                                        .accessibilityLabel("More actions")
+                                    }
                                     .transition(.scale.combined(with: .opacity))
                                     .offset(y: -44)
                                 }
@@ -300,6 +319,18 @@ struct ChatView: View {
             )
             .presentationDetents([.medium, .large])
         }
+        .sheet(item: $actionsTargetMessage) { message in
+            MessageActionsSheet(
+                messagePreview: message.content,
+                isOwnMessage: message.isFromCurrentUser,
+                sentWithinEditWindow: message.isFromCurrentUser,
+                onAction: { action in
+                    handleMessageAction(action, on: message)
+                    actionsTargetMessage = nil
+                }
+            )
+            .presentationDetents([.height(300)])
+        }
         .task {
             let reactions: ReactionsAPI? = DIContainer.shared.resolveReactionsAPI()
             let signalService: ConversationSignalService? = DIContainer.shared.resolveConversationSignalService()
@@ -319,6 +350,18 @@ struct ChatView: View {
             if reactionTargetId != nil {
                 withAnimation(.glacialPress) { reactionTargetId = nil }
             }
+        }
+    }
+
+    /// Handle a message action. Copy is handled inside the sheet (UIPasteboard);
+    /// Delete removes locally; Reply/Forward/Pin/Edit are wired to ViewModel hooks
+    /// in a later pass.
+    private func handleMessageAction(_ action: MessageAction, on message: ChatDetailMessage) {
+        switch action {
+        case .delete:
+            viewModel.messages.removeAll { $0.id == message.id }
+        case .copy, .reply, .forward, .pin, .edit:
+            break
         }
     }
 

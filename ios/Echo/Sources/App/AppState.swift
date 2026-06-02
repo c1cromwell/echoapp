@@ -63,6 +63,10 @@ final class AppState {
         UserDefaults.standard.set(Date(), forKey: "echo.firstRunCompletedAt")
         UserDefaults.standard.set(displayName, forKey: "echo.displayName")
         UserDefaults.standard.set(trustTier, forKey: "echo.trustTier")
+        // Mirror the username into the Keychain so the returning-user login
+        // (GlacialLoginScreen) recognises the account and shows Face ID — not
+        // the "Create account" screen.
+        Task { try? await KeychainManager.shared.store(key: "echo.username.current", value: displayName) }
         root = .authenticated
     }
 

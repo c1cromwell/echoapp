@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Echo — Trust Dashboard (Phase B)</title>
+<link rel="stylesheet" href="previews.css">
+</head>
+<body>
+<div class="frame-col">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>5G&nbsp;&nbsp;100%</span></div>
+
+    <div class="navbar">
+      <div class="icon">‹</div>
+      <div class="title">Trust</div>
+    </div>
+
+    <div class="conv-list">
+      <!-- Current tier card -->
+      <div class="tier-card">
+        <div class="tier-ring" style="background:rgba(31,122,76,0.45);">✓</div>
+        <div class="tier-name">Verified</div>
+        <div class="tier-sub">Tier T2 · Identity confirmed</div>
+      </div>
+
+      <!-- Ladder -->
+      <div class="section-label">Trust ladder</div>
+      <div class="ladder">
+        <div class="rung"><span class="swatch" style="background:var(--trust-t4);"></span><span class="lab">Elite</span><span class="meta">T4</span></div>
+        <div class="rung"><span class="swatch" style="background:var(--trust-t3);"></span><span class="lab">Trusted</span><span class="meta">T3</span></div>
+        <div class="rung current"><span class="swatch" style="background:var(--trust-t2);"></span><span class="lab">Verified</span><span class="meta" style="color:var(--echo-trust-green);font-weight:600;">You're here</span></div>
+        <div class="rung"><span class="swatch" style="background:var(--trust-t1);"></span><span class="lab">Basic</span><span class="meta">T1</span></div>
+        <div class="rung"><span class="swatch" style="background:var(--trust-t0);"></span><span class="lab">Unverified</span><span class="meta">T0</span></div>
+      </div>
+
+      <!-- Verification sources -->
+      <div class="section-label">Verification sources</div>
+      <div class="sources">
+        <div class="source-row">🔑 Secure Enclave key (DID) <span class="ok">●</span></div>
+        <div class="source-row">📱 SMS backup <span class="ok">●</span></div>
+        <div class="source-row">🪪 Standard IDV (scan + selfie) <span class="todo">○</span></div>
+        <div class="source-row">👛 Digital ID / mDL <span class="todo">○</span></div>
+      </div>
+
+      <!-- CTA -> VIP path -->
+      <div class="cta">Increase trust</div>
+      <div style="text-align:center;font-size:12px;color:var(--echo-ink-40);padding:6px 32px 20px;">Verify with a digital ID or standard IDV to raise your tier.</div>
+    </div>
+  </div>
+  <div class="caption"><b>Phase B · Trust dashboard</b>Current-tier card · T0→T4 green-opacity ladder (one hue, five opacities) · verification sources · "Increase trust" → VIP path (preserved) · deep-linked from Profile (not a tab)</div>
+</div>
+</body>
+</html>

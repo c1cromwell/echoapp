@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Echo iOS — Design Previews</title>
+<link rel="stylesheet" href="previews.css">
+<style>
+  body { display: block; }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin: 18px 0 36px; }
+  .card { background: var(--echo-paper); border: 1px solid var(--echo-hair); border-radius: 14px; padding: 18px; text-decoration: none; color: var(--echo-ink); display: block; }
+  .card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+  .card.todo { opacity: 0.5; }
+  .card h3 { font-size: 16px; margin-bottom: 6px; }
+  .card p { font-size: 13px; color: var(--echo-ink-55); }
+  .phase { font-family: var(--mono); font-size: 11px; letter-spacing: 1px; color: var(--echo-signal); text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="gallery-head">
+    <h1>Echo iOS — Design Previews</h1>
+    <p>Warm paper / ink / signal · mirrors <code>docs/ux-spec.md</code> §4. Open any screen, or paste into Figma / Claude Design.</p>
+  </div>
+
+  <div class="phase" style="margin-top:24px;">Phase A — TestFlight messaging</div>
+  <div class="grid">
+    <a class="card" href="phaseA-conversation-list.html"><h3>Conversation list</h3><p>Rows, pinned strip, trust badges, unread pills, paper/ink theming.</p></a>
+    <a class="card" href="phaseA-chat.html"><h3>1:1 chat</h3><p>Bubbles, delivery checks, reactions, typing, secure-thread bar.</p></a>
+  </div>
+
+  <div class="phase">Phase B — Messages-hub parity</div>
+  <div class="grid">
+    <a class="card" href="phaseB-messages-hub.html"><h3>Messages hub</h3><p>Persona header, folder filter chips, pinned + segments.</p></a>
+    <a class="card" href="phaseB-message-actions.html"><h3>Message actions sheet</h3><p>Reply / copy / forward / pin / edit / delete grid.</p></a>
+    <a class="card" href="phaseB-chat-settings.html"><h3>Chat settings sheet</h3><p>Silent, disappearing timer, verify, block/report.</p></a>
+    <a class="card" href="phaseB-persona-switcher.html"><h3>Persona switcher</h3><p>Active persona + sheet with biometric-gated hidden personas.</p></a>
+    <a class="card" href="phaseB-trust-dashboard.html"><h3>Trust dashboard</h3><p>Tier card, T0→T4 ladder, verification sources, VIP CTA.</p></a>
+  </div>
+</div>
+</body>
+</html>

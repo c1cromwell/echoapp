@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Echo — Persona Switcher (Phase B)</title>
+<link rel="stylesheet" href="previews.css">
+</head>
+<body>
+<div class="frame-col">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>5G&nbsp;&nbsp;100%</span></div>
+
+    <!-- Header (tapped) -->
+    <div class="persona-header">
+      <div class="avatar" style="width:36px;height:36px;background:#0E7AB8;font-size:14px;">AR</div>
+      <div style="display:flex;flex-direction:column;">
+        <span style="font-size:16px;font-weight:600;">Aria (public)</span>
+        <span style="font-size:11px;color:var(--echo-ink-40);">Active persona</span>
+      </div>
+      <span class="trust-badge t2" style="margin-left:8px;">◆ Verified</span>
+      <div class="spacer" style="flex:1;"></div>
+      <span class="chev">▴</span>
+    </div>
+    <div class="secure-thread"></div>
+
+    <div class="chat-scroll" style="opacity:.4;"></div>
+
+    <!-- Switcher sheet -->
+    <div class="sheet-backdrop">
+      <div class="sheet">
+        <div class="grabber"></div>
+        <div style="text-align:center;font-size:17px;font-weight:600;margin-bottom:8px;">Switch persona</div>
+        <div class="persona-list">
+          <div class="prow">
+            <div class="avatar" style="width:44px;height:44px;background:#0E7AB8;font-size:16px;">AR</div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:16px;font-weight:600;">Aria (public)</span>
+              <span class="trust-badge t2" style="width:max-content;">◆ Verified</span>
+            </div>
+            <span class="lock" style="color:var(--echo-signal);">✓</span>
+          </div>
+          <div class="prow">
+            <div class="avatar" style="width:44px;height:44px;background:#1F7A4C;font-size:16px;">BD</div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:16px;font-weight:600;">Builder</span>
+              <span class="trust-badge t3" style="width:max-content;">★ Trusted</span>
+            </div>
+          </div>
+          <div class="prow hidden-p">
+            <div class="avatar" style="width:44px;height:44px;background:#0E1418;font-size:16px;">👁</div>
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <span style="font-size:16px;font-weight:600;">Hidden persona</span>
+            </div>
+            <span class="lock">🔒</span>
+          </div>
+        </div>
+        <div class="settings-row" style="color:var(--echo-signal);border:none;">
+          <span class="ic" style="color:var(--echo-signal);">＋</span> Create a persona
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="caption"><b>Phase B · Persona switcher</b>Hub-header active persona + trust badge · tap → sheet · visible personas switch instantly · hidden persona reveals nothing (night surface + 🔒) until Face ID gate passes (ux-spec §2.3)</div>
+</div>
+</body>
+</html>

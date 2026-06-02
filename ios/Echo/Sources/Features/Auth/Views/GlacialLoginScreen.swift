@@ -341,14 +341,33 @@ public struct GlacialLoginScreen: View {
     // MARK: - Setup
 
     private func setupLoginState() async {
-        // Load saved username
-        savedUsername = (try? await KeychainManager.shared.retrieve(
+        // Load saved username. Prefer the Keychain copy, but fall back to the
+        // display name persisted at first-run completion — older builds (and the
+        // silent-provision path) didn't always mirror the username into the
+        // Keychain, which previously stranded returning users on the "Create
+        // account" screen even though they had an account.
+        let keychainUsername = (try? await KeychainManager.shared.retrieve(
             key: "echo.username.current", as: String.self
         )) ?? ""
+        savedUsername = keychainUsername.isEmpty
+            ? (UserDefaults.standard.string(forKey: "echo.displayName") ?? "")
+            : keychainUsername
 
-        guard !savedUsername.isEmpty else {
+        // The authoritative "has an account" signal is first-run completion —
+        // the same flag AppState uses to route here — not the presence of a
+        // Keychain username string.
+        let hasAccount = UserDefaults.standard.bool(forKey: "echo.hasCompletedFirstRun")
+        guard hasAccount else {
             loginState = .noAccount
             return
+        }
+
+        // Self-heal: if we recovered the username from UserDefaults, mirror it
+        // back into the Keychain so future launches read it directly.
+        if keychainUsername.isEmpty, !savedUsername.isEmpty {
+            try? await KeychainManager.shared.store(
+                key: "echo.username.current", value: savedUsername
+            )
         }
 
         // Check biometric availability
@@ -359,8 +378,15 @@ public struct GlacialLoginScreen: View {
         )
 
         if !biometricsAvailable {
+            #if targetEnvironment(simulator)
+            // Simulator typically has no enrolled Face ID. Match the onboarding
+            // simulator handling and proceed to the normal flow — the Secure
+            // Enclave simulator key path signs without a biometric prompt — so
+            // the returning-user flow stays testable in the Simulator.
+            #else
             loginState = .biometricsUnavailable
             return
+            #endif
         }
 
         // Check lockout state
