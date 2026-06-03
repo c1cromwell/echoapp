@@ -26,19 +26,13 @@ struct IdentityResolveClient: Sendable {
     func primaryPublicKeyHex(peerDID: String) async throws -> String {
         let encoded = peerDID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? peerDID
         let response: Response = try await apiClient.get(
-            endpoint: IdentityEndpoint.resolve(did: encoded)
+            endpoint: IdentityEndpoint.resolveDID(did: encoded)
         )
         guard let hex = response.devices.first?.publicKeyHex, !hex.isEmpty else {
             throw IdentityResolveError.noDevices
         }
         return hex
     }
-}
-
-enum IdentityEndpoint: APIEndpoint {
-    case resolve(did: String)
-
-    var path: String { "/identity/resolve/\(did)" }
 }
 
 enum IdentityResolveError: LocalizedError {

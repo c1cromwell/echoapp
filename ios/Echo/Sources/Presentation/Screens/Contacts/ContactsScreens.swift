@@ -123,51 +123,18 @@ public struct ContactsListView: View {
                             Button("Retry") { Task { await viewModel.refresh() } }
                         }
                         .frame(maxHeight: .infinity, alignment: .center)
-                    } else
-                    #endif
-                    if filteredContacts.isEmpty {
-                        VStack(spacing: Spacing.md.rawValue) {
-                            Image(systemName: "person.slash")
-                                .font(.system(size: 48))
-                                .foregroundColor(.echoGray400)
-                            
-                            Text("No contacts found")
-                                .typographyStyle(.h4, color: .echoGray600)
-                            
-                            Text("Find people on ECHO or add by @username")
-                                .typographyStyle(.body, color: .echoSecondaryText)
-                        }
-                        .frame(maxHeight: .infinity, alignment: .center)
+                    } else if filteredContacts.isEmpty {
+                        contactsEmptyState
                     } else {
-                        List {
-                            ForEach(filteredContacts) { contact in
-                                ContactListItem(
-                                    name: contact.name,
-                                    username: contact.username,
-                                    trustLevel: contact.trustLevel,
-                                    onTap: {
-                                        onSelectContact(contact.id)
-                                        #if os(iOS)
-                                        Task {
-                                            if let thread = await ContactThreadHelper.upsertDirectThread(
-                                                peerDID: contact.id,
-                                                displayName: contact.name
-                                            ) {
-                                                chatThread = thread
-                                            }
-                                        }
-                                        #endif
-                                    }
-                                )
-                                .listRowSeparator(.hidden)
-                                .listRowInsets(.init())
-                                .listRowBackground(Color.clear)
-                                .padding(.vertical, Spacing.xs.rawValue)
-                            }
-                        }
-                        .listStyle(.plain)
-                        .scrollContentBackground(.hidden)
+                        contactsList
                     }
+                    #else
+                    if filteredContacts.isEmpty {
+                        contactsEmptyState
+                    } else {
+                        contactsList
+                    }
+                    #endif
                 }
                 .echoSpacing(.lg)
             }
@@ -182,6 +149,52 @@ public struct ContactsListView: View {
             ChatDestinationView(conversation: conversation)
         }
         #endif
+    }
+
+    private var contactsEmptyState: some View {
+        VStack(spacing: Spacing.md.rawValue) {
+            Image(systemName: "person.slash")
+                .font(.system(size: 48))
+                .foregroundColor(.echoGray400)
+
+            Text("No contacts found")
+                .typographyStyle(.h4, color: .echoGray600)
+
+            Text("Find people on ECHO or add by @username")
+                .typographyStyle(.body, color: .echoSecondaryText)
+        }
+        .frame(maxHeight: .infinity, alignment: .center)
+    }
+
+    private var contactsList: some View {
+        List {
+            ForEach(filteredContacts) { contact in
+                ContactListItem(
+                    name: contact.name,
+                    username: contact.username,
+                    trustLevel: contact.trustLevel,
+                    onTap: {
+                        onSelectContact(contact.id)
+                        #if os(iOS)
+                        Task {
+                            if let thread = await ContactThreadHelper.upsertDirectThread(
+                                peerDID: contact.id,
+                                displayName: contact.name
+                            ) {
+                                chatThread = thread
+                            }
+                        }
+                        #endif
+                    }
+                )
+                .listRowSeparator(.hidden)
+                .listRowInsets(.init())
+                .listRowBackground(Color.clear)
+                .padding(.vertical, Spacing.xs.rawValue)
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
     }
 }
 

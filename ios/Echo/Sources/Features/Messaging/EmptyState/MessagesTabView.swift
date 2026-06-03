@@ -36,11 +36,11 @@ struct MessagesTabView: View {
                         conversations: personaFilteredConversations,
                         personas: appState.personas,
                         activePersona: appState.activePersona,
-                        mutedIDs: mutedConversationIDs,
                         trustTier: { conversationId in
                             guard let conv = conversationStore.conversation(id: conversationId) else { return 1 }
                             return ContactTrustIndex.shared.tier(conversationId: conversationId, peerDID: conv.peerDID)
                         },
+                        mutedIDs: mutedConversationIDs,
                         onSelectConversation: { id in
                             if let conversation = conversationStore.conversation(id: id) {
                                 chatPath.append(conversation)

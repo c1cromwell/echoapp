@@ -271,7 +271,13 @@ struct MessagesHubView_Previews: PreviewProvider {
             ],
             personas: [PersonaSummary(id: "default", name: "Aria (public)", initials: "AR")],
             activePersona: PersonaSummary(id: "default", name: "Aria (public)", initials: "AR"),
-            trustTier: { _ in 3 }
+            trustTier: { _ in 3 },
+            mutedIDs: [],
+            onSelectConversation: { _ in },
+            onCompose: {},
+            onOpenHidden: {},
+            onSwitchPersona: { _ in },
+            onSelectHiddenPersona: { _ in }
         )
     }
 }

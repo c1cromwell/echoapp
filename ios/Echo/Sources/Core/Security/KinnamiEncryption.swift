@@ -246,7 +246,7 @@ struct EncryptedMessage: Codable {
     let algorithm: String
 }
 
-struct EncryptedMessageWithPublicKey: Codable {
+struct EncryptedMessageWithPublicKey: Codable, Equatable {
     let ephemeralPublicKey: String
     let nonce: String
     let ciphertext: String

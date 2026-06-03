@@ -28,7 +28,7 @@ public final class ContactTrustIndex {
         persist()
     }
 
-    public func ingestRemoteContacts(_ contacts: [RemoteContact]) {
+    func ingestRemoteContacts(_ contacts: [RemoteContact]) {
         for contact in contacts {
             guard let did = contact.contactDid, !did.isEmpty else { continue }
             tierByDID[did] = Self.tier(fromTrustBadge: contact.trustBadge)
@@ -36,7 +36,7 @@ public final class ContactTrustIndex {
         persist()
     }
 
-    public func ingestSearchHits(_ hits: [UsernameSearchHit]) {
+    func ingestSearchHits(_ hits: [UsernameSearchHit]) {
         for hit in hits {
             if let tier = hit.tier {
                 tierByDID[hit.did] = min(4, max(0, tier))
