@@ -76,6 +76,9 @@ final class AppState {
     // MARK: - Auth intents
 
     func loginSucceeded() {
+        if let code = EchoDeepLink.consumePendingInvite() {
+            pendingInviteCode = code
+        }
         root = .authenticated
     }
 
@@ -118,6 +121,11 @@ struct EchoRootView: View {
                         onGetStarted: { appState.root = .firstRun }
                     )
                 }
+                .onOpenURL { url in
+                    if case .invite(let code) = EchoDeepLink.parse(url) {
+                        EchoDeepLink.stashPendingInvite(code)
+                    }
+                }
             case .authenticated:
                 MainTabView()
                     .environment(appState)
@@ -125,11 +133,12 @@ struct EchoRootView: View {
                         if url.scheme == "echo-enroll" {
                             return
                         }
-                        if url.host == "invite",
-                           let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-                           let code = components.queryItems?.first(where: { $0.name == "code" })?.value {
+                        switch EchoDeepLink.parse(url) {
+                        case .invite(let code):
                             appState.pendingInviteCode = code
-                        } else {
+                        case .linkDevice:
+                            DeepLinkHandler.shared.handle(url)
+                        case .profile, .none:
                             DeepLinkHandler.shared.handle(url)
                         }
                     }

@@ -18,7 +18,8 @@ enum ScannedIdentityParser {
 
         if let url = URL(string: trimmed),
            url.scheme?.lowercased() == "echo",
-           url.host?.lowercased() == "profile" {
+           let host = url.host?.lowercased(),
+           host == "profile" || host == "user" {
             let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
             let did = components?.queryItems?.first(where: { $0.name == "did" })?.value
             let username = components?.queryItems?.first(where: { $0.name == "u" })?.value

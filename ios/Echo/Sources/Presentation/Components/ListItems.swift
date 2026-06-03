@@ -8,6 +8,7 @@ public struct ContactListItem: View {
     let username: String
     let trustLevel: String
     let imageURL: URL?
+    let isFavorite: Bool
     let onTap: () -> Void
     let onSwipe: (() -> Void)?
     
@@ -16,6 +17,7 @@ public struct ContactListItem: View {
         username: String,
         trustLevel: String,
         imageURL: URL? = nil,
+        isFavorite: Bool = false,
         onTap: @escaping () -> Void = {},
         onSwipe: (() -> Void)? = nil
     ) {
@@ -23,6 +25,7 @@ public struct ContactListItem: View {
         self.username = username
         self.trustLevel = trustLevel
         self.imageURL = imageURL
+        self.isFavorite = isFavorite
         self.onTap = onTap
         self.onSwipe = onSwipe
     }
@@ -41,9 +44,12 @@ public struct ContactListItem: View {
                     HStack {
                         Text(name)
                             .typographyStyle(.h4, color: .echoPrimaryText)
-                        
+                        if isFavorite {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Color.echoPrimary)
+                        }
                         Spacer()
-                        
                         TrustBadge(level: trustLevel, size: .small)
                     }
                     

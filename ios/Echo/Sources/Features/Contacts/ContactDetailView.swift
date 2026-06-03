@@ -133,6 +133,12 @@ public struct ContactDetailView: View {
                 Menu {
                     Button("Copy DID") { viewModel.copyDID() }
                     Button("Share Contact") { viewModel.shareContact() }
+                    Button(
+                        ContactFavoritesStore.isFavorite(did: viewModel.contactId)
+                            ? "Remove from favorites" : "Add to favorites"
+                    ) {
+                        ContactFavoritesStore.toggle(did: viewModel.contactId)
+                    }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .foregroundStyle(Color.Echo.outline)
@@ -140,6 +146,17 @@ public struct ContactDetailView: View {
             }
         }
         .task { await viewModel.loadContact() }
+        .alert("Block contact?", isPresented: $viewModel.showBlockConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Block", role: .destructive) {
+                Task { await viewModel.blockContact() }
+            }
+        } message: {
+            Text("They won't be able to message you or see your online status.")
+        }
+        .alert("Contact blocked", isPresented: $viewModel.isBlocked) {
+            Button("OK") { dismiss() }
+        }
     }
 }
 

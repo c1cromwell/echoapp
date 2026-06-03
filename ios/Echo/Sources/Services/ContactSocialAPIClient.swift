@@ -85,5 +85,14 @@ struct ContactSocialAPIClient: Sendable {
             body: Body(contactDid: did, addedVia: addedVia)
         )
     }
+
+    func blockContact(did: String) async throws {
+        struct Body: Encodable { let contactDid: String }
+        struct Status: Decodable { let status: String? }
+        let _: Status = try await apiClient.post(
+            endpoint: ContactsEndpoint.block,
+            body: Body(contactDid: did)
+        )
+    }
 }
 #endif

@@ -1,7 +1,7 @@
 .PHONY: help build run test clean install-deps lint fmt vet build-prod tls-cert migrate \
 	dev dev-stop dev-status dev-logs dev-restart validate-phase1 metagraph-verify-skeleton metagraph-test \
 	testnet-up testnet-down release-check regression regression-quick regression-with-phase1 ios-preflight \
-	phase3-signals-proof
+	phase3-signals-proof echooprf-ios
 
 # Variables
 BINARY_NAME=echoapp
@@ -423,5 +423,9 @@ ios-preflight: ## iOS E2E preflight — backend + Xcode checks (docs/E2E_QUICK_S
 phase3-signals-proof: ## Headless WO-192/10 proof (Go WS tests + EchoPhase3Tests)
 	@chmod +x scripts/phase3-signals-proof.sh
 	@./scripts/phase3-signals-proof.sh
+
+echooprf-ios: ## Build EchoOPRF.xcframework for WO-221 PSI (requires Xcode + gomobile)
+	@chmod +x scripts/build-echooprf-ios.sh
+	@./scripts/build-echooprf-ios.sh
 
 .DEFAULT_GOAL := help

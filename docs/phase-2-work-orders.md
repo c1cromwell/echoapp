@@ -2,7 +2,7 @@
 
 **Total Work Orders:** 26  
 **Status Summary:** 4 Completed, 3 In Progress, 17 Backlog, 2 Blocked  
-**Last synced with Software Factory:** 2026-05-26
+**Last synced with Software Factory:** 2026-05-29
 
 ---
 

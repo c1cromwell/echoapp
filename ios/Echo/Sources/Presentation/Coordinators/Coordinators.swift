@@ -385,13 +385,21 @@ class DeepLinkHandler {
             case "qr":
                 appCoordinator.navigate(to: .qrIdentity)
             case "invite":
-                if let code = components.queryItems?.first(where: { $0.name == "code" })?.value {
+                var inviteURL = URLComponents()
+                inviteURL.scheme = "echo"
+                inviteURL.host = "invite"
+                inviteURL.path = components.path
+                inviteURL.queryItems = components.queryItems
+                if let url = inviteURL.url,
+                   case .invite(let code) = EchoDeepLink.parse(url) {
                     NotificationCenter.default.post(
                         name: .echoPendingInvite,
                         object: nil,
                         userInfo: ["code": code]
                     )
                 }
+            case "link-device", "linkdevice":
+                break
             case "search":
                 appCoordinator.navigate(to: .search)
             default:

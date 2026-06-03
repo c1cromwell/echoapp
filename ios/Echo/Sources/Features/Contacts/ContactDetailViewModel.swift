@@ -24,13 +24,48 @@ class ContactDetailViewModel: ObservableObject {
     @Published var showMediaGallery = false
     @Published var showBlockConfirmation = false
     @Published var showReportSheet = false
+    @Published var isBlocked = false
+    @Published var blockError: String?
+
+    private var socialAPI: ContactSocialAPIClient? {
+        guard let client = DIContainer.shared.resolveAPIClient() else { return nil }
+        return ContactSocialAPIClient(apiClient: client)
+    }
 
     init(contactId: String) {
         self.contactId = contactId
     }
 
     func loadContact() async {
-        // TODO: Load from contacts repository
+        let tier = ContactTrustIndex.shared.tier(conversationId: "", peerDID: contactId)
+        contact = ContactDetail(
+            id: contactId,
+            name: ContactThreadHelper.truncatedDID(contactId),
+            echoHandle: contactId,
+            avatarURL: nil,
+            trustTier: Self.trustTier(fromNumeric: tier),
+            trustScore: min(100, tier * 20),
+            did: contactId,
+            isOnline: false,
+            verifiedDate: "—",
+            mutualGroups: 0,
+            mutualContacts: 0,
+            credentials: []
+        )
+    }
+
+    func blockContact() async {
+        guard let socialAPI else {
+            blockError = "Sign in required"
+            return
+        }
+        do {
+            try await socialAPI.blockContact(did: contactId)
+            isBlocked = true
+            showBlockConfirmation = false
+        } catch {
+            blockError = error.localizedDescription
+        }
     }
 
     func copyDID() {
@@ -43,6 +78,16 @@ class ContactDetailViewModel: ObservableObject {
 
     func shareContact() {
         // TODO: Share via UIActivityViewController
+    }
+
+    private static func trustTier(fromNumeric tier: Int) -> TrustTier {
+        switch tier {
+        case 5: return .elite
+        case 4: return .trusted
+        case 3: return .verified
+        case 2: return .basic
+        default: return .newcomer
+        }
     }
 }
 

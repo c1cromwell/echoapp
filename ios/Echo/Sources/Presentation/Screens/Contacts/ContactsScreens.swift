@@ -4,6 +4,7 @@ import SwiftUI
 public struct ContactsListView: View {
     @State private var searchText = ""
     @State private var selectedFilter = "All"
+    @State private var showFavoritesOnly = false
     @State private var showInviteSheet = false
     #if os(iOS)
     @State private var viewModel = ContactsListViewModel()
@@ -32,8 +33,17 @@ public struct ContactsListView: View {
         if selectedFilter != "All" {
             filtered = filtered.filter { $0.trustLevel == selectedFilter }
         }
-        
-        return filtered.sorted { $0.name < $1.name }
+
+        if showFavoritesOnly {
+            filtered = filtered.filter { ContactFavoritesStore.isFavorite(did: $0.id) }
+        }
+
+        return filtered.sorted { lhs, rhs in
+            let lf = ContactFavoritesStore.isFavorite(did: lhs.id)
+            let rf = ContactFavoritesStore.isFavorite(did: rhs.id)
+            if lf != rf { return lf && !rf }
+            return lhs.name < rhs.name
+        }
     }
     
     public var body: some View {
@@ -100,7 +110,9 @@ public struct ContactsListView: View {
                     .background(Color.echoSurface)
                     .cornerRadius(12)
                     
-                    // Filter Picker
+                    Toggle("Favorites only", isOn: $showFavoritesOnly)
+                        .padding(.horizontal, Spacing.md.rawValue)
+
                     Picker("Filter", selection: $selectedFilter) {
                         Text("All").tag("All")
                         Text("Inner Circle").tag("Inner Circle")
@@ -173,6 +185,7 @@ public struct ContactsListView: View {
                     name: contact.name,
                     username: contact.username,
                     trustLevel: contact.trustLevel,
+                    isFavorite: ContactFavoritesStore.isFavorite(did: contact.id),
                     onTap: {
                         onSelectContact(contact.id)
                         #if os(iOS)
