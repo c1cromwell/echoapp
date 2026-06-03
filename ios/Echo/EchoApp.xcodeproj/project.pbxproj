@@ -185,6 +185,7 @@
 		F1A2B3C4012345678900002 /* OIDC4VCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900001 /* OIDC4VCClient.swift */; };
 		F1A2B3C4012345678900004 /* RegisterWithVerifiableCredentialUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900003 /* RegisterWithVerifiableCredentialUseCase.swift */; };
 		F1A2B3C4012345678900006 /* ContactDiscoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900005 /* ContactDiscoveryView.swift */; };
+		F1A2B3C40123456789000A2 /* ContactDiscoverySyncPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C40123456789000A1 /* ContactDiscoverySyncPreferences.swift */; };
 		D288A001234567890123401 /* EchoDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = D288A001234567890123411 /* EchoDeepLink.swift */; };
 		D288A004234567890123404 /* ContactFavoritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D288A004234567890123414 /* ContactFavoritesStore.swift */; };
 		D288A005234567890123405 /* ReactionReactorDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D288A005234567890123415 /* ReactionReactorDetailSheet.swift */; };
@@ -402,6 +403,7 @@
 		F1A2B3C4012345678900001 /* OIDC4VCClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OIDC4VCClient.swift; sourceTree = "<group>"; };
 		F1A2B3C4012345678900003 /* RegisterWithVerifiableCredentialUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterWithVerifiableCredentialUseCase.swift; sourceTree = "<group>"; };
 		F1A2B3C4012345678900005 /* ContactDiscoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDiscoveryView.swift; sourceTree = "<group>"; };
+		F1A2B3C40123456789000A1 /* ContactDiscoverySyncPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDiscoverySyncPreferences.swift; sourceTree = "<group>"; };
 		D288A001234567890123411 /* EchoDeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoDeepLink.swift; sourceTree = "<group>"; };
 		D288A004234567890123414 /* ContactFavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactFavoritesStore.swift; sourceTree = "<group>"; };
 		D288A005234567890123415 /* ReactionReactorDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactionReactorDetailSheet.swift; sourceTree = "<group>"; };
@@ -1031,6 +1033,7 @@
 				F36BE0D7C763283B1DD09A78 /* ContactDetailView.swift */,
 				7A0F02E0B74FC3D3CD2E6188 /* ContactDetailViewModel.swift */,
 				F1A2B3C4012345678900005 /* ContactDiscoveryView.swift */,
+				F1A2B3C40123456789000A1 /* ContactDiscoverySyncPreferences.swift */,
 				D288A001234567890123411 /* EchoDeepLink.swift */,
 				P3S001012345678901234001 /* ContactThreadHelper.swift */,
 				W0E00101234567890123400B /* InviteLinkSheet.swift */,
@@ -1476,6 +1479,7 @@
 				F1A2B3C4012345678900002 /* OIDC4VCClient.swift in Sources */,
 				F1A2B3C4012345678900004 /* RegisterWithVerifiableCredentialUseCase.swift in Sources */,
 				F1A2B3C4012345678900006 /* ContactDiscoveryView.swift in Sources */,
+				F1A2B3C40123456789000A2 /* ContactDiscoverySyncPreferences.swift in Sources */,
 				D288A001234567890123401 /* EchoDeepLink.swift in Sources */,
 				D288A004234567890123404 /* ContactFavoritesStore.swift in Sources */,
 				D288A005234567890123405 /* ReactionReactorDetailSheet.swift in Sources */,

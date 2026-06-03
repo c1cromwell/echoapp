@@ -43,6 +43,7 @@ struct ContactDiscoverySettingsView: View {
     @State private var trustTier = 0
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var syncCadence = ContactDiscoverySyncPreferences.cadence
 
     private var api: ContactDiscoveryAPIClient? {
         guard let client = DIContainer.shared.resolveAPIClient() else { return nil }
@@ -70,9 +71,24 @@ struct ContactDiscoverySettingsView: View {
                 }
                 .disabled(isLoading || api == nil)
             }
+            Section("Contact scan") {
+                Picker("Automatic scan", selection: $syncCadence) {
+                    ForEach(ContactDiscoverySyncCadence.allCases, id: \.self) { cadence in
+                        Text(cadence.label).tag(cadence)
+                    }
+                }
+                .onChange(of: syncCadence) { _, newValue in
+                    ContactDiscoverySyncPreferences.cadence = newValue
+                }
+            } footer: {
+                Text("Manual only runs when you tap Scan in Privacy → Contact discovery (PSI). Weekly and monthly are stored locally until background sync ships.")
+            }
         }
         .navigationTitle("Phone discovery")
-        .task { await loadSettings() }
+        .task {
+            syncCadence = ContactDiscoverySyncPreferences.cadence
+            await loadSettings()
+        }
     }
 
     private var footerText: String {

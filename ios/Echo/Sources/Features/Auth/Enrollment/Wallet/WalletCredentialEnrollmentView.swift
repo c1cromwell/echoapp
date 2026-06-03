@@ -31,7 +31,16 @@ final class WalletCredentialEnrollmentViewModel {
 
         do {
             let useCase = RegisterWithVerifiableCredentialUseCase(enrollmentAPI: api)
-            let bundle = try await useCase.execute(claims: .minimumForTier4)
+            let bundle = try await useCase.execute(claims: .minimumForTier4) { phase in
+                switch phase {
+                case .preparingRequest:
+                    state = .generatingRequest
+                case .awaitingWallet:
+                    state = .awaitingWallet
+                case .verifying:
+                    state = .verifying
+                }
+            }
             state = .success(bundle)
             coordinator.credentialVerified(bundle)
         } catch let error as EnrollmentError {
@@ -86,10 +95,19 @@ public struct WalletCredentialEnrollmentView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 16)
                 } else {
-                    ProgressView()
-                        .controlSize(.large)
-                        .tint(Color.Echo.primaryContainer)
-                        .padding(.top, 24)
+                    VStack(spacing: 12) {
+                        ProgressView()
+                            .controlSize(.large)
+                            .tint(Color.Echo.primaryContainer)
+                        if case .awaitingWallet = viewModel.state {
+                            Text("Complete the flow in your wallet, then return to ECHO.")
+                                .font(.footnote)
+                                .foregroundStyle(Color.Echo.onSurfaceVariant)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                        }
+                    }
+                    .padding(.top, 24)
                 }
 
                 Spacer()

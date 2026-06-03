@@ -53,6 +53,18 @@ private final class OIDC4VCStubProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
+// MARK: - WO-100 enrollment errors
+
+final class EnrollmentErrorMappingTests: XCTestCase {
+    func testOIDC4VCDisabledMessage() {
+        let error = EnrollmentError.backendRejected(
+            code: "OIDC4VC_DISABLED",
+            message: "OIDC4VC verifier is not enabled"
+        )
+        XCTAssertTrue(error.errorDescription?.contains("OIDC4VC_ENABLED") == true)
+    }
+}
+
 // MARK: - WO-221 PSI discovery
 
 final class ContactDiscoveryServiceTests: XCTestCase {

@@ -26,7 +26,30 @@ final class LiveOPRFClient: OPRFClient, @unchecked Sendable {
 }
 #endif
 
+enum OPRFRuntimeMode: Sendable {
+    case live
+    case mockDev
+}
+
 enum OPRFClientFactory {
+    static var runtimeMode: OPRFRuntimeMode {
+        #if canImport(Echooprf)
+        .live
+        #else
+        .mockDev
+        #endif
+    }
+
+    /// Short label for Privacy → Contact discovery UI (WO-221).
+    static var modeFootnote: String {
+        switch runtimeMode {
+        case .live:
+            return "Private scan uses live OPRF (EchoOPRF). Matches require the same framework build on both devices."
+        case .mockDev:
+            return "Dev build uses a mock OPRF — scans won't match real users until you embed EchoOPRF.xcframework (`make echooprf-ios`)."
+        }
+    }
+
     static func makeDefault() -> any OPRFClient {
         #if canImport(Echooprf)
         return LiveOPRFClient()

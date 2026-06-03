@@ -19,12 +19,24 @@ struct RegisterWithVerifiableCredentialUseCase {
         self.walletConnector = walletConnector
     }
 
-    func execute(claims: EnrollmentClaimsRequest = .minimumForTier4) async throws -> VerifiedIdentityBundle {
+    enum WalletEnrollmentPhase: Sendable {
+        case preparingRequest
+        case awaitingWallet
+        case verifying
+    }
+
+    func execute(
+        claims: EnrollmentClaimsRequest = .minimumForTier4,
+        onPhase: ((WalletEnrollmentPhase) -> Void)? = nil
+    ) async throws -> VerifiedIdentityBundle {
+        onPhase?(.preparingRequest)
         let session = try await enrollmentAPI.startWalletPresentation(claims: claims)
+        onPhase?(.awaitingWallet)
         let callback = try await walletConnector.present(
             url: session.verifierURL,
             callbackScheme: "echo-enroll"
         )
+        onPhase?(.verifying)
         return try await enrollmentAPI.finishWalletPresentation(
             sessionID: session.id,
             callbackURL: callback

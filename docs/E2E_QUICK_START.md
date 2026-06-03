@@ -135,10 +135,32 @@ Outbound chat uses Kinnami P-256 encryption when `GET /identity/resolve/{peerDid
 | Reactions | Long-press reaction chip → **See who reacted** sheet |
 | Picker | Long-press message → expanded emoji row + recent emojis |
 
+### WO-100 — OIDC4VC wallet enrollment
+
+| Step | Action |
+|------|--------|
+| 1 | In repo `.env`: `OIDC4VC_ENABLED=true`, `OIDC4VC_VERIFIER_BASE_URL=http://localhost:8000` (or LAN URL on device) |
+| 2 | `make dev` (or restart API after env change) |
+| 3 | Onboarding → VIP → **Digital ID** (or enrollment picker → wallet credential) |
+| 4 | **Open wallet** → complete verifier page → return via `echo-enroll://` |
+| 5 | Pass if enrollment tail continues (DID / passkey); **Try again** on `OIDC4VC_DISABLED` after fixing env |
+
+Smoke without wallet UI: `curl -X POST http://localhost:8000/v1/enrollment/vc/start -H 'Content-Type: application/json' -d '{"requested_claims":{"ageOver18":true}}'` → `verifierURL` in JSON (not `503 OIDC4VC_DISABLED`).
+
+### WO-221 — PSI contact discovery
+
+| Step | Action |
+|------|--------|
+| 1 | Both users: SMS backup + **Privacy → Phone discoverability** → opt in |
+| 2 | Add each other's phone numbers to iOS Contacts |
+| 3 | **Privacy → Contact discovery (PSI)** → Scan; list shows **Live OPRF** or **Mock OPRF (dev)** |
+| 4 | Real matches: `make echooprf-ios` → embed `ios/Echo/Libraries/EchoOPRF.xcframework` (Embed & Sign) → rebuild on **both** clients |
+| 5 | Tap **Add** on a match → **Message** opens DM thread |
+
+Mock OPRF builds never match production server keys — expect empty or test-only matches until the framework is embedded.
+
 ### Optional (pre-TestFlight)
 
-- **WO-100 wallet:** `OIDC4VC_ENABLED=true` in `.env` → VIP path → Digital ID (retry on failure in wallet sheet).
-- **WO-221 PSI (real):** `make echooprf-ios` + embed `EchoOPRF.xcframework` in EchoApp target.
 - **Phase 3 signals:** two simulators or sim + device — typing / read receipts ([`PHASE3_IOS_UI_SPEC.md`](PHASE3_IOS_UI_SPEC.md) Step 5).
 
 ---

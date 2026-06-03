@@ -7,6 +7,17 @@ struct ContactDiscoveryView: View {
 
     var body: some View {
         List {
+            Section {
+                Label(
+                    OPRFClientFactory.runtimeMode == .live ? "Live OPRF" : "Mock OPRF (dev)",
+                    systemImage: OPRFClientFactory.runtimeMode == .live ? "lock.shield" : "hammer"
+                )
+                .font(.subheadline)
+                Text(OPRFClientFactory.modeFootnote)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             if let synced = viewModel.lastSyncedAt {
                 Section {
                     Text("Last scan \(synced.formatted(date: .abbreviated, time: .shortened))")

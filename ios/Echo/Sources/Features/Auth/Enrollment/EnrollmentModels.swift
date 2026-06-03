@@ -121,8 +121,19 @@ public enum EnrollmentError: LocalizedError, Sendable {
             return "The credential is missing required claims: \(required.joined(separator: ", "))."
         case .transportFailed(let underlying):
             return "Connection to the credential wallet failed: \(underlying)"
-        case .backendRejected(_, let message):
-            return message
+        case .backendRejected(let code, let message):
+            switch code {
+            case "OIDC4VC_DISABLED":
+                return "Wallet enrollment isn't enabled on this server. For local testing, set OIDC4VC_ENABLED=true and restart the API."
+            case "SESSION_EXPIRED":
+                return "This wallet session expired. Tap Try again to start a new request."
+            case "VERIFICATION_FAILED":
+                return message.isEmpty ? "The wallet credential didn't verify. Try a different credential or method." : message
+            case "PRESENTATION_REQUEST_FAILED":
+                return "Couldn't start the wallet request. Check that the API is running and OIDC4VC is configured."
+            default:
+                return message
+            }
         case .nfcUnavailable:
             return "NFC isn't available on this device."
         case .cameraUnavailable:
