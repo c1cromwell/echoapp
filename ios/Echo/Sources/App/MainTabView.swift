@@ -1,15 +1,32 @@
 #if os(iOS)
 // App/MainTabView.swift
-// Main tab view with 3 tabs: Messages, Wallet, Me
-// Per Tokenomics v2 §4.2 — restructured from 5 tabs
+// Main tab bar: Messages · Contacts · Rewards · Profile (see docs/design-previews/bottomfooter.png).
+// Personas are managed in the Profile screen, not a tab. Wallet/staking lives under Rewards.
 
 import SwiftUI
 
+// MARK: - Tab bar visibility (hide on pushed chat — see docs/design-previews/phaseA-chat.html)
+
+private struct TabBarHiddenPreferenceKey: PreferenceKey {
+    static var defaultValue = false
+    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+        value = value || nextValue()
+    }
+}
+
+extension View {
+    /// Hides `GlacialTabBar` while a detail screen (e.g. 1:1 chat) is on the Messages stack.
+    func hidesGlacialTabBarWhenPushed(_ hidden: Bool) -> some View {
+        preference(key: TabBarHiddenPreferenceKey.self, value: hidden)
+    }
+}
+
 struct MainTabView: View {
     @State private var selectedTab: MainTab = .messages
+    @State private var hideTabBar = false
 
     enum MainTab: String {
-        case messages, wallet, me
+        case messages, contacts, rewards, me
     }
 
     var body: some View {
@@ -21,9 +38,14 @@ struct MainTabView: View {
                 .tag(MainTab.messages)
 
                 NavigationStack {
-                    WalletTab(api: WalletAPIClientStub())
+                    ContactsListView()
                 }
-                .tag(MainTab.wallet)
+                .tag(MainTab.contacts)
+
+                NavigationStack {
+                    RewardsDashboardView()
+                }
+                .tag(MainTab.rewards)
 
                 NavigationStack {
                     ProfileTabView()
@@ -32,22 +54,27 @@ struct MainTabView: View {
             }
             .labelsHidden()
 
-            // Custom tab bar (tonal shift, no border-top)
-            GlacialTabBar(selectedTab: $selectedTab)
+            if !hideTabBar {
+                GlacialTabBar(selectedTab: $selectedTab)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
+        .animation(.easeInOut(duration: 0.2), value: hideTabBar)
+        .onPreferenceChange(TabBarHiddenPreferenceKey.self) { hideTabBar = $0 }
     }
 }
 
-// MARK: - Glacial Tab Bar (3-tab design)
+// MARK: - Glacial Tab Bar (Messages · Contacts · Rewards · Profile — see docs/design-previews/bottomfooter.png)
 
 struct GlacialTabBar: View {
     @Binding var selectedTab: MainTabView.MainTab
 
     var body: some View {
         HStack {
-            tabButton(.messages, icon: "message.fill", label: "Messages")
-            tabButton(.wallet, icon: "wallet.pass.fill", label: "Wallet")
-            tabButton(.me, icon: "person.fill", label: "Me")
+            tabButton(.messages, icon: "message", label: "Messages")
+            tabButton(.contacts, icon: "person.2", label: "Contacts")
+            tabButton(.rewards, icon: "star", label: "Rewards")
+            tabButton(.me, icon: "person", label: "Profile")
         }
         .padding(.horizontal, 8)
         .padding(.bottom, 20) // safe area
@@ -58,15 +85,17 @@ struct GlacialTabBar: View {
         )
     }
 
+    /// `icon` is the SF Symbol base name; the filled variant is shown when selected.
     private func tabButton(_ tab: MainTabView.MainTab, icon: String, label: String) -> some View {
-        Button {
+        let isSelected = selectedTab == tab
+        return Button {
             selectedTab = tab
         } label: {
             VStack(spacing: 4) {
                 ZStack(alignment: .topTrailing) {
-                    Image(systemName: icon)
-                        .font(.system(size: 24, weight: selectedTab == tab ? .semibold : .regular))
-                        .foregroundStyle(selectedTab == tab ? Color.Echo.primaryContainer : Color.Echo.outline)
+                    Image(systemName: isSelected ? "\(icon).fill" : icon)
+                        .font(.system(size: 24, weight: isSelected ? .semibold : .regular))
+                        .foregroundStyle(isSelected ? Color.Echo.primaryContainer : Color.Echo.outline)
 
                     // Unread badge (Messages only)
                     if tab == .messages {
@@ -79,8 +108,8 @@ struct GlacialTabBar: View {
 
                 Text(label)
                     .font(.system(size: 10))
-                    .fontWeight(selectedTab == tab ? .semibold : .medium)
-                    .foregroundStyle(selectedTab == tab ? Color.Echo.primaryContainer : Color.Echo.outline)
+                    .fontWeight(isSelected ? .semibold : .medium)
+                    .foregroundStyle(isSelected ? Color.Echo.primaryContainer : Color.Echo.outline)
             }
             .frame(maxWidth: .infinity)
         }

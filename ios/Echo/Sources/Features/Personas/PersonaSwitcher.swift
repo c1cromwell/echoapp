@@ -27,7 +27,8 @@ public struct PersonaSummary: Identifiable, Equatable, Hashable, Sendable {
     }
 }
 
-/// Compact hub-header control: active persona avatar + name + trust badge, tap to switch.
+/// Compact hub-header control (see docs/design-previews/messagehub1.png): centered
+/// avatar + name + verified seal + chevron, tap to switch. No subtitle, no underline.
 public struct PersonaSwitcherHeader: View {
     let active: PersonaSummary
     let onTap: () -> Void
@@ -37,24 +38,32 @@ public struct PersonaSwitcherHeader: View {
         self.onTap = onTap
     }
 
+    /// Show the verified seal for identity-confirmed personas (T2+).
+    private var isVerified: Bool {
+        switch active.trustLevel.lowercased() {
+        case "verified", "trusted", "highlytrusted", "premium", "elite": return true
+        default: return false
+        }
+    }
+
     public var body: some View {
         Button(action: onTap) {
-            HStack(spacing: Spacing.sm.rawValue) {
-                avatar(active, size: 36)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(active.name)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.echoInk)
-                    Text("Active persona")
-                        .font(.system(size: 11))
-                        .foregroundColor(.echoInk40)
+            HStack(spacing: 6) {
+                avatar(active, size: 24)
+                Text(active.name)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.echoInk)
+                if isVerified {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.echoTrustGreen)
                 }
-                TrustBadge(level: active.trustLevel, size: .small)
-                Spacer()
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.echoInk40)
+                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, Spacing.lg.rawValue)
             .padding(.vertical, Spacing.sm.rawValue)
         }

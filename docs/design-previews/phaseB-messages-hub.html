@@ -12,37 +12,31 @@
     <div class="notch"></div>
     <div class="statusbar"><span>9:41</span><span>5G&nbsp;&nbsp;100%</span></div>
 
-    <!-- Persona header -->
-    <div class="persona-header">
-      <div class="avatar" style="width:36px;height:36px;background:#0E7AB8;font-size:14px;">AR</div>
-      <div style="display:flex;flex-direction:column;">
-        <span style="font-size:16px;font-weight:600;">Aria (public)</span>
-        <span style="font-size:11px;color:var(--echo-ink-40);">Active persona</span>
-      </div>
-      <span class="trust-badge t2" style="margin-left:8px;">◆ Verified</span>
-      <div class="spacer" style="flex:1;"></div>
-      <span class="chev">▾</span>
-      <span class="navbar signal" style="margin-left:14px;font-size:19px;">✎</span>
+    <!-- Persona switcher: left-aligned avatar + name + verified seal + chevron (messagehub1.png) -->
+    <div style="display:flex;align-items:center;justify-content:flex-start;gap:6px;padding:12px 18px 6px;">
+      <span style="width:24px;height:24px;border-radius:50%;background:#0E7AB8;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;">AR</span>
+      <span style="font-size:16px;font-weight:600;color:var(--echo-ink);">Aria Rao</span>
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--echo-trust-green);color:#fff;font-size:9px;">✓</span>
+      <span style="color:var(--echo-ink-40);font-size:11px;">▾</span>
+    </div>
+
+    <!-- Title row: Messages + search / new-message icons (messagehub1.png) -->
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 18px 10px;">
+      <span style="font-size:28px;font-weight:700;color:var(--echo-ink);">Messages</span>
+      <span style="flex:1;"></span>
+      <span style="width:38px;height:38px;border-radius:50%;background:var(--echo-paper-dim);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--echo-ink-70);">🔍</span>
+      <span title="Hidden folders (Face ID)" style="width:38px;height:38px;border-radius:50%;background:var(--echo-paper-dim);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--echo-ink-70);">🗂️</span>
+      <span style="width:38px;height:38px;border-radius:50%;background:var(--echo-signal);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;">✎</span>
     </div>
     <div class="secure-thread"></div>
+    <div style="height:12px;"></div>
 
-    <!-- Search -->
-    <div class="search">🔍 <span>Search conversations</span></div>
-
-    <!-- Segment control -->
-    <div class="chips" style="padding-top:0;">
-      <div class="chip active">Chats</div>
-      <div class="chip">Groups</div>
-      <div class="chip">Channels</div>
-      <div class="chip">Hidden 🔒</div>
-    </div>
-
-    <!-- Pinned -->
-    <div class="section-label">Pinned</div>
-    <div class="pinned">
-      <div class="item"><div class="pavatar" style="background:#7C5CBF">AR<span class="pin-badge">📌</span></div><div class="lbl">Aria</div></div>
-      <div class="item"><div class="pavatar" style="background:#1F7A4C">DB<span class="pin-badge">📌</span></div><div class="lbl">Dev Bldrs</div></div>
-      <div class="item"><div class="pavatar" style="background:#0E7AB8">KM<span class="pin-badge">📌</span></div><div class="lbl">Kai</div></div>
+    <!-- Tabbed bar: only the selected tab's content shows below; selected = dark pill -->
+    <div style="display:flex;gap:4px;margin:0 18px 8px;padding:4px;background:var(--echo-paper-dim);border-radius:12px;">
+      <div style="flex:1;text-align:center;padding:8px 0;border-radius:9px;background:var(--echo-ink);color:var(--echo-paper);font-size:14px;font-weight:600;">Chats</div>
+      <div style="flex:1;text-align:center;padding:8px 0;color:var(--echo-ink-55);font-size:14px;">Groups</div>
+      <div style="flex:1;text-align:center;padding:8px 0;color:var(--echo-ink-55);font-size:14px;">Pinned</div>
+      <div style="flex:1;text-align:center;padding:8px 0;color:var(--echo-ink-55);font-size:14px;">Channels</div>
     </div>
 
     <!-- Folder chips (trust) -->
@@ -81,15 +75,15 @@
       </div>
     </div>
 
-    <!-- Tab bar -->
+    <!-- Tab bar (bottomfooter.png): Messages · Contacts · Rewards · Profile -->
     <div class="tabbar">
       <div class="tab active"><span class="ic">💬</span>Messages</div>
       <div class="tab"><span class="ic">👥</span>Contacts</div>
-      <div class="tab"><span class="ic">🎭</span>Personas</div>
-      <div class="tab"><span class="ic">⊚</span>Profile</div>
+      <div class="tab"><span class="ic">⭐</span>Rewards</div>
+      <div class="tab"><span class="ic">👤</span>Profile</div>
     </div>
   </div>
-  <div class="caption"><b>Phase B · Messages hub</b>Persona header + switcher · Chats/Groups/Channels/Hidden segments · pinned strip · trust folder chips (All/Verified/Trusted/Unverified) · per-chat mute icon</div>
+  <div class="caption"><b>Phase B · Messages hub</b>Left-aligned persona switcher · "Messages" title with search / hidden-folders (🗂️) / new-message icons · tabbed bar (dark = selected; each tab shows only its content — Chats→trust chips + recents, Groups→your groups + New group, Pinned→pinned chats, Channels) · bottom tabs: Messages / Contacts / Rewards / Profile</div>
 </div>
 </body>
 </html>

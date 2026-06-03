@@ -1,17 +1,20 @@
 import SwiftUI
 
-/// Messages hub (spec §3.2). Vertical order: persona header → search → pinned →
-/// trust folder chips → conversation list → groups/channels/hidden segments.
+/// Messages hub (spec §3.2 + docs/design-previews/messagehub1.png). Layout:
+/// persona switcher → "Messages" title with search / hidden-folders / new-message
+/// icons → segment bar (Chats · Groups · Pinned · Channels) → trust folder chips →
+/// conversation list. Search is icon-toggled (no persistent search bar); hidden
+/// folders open via the folder icon (biometric-gated).
 struct MessagesHubView: View {
     enum Segment: String, CaseIterable, Identifiable {
-        case chats, groups, channels, hidden
+        case chats, groups, pinned, channels
         var id: String { rawValue }
         var title: String {
             switch self {
             case .chats: return "Chats"
             case .groups: return "Groups"
+            case .pinned: return "Pinned"
             case .channels: return "Channels"
-            case .hidden: return "Hidden"
             }
         }
     }
@@ -30,11 +33,14 @@ struct MessagesHubView: View {
 
     @Bindable private var pinnedStore = PinnedConversationsStore.shared
     @State private var searchText = ""
+    @State private var showSearch = false
     @State private var folder: ChatFolder = .all
     @State private var segment: Segment = .chats
     @State private var showPersonaSheet = false
     @State private var showEditPins = false
     @State private var showIntegrityExplainer = false
+    @State private var showCreateGroup = false
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         ZStack {
@@ -43,16 +49,17 @@ struct MessagesHubView: View {
             VStack(spacing: 0) {
                 header
                 secureBar
-                searchField
+                Color.clear.frame(height: 12) // breathing room under the secure line
+                if showSearch { searchField }
                 segmentBar
 
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         switch segment {
                         case .chats:   chatsContent
-                        case .groups:  placeholder(icon: "person.3", text: "Groups arrive with the social-graph phase.")
+                        case .groups:  groupsContent
+                        case .pinned:  pinnedContent
                         case .channels: placeholder(icon: "dot.radiowaves.left.and.right", text: "Broadcast channels are coming after groups.")
-                        case .hidden:  hiddenSegment
                         }
                     }
                 }
@@ -69,6 +76,26 @@ struct MessagesHubView: View {
         .sheet(isPresented: $showEditPins) {
             EditPinnedSheet(conversations: conversations)
         }
+        .sheet(isPresented: $showCreateGroup) {
+            NavigationStack {
+                VStack(spacing: 14) {
+                    Image(systemName: "person.3.fill").font(.system(size: 40)).foregroundColor(.echoInk40)
+                    Text("Create a group").font(.system(size: 20, weight: .semibold)).foregroundColor(.echoInk)
+                    Text("Name your group and add trusted contacts. Group conversations arrive with the social-graph phase.")
+                        .font(.system(size: 14)).foregroundColor(.echoInk55)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(Spacing.xl.rawValue)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.echoPaper)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Done") { showCreateGroup = false }
+                    }
+                }
+            }
+            .presentationDetents([.medium])
+        }
         .sheet(isPresented: $showIntegrityExplainer) {
             NavigationStack {
                 IntegrityExplainerView()
@@ -79,13 +106,6 @@ struct MessagesHubView: View {
                     }
             }
         }
-    }
-
-    private var pinnedItems: [PinnedItem] {
-        MessagesHubSupport.pinnedItems(
-            conversations: conversations,
-            orderedPinIDs: pinnedStore.orderedIDs
-        )
     }
 
     private var folderUnreadCounts: [ChatFolder: Int] {
@@ -105,16 +125,60 @@ struct MessagesHubView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 0) {
+        VStack(spacing: 0) {
+            // Persona switcher (tap to switch active persona)
             PersonaSwitcherHeader(active: activePersona) { showPersonaSheet = true }
-            Button(action: onCompose) {
-                Image(systemName: "square.and.pencil")
-                    .font(.system(size: 19))
-                    .foregroundColor(.echoSignal)
-                    .padding(.trailing, Spacing.lg.rawValue)
+
+            // Title row: "Messages" + search / new-message icons (see messagehub1.png)
+            HStack(spacing: Spacing.sm.rawValue) {
+                Text("Messages")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(.echoInk)
+                Spacer()
+
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        showSearch.toggle()
+                    }
+                    if showSearch {
+                        searchFocused = true
+                    } else {
+                        searchText = ""
+                    }
+                } label: {
+                    headerIcon("magnifyingglass", filled: showSearch)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Search conversations")
+
+                // Hidden folders — biometric-gated (folder icon next to search)
+                Button(action: onOpenHidden) {
+                    headerIcon("folder", filled: false)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Hidden folders")
+
+                Button(action: onCompose) {
+                    headerIcon("square.and.pencil", filled: true)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("New message")
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal, Spacing.lg.rawValue)
+            .padding(.top, 2)
+            .padding(.bottom, Spacing.sm.rawValue)
         }
+    }
+
+    /// Circular header icon button. `filled` = signal-blue fill / white glyph (new
+    /// message + active search); otherwise a paper-dim circle with an ink glyph.
+    private func headerIcon(_ systemName: String, filled: Bool) -> some View {
+        Image(systemName: systemName)
+            .font(.system(size: 17, weight: .medium))
+            .foregroundColor(filled ? .white : .echoInk70)
+            .frame(width: 38, height: 38)
+            .background(filled ? Color.echoSignal : Color.echoPaperDim)
+            .clipShape(Circle())
     }
 
     private var secureBar: some View {
@@ -129,50 +193,99 @@ struct MessagesHubView: View {
 
     private var searchField: some View {
         HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass").font(.system(size: 14)).foregroundColor(.echoInk40)
-            TextField("Search conversations", text: $searchText)
-                .font(.system(size: 15))
-            if !searchText.isEmpty {
-                Button { searchText = "" } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundColor(.echoInk40)
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass").font(.system(size: 14)).foregroundColor(.echoInk40)
+                TextField("Search conversations", text: $searchText)
+                    .font(.system(size: 15))
+                    .focused($searchFocused)
+                    .submitLabel(.search)
+                if !searchText.isEmpty {
+                    Button { searchText = "" } label: {
+                        Image(systemName: "xmark.circle.fill").foregroundColor(.echoInk40)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(Spacing.md.rawValue)
+            .background(Color.echoPaperDim)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            Button("Cancel") {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    showSearch = false
+                }
+                searchText = ""
+                searchFocused = false
+            }
+            .font(.system(size: 15))
+            .foregroundColor(.echoSignal)
+        }
+        .padding(.horizontal, Spacing.lg.rawValue)
+        .padding(.vertical, Spacing.sm.rawValue)
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+    /// Tabbed bar — only the selected tab's content shows below. Selected tab is a
+    /// dark pill; unselected are muted text (see docs/design-previews/messagehub1.png).
+    private var segmentBar: some View {
+        HStack(spacing: 4) {
+            ForEach(Segment.allCases) { seg in
+                let isSelected = segment == seg
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { segment = seg }
+                } label: {
+                    Text(seg.title)
+                        .font(.system(size: 14, weight: isSelected ? .semibold : .medium))
+                        .foregroundColor(isSelected ? .echoPaper : .echoInk55)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(isSelected ? Color.echoInk : Color.clear)
+                        .clipShape(RoundedRectangle(cornerRadius: 9))
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(Spacing.md.rawValue)
+        .padding(4)
         .background(Color.echoPaperDim)
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal, Spacing.lg.rawValue)
-        .padding(.vertical, Spacing.sm.rawValue)
-    }
-
-    private var segmentBar: some View {
-        Picker("", selection: $segment) {
-            ForEach(Segment.allCases) { seg in Text(seg.title).tag(seg) }
-        }
-        .pickerStyle(.segmented)
         .padding(.horizontal, Spacing.lg.rawValue)
         .padding(.bottom, Spacing.sm.rawValue)
     }
 
     @ViewBuilder
     private var chatsContent: some View {
-        if !pinnedItems.isEmpty {
-            PinnedSectionView(
-                items: pinnedItems,
-                maxItems: PinnedConversationsStore.maxPins,
-                onItemTap: { onSelectConversation($0.id) },
-                onEditTap: { showEditPins = true }
-            )
-            .padding(.vertical, Spacing.sm.rawValue)
-        }
-
         ChatFolderFilterView(selection: $folder, unreadCounts: folderUnreadCounts)
 
-        if filtered.isEmpty && pinnedItems.isEmpty {
+        if filtered.isEmpty {
             placeholder(icon: "bubble.left.and.bubble.right", text: "No conversations in this filter.")
         } else {
             ForEach(filtered) { conv in
+                conversationRow(conv)
+                Divider().background(Color.echoHair).padding(.leading, 76)
+            }
+        }
+    }
+
+    /// Pinned conversations, in pin order (Pinned segment — replaces the old strip).
+    private var pinnedConversations: [StoredConversation] {
+        pinnedStore.orderedIDs.compactMap { id in conversations.first { $0.id == id } }
+    }
+
+    @ViewBuilder
+    private var pinnedContent: some View {
+        if pinnedConversations.isEmpty {
+            placeholder(icon: "pin.slash", text: "No pinned conversations.\nLong-press a chat and choose Pin to keep it here.")
+        } else {
+            HStack {
+                Spacer()
+                Button("Edit pins") { showEditPins = true }
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.echoSignal)
+            }
+            .padding(.horizontal, Spacing.lg.rawValue)
+            .padding(.vertical, Spacing.sm.rawValue)
+
+            ForEach(pinnedConversations) { conv in
                 conversationRow(conv)
                 Divider().background(Color.echoHair).padding(.leading, 76)
             }
@@ -220,23 +333,27 @@ struct MessagesHubView: View {
         }
     }
 
-    private var hiddenSegment: some View {
-        Button(action: onOpenHidden) {
-            VStack(spacing: 12) {
-                Image(systemName: "eye.slash.fill").font(.system(size: 34)).foregroundColor(.echoInk40)
-                Text("Hidden folders")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.echoInk70)
-                Text("Unlock with Face ID to reveal private conversations.")
-                    .font(.system(size: 13))
-                    .foregroundColor(.echoInk40)
-                    .multilineTextAlignment(.center)
+    /// Groups segment: a "New group" action + the groups the user belongs to.
+    @ViewBuilder
+    private var groupsContent: some View {
+        Button {
+            showCreateGroup = true
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "plus.circle.fill").font(.system(size: 20))
+                Text("New group").font(.system(size: 15, weight: .semibold))
+                Spacer()
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 60)
-            .padding(.horizontal, Spacing.xl.rawValue)
+            .foregroundColor(.echoSignal)
+            .padding(.horizontal, Spacing.lg.rawValue)
+            .padding(.vertical, Spacing.md.rawValue)
         }
         .buttonStyle(.plain)
+
+        Divider().background(Color.echoHair).padding(.leading, Spacing.lg.rawValue)
+
+        // Groups the user belongs to (none wired yet — backend arrives in a later phase).
+        placeholder(icon: "person.3", text: "You're not in any groups yet.\nTap “New group” to start one.")
     }
 
     private func placeholder(icon: String, text: String) -> some View {
