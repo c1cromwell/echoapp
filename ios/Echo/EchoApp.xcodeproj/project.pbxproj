@@ -186,6 +186,8 @@
 		F1A2B3C4012345678900004 /* RegisterWithVerifiableCredentialUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900003 /* RegisterWithVerifiableCredentialUseCase.swift */; };
 		F1A2B3C4012345678900006 /* ContactDiscoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900005 /* ContactDiscoveryView.swift */; };
 		F1A2B3C40123456789000A2 /* ContactDiscoverySyncPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C40123456789000A1 /* ContactDiscoverySyncPreferences.swift */; };
+		F1A2B3C40123456789000B2 /* DeviceLinkFlowViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C40123456789000B1 /* DeviceLinkFlowViews.swift */; };
+		F1A2B3C40123456789000B4 /* DeviceLinkAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C40123456789000B3 /* DeviceLinkAPIClient.swift */; };
 		D288A001234567890123401 /* EchoDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = D288A001234567890123411 /* EchoDeepLink.swift */; };
 		D288A004234567890123404 /* ContactFavoritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D288A004234567890123414 /* ContactFavoritesStore.swift */; };
 		D288A005234567890123405 /* ReactionReactorDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D288A005234567890123415 /* ReactionReactorDetailSheet.swift */; };
@@ -404,6 +406,8 @@
 		F1A2B3C4012345678900003 /* RegisterWithVerifiableCredentialUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterWithVerifiableCredentialUseCase.swift; sourceTree = "<group>"; };
 		F1A2B3C4012345678900005 /* ContactDiscoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDiscoveryView.swift; sourceTree = "<group>"; };
 		F1A2B3C40123456789000A1 /* ContactDiscoverySyncPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDiscoverySyncPreferences.swift; sourceTree = "<group>"; };
+		F1A2B3C40123456789000B1 /* DeviceLinkFlowViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceLinkFlowViews.swift; sourceTree = "<group>"; };
+		F1A2B3C40123456789000B3 /* DeviceLinkAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceLinkAPIClient.swift; sourceTree = "<group>"; };
 		D288A001234567890123411 /* EchoDeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoDeepLink.swift; sourceTree = "<group>"; };
 		D288A004234567890123414 /* ContactFavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactFavoritesStore.swift; sourceTree = "<group>"; };
 		D288A005234567890123415 /* ReactionReactorDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactionReactorDetailSheet.swift; sourceTree = "<group>"; };
@@ -456,6 +460,7 @@
 			children = (
 				E89580D05D356AC355FAB5E1 /* AccountLockedView.swift */,
 				6CA6259F2057343672B320C2 /* DeviceManagementView.swift */,
+				F1A2B3C40123456789000B1 /* DeviceLinkFlowViews.swift */,
 				319937810E718ADD0D2844FB /* GlacialLoginScreen.swift */,
 				F88ED50062F05CA053C41BB5 /* LoginView.swift */,
 				16DE2E198494033E2C064EE9 /* RecoveryView.swift */,
@@ -582,6 +587,7 @@
 			isa = PBXGroup;
 			children = (
 				W0E001012345678901234009 /* ContactSocialAPIClient.swift */,
+				F1A2B3C40123456789000B3 /* DeviceLinkAPIClient.swift */,
 				D288A004234567890123414 /* ContactFavoritesStore.swift */,
 				F1A2B3C4012345678900007 /* ContactDiscoveryAPIClient.swift */,
 				F1A2B3C4012345678900009 /* ContactDiscoveryService.swift */,
@@ -1371,6 +1377,8 @@
 				9EFFC1D22C27CD50E7EEFD4F /* FirstRunCoordinator.swift in Sources */,
 				EFBD7F756B5E756D724800A9 /* GhostBorderCard.swift in Sources */,
 				DE847C0061CDD1E519F15D1A /* GlacialLoginScreen.swift in Sources */,
+				F1A2B3C40123456789000B2 /* DeviceLinkFlowViews.swift in Sources */,
+				F1A2B3C40123456789000B4 /* DeviceLinkAPIClient.swift in Sources */,
 				487536588FB9795F1DB3CCA6 /* GlacialNavigationBar.swift in Sources */,
 				CB10FE53227E0983E0A2E1AA /* GlacialTheme.swift in Sources */,
 				EEEDA2B55F7CFFFC2EB6AB80 /* GovernanceCoordinator.swift in Sources */,

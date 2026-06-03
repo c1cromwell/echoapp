@@ -65,23 +65,23 @@ type Router struct {
 	DIDRegistry          DIDRegistry   // did:key binding store (WO-230 / WO-278)
 	CredentialStatusPool *pgxpool.Pool // WO-274 durable VC status list slots (optional)
 	Redis                *infra.RedisClient
-	RateLimiter          *infra.RateLimiter         // WO-44 per-DID tiered rate limiting (optional)
-	PublicRateLimiter    *infra.RateLimiter         // S5: per-IP throttle for pre-auth public endpoints (optional)
-	SMSProvider          infra.SMSProvider          // Wave 12 SMS OTP recovery (optional; stub when nil)
-	IdentityL1           *metagraph.MetagraphClient // WO-274 trust-tier commitments
-	DataL1               *metagraph.MetagraphClient // WO-230 Data L1 Merkle proxy (optional)
-	CredentialService    *credentials.Service       // WO-274 VC issuance (optional)
-	OIDC                 *gin.Engine                // OpenID4VCI issuer + verifier mount (optional)
-	OIDCVerifier         *oidc4vc.Verifier          // OIDC4VC presentation verifier (optional)
-	OIDCVerifierBaseURL  string                     // Public verifier base URL for iOS wallet handoff
+	RateLimiter          *infra.RateLimiter               // WO-44 per-DID tiered rate limiting (optional)
+	PublicRateLimiter    *infra.RateLimiter               // S5: per-IP throttle for pre-auth public endpoints (optional)
+	SMSProvider          infra.SMSProvider                // Wave 12 SMS OTP recovery (optional; stub when nil)
+	IdentityL1           *metagraph.MetagraphClient       // WO-274 trust-tier commitments
+	DataL1               *metagraph.MetagraphClient       // WO-230 Data L1 Merkle proxy (optional)
+	CredentialService    *credentials.Service             // WO-274 VC issuance (optional)
+	OIDC                 *gin.Engine                      // OpenID4VCI issuer + verifier mount (optional)
+	OIDCVerifier         *oidc4vc.Verifier                // OIDC4VC presentation verifier (optional)
+	OIDCVerifierBaseURL  string                           // Public verifier base URL for iOS wallet handoff
 	TrustRegistry        *onboarding.TrustRegistryService // WO-118 issuer trust registry
-	Passport             *passport.Service              // WO-293 Echo Passport holder refs
-	PassportSync         *passport.SyncService          // WO-294 client-encrypted credential sync
-	PassportRecovery     *recovery.Service              // WO-296 social-threshold recovery metadata
-	tokenService         *auth.TokenService         // ES256 JWT token service
+	Passport             *passport.Service                // WO-293 Echo Passport holder refs
+	PassportSync         *passport.SyncService            // WO-294 client-encrypted credential sync
+	PassportRecovery     *recovery.Service                // WO-296 social-threshold recovery metadata
+	tokenService         *auth.TokenService               // ES256 JWT token service
 
-	enrollmentVCMu       sync.Mutex
-	enrollmentVCSessions map[string]enrollmentVCSession
+	enrollmentVCMu          sync.Mutex
+	enrollmentVCSessions    map[string]enrollmentVCSession
 	passportPresentSessions map[string]passportPresentSession
 
 	// smsSessions is an in-memory fallback OTP-session store used only when
@@ -266,6 +266,7 @@ var publicPaths = map[string]bool{
 	"/v1/auth/login/challenge":         true, // Phase 1: nonce for passkey signing (public)
 	"/identity/register":               true,
 	"/identity/devices":                true,
+	"/v1/login/link-device/complete":   true, // WO-288: secondary device token consume (no JWT yet)
 }
 
 // publicPreAuthAction is the rate-limit action key for unauthenticated endpoints.
@@ -305,7 +306,7 @@ func clientIP(r *http.Request) string {
 // Authenticated Identity routes such as POST /identity/trust-tier/commitment are not exempt.
 func identityRequestExemptFromAuth(path, method string) bool {
 	switch {
-	case path == "/identity/register" || path == "/identity/devices":
+	case path == "/identity/register" || path == "/identity/devices" || path == "/v1/login/link-device/complete":
 		return true
 	case strings.HasPrefix(path, "/identity/resolve/"):
 		return true
@@ -559,6 +560,12 @@ func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
 		rt.handleDataL1MerkleRoots(w, r)
 	case "/v1/phase1/trust-tier-commitment":
 		rt.handlePhase1TrustTierCommitment(w, r)
+
+	// WO-288 aliases → WO-273 device registration (same handlers as /identity/devices/*).
+	case "/v1/login/link-device/initiate":
+		rt.handleIdentityDeviceToken(w, r)
+	case "/v1/login/link-device/complete":
+		rt.handleIdentityAddDevice(w, r)
 
 	default:
 		WriteError(w, http.StatusNotFound, "ENDPOINT_NOT_FOUND", "Endpoint not found", r.Header.Get("X-Request-ID"))
