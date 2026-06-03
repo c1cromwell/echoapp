@@ -81,6 +81,7 @@ public struct ProfileTabView: View {
 
                         if !sessionDID.isEmpty {
                             IdentityCardView(
+                                displayName: profile.displayName,
                                 username: sessionUsername.isEmpty ? profile.username : sessionUsername,
                                 did: sessionDID,
                                 trustTier: sessionTrustTier > 0 ? sessionTrustTier : nil

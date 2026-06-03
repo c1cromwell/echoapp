@@ -7,6 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1411B71227274A6D2B383C77 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98C229FC30EE9C6760D7C826 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift */; };
+		438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BAE98848BA987C5A80A8C29 /* Sources/Features/Contacts/QRContactAddCoordinator.swift */; };
+		0115B291F78020BAFF4D4534 /* Sources/Features/Contacts/ScannedIdentityParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36EA8623AE0B5A2F4FBCD41D /* Sources/Features/Contacts/ScannedIdentityParser.swift */; };
+		C6D8F4344B7978E226BA8A35 /* Sources/Features/Settings/PrivacySettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BEDF0FDB113BA7F8CA28856 /* Sources/Features/Settings/PrivacySettingsStore.swift */; };
+		B0348ED6A55C057E29CFE2C0 /* Sources/Services/TextMessageCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2D9B3E64D0D0827FBE804A /* Sources/Services/TextMessageCrypto.swift */; };
+		5AF3B8087411248D3FABABC8 /* Sources/Services/IdentityResolveClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BE1DF715DD46161989FCE7 /* Sources/Services/IdentityResolveClient.swift */; };
+		5295CB3BDF92E366A9B9B3A8 /* Sources/Features/Messaging/ConversationID.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF94E33E9CC502C47205F597 /* Sources/Features/Messaging/ConversationID.swift */; };
 		5BE9E0B99708F64D2C597A18 /* Sources/Features/Trust/TrustDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B77A834EA1E7DEEE5FFF163D /* Sources/Features/Trust/TrustDashboardView.swift */; };
 		BEF419257F11F7742E880917 /* Sources/Features/Personas/PersonaSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41C636DFBEAD5B1D182D3ED4 /* Sources/Features/Personas/PersonaSwitcher.swift */; };
 		6DB1239556C04B79646C9953 /* Sources/Features/Messaging/MessagesHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A76BD8C20CBD03FDC3EA61B /* Sources/Features/Messaging/MessagesHubView.swift */; };
@@ -209,6 +216,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		98C229FC30EE9C6760D7C826 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Contacts/LiveQRCodeScannerView.swift; sourceTree = "<group>"; };
+		7BAE98848BA987C5A80A8C29 /* Sources/Features/Contacts/QRContactAddCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Contacts/QRContactAddCoordinator.swift; sourceTree = "<group>"; };
+		36EA8623AE0B5A2F4FBCD41D /* Sources/Features/Contacts/ScannedIdentityParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Contacts/ScannedIdentityParser.swift; sourceTree = "<group>"; };
+		8BEDF0FDB113BA7F8CA28856 /* Sources/Features/Settings/PrivacySettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Settings/PrivacySettingsStore.swift; sourceTree = "<group>"; };
+		8B2D9B3E64D0D0827FBE804A /* Sources/Services/TextMessageCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/TextMessageCrypto.swift; sourceTree = "<group>"; };
+		24BE1DF715DD46161989FCE7 /* Sources/Services/IdentityResolveClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/IdentityResolveClient.swift; sourceTree = "<group>"; };
+		EF94E33E9CC502C47205F597 /* Sources/Features/Messaging/ConversationID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Messaging/ConversationID.swift; sourceTree = "<group>"; };
 		B77A834EA1E7DEEE5FFF163D /* Sources/Features/Trust/TrustDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Trust/TrustDashboardView.swift; sourceTree = "<group>"; };
 		41C636DFBEAD5B1D182D3ED4 /* Sources/Features/Personas/PersonaSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Personas/PersonaSwitcher.swift; sourceTree = "<group>"; };
 		7A76BD8C20CBD03FDC3EA61B /* Sources/Features/Messaging/MessagesHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Messaging/MessagesHubView.swift; sourceTree = "<group>"; };
@@ -573,6 +587,13 @@
 		3DDB23092FC731B5008D0406 /* Recovered References */ = {
 			isa = PBXGroup;
 			children = (
+				98C229FC30EE9C6760D7C826 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift */,
+				7BAE98848BA987C5A80A8C29 /* Sources/Features/Contacts/QRContactAddCoordinator.swift */,
+				36EA8623AE0B5A2F4FBCD41D /* Sources/Features/Contacts/ScannedIdentityParser.swift */,
+				8BEDF0FDB113BA7F8CA28856 /* Sources/Features/Settings/PrivacySettingsStore.swift */,
+				8B2D9B3E64D0D0827FBE804A /* Sources/Services/TextMessageCrypto.swift */,
+				24BE1DF715DD46161989FCE7 /* Sources/Services/IdentityResolveClient.swift */,
+				EF94E33E9CC502C47205F597 /* Sources/Features/Messaging/ConversationID.swift */,
 				B77A834EA1E7DEEE5FFF163D /* Sources/Features/Trust/TrustDashboardView.swift */,
 				41C636DFBEAD5B1D182D3ED4 /* Sources/Features/Personas/PersonaSwitcher.swift */,
 				7A76BD8C20CBD03FDC3EA61B /* Sources/Features/Messaging/MessagesHubView.swift */,
@@ -1238,6 +1259,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1411B71227274A6D2B383C77 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift in Sources */,
+				438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */,
+				0115B291F78020BAFF4D4534 /* Sources/Features/Contacts/ScannedIdentityParser.swift in Sources */,
+				C6D8F4344B7978E226BA8A35 /* Sources/Features/Settings/PrivacySettingsStore.swift in Sources */,
+				B0348ED6A55C057E29CFE2C0 /* Sources/Services/TextMessageCrypto.swift in Sources */,
+				5AF3B8087411248D3FABABC8 /* Sources/Services/IdentityResolveClient.swift in Sources */,
+				5295CB3BDF92E366A9B9B3A8 /* Sources/Features/Messaging/ConversationID.swift in Sources */,
 				5BE9E0B99708F64D2C597A18 /* Sources/Features/Trust/TrustDashboardView.swift in Sources */,
 				BEF419257F11F7742E880917 /* Sources/Features/Personas/PersonaSwitcher.swift in Sources */,
 				6DB1239556C04B79646C9953 /* Sources/Features/Messaging/MessagesHubView.swift in Sources */,

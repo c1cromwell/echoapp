@@ -127,7 +127,7 @@ def run_metagraph_test() -> str:
     )
 
 
-@mcp.tool()
+@ mcp.tool()
 def run_ios_phase3_tests() -> str:
     """Run swift test --filter EchoPhase3Tests in ios/Echo."""
     root = repo_root()
@@ -137,6 +137,79 @@ def run_ios_phase3_tests() -> str:
         cwd=root / "ios" / "Echo",
         timeout=600,
     )
+
+
+@mcp.tool()
+def run_regression(quick: bool = False, with_phase1: bool = False) -> str:
+    """Run scripts/run-regression.sh (Go + iOS SPM). quick=Go only; with_phase1 adds validate-phase1."""
+    cmd = ["./scripts/run-regression.sh"]
+    if quick:
+        cmd.append("--quick")
+    if with_phase1:
+        cmd.append("--with-phase1")
+    return run_command(
+        "Regression",
+        cmd,
+        timeout=1800,
+    )
+
+
+@mcp.tool()
+def run_ios_preflight(build: bool = False, tests: bool = False) -> str:
+    """Run scripts/ios-e2e-preflight.sh before Xcode manual E2E. Optional build (xcodebuild) and SPM tests."""
+    cmd = ["./scripts/ios-e2e-preflight.sh"]
+    if build:
+        cmd.append("--build")
+    if tests:
+        cmd.append("--tests")
+    return run_command(
+        "iOS E2E preflight",
+        cmd,
+        timeout=1200,
+    )
+
+
+@mcp.tool()
+def smoke_ios_backend(base_url: str = "http://localhost:8000") -> str:
+    """Probe backend endpoints the iOS app uses (health, SMS register, OIDC4VC start)."""
+    base = base_url.rstrip("/")
+    lines = ["## iOS backend smoke", f"**Base:** `{base}`", ""]
+    checks = [
+        ("GET /health", "GET", f"{base}/health", None),
+        (
+            "POST /v1/auth/sms-recovery/register",
+            "POST",
+            f"{base}/v1/auth/sms-recovery/register",
+            b'{"phone_hash":"sha256:00","phone_raw":"+15550001111","did":"did:key:zTest"}',
+        ),
+        (
+            "POST /v1/enrollment/vc/start",
+            "POST",
+            f"{base}/v1/enrollment/vc/start",
+            b'{"requested_claims":{"givenName":true,"familyName":true,"ageOver18":true}}',
+        ),
+    ]
+    for label, method, url, body in checks:
+        req = urllib.request.Request(url, method=method)
+        if body is not None:
+            req.data = body
+            req.add_header("Content-Type", "application/json")
+        try:
+            with urllib.request.urlopen(req, timeout=8) as response:
+                lines.append(f"- **{label}** → {response.status} OK")
+                otp = response.headers.get("X-Dev-OTP") or response.headers.get("x-dev-otp")
+                if otp and "sms-recovery" in url:
+                    lines.append(f"  - `X-Dev-OTP`: {otp[:6]}…")
+        except urllib.error.HTTPError as exc:
+            lines.append(f"- **{label}** → HTTP {exc.code}")
+            otp = exc.headers.get("X-Dev-OTP") or exc.headers.get("x-dev-otp")
+            if otp and "sms-recovery" in url:
+                lines.append(f"  - `X-Dev-OTP`: {otp[:6]}…")
+        except urllib.error.URLError as exc:
+            lines.append(f"- **{label}** → unreachable ({exc.reason})")
+    lines.append("")
+    lines.append("Run `make ios-preflight` for full Xcode + scheme checks.")
+    return "\n".join(lines)
 
 
 @mcp.tool()

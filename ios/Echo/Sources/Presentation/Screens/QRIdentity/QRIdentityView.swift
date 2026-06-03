@@ -13,6 +13,9 @@ import AppKit
 
 public struct QRIdentityView: View {
     @StateObject private var viewModel = QRIdentityViewModel()
+    #if os(iOS)
+    @State private var addCoordinator = QRContactAddCoordinator()
+    #endif
     @State private var showScanner = false
 
     public init() {}
@@ -121,17 +124,21 @@ public struct QRIdentityView: View {
         .task { await viewModel.loadFromSession() }
         #if os(iOS)
         .fullScreenCover(isPresented: $showScanner) {
-            QRScannerView(onScan: { did in
+            LiveQRCodeScannerView { raw in
                 showScanner = false
-                viewModel.handleScannedDID(did)
-            })
+                Task { await addCoordinator.handleScan(raw) }
+            }
         }
-        #else
-        .sheet(isPresented: $showScanner) {
-            QRScannerView(onScan: { did in
-                showScanner = false
-                viewModel.handleScannedDID(did)
-            })
+        .alert(
+            addCoordinator.resultIsError ? "Couldn’t add contact" : "Contact added",
+            isPresented: Binding(
+                get: { addCoordinator.resultMessage != nil },
+                set: { if !$0 { addCoordinator.reset() } }
+            )
+        ) {
+            Button("OK", role: .cancel) { addCoordinator.reset() }
+        } message: {
+            Text(addCoordinator.resultMessage ?? "")
         }
         #endif
     }
@@ -205,17 +212,6 @@ class QRIdentityViewModel: ObservableObject {
         #elseif canImport(AppKit)
         qrCodeImage = NSImage(cgImage: cgImage, size: NSSize(width: scaledImage.extent.width, height: scaledImage.extent.height))
         #endif
-    }
-
-    func handleScannedDID(_ scanned: String) {
-        // Accept raw did:key or echo://profile deep links.
-        if scanned.hasPrefix("echo://"), let url = URL(string: scanned),
-           let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-           let didItem = components.queryItems?.first(where: { $0.name == "did" }),
-           let resolved = didItem.value {
-            _ = resolved
-            // Contact add flow is handled by Contacts feature (WO-222).
-        }
     }
 
     func shareLink() {

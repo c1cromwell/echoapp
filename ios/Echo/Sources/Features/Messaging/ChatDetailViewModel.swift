@@ -22,6 +22,7 @@ final class ChatDetailViewModel {
     // MARK: - Dependencies
 
     private let signalService: ConversationSignalService
+    private let textCrypto: TextMessageCrypto
     private var reactionsAPI: (any ReactionsAPIClient)?
     private var privacy: MessagingPrivacyPreferences = .init()
 
@@ -38,12 +39,13 @@ final class ChatDetailViewModel {
     private var sentReadReceiptIDs = Set<String>()
     private var userReactionByMessage: [String: String] = [:]
 
-    init(signalService: ConversationSignalService) {
+    init(signalService: ConversationSignalService, textCrypto: TextMessageCrypto? = nil) {
         self.signalService = signalService
-        signalService.setEventHandler { [weak self] event in
-            Task { @MainActor in
-                self?.handleSignal(event)
-            }
+        if let textCrypto {
+            self.textCrypto = textCrypto
+        } else {
+            let client = DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
+            self.textCrypto = TextMessageCrypto(identityResolve: IdentityResolveClient(apiClient: client))
         }
     }
 
@@ -61,6 +63,12 @@ final class ChatDetailViewModel {
         self.privacy = privacy
         self.reactionsAPI = reactionsAPI
         if let onSend { self.onSend = onSend }
+
+        signalService.setConversationHandler(conversationId: conversationId) { [weak self] event in
+            Task { @MainActor in
+                self?.handleSignal(event)
+            }
+        }
     }
 
     func connect(accessToken: String) async {
@@ -72,7 +80,7 @@ final class ChatDetailViewModel {
     }
 
     func disconnect() async {
-        await signalService.disconnect()
+        signalService.setConversationHandler(conversationId: conversationId, handler: nil)
         cancelTypingTasks()
         peerTypingClearTask?.cancel()
     }
@@ -126,6 +134,33 @@ final class ChatDetailViewModel {
         )
         messages.append(message)
         onSend(text)
+
+        do {
+            let payload: TextMessagePayload
+            do {
+                payload = try await textCrypto.encryptPayload(
+                    plaintext: trimmed,
+                    peerDID: peerDID,
+                    messageId: message.id
+                )
+            } catch {
+                payload = TextMessagePayload(messageId: message.id, text: trimmed, encrypted: nil)
+            }
+            try await signalService.sendTextMessage(
+                conversationId: conversationId,
+                peerDID: peerDID,
+                payload: payload
+            )
+            if let idx = messages.firstIndex(where: { $0.id == message.id }) {
+                messages[idx].deliveryStatus = .sent
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+            if let idx = messages.firstIndex(where: { $0.id == message.id }) {
+                messages[idx].deliveryStatus = .failed
+            }
+        }
+
         await onSendTapped()
         return message.id
     }
@@ -288,7 +323,33 @@ final class ChatDetailViewModel {
         case .reaction(let e):
             guard e.conversationId == conversationId else { return }
             Task { await reconcileReactions(messageId: e.messageId) }
+        case .textMessage(let e):
+            guard e.conversationId == conversationId else { return }
+            guard e.peerDID == peerDID || !e.peerDID.isEmpty else { return }
+            guard !messages.contains(where: { $0.id == e.messageId }) else { return }
+            Task { await appendInboundText(e) }
         }
+    }
+
+    private func appendInboundText(_ e: TextMessageSignalEvent) async {
+        var body = e.text
+        if let wire = e.wirePayload, wire.encrypted != nil {
+            if let decrypted = try? await textCrypto.decryptPayload(wire) {
+                body = decrypted
+            }
+        }
+        let inbound = ChatDetailMessage(
+            id: e.messageId,
+            senderDID: e.peerDID,
+            currentUserDID: currentUserDID,
+            content: body,
+            timestamp: "Now",
+            deliveryStatus: .delivered
+        )
+        guard !messages.contains(where: { $0.id == e.messageId }) else { return }
+        messages.append(inbound)
+        let preview = body == TextMessagePayload.encryptedPlaceholder ? "Encrypted message" : body
+        ConversationStore.shared.appendMessagePreview(conversationId: conversationId, preview: preview)
     }
 
     private func schedulePeerTypingSafetyClear() {

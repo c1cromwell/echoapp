@@ -29,6 +29,8 @@ services:
     environment:
       - API_PORT=8000
       - ENVIRONMENT=development
+      - DEV_MODE=${DEV_MODE:-false}
+      - ALLOW_DEV_OTP=${ALLOW_DEV_OTP:-false}
       - LOG_LEVEL=debug
       # Backing services (in-cluster)
       - DATABASE_HOST=postgres

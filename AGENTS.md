@@ -13,9 +13,11 @@ Quick entry point for Cursor agents working in this repo. Read this first, then 
 | Chain / submission / PII review | Skill: **`echo-t0-t7-review`** + `docs/data-classification.md` |
 | Local cluster / validate / release check | MCP **`echo-local-dev`** (see `.cursor/mcp.json`) |
 | TestFlight / Phase 1 go-no-go | Skill: **`echo-phase1-validate`** + [`docs/E2E_LAUNCH_AND_TESTING.md`](docs/E2E_LAUNCH_AND_TESTING.md) |
-| Launch & regression testing (full matrix) | Skill: **`echo-testing`** + [`docs/E2E_LAUNCH_AND_TESTING.md`](docs/E2E_LAUNCH_AND_TESTING.md) |
+| Launch & regression testing (full matrix) | Skill: **`echo-testing`** + [`docs/E2E_QUICK_START.md`](docs/E2E_QUICK_START.md) (start here) / [`docs/E2E_LAUNCH_AND_TESTING.md`](docs/E2E_LAUNCH_AND_TESTING.md) |
 | Phase 2 onboarding / VC / contacts | Skill: **`echo-phase2-gaps`** |
 | Phase 3 messaging UI (Xcode wiring) | Skill: **`echo-phase3-ios-wire`** |
+| UI/UX design + full iOS feature map | [`docs/ux-spec.md`](docs/ux-spec.md) + [`docs/ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](docs/ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) |
+| Design prototype (React, **post-auth only**) | [`docs/Echo Design System Setup_latest/`](docs/Echo%20Design%20System%20Setup_latest/) — **not** onboarding/login |
 | Metagraph Scala L1 validators | Skill: **`echo-metagraph-scala`** |
 
 Planning history and MCP roadmap: [`docs/AGENT_TOOLING_RECOMMENDATIONS.md`](docs/AGENT_TOOLING_RECOMMENDATIONS.md).
@@ -70,6 +72,7 @@ Full setup: [`CONTRIBUTING.md`](CONTRIBUTING.md). TestFlight & E2E: [`docs/E2E_L
 ## Agent constraints
 
 - **Headless agents** cannot run Xcode UI or live WebSocket E2E against a LAN backend — land logic + unit tests; leave SwiftUI wiring to Xcode.
+- **Frozen iOS onboarding & login** — `FirstRunCoordinator`, `GlacialLoginScreen`, and related auth views are the correct design. Do **not** redesign or map from `docs/Echo Design System Setup_latest/.../onboarding/*`. Post-auth UI may follow the prototype per [`docs/ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](docs/ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) §0.
 - **Do not re-implement** passkey signing on REST; use existing `PasskeySigningInterceptor`.
 - **Ephemeral WS signals** use `WSEnvelope` shape with mandatory `to` (peer DID) — not `WSRelayMessage`.
 - **Minimize scope** — match existing patterns; no Cardano code in Phase 1–2 paths.

@@ -6,6 +6,9 @@ Cursor MCP server that wraps Echo local dev Makefile targets so agents can check
 
 | Tool | Wraps |
 |------|--------|
+| `run_ios_preflight` | `make ios-preflight` (`build`, `tests` flags) |
+| `run_regression` | `make regression` (`quick`, `with_phase1`) |
+| `smoke_ios_backend` | Health + SMS + OIDC4VC probes for iOS |
 | `cluster_status` | `make dev-status` |
 | `run_release_check` | `make release-check` |
 | `run_validate_phase1` | `make validate-phase1` |

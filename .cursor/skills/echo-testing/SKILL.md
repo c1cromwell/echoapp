@@ -9,73 +9,69 @@ description: >-
 
 # Echo testing (launch + regression)
 
-**Canonical doc:** [`docs/E2E_LAUNCH_AND_TESTING.md`](../../docs/E2E_LAUNCH_AND_TESTING.md)
+| Doc | Use |
+|-----|-----|
+| **[`docs/E2E_QUICK_START.md`](../../docs/E2E_QUICK_START.md)** | **Default** — iOS smoke, agent vs human, troubleshooting |
+| [`docs/E2E_LAUNCH_AND_TESTING.md`](../../docs/E2E_LAUNCH_AND_TESTING.md) | Full tiers, env vars, TestFlight upload |
+
+## Agent workflow (iOS testing help)
+
+When the user struggles with iOS E2E, run **in order**:
+
+1. `make dev` (or confirm `health_backend`)
+2. `make ios-preflight` — or MCP `run_ios_preflight`
+3. If iOS code changed: `make ios-preflight BUILD=1 TESTS=1`
+4. If onboarding/API fails: MCP `smoke_ios_backend`
+5. Point user to **E2E_QUICK_START §2** (15 min Xcode checklist) — agents cannot tap Simulator UI
+
+Do **not** dump the full E2E doc — use the quick start.
+
+**Do not** suggest redesigning onboarding/login from the design prototype — those iOS flows are frozen ([`ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](../../docs/ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) §0).
 
 ## When to run what
 
 | Cadence | Automated | Manual (Mac + Xcode) |
 |---------|-----------|----------------------|
-| Every PR / push | CI: Go + iOS SPM (`EchoSecurityTests`, `EchoPhase3Tests`) | — |
-| Pre-merge / weekly | `make regression` or `./scripts/run-regression.sh` | Spot-check one §6 flow |
-| Pre-TestFlight / launch | `make regression-with-phase1` (if metagraph up) | **All** §6–8 checklists |
-| Post-deploy regression | `curl …/health` + `make regression-quick` | TestFlight §8e on physical device |
+| Every PR / push | CI: Go + iOS SPM | — |
+| Pre-merge / weekly | `make regression` | Spot-check quick start §2 |
+| Before Xcode session | `make ios-preflight BUILD=1` | Quick start §2 |
+| Pre-TestFlight | `make regression-with-phase1` | Quick start + device + §9 sign-off |
 
-## Automated regression (agent runs these)
-
-```bash
-make regression              # Default — Go + iOS SPM (needs Xcode.app)
-make regression-quick        # Go race tests only
-make regression-with-phase1  # + validate-phase1 (Docker + Euclid + JDK 21)
-```
-
-Script: `scripts/run-regression.sh` (`--quick`, `--with-phase1`, `--ios-only`).
-
-MCP **`echo-local-dev`**: `run_release_check`, `run_validate_phase1`, `run_ios_phase3_tests`, `health_backend`, `cluster_status`.
-
-## iOS automated (Mac + Xcode required)
-
-Agent **cannot** substitute for full Xcode.app (CLT-only fails `gomobile` / app archive).
+## Commands
 
 ```bash
-cd ios/Echo
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
-  swift build --target Echo --target EchoSecurityTests --target EchoPhase3Tests
-swift test --filter EchoSecurityTests
-swift test --filter EchoPhase3Tests
-xcodebuild -project EchoApp.xcodeproj -scheme Echo \
-  -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build
-./scripts/build-echooprf-ios.sh   # WO-221 — once per machine
+make ios-preflight              # backend + Xcode + scheme (agents run this)
+make ios-preflight BUILD=1 TESTS=1
+make regression
+make regression-quick
+make regression-with-phase1
 ```
 
-## Manual E2E — agent does NOT run these
+## MCP `echo-local-dev`
 
-Use checklists in `docs/E2E_LAUNCH_AND_TESTING.md`:
+| Tool | Use |
+|------|-----|
+| `run_ios_preflight` | Before user opens Xcode |
+| `smoke_ios_backend` | SMS / OIDC / health for iOS |
+| `run_regression` | Full headless gate |
+| `run_release_check` | Go only |
+| `run_validate_phase1` | WO-230 go/no-go |
+| `run_ios_phase3_tests` | Phase 3 logic |
+| `health_backend` / `cluster_status` | Stack up? |
 
-| Section | Scope |
-|---------|--------|
-| §6 | Simulator — onboarding, login, messaging, Phase 3, WO-100, WO-221 |
-| §7 | Physical iPhone — LAN `API_URL`, biometrics, two-device PSI |
-| §8e | TestFlight build regression |
+Reload MCP after pulling (`tools/echo-local-dev-mcp/README.md`).
 
-Prerequisites:
+## iOS — agent limits
 
-```bash
-make dev && curl -s http://localhost:8000/health
-# Device: API_URL = http://<Mac-LAN-IP>:8000 (doc §3c)
-# WO-100: OIDC4VC_ENABLED=true
-# WO-221: ./scripts/build-echooprf-ios.sh + embed EchoOPRF.xcframework
-```
+- Scheme name: **EchoApp** (not Echo)
+- Simulator `API_URL`: `http://localhost:8000` (in EchoApp.xcscheme)
+- Device: LAN IP via scheme env
+- Agents **cannot**: Simulator UI, Face ID, two-device chat, TestFlight install
 
-## Launch sign-off template
+## Related skills
 
-Copy from `docs/E2E_LAUNCH_AND_TESTING.md` §9. All automated gates green **and** required manual sections checked before TestFlight external beta.
-
-## Related skills & docs
-
-| Resource | Use |
-|----------|-----|
-| `echo-phase1-validate` | WO-230 go/no-go, TestFlight prep |
+| Skill | Use |
+|-------|-----|
+| `echo-phase1-validate` | WO-230 go/no-go |
 | `echo-ios-agent-vs-xcode` | Agent vs Xcode ownership |
-| `echo-phase3-ios-wire` | Phase 3 two-client WS E2E |
-| `docs/metagraph-backend-e2e-testing.md` | Metagraph manual steps |
-| `docs/PHASE3_IOS_UI_SPEC.md` | Phase 3 Step 5 detail |
+| `echo-phase3-ios-wire` | Phase 3 two-client WS |

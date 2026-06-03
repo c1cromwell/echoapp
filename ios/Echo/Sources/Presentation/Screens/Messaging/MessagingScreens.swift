@@ -333,18 +333,24 @@ struct ChatView: View {
         }
         .task {
             let reactions: ReactionsAPI? = DIContainer.shared.resolveReactionsAPI()
-            let signalService: ConversationSignalService? = DIContainer.shared.resolveConversationSignalService()
+            let privacy = MessagingPrivacyPreferences.merged(
+                global: PrivacySettingsStore.load(),
+                persona: PersonaPrivacySettings()
+            )
             viewModel.configure(
                 conversationId: conversationId,
                 peerDID: peerDID,
                 currentUserDID: currentUserDID,
+                privacy: privacy,
                 reactionsAPI: reactions,
                 onSend: onSendMessage
             )
-            _ = signalService
             if let token = try? await KeychainManager.shared.getAuthToken() {
                 await viewModel.connect(accessToken: token)
             }
+        }
+        .onDisappear {
+            Task { await viewModel.disconnect() }
         }
         .onTapGesture {
             if reactionTargetId != nil {

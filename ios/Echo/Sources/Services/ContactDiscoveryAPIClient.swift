@@ -23,6 +23,11 @@ struct ContactDiscoveryAPIClient: Sendable {
         let did: String?
         let username: String?
         let display_name: String?
+        let trustTier: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case did, username, display_name, trustTier
+        }
     }
 
     struct DiscoverySettings: Decodable, Sendable {

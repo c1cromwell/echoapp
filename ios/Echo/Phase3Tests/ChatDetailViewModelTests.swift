@@ -74,8 +74,17 @@ final class ChatDetailViewModelTests: XCTestCase {
         let appended = vm.messages.last
         XCTAssertEqual(appended?.content, "hi there")
         XCTAssertTrue(appended?.isFromCurrentUser == true)
-        XCTAssertEqual(appended?.deliveryStatus, .sending)
+        XCTAssertEqual(appended?.deliveryStatus, .sent)
         XCTAssertEqual(sent, ["hi there"])
+        XCTAssertTrue(transport.sentTexts.contains(where: { $0.contains("\"type\":\"text\"") }))
+    }
+
+    func testInboundTextMessage_appendsPeerMessage() async {
+        transport.simulateIncoming("""
+        {"type":"text","from":"did:key:peer","to":"did:key:me","conversation_id":"conv-1","payload":{"text":"Hey","message_id":"peer-msg-1"}}
+        """)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertTrue(vm.messages.contains(where: { $0.id == "peer-msg-1" && $0.content == "Hey" }))
     }
 
     func testSendMessage_ignoresWhitespaceOnly() async {

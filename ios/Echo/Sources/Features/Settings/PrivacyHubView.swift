@@ -31,6 +31,8 @@ struct PrivacyHubView: View {
             }
         }
         .navigationTitle("Privacy")
+        .onAppear { privacySettings = PrivacySettingsStore.load() }
+        .onDisappear { PrivacySettingsStore.save(privacySettings) }
     }
 }
 

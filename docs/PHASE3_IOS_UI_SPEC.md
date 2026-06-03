@@ -1,7 +1,14 @@
 # Phase 3 iOS UI Implementation Spec — Typing · Read Receipts · Reactions
 
 **Purpose:** Step-by-step build spec for the iOS client layer of three Phase 3
-launch-critical features. The **backend is implemented and tested**
+launch-critical features.
+
+**UI/UX context:** Messaging hub, chat sheets, and Signal/Telegram patterns are in
+[`docs/ux-spec.md`](ux-spec.md) and [`docs/ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](ECHO_IOS_UI_IMPLEMENTATION_SPEC.md).
+**Color tokens:** iOS **paper/ink/signal** — not the Icy Minimal palette in the web design prototype.
+**Out of scope:** Onboarding and login — frozen on iOS; do not change from the design prototype ([`ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) §0).
+
+The **backend is implemented and tested**
 (`internal/api/ws.go`, `internal/api/ws_signals_test.go`, `internal/api/v3_handlers.go`,
 `internal/api/reactions_handler_test.go`). This spec is the client layer.
 

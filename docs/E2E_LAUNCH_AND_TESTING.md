@@ -1,6 +1,10 @@
 # Echo — E2E Launch & Testing Guide
 
-Single reference for **automated regression** (CI, scripts, agents) and **manual E2E** on Mac/Xcode (simulator + physical iPhone + TestFlight). Use before every TestFlight build and for periodic regression.
+Single reference for **automated regression** (CI, scripts, agents) and **manual E2E** on Mac/Xcode (simulator + physical iPhone + TestFlight).
+
+**Start here for iOS testing:** [`E2E_QUICK_START.md`](E2E_QUICK_START.md) — one page, agent vs Xcode split, 15‑min smoke path, troubleshooting.
+
+**Frozen UX:** iOS **onboarding and login** flows are correct as shipped (`FirstRunCoordinator`, `GlacialLoginScreen`). E2E checklists **validate** them; they are **not** targets for prototype alignment or redesign — see [`ux-spec.md`](ux-spec.md) §2.1–2.2 and [`ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) §0.
 
 **Not** the developer onboarding guide — see [`CONTRIBUTING.md`](../CONTRIBUTING.md) for first-time setup.
 
@@ -10,13 +14,12 @@ Single reference for **automated regression** (CI, scripts, agents) and **manual
 
 | Goal | Start here |
 |------|------------|
+| **iOS testing (most common)** | **[`E2E_QUICK_START.md`](E2E_QUICK_START.md)** → `make ios-preflight` |
 | Pre-merge / weekly regression | [§4 Automated regression](#4-automated-regression) → `make regression` |
-| TestFlight launch (full path) | [§4](#4-automated-regression) + [§6–8](#6-manual-e2e--ios-simulator) + [§9 Launch checklist](#9-launch-checklist--sign-off) |
+| TestFlight launch (full path) | Quick start + [§8](#8-testflight--app-store) + [§9 Launch checklist](#9-launch-checklist--sign-off) |
 | Metagraph + backend E2E | [§3](#3-environment-setup) + [`metagraph-backend-e2e-testing.md`](metagraph-backend-e2e-testing.md) |
 | Phase 3 messaging signals | [§6.4](#64-phase-3--typing-read-receipts-reactions-wo-192) + [`PHASE3_IOS_UI_SPEC.md`](PHASE3_IOS_UI_SPEC.md) |
-| OIDC4VC enrollment (WO-100) | [§6.5](#65-oidc4vc-wallet-enrollment-wo-100) |
-| PSI contact discovery (WO-221) | [§6.6](#66-psi-contact-discovery-wo-221) |
-| Agent automation | Skill **`.cursor/skills/echo-testing`** + MCP `echo-local-dev` |
+| Agent automation | Skill **`echo-testing`** + MCP `echo-local-dev` (`run_ios_preflight`, `run_regression`) |
 
 ---
 
@@ -218,13 +221,22 @@ Server: **`echo-local-dev`** (see `tools/echo-local-dev-mcp/README.md`).
 
 | Tool | Equivalent |
 |------|------------|
+| `run_ios_preflight` | `make ios-preflight` (optional `build`, `tests`) |
+| `run_regression` | `make regression` (`quick`, `with_phase1`) |
+| `smoke_ios_backend` | Health + SMS + OIDC4VC endpoints iOS needs |
 | `run_release_check` | `make release-check` |
 | `run_validate_phase1` | `make validate-phase1` |
 | `run_ios_phase3_tests` | `swift test --filter EchoPhase3Tests` |
 | `health_backend` | `curl localhost:8000/health` |
 | `cluster_status` | `make dev-status` |
 
-Agent skill: **`.cursor/skills/echo-testing`**.
+**Agent workflow before asking you to open Xcode:**
+
+1. `cluster_status` + `health_backend`
+2. `run_ios_preflight` with `build=true` if iOS code changed
+3. `smoke_ios_backend` if onboarding/SMS/OIDC fails in Simulator
+
+Agent skill: **`.cursor/skills/echo-testing`**. Human checklist: **[`E2E_QUICK_START.md`](E2E_QUICK_START.md)**.
 
 ---
 
@@ -253,10 +265,12 @@ swift test --filter EchoPhase3Tests
 
 ```bash
 cd ios/Echo
-xcodebuild -project EchoApp.xcodeproj -scheme Echo \
+xcodebuild -project EchoApp.xcodeproj -scheme EchoApp \
   -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
   -configuration Debug build
 ```
+
+Or: `make ios-preflight BUILD=1`
 
 ### 5c. Live OPRF framework (WO-221)
 
@@ -288,30 +302,33 @@ Full upload flow: [§8c](#8c-archive--upload-to-app-store-connect).
 
 **Prerequisites:** [§3a](#3a-local-backend-stack) running; Simulator with Face ID enrolled (Features → Face ID → Enrolled).
 
-Set scheme env / build setting `API_URL` = `http://localhost:8000`.
+Set scheme env **`API_URL`** = `http://localhost:8000` (default in **EchoApp** scheme).
 
-Open `ios/Echo/EchoApp.xcodeproj` → scheme **Echo** → Run on **iPhone 16 Pro** simulator.
+Open `ios/Echo/EchoApp.xcodeproj` → scheme **EchoApp** → Run on **iPhone 16 Pro** simulator.
 
-### 6.1 Onboarding (new user)
+### 6.1 Onboarding (new user) — FirstRunCoordinator (**frozen / do not redesign**)
+
+Validate this path only. Ignore React prototype onboarding routes and `Echo_v3_2` carousel/login specs. Bugfixes and backend wiring OK; no flow or visual refactors.
 
 | Step | Action | Expected |
 |------|--------|----------|
-| 1 | Cold launch (no account) | `EchoWelcomeView` — single screen, three privacy facts |
-| 2 | Tap "Set up Echo" | `NameAndKeyView` — username field + privacy receipt |
-| 3 | Type a username (e.g. `chad`) | Available checkmark appears |
-| 4 | Tap "Continue with Face ID" | Face ID prompt; Secure Enclave key generated |
-| 5 | Face ID succeeds | `RecoverySetupView` shown |
-| 6 | Tap "Show phrase" | 24-word BIP-39 phrase (blurs on screen record) |
-| 7 | Confirm 3 challenge words | Recovery phrase confirmed |
-| 8 | Tap "Continue" | Main app tab bar appears |
-| **Verify** | Backend | `GET http://localhost:8000/identity/@username` → 200 with DID |
-| **Verify** | Keychain | `echo.did.current` and `echo.username.current` set |
+| 1 | Cold launch (no account) | Welcome → tap set up |
+| 2 | Enter display name / username | Availability check OK |
+| 3 | Onboarding options → Face ID | Key generated + DID registered (`POST /identity/register`) |
+| 4 | Recovery setup → **SMS backup** (recommended) | OTP verify; discovery opt-in best-effort |
+| 5 | Continue | Main app / Messages tab |
+| **Verify** | Backend | `curl -s http://localhost:8000/health` → operational |
+| **Verify** | Dev OTP | `DEV_MODE=true` → `X-Dev-OTP` on SMS register |
 
-Simulator Face ID: Features → Face ID → **Matching Face** when prompted.
+Optional VIP path: checkbox on options screen → Digital ID (WO-100) or Standard IDV → recovery.
 
-**Biometrics unavailable:** Simulator with no Face ID enrolled → `LAError.biometryNotAvailable` message in form, not a crash.
+Legacy `NameAndKeyView` flow may still exist for demos; **TestFlight path is FirstRunCoordinator above.**
 
-### 6.2 Login (returning user)
+Simulator Face ID: Features → Face ID → **Enrolled** → **Matching Face** when prompted.
+
+### 6.2 Login (returning user) — **frozen / do not redesign**
+
+`GlacialLoginScreen`, `StorageLockedView`, and lockout screens are canonical. Do not replace with prototype `onboarding/login.tsx`.
 
 | Step | Action | Expected |
 |------|--------|----------|
@@ -604,6 +621,8 @@ Tester: _______  Environment: dev / staging / prod  Result: GO / NO-GO
 
 | Issue | Workaround |
 |-------|------------|
+| iOS testing feels overwhelming | Use **[`E2E_QUICK_START.md`](E2E_QUICK_START.md)** + `make ios-preflight` |
+| Wrong Xcode scheme name | Use **EchoApp**, not "Echo" |
 | Face ID doesn't trigger in Simulator | Features → Face ID → Enrolled → Matching Face |
 | `SecureEnclave` fails in Simulator | Expected — hardware-only; `USE_MOCK_SECURE_ENCLAVE=1` in scheme |
 | `POST /identity/register` 400 on device | `API_URL` must be LAN IP, not `localhost` |

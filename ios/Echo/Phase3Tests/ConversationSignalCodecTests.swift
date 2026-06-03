@@ -46,6 +46,21 @@ final class ConversationSignalCodecTests: XCTestCase {
         XCTAssertEqual(e.emoji, "👍")
     }
 
+    func testTextMessageEnvelope_roundTrip() throws {
+        let json = try ConversationSignalCodec.encodeTextMessage(
+            to: "did:key:bob",
+            conversationId: "conv-1",
+            payload: TextMessagePayload(messageId: "m1", text: "Hello", encrypted: nil)
+        )
+        let event = try XCTUnwrap(ConversationSignalCodec.decodeEvent(from: json))
+        guard case .textMessage(let e) = event else {
+            return XCTFail("expected text")
+        }
+        XCTAssertEqual(e.conversationId, "conv-1")
+        XCTAssertEqual(e.messageId, "m1")
+        XCTAssertEqual(e.text, "Hello")
+    }
+
     func testDecodeEvent_unknownTypeReturnsNil() throws {
         let json = """
         {"type":"presence","to":"did:key:x","payload":{}}

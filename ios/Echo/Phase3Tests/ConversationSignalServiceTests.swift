@@ -22,7 +22,7 @@ final class ConversationSignalServiceTests: XCTestCase {
 
     func testReceive_dispatchesByType() {
         let exp = expectation(description: "typing event")
-        service.setEventHandler { event in
+        service.setConversationHandler(conversationId: "c1") { event in
             if case .typing(let e) = event, e.state == .start {
                 exp.fulfill()
             }
@@ -33,10 +33,36 @@ final class ConversationSignalServiceTests: XCTestCase {
         wait(for: [exp], timeout: 1.0)
     }
 
+    func testSendTextMessage_matchesRelayE2EShape() async throws {
+        try await service.sendTextMessage(
+            conversationId: "conv-e2e-1",
+            peerDID: "did:key:bob",
+            payload: TextMessagePayload(messageId: "m-1", text: "Hello Bob!", encrypted: nil)
+        )
+        let json = try XCTUnwrap(transport.sentTexts.first)
+        XCTAssertTrue(json.contains("\"type\":\"text\""))
+        XCTAssertTrue(json.contains("\"to\":\"did:key:bob\""))
+        XCTAssertTrue(json.contains("\"conversation_id\":\"conv-e2e-1\""))
+        XCTAssertTrue(json.contains("Hello Bob!"))
+    }
+
+    func testReceive_textMessage_roundTrip() {
+        let exp = expectation(description: "text event")
+        service.setConversationHandler(conversationId: "conv-1") { event in
+            if case .textMessage(let e) = event, e.text == "Hi" {
+                exp.fulfill()
+            }
+        }
+        transport.simulateIncoming("""
+        {"type":"text","from":"did:key:alice","to":"did:key:me","conversation_id":"conv-1","payload":{"text":"Hi","message_id":"msg-1"}}
+        """)
+        wait(for: [exp], timeout: 1.0)
+    }
+
     func testReceive_ignoresUnknownType() {
         let exp = expectation(description: "no event")
         exp.isInverted = true
-        service.setEventHandler { _ in exp.fulfill() }
+        service.setConversationHandler(conversationId: "c") { _ in exp.fulfill() }
         transport.simulateIncoming("{\"type\":\"unknown\",\"to\":\"x\",\"payload\":{}}")
         wait(for: [exp], timeout: 0.2)
     }

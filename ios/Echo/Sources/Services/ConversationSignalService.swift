@@ -1,10 +1,13 @@
 import Foundation
 
-/// Sends and receives Phase 3 ephemeral conversation signals over WebSocket.
+/// Sends and receives conversation signals and text chat over a shared WebSocket.
 final class ConversationSignalService: @unchecked Sendable {
     private let transport: ConversationSignalTransport
     private let lock = NSLock()
-    private var eventHandler: (@Sendable (ConversationSignalEvent) -> Void)?
+    private var handlersByConversation: [String: @Sendable (ConversationSignalEvent) -> Void] = [:]
+    /// Updates inbox preview when a text arrives and no chat handler is registered.
+    private var onInboundTextMessage: (@Sendable (TextMessageSignalEvent) -> Void)?
+    private var isConnected = false
 
     init(transport: ConversationSignalTransport) {
         self.transport = transport
@@ -19,18 +22,42 @@ final class ConversationSignalService: @unchecked Sendable {
     }
     #endif
 
-    func setEventHandler(_ handler: (@Sendable (ConversationSignalEvent) -> Void)?) {
+    func setInboundTextHandler(_ handler: (@Sendable (TextMessageSignalEvent) -> Void)?) {
         lock.lock()
-        eventHandler = handler
+        onInboundTextMessage = handler
+        lock.unlock()
+    }
+
+    func setConversationHandler(
+        conversationId: String,
+        handler: (@Sendable (ConversationSignalEvent) -> Void)?
+    ) {
+        lock.lock()
+        if let handler {
+            handlersByConversation[conversationId] = handler
+        } else {
+            handlersByConversation.removeValue(forKey: conversationId)
+        }
         lock.unlock()
     }
 
     func connect(accessToken: String) async throws {
+        lock.lock()
+        let already = isConnected
+        lock.unlock()
+        guard !already else { return }
         try await transport.connect(accessToken: accessToken)
+        lock.lock()
+        isConnected = true
+        lock.unlock()
     }
 
     func disconnect() async {
         await transport.disconnect()
+        lock.lock()
+        isConnected = false
+        handlersByConversation.removeAll()
+        lock.unlock()
     }
 
     func sendTyping(conversationId: String, peerDID: String, state: TypingState) async throws {
@@ -63,10 +90,39 @@ final class ConversationSignalService: @unchecked Sendable {
         try await transport.send(text: text)
     }
 
+    func sendTextMessage(
+        conversationId: String,
+        peerDID: String,
+        payload: TextMessagePayload
+    ) async throws {
+        let wire = try ConversationSignalCodec.encodeTextMessage(
+            to: peerDID,
+            conversationId: conversationId,
+            payload: payload
+        )
+        try await transport.send(text: wire)
+    }
+
     func handleIncoming(text: String) {
         guard let event = try? ConversationSignalCodec.decodeEvent(from: text) else { return }
+
+        if case .textMessage(let textEvent) = event {
+            lock.lock()
+            let global = onInboundTextMessage
+            lock.unlock()
+            global?(textEvent)
+        }
+
+        let conversationId: String
+        switch event {
+        case .typing(let e): conversationId = e.conversationId
+        case .readReceipt(let e): conversationId = e.conversationId
+        case .reaction(let e): conversationId = e.conversationId
+        case .textMessage(let e): conversationId = e.conversationId
+        }
+
         lock.lock()
-        let handler = eventHandler
+        let handler = handlersByConversation[conversationId]
         lock.unlock()
         handler?(event)
     }

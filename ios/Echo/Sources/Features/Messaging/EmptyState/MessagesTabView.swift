@@ -81,6 +81,9 @@ struct MessagesTabView: View {
                 appState.pendingInviteCode = nil
             }
         }
+        .task {
+            await connectSharedMessageRelay()
+        }
         .onReceive(
             NotificationCenter.default.publisher(for: .echoPendingInvite)
         ) { notification in
@@ -126,6 +129,34 @@ struct MessagesTabView: View {
     private var mutedConversationIDs: Set<String> {
         let store = ConversationPreferencesStore.shared
         return Set(conversationStore.conversations.map(\.id).filter { store.isMuted($0) })
+    }
+
+    /// Keeps one WebSocket open for inbound chat + signals (Wave 0.1 relay E2E).
+    private func connectSharedMessageRelay() async {
+        guard let service = DIContainer.shared.resolveConversationSignalService(),
+              let token = try? await KeychainManager.shared.getAuthToken() else { return }
+
+        service.setInboundTextHandler { event in
+            Task { @MainActor in
+                var preview = event.text
+                if let wire = event.wirePayload, wire.encrypted != nil {
+                    let client = DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
+                    let crypto = TextMessageCrypto(identityResolve: IdentityResolveClient(apiClient: client))
+                    if let decrypted = try? await crypto.decryptPayload(wire) {
+                        preview = decrypted
+                    } else {
+                        preview = "Encrypted message"
+                    }
+                }
+                let store = ConversationStore.shared
+                let match = store.conversations.first(where: { $0.id == event.conversationId })
+                    ?? store.conversations.first(where: { $0.peerDID == event.peerDID })
+                guard let conversation = match else { return }
+                store.appendMessagePreview(conversationId: conversation.id, preview: preview)
+            }
+        }
+
+        try? await service.connect(accessToken: token)
     }
 }
 

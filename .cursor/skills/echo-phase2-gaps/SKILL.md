@@ -30,6 +30,8 @@ Architecture: **`did:key` + Constellation Identity Metagraph**. **No Cardano in 
 | BIP-39 recovery UI | `ios/.../Onboarding/Recovery/` (WO-234 ✅) |
 | Glacial first-run | `FirstRunCoordinator` (WO-292 ✅) |
 
+**Frozen UX:** Do not redesign iOS onboarding/login from the React prototype. WO-203/204 (universal phone-first orchestration) are **backend/product backlog**, not a mandate to replace `FirstRunCoordinator` UI.
+
 ## Real backend gaps (thin integration)
 
 | Gap | Evidence | WO |
@@ -39,7 +41,7 @@ Architecture: **`did:key` + Constellation Identity Metagraph**. **No Cardano in 
 | Username check unreachable | `GET /v1/users/check-username` not routed | **14** |
 | PSI discovery stub | `contacts/service.go` PSIDiscovery | **220** |
 | Enrollment stubs | `handleEnrollmentVC/IDV/mDL` → `{"status":"ok"}` | **199** |
-| No universal onboarding orchestrator | Pieces exist, no coordinator | **203** |
+| Universal phone-first orchestrator (backend) | WO-203 service — **not** iOS flow replacement | **203** |
 
 ## Real iOS gaps
 

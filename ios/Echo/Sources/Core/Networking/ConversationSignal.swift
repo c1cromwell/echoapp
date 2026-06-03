@@ -6,6 +6,8 @@ enum ConversationSignalType {
     static let typing = "typing"
     static let readReceipt = "read_receipt"
     static let reaction = "reaction"
+    /// E2E chat body relay (`internal/api/ws.go` — routed to `to` DID when set).
+    static let text = "text"
 }
 
 enum TypingState: String, Codable, Sendable {
@@ -69,6 +71,25 @@ struct ReactionPayload: Codable, Sendable, Equatable {
     }
 }
 
+/// Chat payload for relay `type: text` — plaintext (legacy) or Kinnami-encrypted envelope.
+struct TextMessagePayload: Codable, Sendable, Equatable {
+    let messageId: String
+    let text: String?
+    let encrypted: EncryptedMessageWithPublicKey?
+
+    enum CodingKeys: String, CodingKey {
+        case messageId = "message_id"
+        case text
+        case encrypted
+    }
+
+    init(messageId: String, text: String? = nil, encrypted: EncryptedMessageWithPublicKey? = nil) {
+        self.messageId = messageId
+        self.text = text
+        self.encrypted = encrypted
+    }
+}
+
 // MARK: - Inbound events (decoded from envelope)
 
 struct TypingSignalEvent: Sendable, Equatable {
@@ -91,10 +112,39 @@ struct ReactionSignalEvent: Sendable, Equatable {
     let emoji: String
 }
 
+struct TextMessageSignalEvent: Sendable, Equatable {
+    let conversationId: String
+    let peerDID: String
+    let messageId: String
+    /// Preview or decrypted body for UI.
+    let text: String
+    /// Raw wire payload when decryption should run off the main decode path.
+    let wirePayload: TextMessagePayload?
+
+    init(
+        conversationId: String,
+        peerDID: String,
+        messageId: String,
+        text: String,
+        wirePayload: TextMessagePayload? = nil
+    ) {
+        self.conversationId = conversationId
+        self.peerDID = peerDID
+        self.messageId = messageId
+        self.text = text
+        self.wirePayload = wirePayload
+    }
+}
+
+extension TextMessagePayload {
+    static let encryptedPlaceholder = "🔒 Encrypted message"
+}
+
 enum ConversationSignalEvent: Sendable, Equatable {
     case typing(TypingSignalEvent)
     case readReceipt(ReadReceiptSignalEvent)
     case reaction(ReactionSignalEvent)
+    case textMessage(TextMessageSignalEvent)
 }
 
 // MARK: - Partial header for routing inbound JSON
@@ -161,6 +211,26 @@ enum ConversationSignalCodec {
         return text
     }
 
+    static func encodeTextMessage(
+        to peerDID: String,
+        conversationId: String,
+        payload: TextMessagePayload
+    ) throws -> String {
+        let envelope = WSEnvelope(
+            type: ConversationSignalType.text,
+            to: peerDID,
+            from: nil,
+            conversationId: conversationId,
+            payload: payload,
+            timestamp: isoTimestamp()
+        )
+        let data = try encoder.encode(envelope)
+        guard let json = String(data: data, encoding: .utf8) else {
+            throw ConversationSignalError.encodingFailed
+        }
+        return json
+    }
+
     static func encodeReaction(
         to peerDID: String,
         conversationId: String,
@@ -213,6 +283,38 @@ enum ConversationSignalCodec {
                 messageId: envelope.payload.messageId,
                 emoji: envelope.payload.emoji
             ))
+        case ConversationSignalType.text:
+            if let envelope = try? decoder.decode(WSEnvelope<TextMessagePayload>.self, from: data) {
+                let convId = envelope.conversationId ?? ""
+                guard !convId.isEmpty else { return nil }
+                let msgId = envelope.payload.messageId.isEmpty ? UUID().uuidString : envelope.payload.messageId
+                let preview: String
+                if let plain = envelope.payload.text, !plain.isEmpty {
+                    preview = plain
+                } else if envelope.payload.encrypted != nil {
+                    preview = TextMessagePayload.encryptedPlaceholder
+                } else {
+                    return nil
+                }
+                return .textMessage(TextMessageSignalEvent(
+                    conversationId: convId,
+                    peerDID: peerDID,
+                    messageId: msgId,
+                    text: preview,
+                    wirePayload: envelope.payload
+                ))
+            }
+            if let envelope = try? decoder.decode(WSEnvelope<String>.self, from: data) {
+                let convId = envelope.conversationId ?? ""
+                guard !convId.isEmpty else { return nil }
+                return .textMessage(TextMessageSignalEvent(
+                    conversationId: convId,
+                    peerDID: peerDID,
+                    messageId: UUID().uuidString,
+                    text: envelope.payload
+                ))
+            }
+            return nil
         default:
             return nil
         }

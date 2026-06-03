@@ -7,6 +7,8 @@
 **Software Factory sync:** 2026-05-26 — see phase doc headers  
 **Architecture baseline:** `did:key` + Constellation Identity Metagraph. **Cardano is removed from Phase 1–2** (blueprint decision 2026-04-25; ADR-0001). Cardano/Midnight survive only as Phase 3+ ZK-circuit evaluation candidates.
 
+**Frozen iOS UX (2026-05):** Shipped onboarding (`FirstRunCoordinator`) and login (`GlacialLoginScreen`) are **correct and must not be redesigned** from the React design prototype. WO-203/204 are backend/orchestration backlog — not a UI replacement mandate. See [`ux-spec.md`](ux-spec.md) and [`ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) §0.
+
 ---
 
 ## 1. Executive summary
@@ -79,8 +81,8 @@ Legend: ✅ Done · 🟩 Substantially done · 🟨 Partial · 🟥 Stub · ⬜ 
 | WO | Title | Status | Evidence / Gap |
 |---|---|---|---|
 | **202** | SMS verification (Twilio + Prove) | 🟨 | Twilio real; OTP/SMS recovery wired. **Gap:** Prove integration missing. |
-| **203** | Universal onboarding orchestration | ⬜ | No phone-first coordinator service. |
-| **204** | Universal onboarding UI (iOS) | ⬜ | Depends on WO-203. |
+| **203** | Universal onboarding orchestration | ⬜ | Backend phone-first coordinator service — **not** a redesign of frozen `FirstRunCoordinator` UI. |
+| **204** | Universal onboarding UI (iOS) | ⬜ | Depends on WO-203; **do not** replace shipped welcome/login/recovery screens with prototype onboarding. |
 | **205** | Phone number mgmt + deletion | 🟨 | `onboarding/phone.go` exists; deletion flow unverified. |
 | **199**/IDV | `/v1/enrollment/{vc,idv,mdl}` | 🟥 | Still stub bodies in `enrollment_handlers.go`. |
 

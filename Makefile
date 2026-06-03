@@ -1,6 +1,6 @@
 .PHONY: help build run test clean install-deps lint fmt vet build-prod tls-cert migrate \
 	dev dev-stop dev-status dev-logs dev-restart validate-phase1 metagraph-verify-skeleton metagraph-test \
-	testnet-up testnet-down release-check regression regression-quick regression-with-phase1
+	testnet-up testnet-down release-check regression regression-quick regression-with-phase1 ios-preflight
 
 # Variables
 BINARY_NAME=echoapp
@@ -21,6 +21,7 @@ help:
 	@echo "  make regression      Headless regression (Go + iOS SPM) — docs/E2E_LAUNCH_AND_TESTING.md"
 	@echo "  make regression-quick Go race tests only"
 	@echo "  make regression-with-phase1  regression + validate-phase1"
+	@echo "  make ios-preflight   iOS E2E preflight (BUILD=1 TESTS=1) — docs/E2E_QUICK_START.md"
 	@echo "  make metagraph-verify-skeleton  Static WO-276 checks (euclid + build.sbt + sources; needs jq)"
 	@echo "  make metagraph-test     Scala tests: sharedData + identity metagraph layers (WO-272/277; sbt + JDK)"
 	@echo "  make testnet-up      Bring up backend stack only (assumes metagraph already running)"
@@ -409,5 +410,13 @@ regression-quick: ## Go race tests only (no iOS, no validate-phase1)
 regression-with-phase1: ## regression + make validate-phase1 (needs Docker + Euclid)
 	@chmod +x scripts/run-regression.sh
 	@./scripts/run-regression.sh --with-phase1
+
+BUILD ?=
+TESTS ?=
+ios-preflight: ## iOS E2E preflight — backend + Xcode checks (docs/E2E_QUICK_START.md)
+	@chmod +x scripts/ios-e2e-preflight.sh
+	@./scripts/ios-e2e-preflight.sh \
+		$(if $(filter 1 true yes,$(BUILD)),--build,) \
+		$(if $(filter 1 true yes,$(TESTS)),--tests,)
 
 .DEFAULT_GOAL := help

@@ -1,11 +1,10 @@
 #if os(iOS)
 import SwiftUI
 
-// Design review finding: "Make the cryptography legible."
-// The user should see their actual public key — it IS their identity.
-// Show it, let them copy it, let them share it as a QR.
+// Signal-style identity row: friendly name up front, DID secondary, QR affordance on the right.
 
 public struct IdentityCardView: View {
+    let displayName: String
     let username: String
     let did: String
     let joinDate: Date?
@@ -14,7 +13,14 @@ public struct IdentityCardView: View {
     @State private var showQR = false
     @State private var copied = false
 
-    public init(username: String, did: String, joinDate: Date? = nil, trustTier: Int? = nil) {
+    public init(
+        displayName: String,
+        username: String,
+        did: String,
+        joinDate: Date? = nil,
+        trustTier: Int? = nil
+    ) {
+        self.displayName = displayName
         self.username = username
         self.did = did
         self.joinDate = joinDate
@@ -23,89 +29,103 @@ public struct IdentityCardView: View {
 
     private var shortDID: String {
         guard did.count > 20 else { return did }
-        let prefix = String(did.prefix(16))
-        let suffix = String(did.suffix(6))
-        return "\(prefix)···\(suffix)"
+        return "\(did.prefix(12))···\(did.suffix(6))"
+    }
+
+    private var primaryLabel: String {
+        let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty, trimmed.lowercased() != username.lowercased() {
+            return trimmed
+        }
+        return username.isEmpty ? "Your profile" : "@\(username)"
+    }
+
+    private var secondaryHandle: String? {
+        let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !username.isEmpty else { return nil }
+        if trimmed.isEmpty || trimmed.lowercased() == username.lowercased() {
+            return nil
+        }
+        return "@\(username)"
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Avatar + name
-            HStack(spacing: 14) {
+            HStack(alignment: .center, spacing: 12) {
                 Circle()
                     .fill(Color.echoTrustGreen.opacity(0.12))
                     .overlay(Circle().stroke(Color.echoTrustGreen.opacity(0.30), lineWidth: 1))
-                    .frame(width: 52, height: 52)
+                    .frame(width: 48, height: 48)
                     .overlay(
-                        Text(String(username.prefix(1)).uppercased())
-                            .font(.system(size: 22, weight: .semibold))
+                        Text(String((username.isEmpty ? displayName : username).prefix(1)).uppercased())
+                            .font(.system(size: 20, weight: .semibold))
                             .foregroundStyle(Color.echoTrustGreen)
                     )
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("@\(username)")
-                        .font(.system(size: 18, weight: .semibold))
-                        .tracking(-0.3)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(primaryLabel)
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(Color.echoInk)
-                    if let tier = trustTier {
-                        Text("Trust tier T\(tier)")
-                            .font(.echomono(11))
-                            .foregroundStyle(Color.echoTrustGreen)
-                    }
-                    if let d = joinDate {
-                        Text("joined \(d.formatted(.dateTime.year().month().day()))")
-                            .font(.echomono(11))
+                        .lineLimit(1)
+
+                    if let secondaryHandle {
+                        Text(secondaryHandle)
+                            .font(.system(size: 13))
                             .foregroundStyle(Color.echoInk55)
                     }
+
+                    Text(shortDID)
+                        .font(.echomono(11))
+                        .foregroundStyle(Color.echoInk40)
+                        .lineLimit(1)
+
+                    if let tier = trustTier {
+                        Text("Trust tier T\(tier)")
+                            .font(.echomono(10))
+                            .foregroundStyle(Color.echoTrustGreen)
+                    }
                 }
+
+                Spacer(minLength: 4)
+
+                Button {
+                    showQR = true
+                } label: {
+                    Image(systemName: "qrcode")
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(Color.echoInk)
+                        .frame(width: 44, height: 44)
+                        .background(Color.echoPaper, in: RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.echoHair, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Show QR code to share your profile")
             }
 
-            Divider()
-                .foregroundStyle(Color.echoHair)
-                .padding(.vertical, 14)
-
-            // The public key — the most important thing to show
-            VStack(alignment: .leading, spacing: 8) {
-                Text("YOUR PUBLIC KEY")
+            if let d = joinDate {
+                Text("Joined \(d.formatted(.dateTime.year().month().day()))")
                     .font(.echomono(10))
                     .foregroundStyle(Color.echoInk40)
-
-                Text(did)
-                    .font(.echomono(12.5))
-                    .foregroundStyle(Color.echoInk)
-                    .lineLimit(3)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                HStack(spacing: 8) {
-                    Button(action: { showQR = true }) {
-                        Text("Show QR")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(Color.echoInk)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(Color.echoPaper, in: RoundedRectangle(cornerRadius: 9))
-                            .overlay(RoundedRectangle(cornerRadius: 9)
-                                .stroke(Color.echoHair, lineWidth: 1))
-                    }
-
-                    Button(action: copyDID) {
-                        Text(copied ? "Copied ✓" : "Copy")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(copied ? Color.echoTrustGreen : Color.echoInk)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(Color.echoPaper, in: RoundedRectangle(cornerRadius: 9))
-                            .overlay(RoundedRectangle(cornerRadius: 9)
-                                .stroke(Color.echoHair, lineWidth: 1))
-                    }
-                }
+                    .padding(.top, 10)
             }
+
+            Button(action: copyDID) {
+                Text(copied ? "DID copied" : "Copy DID")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(copied ? Color.echoTrustGreen : Color.echoInk55)
+            }
+            .padding(.top, 10)
         }
-        .padding(20)
+        .padding(16)
         .background(Color.echoPaperDim, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.echoHair, lineWidth: 1))
         .sheet(isPresented: $showQR) {
-            QRIdentitySheet(did: did, username: username, trustTier: trustTier ?? 0)
+            QRIdentitySheet(
+                did: did,
+                username: username,
+                displayName: displayName,
+                trustTier: trustTier ?? 0
+            )
         }
     }
 
@@ -177,46 +197,96 @@ public struct IdentityProtectedList: View {
     }
 }
 
-// MARK: - QR sheet (uses QRIdentityViewModel payload)
+// MARK: - QR sheet (share + scan)
 
 private struct QRIdentitySheet: View {
     let did: String
     let username: String
+    let displayName: String
     let trustTier: Int
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = QRIdentityViewModel()
+    @State private var addCoordinator = QRContactAddCoordinator()
+    @State private var showScanner = false
+
+    private var headline: String {
+        let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { return trimmed }
+        return username.isEmpty ? "Your profile" : "@\(username)"
+    }
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                Text("Share your public key")
-                    .font(.system(size: 17, weight: .semibold))
+            VStack(spacing: 20) {
+                Text("Others can scan this code to find you on Echo. Your DID stays behind the scenes.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.echoInk55)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
 
                 if let qrImage = viewModel.qrCodeImage {
                     Image(uiImage: qrImage)
                         .interpolation(.none)
                         .resizable()
-                        .frame(width: 200, height: 200)
+                        .frame(width: 220, height: 220)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .padding(12)
+                        .background(Color.white, in: RoundedRectangle(cornerRadius: 16))
                 }
 
-                Text("@\(username)")
-                    .font(.system(size: 15, weight: .semibold))
+                Text(headline)
+                    .font(.system(size: 17, weight: .semibold))
+                if !username.isEmpty {
+                    Text("@\(username)")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.echoInk55)
+                }
                 Text(did)
-                    .font(.echomono(11))
-                    .foregroundStyle(Color.echoInk55)
+                    .font(.echomono(10))
+                    .foregroundStyle(Color.echoInk40)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
 
-                Button("Share Link") { viewModel.shareLink() }
-                    .font(.system(size: 14, weight: .medium))
+                HStack(spacing: 12) {
+                    Button {
+                        showScanner = true
+                    } label: {
+                        Label("Scan", systemImage: "camera.viewfinder")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button("Share link") { viewModel.shareLink() }
+                        .frame(maxWidth: .infinity)
+                        .buttonStyle(.borderedProminent)
+                        .tint(Color.echoSignal)
+                }
+                .padding(.horizontal, 24)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.echoPaper.ignoresSafeArea())
+            .navigationTitle("Share profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
             .onAppear {
                 viewModel.configure(did: did, username: username, trustTier: trustTier)
+            }
+            .fullScreenCover(isPresented: $showScanner) {
+                LiveQRCodeScannerView { scanned in
+                    showScanner = false
+                    Task { await addCoordinator.handleScan(scanned) }
+                }
+            }
+            .alert(
+                addCoordinator.resultIsError ? "Couldn’t add contact" : "Contact added",
+                isPresented: Binding(
+                    get: { addCoordinator.resultMessage != nil },
+                    set: { if !$0 { addCoordinator.reset() } }
+                )
+            ) {
+                Button("OK", role: .cancel) { addCoordinator.reset() }
+            } message: {
+                Text(addCoordinator.resultMessage ?? "")
             }
         }
     }
@@ -226,6 +296,7 @@ private struct QRIdentitySheet: View {
     ScrollView {
         VStack(spacing: 20) {
             IdentityCardView(
+                displayName: "Ada Lovelace",
                 username: "ada",
                 did: "did:key:z6MkhRfL7r9NB8Y3xQpJh···aV2nf9Q2",
                 joinDate: Date()

@@ -98,8 +98,8 @@ func (p *PostgresDB) InsertCredentialRef(ctx context.Context, ref passport.Crede
 	return err
 }
 
-// IsStatusListSlotRevoked checks credential_vc_status for a revoked slot (WO-293 helper).
-func (p *PostgresDB) IsStatusListSlotRevoked(ctx context.Context, issuerDID string, statusListIndex int) (bool, error) {
+// IsRevoked implements passport.RevocationChecker via credential_vc_status (WO-293).
+func (p *PostgresDB) IsRevoked(ctx context.Context, issuerDID string, statusListIndex int) (bool, error) {
 	var revokedAt *time.Time
 	err := p.pool.QueryRow(ctx, `
 		SELECT revoked_at FROM credential_vc_status

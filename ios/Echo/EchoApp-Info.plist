@@ -4,6 +4,8 @@
 <dict>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Echo uses Face ID to unlock the app, sign in to your account, and authorize sensitive actions. Your face is your key — it never leaves your device.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Echo uses the camera to scan profile QR codes so you can add contacts.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

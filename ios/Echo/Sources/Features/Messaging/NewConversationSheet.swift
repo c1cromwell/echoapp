@@ -102,16 +102,23 @@ struct NewConversationSheet: View {
     }
 
     private func startConversation(with hit: UsernameSearchHit) {
-        let conversation = StoredConversation(
-            contactName: "@\(hit.username)",
-            peerDID: hit.did
-        )
-        ConversationStore.shared.upsert(conversation)
-        if !UserDefaults.standard.bool(forKey: "echo.hasSentFirstMessage") {
-            UserDefaults.standard.set(true, forKey: "echo.hasSentFirstMessage")
+        Task { @MainActor in
+            let localDID = await CurrentUserSession.currentDID() ?? ""
+            let threadId = localDID.isEmpty
+                ? UUID().uuidString
+                : ConversationID.direct(localDID: localDID, peerDID: hit.did)
+            let conversation = StoredConversation(
+                id: threadId,
+                contactName: "@\(hit.username)",
+                peerDID: hit.did
+            )
+            ConversationStore.shared.upsert(conversation)
+            if !UserDefaults.standard.bool(forKey: "echo.hasSentFirstMessage") {
+                UserDefaults.standard.set(true, forKey: "echo.hasSentFirstMessage")
+            }
+            onConversationCreated(conversation)
+            dismiss()
         }
-        onConversationCreated(conversation)
-        dismiss()
     }
 }
 #endif

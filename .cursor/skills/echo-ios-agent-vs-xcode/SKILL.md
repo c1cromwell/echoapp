@@ -73,7 +73,11 @@ Refactor `ChatView` to consume `ChatDetailViewModel` + domain types when wiring 
 6. Show `TypingIndicatorView` when `peerIsTyping`
 7. Run manual checklist in `docs/PHASE3_IOS_UI_SPEC.md`
 
+## Frozen — onboarding & login (do not redesign)
+
+Shipped flows are correct: `FirstRunCoordinator` (welcome → display name → options → Face ID → recovery/VIP) and `GlacialLoginScreen` for returning users. Agents may fix bugs and wire APIs; **do not** restyle or re-route from the React prototype (`Echo Design System Setup_latest/src/app/pages/onboarding/*`). E2E: `docs/E2E_QUICK_START.md` §2. Policy: `docs/ECHO_IOS_UI_IMPLEMENTATION_SPEC.md` §0.
+
 ## Feature specs
 
 - Phase 3 messaging UI: `docs/PHASE3_IOS_UI_SPEC.md`
-- UX / Glacial: `docs/ux-spec.md`
+- UX / Glacial: `docs/ux-spec.md` (onboarding/login **frozen**; post-auth uses prototype + Signal/Telegram refs)

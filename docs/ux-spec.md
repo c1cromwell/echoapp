@@ -1,14 +1,19 @@
 # Echo — UX Design Specification
-## Phase 1 · v0.1.0 (Design Review Edition)
+## Phase 1–3 · UX + visual design (iOS)
 
-> **How to use this file for design review:**
-> Paste this document into a new Claude conversation and say *"Review the Echo UX — what should we improve before Phase 2?"*
-> Claude will read every screen, flow, and component and give specific, actionable feedback.
+> **Companion docs**
+> - **Full feature + build map:** [`ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) — every screen from [`Echo Design System Setup_latest/`](Echo%20Design%20System%20Setup_latest/), phased for iOS.
+> - **Phase 3 signals:** [`PHASE3_IOS_UI_SPEC.md`](PHASE3_IOS_UI_SPEC.md)
+> - **Manual QA:** [`E2E_QUICK_START.md`](E2E_QUICK_START.md)
+
+> **Frozen (do not change):** **Onboarding and login** on iOS are the **canonical, correct design**. Do not replace or restyle them from the React prototype (`docs/Echo Design System Setup_latest/src/app/pages/onboarding/*`, `Echo_v3_2` carousel/login specs). Bugfixes only.
+
+> **Design prototype (post-auth only):** Use the React package for **Messages hub, chat, groups, channels, contacts, settings** — not for onboarding/login. **iOS colors:** §4 below (warm paper / ink / signal), not the prototype’s Icy Minimal palette.
+
+> **Reference apps (post-auth):** **Signal** — chat settings, safety number, disappearing messages, read receipts. **Telegram** — pinned chats, folder filters, channels, message action grid, mute/silent per chat.
 
 > **Design Review Applied (May 2026):**
-> The original Glacial dark theme has been superseded by a warm paper / ink system.
-> Key changes: light-first surfaces, single-accent colour (signal blue), trust collapsed to
-> one green hue with five opacities, onboarding compressed from 4 steps to 2.
+> Warm paper / ink on onboarding/login (already shipped). Same tokens extend to post-auth screens as they are built out.
 
 ---
 
@@ -25,20 +30,31 @@ principles but built on Constellation Network's DAG infrastructure. The core UX 
 
 ## 2 · User Flows
 
-### 2.1 · First-run Onboarding (new user) — 2-step Design Review flow
+### 2.1 · First-run Onboarding (new user) — **frozen / canonical**
+
+**Do not change this flow or swap in prototype onboarding screens.** Source of truth: iOS `FirstRunCoordinator.swift` and views below — not `Echo Design System Setup_latest` onboarding routes.
 
 ```mermaid
 flowchart TD
     A([App Launch]) --> B{Account exists?}
-    B -- No --> C[EchoWelcomeView\nSingle page, no carousel\nThree privacy facts inline]
+    B -- No --> C[EchoWelcomeView]
     B -- Yes --> L[GlacialLoginScreen]
-    C -- Set up Echo --> D[NameAndKeyView\nUsername + Face ID fused\nFace ID triggers here]
-    C -- Already have account --> R[RecoveryCoordinator]
-    D -- name + Face ID pass --> E[RecoverySetupView\nPhrase + optional SMS\nskippable]
-    E -- Configured or skipped --> G[App — Main Tab]
+    C --> D[DisplayNameEntryView\nusername + availability]
+    D --> E[OnboardingOptionsView\nFace ID mandatory + optional VIP]
+    E -- no VIP --> F[RecoverySetupView\nSMS recommended + phrase]
+    E -- VIP --> V[VIPPathView\nDigital ID or Standard IDV]
+    V --> F
+    F --> G[Messages tab / Main shell]
+    C -- Restore --> R[RecoveryCoordinator]
 ```
 
-### 2.2 · Login (returning user)
+**Out of scope:** Prototype intro carousel (`intro-carousel`), standalone `login.tsx`, and `Echo_v3_2` “Create Account” / carousel specs — **do not implement on iOS.**
+
+**Legacy iOS routes** (`NameAndKeyView`, `WelcomeCarouselView`, `BiometricEnrollmentView`) are demo/back-compat only; **primary TestFlight path is the diagram above.**
+
+### 2.2 · Login (returning user) — **frozen / canonical**
+
+**Do not change** — `GlacialLoginScreen` and related auth views are the correct design. Ignore prototype `onboarding/login.tsx`.
 
 ```mermaid
 flowchart TD
@@ -80,7 +96,39 @@ flowchart TD
     F --> H[RecoverySetupView\nSMS card shows checkmark]
 ```
 
-### 2.5 · Account Recovery (new device)
+### 2.5 · Messages hub (Signal + Telegram patterns)
+
+```mermaid
+flowchart LR
+    H[Persona header + trust badge] --> S[Search]
+    S --> P[Pinned chats]
+    P --> F[Folder chips\nAll / Verified / Trusted / Unverified]
+    F --> L[Conversation list]
+    L --> G[Groups segment]
+    L --> C[Channels segment]
+    L --> HF[Hidden folders\nbiometric gate]
+```
+
+| Pattern | Reference | Echo behavior |
+|---------|-----------|---------------|
+| Compact chat rows | Signal | Avatar, preview, time, unread pill |
+| Pinned section | Telegram | Up to 5 pins, collapsible |
+| Trust folder chips | Telegram folders (adapted) | Filter by trust tier, not custom labels |
+| Groups / channels tabs | Telegram | Secondary lists on Messages hub |
+| Compose | Signal / Telegram | Header `+` → new chat / group |
+
+Detail: prototype `pages/messages.tsx`, spec [`ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) §3.
+
+### 2.6 · 1:1 Chat (Signal + Telegram)
+
+| Action | Reference | Echo |
+|--------|-----------|------|
+| Long-press message | Telegram grid sheet | Reply, Copy, Forward, Pin, Edit, Delete-for-everyone |
+| Chat settings | Signal conversation settings | Silent, disappearing timer, verify DID |
+| Typing / receipts / reactions | Signal | Phase 3 WS + REST (see PHASE3 spec) |
+| Safety / verify | Signal Safety Number | DID + device keys / fingerprint (Identity card) |
+
+### 2.7 · Account Recovery (new device)
 
 ```mermaid
 flowchart TD
@@ -98,28 +146,30 @@ flowchart TD
 
 ## 3 · Screen Inventory
 
-### 3.1 · Onboarding
+### 3.1 · Onboarding — **frozen (do not redesign)**
 
 | Screen | Purpose | Key Actions | Design Notes |
 |---|---|---|---|
-| **EchoWelcomeView** | Brand + privacy pitch (Design Review) | Set up Echo → / Already have account | Single page, no carousel, no auto-advance. Mark top-left. Three inline privacy facts (E2EE · Zero metadata · Keys on device). Warm paper surface `#FBFBF7`. Preferred colour scheme: `.light`. |
-| **NameAndKeyView** | Username + Face ID fused (Design Review) | Confirm username → Face ID | Single screen combines name entry and biometric enrollment. Privacy receipt shows exactly what is stored vs not. Phases: naming → enrolling → done. |
-| **RecoverySetupView** | Backup method selection | Show phrase / Add phone / Skip | Two option cards. Both skippable. "Skip for now — I'll do this in Settings" link. |
-| **SMSOTPSetupView** | Phone hash registration | Send code → Enter OTP | E.164 entry → SHA-256 hash sent to backend → 6-digit OTP. 45s countdown. Privacy notice: "We store only a hash of your number." |
-| **PasskeySetupView** | Optional WebAuthn enrollment | Create Passkey / Skip | In Settings only — not in primary onboarding. Face ID + checkmark on success. |
-| **WelcomeCarouselView** *(legacy)* | Original 3-slide carousel | Continue → | Kept for reference. Superseded by EchoWelcomeView in the primary flow. Glacial dark surface. |
-| **DisplayNameEntryView** *(legacy)* | Original username entry | Next → | Step badge "1 of 3". Kept as legacy route inside FirstRunCoordinator. |
-| **BiometricEnrollmentView** *(legacy)* | Original biometric screen | Set Up Face ID | Kept as legacy route. Superseded by the fused NameAndKeyView. |
+| **EchoWelcomeView** | Brand + privacy pitch | Set up Echo → / Already have account | Single page, no carousel. Paper `#FBFBF7`. **Frozen.** |
+| **DisplayNameEntryView** | Username + availability | Submit → options | **Frozen** — primary username step (not prototype profile-setup layout). |
+| **OnboardingOptionsView** | Face ID + optional VIP | Continue → recovery or VIP | **Frozen.** |
+| **BiometricEnrollmentView** | Face ID key + register DID | Set Up Face ID | Used from options path. **Frozen.** |
+| **VIPPathView** | Credential / IDV path | Digital ID / Standard / Skip | **Frozen** (content wiring may evolve; layout frozen). |
+| **RecoverySetupView** | Backup selection | Phrase / SMS / Skip | **Frozen.** |
+| **SMSOTPSetupView** | Phone hash + OTP | Send / verify | **Frozen.** |
+| **PasskeySetupView** | WebAuthn (Settings) | Create / Skip | Settings only. **Frozen.** |
+| **WelcomeCarouselView** | Legacy carousel | — | **Do not promote** — not primary flow. |
+| **NameAndKeyView** | Legacy fused screen | — | **Do not promote** — demo route only. |
 
-### 3.2 · Login & Auth
+### 3.2 · Login & Auth — **frozen (do not redesign)**
 
 | Screen | Purpose | Key Actions | Design Notes |
 |---|---|---|---|
-| **GlacialLoginScreen** | Returning user authentication | [auto Face ID] / Passkey / Recover | "Welcome back, [username]". Face ID auto-triggers 400ms post-appear. Warm paper surface. EchoRippleMark top-left. Minimal layout — one greeting, one target. |
-| **StorageLockedView** | Storage key derivation gate | Unlock | Shown if app is foregrounded and storage key is zeroed (WO-224). Lock-and-document icon. "Your messages are protected with biometrics." |
-| **BiometricLockoutView** | Soft/hard biometric lockout | Passcode / Wait | Two states: `requiresPasscode` (5 fails) — passcode prompt; `hardLocked` (10 fails) — circular countdown ring in `echoAlert` red. |
-| **AccountLockedView** | Account suspension | Recover Account | Three reasons: tooManyAttempts / suspiciousActivity / accountSuspended. Countdown timer if retryAfter set. |
-| **TrustIntroView** | Trust score explainer | Get Started | Shown once after first verification. Four trust tiers explained. "How to build trust" checklist. |
+| **GlacialLoginScreen** | Returning user auth | Face ID / Passkey / Recover | **Frozen.** Warm paper, EchoRippleMark, 400ms Face ID delay. |
+| **StorageLockedView** | Storage key gate | Unlock | **Frozen.** |
+| **BiometricLockoutView** | Lockout | Passcode / Wait | **Frozen.** |
+| **AccountLockedView** | Suspension | Recover | **Frozen.** |
+| **TrustIntroView** | Trust explainer | Get Started | **Frozen** (entry timing may vary; screen design frozen). |
 
 ### 3.3 · Recovery
 
@@ -138,13 +188,37 @@ flowchart TD
 | **IDVFallbackView** | Scan + selfie fallback | Start Verification | Stripe Identity / Sumsub. IDV SDK not wired in Phase 1; stub returns error. |
 | **WalletCredentialEnrollmentView** | OIDC4VC / OID4VP | Present credential | ASWebAuthenticationSession → W3C DC API. |
 
-### 3.5 · Messaging
+### 3.5 · Messaging (hub + chat)
 
-| Screen | Purpose | Key Actions | Design Notes |
+| Screen / component | Purpose | Key Actions | Design Notes |
 |---|---|---|---|
-| **ConversationListView** | All conversations | Tap to open / New | Sorted by recency. Last message preview + timestamp + unread count. |
-| **ChatView** | One-on-one / group chat | Send / Attachments | Sent right (signal blue), received left (paper dim). SecureThreadIndicator in nav. Delivery status (sent/delivered/read). |
-| **MessagesEmptyStateView** | No conversations yet | Compose / Upgrade trust | EchoRippleMark illustration + "Start a secure conversation". Trust upgrade CTA if tier < 2. |
+| **MessagesHubView** *(target)* | Unified inbox | Search, filters, pins, segments | Combines prototype Messages page; paper surface. |
+| **ChatFolderFilterView** *(new)* | Trust-based filters | All / Verified / Trusted / Unverified | Telegram-style horizontal chips; active = `echoSignal`. |
+| **PinnedSectionView** *(new)* | Pinned chats | Unpin / reorder | Max 5; Telegram parity. |
+| **ConversationListView** | All conversations | Tap to open / New | Signal row density; verification badge on title. |
+| **ChatView** | 1:1 / group chat | Send, long-press, attachments | Sent = `echoSignal`, received = `echoPaperDim`. |
+| **MessageActionsSheet** *(new)* | Long-press actions | Reply, copy, forward, pin, edit, delete | Telegram bottom grid; see implementation spec §5.3. |
+| **ChatSettingsSheet** *(new)* | Per-chat privacy | Silent, disappearing, verify | Signal chat settings analog. |
+| **MessagesEmptyStateView** | No conversations | Compose / Upgrade trust | EchoRippleMark + CTA if tier &lt; 2. |
+| **TypingIndicatorView** | Peer typing | — | Signal three-dot (Phase 3). |
+| **ReactionPickerView / ReactionChipsView** | Reactions | Long-press 👍 | Telegram-style (Phase 3). |
+
+### 3.5b · Groups *(prototype + backend)*
+
+| Screen | Purpose | Reference |
+|---|---|---|
+| **GroupCreateView** | Create public/private/secret group | Telegram new group |
+| **GroupDiscoverView** | Browse groups | Telegram search |
+| **GroupDetailView** | Members, rules, settings | Signal group info |
+| **GroupChatView** | Group thread | Same as ChatView with group avatar stack |
+
+### 3.5c · Broadcast channels *(prototype spec)*
+
+| Screen | Purpose | Reference |
+|---|---|---|
+| **ChannelDiscoverView** | Find channels | Telegram channel directory |
+| **ChannelDetailView** | Subscribe, description | Telegram channel profile |
+| **ChannelFeedView** | Read-only posts | Telegram channel feed (no replies in v1) |
 
 ### 3.6 · Personas & Hidden Folders
 
@@ -212,7 +286,9 @@ flowchart TD
 
 ## 4 · Design System
 
-### 4.1 · Color Tokens (Design Review — warm paper / ink)
+> **Important:** The web prototype in `Echo Design System Setup_latest` uses **Icy Minimal** tokens (`#0EA5E9`, `#F8FAFC`, etc.) for Figma/React preview. **iOS production uses the tokens below** — same roles (background, accent, trust), different hex. When implementing from prototype CSS, map variables per [`ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) §1.
+
+### 4.1 · Color Tokens (Design Review — warm paper / ink) — **iOS source of truth**
 
 Three surfaces encode meaning:
 
@@ -406,28 +482,45 @@ No separate spinners — button label changes: "Creating key…" / "Registering�
 
 ---
 
-## 8 · Known UX Gaps / Open Questions for Phase 2
+## 8 · Signal & Telegram — UX principles to preserve
 
-1. **Username discoverability:** Users set a pseudonymous username but there's no "find me by username" flow yet. How should contact discovery work while preserving privacy?
-2. **Hidden persona entry point:** Currently accessed via the Personas screen. Should there be a gesture shortcut (long-press tab bar?) to switch to a hidden persona without going through Settings?
-3. **Biometric on first message:** Should the app request biometric confirmation before the very first message (to confirm key commitment)?
-4. **Trust tier explanation:** The 5-tier system is powerful but users encounter it without context. Should TrustIntroView be triggered inline rather than explicitly navigated to?
-5. **SMS recovery copy:** "We store only a hash of your number" is accurate but may confuse non-technical users. Needs plain-English rewrite.
-6. **Light / dark parity:** Warm paper is light-first. Phase 2 must add full night-mode equivalents for all screens — opt-in or follow system preference?
-7. **Onboarding progress indicator:** "Step 1 of 2" badge exists on NameAndKeyView but is absent in RecoverySetupView (back button hidden). All steps should show progress.
-8. **Recovery Setup skippability:** Currently both phrase and SMS are skippable independently. Should at least one be required before the app allows messaging?
+| Principle | Signal | Telegram | Echo stance |
+|-----------|--------|----------|-------------|
+| Default encrypt | Always E2E | Secret chats only | **Always E2E** — SecureThreadIndicator, no opt-out marketing |
+| Metadata minimization | Sealed sender, minimal | Cloud chats metadata | Hashed phone optional; PSI discovery opt-in |
+| Per-chat controls | Mute, TTL, safety number | Mute, TTL, members | `ChatSettingsSheet` + global privacy hub |
+| Discoverability | Phone contact | Username, global search | Username + PSI; **no** mandatory phone |
+| Social scale | Groups | Channels, supergroups | Groups (RBAC) + broadcast channels (read-only) |
+| Private mode | Screen lock | App passcode + secret chat | **echoNight** personas + hidden folders + Face ID |
+
+**Do not copy** Telegram cloud-default model or Signal’s phone-first registration — Echo uses DID + passkey.
 
 ---
 
-## 9 · Screen Count Summary
+## 9 · Known UX Gaps / Open Questions for Phase 2
+
+**Note:** Items about onboarding/login **layout or flow** are closed — those screens are frozen. Open questions below apply to **post-auth** features only.
+
+1. **Username discoverability:** PSI + username search (WO-221) — not an onboarding change.
+2. **Hidden persona entry point:** Gesture shortcut vs Personas screen — post-auth only.
+3. **Biometric on first message:** First-send confirmation — chat layer only.
+4. **Trust tier explanation:** Inline surfacing on Messages hub — not login redesign.
+5. **Light / dark parity:** Post-auth screens + system appearance — do not refactor frozen onboarding/login.
+6. **Recovery phrase completion:** Backend/flow policy — not a visual redesign of `RecoverySetupView`.
+
+---
+
+## 10 · Screen Count Summary
 
 | Section | Screens |
 |---|---|
-| Onboarding (2-step primary + 3 legacy) | 8 |
-| Login & Auth | 5 |
+| Onboarding (**frozen**) | 8 |
+| Login & Auth (**frozen**) | 5 |
 | Recovery | 3 |
 | Credential Enrollment | 4 |
-| Messaging | 3 |
+| Messaging (hub + chat + sheets) | 10 |
+| Groups | 4 |
+| Broadcast channels | 3 |
 | Personas & Hidden Folders | 2 |
 | Identity & Privacy | 3 |
 | Profile & Settings | 9 |
