@@ -2,8 +2,6 @@ import SwiftUI
 
 /// Messages hub (spec §3.2). Vertical order: persona header → search → pinned →
 /// trust folder chips → conversation list → groups/channels/hidden segments.
-/// Replaces the bare `ConversationListView` as the Messages-tab root; reuses
-/// `PersonaSwitcherHeader`, `PinnedSectionView`, `ChatFolderFilterView`, `ConversationListItem`.
 struct MessagesHubView: View {
     enum Segment: String, CaseIterable, Identifiable {
         case chats, groups, channels, hidden
@@ -19,10 +17,8 @@ struct MessagesHubView: View {
     }
 
     let conversations: [StoredConversation]
-    let pinnedItems: [PinnedItem]
     let personas: [PersonaSummary]
     let activePersona: PersonaSummary
-    /// Trust tier (T0–T4) for a conversation id — drives folder filtering.
     let trustTier: (String) -> Int
     let mutedIDs: Set<String>
 
@@ -32,44 +28,13 @@ struct MessagesHubView: View {
     let onSwitchPersona: (PersonaSummary) -> Void
     let onSelectHiddenPersona: (PersonaSummary) -> Void
 
+    @Bindable private var pinnedStore = PinnedConversationsStore.shared
     @State private var searchText = ""
     @State private var folder: ChatFolder = .all
     @State private var segment: Segment = .chats
     @State private var showPersonaSheet = false
-
-    init(
-        conversations: [StoredConversation],
-        pinnedItems: [PinnedItem] = [],
-        personas: [PersonaSummary],
-        activePersona: PersonaSummary,
-        mutedIDs: Set<String> = [],
-        trustTier: @escaping (String) -> Int = { _ in 4 },
-        onSelectConversation: @escaping (String) -> Void = { _ in },
-        onCompose: @escaping () -> Void = {},
-        onOpenHidden: @escaping () -> Void = {},
-        onSwitchPersona: @escaping (PersonaSummary) -> Void = { _ in },
-        onSelectHiddenPersona: @escaping (PersonaSummary) -> Void = { _ in }
-    ) {
-        self.conversations = conversations
-        self.pinnedItems = pinnedItems
-        self.personas = personas
-        self.activePersona = activePersona
-        self.mutedIDs = mutedIDs
-        self.trustTier = trustTier
-        self.onSelectConversation = onSelectConversation
-        self.onCompose = onCompose
-        self.onOpenHidden = onOpenHidden
-        self.onSwitchPersona = onSwitchPersona
-        self.onSelectHiddenPersona = onSelectHiddenPersona
-    }
-
-    private var filtered: [StoredConversation] {
-        conversations.filter { conv in
-            (searchText.isEmpty || conv.contactName.localizedCaseInsensitiveContains(searchText))
-                && folder.includes(tier: trustTier(conv.id))
-        }
-        .sorted { ($0.unreadCount > 0) && ($1.unreadCount == 0) }
-    }
+    @State private var showEditPins = false
+    @State private var showIntegrityExplainer = false
 
     var body: some View {
         ZStack {
@@ -77,7 +42,7 @@ struct MessagesHubView: View {
 
             VStack(spacing: 0) {
                 header
-                SecureThreadIndicatorBar()
+                secureBar
                 searchField
                 segmentBar
 
@@ -101,6 +66,42 @@ struct MessagesHubView: View {
                 onSelectHidden: { showPersonaSheet = false; onSelectHiddenPersona($0) }
             )
         }
+        .sheet(isPresented: $showEditPins) {
+            EditPinnedSheet(conversations: conversations)
+        }
+        .sheet(isPresented: $showIntegrityExplainer) {
+            NavigationStack {
+                IntegrityExplainerView()
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") { showIntegrityExplainer = false }
+                        }
+                    }
+            }
+        }
+    }
+
+    private var pinnedItems: [PinnedItem] {
+        MessagesHubSupport.pinnedItems(
+            conversations: conversations,
+            orderedPinIDs: pinnedStore.orderedIDs
+        )
+    }
+
+    private var folderUnreadCounts: [ChatFolder: Int] {
+        MessagesHubSupport.folderUnreadCounts(
+            conversations: conversations,
+            trustTier: { trustTier($0) }
+        )
+    }
+
+    private var filtered: [StoredConversation] {
+        let unpinned = conversations.filter { !pinnedStore.isPinned($0.id) }
+        return unpinned.filter { conv in
+            (searchText.isEmpty || conv.contactName.localizedCaseInsensitiveContains(searchText))
+                && folder.includes(tier: trustTier(conv.id))
+        }
+        .sorted { ($0.unreadCount > 0) && ($1.unreadCount == 0) }
     }
 
     private var header: some View {
@@ -114,6 +115,16 @@ struct MessagesHubView: View {
             }
             .buttonStyle(.plain)
         }
+    }
+
+    private var secureBar: some View {
+        Button {
+            showIntegrityExplainer = true
+        } label: {
+            SecureThreadIndicatorBar()
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Secure thread — learn about integrity")
     }
 
     private var searchField: some View {
@@ -147,32 +158,64 @@ struct MessagesHubView: View {
     @ViewBuilder
     private var chatsContent: some View {
         if !pinnedItems.isEmpty {
-            PinnedSectionView(items: pinnedItems, onItemTap: { _ in }, onEditTap: {})
-                .padding(.vertical, Spacing.sm.rawValue)
+            PinnedSectionView(
+                items: pinnedItems,
+                maxItems: PinnedConversationsStore.maxPins,
+                onItemTap: { onSelectConversation($0.id) },
+                onEditTap: { showEditPins = true }
+            )
+            .padding(.vertical, Spacing.sm.rawValue)
         }
-        ChatFolderFilterView(selection: $folder)
 
-        if filtered.isEmpty {
+        ChatFolderFilterView(selection: $folder, unreadCounts: folderUnreadCounts)
+
+        if filtered.isEmpty && pinnedItems.isEmpty {
             placeholder(icon: "bubble.left.and.bubble.right", text: "No conversations in this filter.")
         } else {
             ForEach(filtered) { conv in
-                HStack(spacing: 0) {
-                    ConversationListItem(
-                        contactName: conv.contactName,
-                        lastMessage: conv.lastMessage,
-                        timestamp: conv.timestamp,
-                        unreadCount: conv.unreadCount,
-                        isOnline: conv.isOnline,
-                        onTap: { onSelectConversation(conv.id) }
-                    )
-                    if mutedIDs.contains(conv.id) {
-                        Image(systemName: "bell.slash.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(.echoInk40)
-                            .padding(.trailing, Spacing.lg.rawValue)
-                    }
-                }
+                conversationRow(conv)
                 Divider().background(Color.echoHair).padding(.leading, 76)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func conversationRow(_ conv: StoredConversation) -> some View {
+        HStack(spacing: 0) {
+            ConversationListItem(
+                contactName: conv.contactName,
+                lastMessage: conv.lastMessage,
+                timestamp: conv.timestamp,
+                unreadCount: conv.unreadCount,
+                isOnline: conv.isOnline,
+                onTap: { onSelectConversation(conv.id) }
+            )
+            if mutedIDs.contains(conv.id) {
+                Image(systemName: "bell.slash.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(.echoInk40)
+                    .padding(.trailing, Spacing.lg.rawValue)
+            }
+        }
+        .contextMenu {
+            if pinnedStore.isPinned(conv.id) {
+                Button {
+                    pinnedStore.unpin(conv.id)
+                } label: {
+                    Label("Unpin", systemImage: "pin.slash")
+                }
+            } else {
+                Button {
+                    pinnedStore.pin(conv.id)
+                } label: {
+                    Label("Pin", systemImage: "pin")
+                }
+                .disabled(pinnedStore.orderedIDs.count >= PinnedConversationsStore.maxPins)
+            }
+            Button {
+                onSelectConversation(conv.id)
+            } label: {
+                Label("Open chat", systemImage: "bubble.left")
             }
         }
     }
@@ -210,8 +253,6 @@ struct MessagesHubView: View {
     }
 }
 
-/// Thin 2pt signal bar (SecureThreadIndicator visual) — local to the hub so it has no
-/// theme-environment dependency.
 private struct SecureThreadIndicatorBar: View {
     var body: some View {
         Rectangle()
@@ -228,8 +269,8 @@ struct MessagesHubView_Previews: PreviewProvider {
                 StoredConversation(contactName: "Aria Rao", peerDID: "did:key:a", lastMessage: "Signed receipt ✓", timestamp: "9:32", unreadCount: 3, isOnline: true),
                 StoredConversation(contactName: "Kai Mercer", peerDID: "did:key:k", lastMessage: "Typing…", timestamp: "8:58"),
             ],
-            personas: [PersonaSummary(id: "1", name: "Aria (public)", initials: "AR")],
-            activePersona: PersonaSummary(id: "1", name: "Aria (public)", initials: "AR"),
+            personas: [PersonaSummary(id: "default", name: "Aria (public)", initials: "AR")],
+            activePersona: PersonaSummary(id: "default", name: "Aria (public)", initials: "AR"),
             trustTier: { _ in 3 }
         )
     }

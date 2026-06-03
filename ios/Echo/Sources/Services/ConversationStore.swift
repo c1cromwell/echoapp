@@ -6,15 +6,21 @@ struct StoredConversation: Identifiable, Codable, Hashable, Sendable {
     let id: String
     var contactName: String
     let peerDID: String
+    var personaId: String
     var lastMessage: String
     var timestamp: String
     var unreadCount: Int
     var isOnline: Bool
 
+    enum CodingKeys: String, CodingKey {
+        case id, contactName, peerDID, personaId, lastMessage, timestamp, unreadCount, isOnline
+    }
+
     init(
         id: String = UUID().uuidString,
         contactName: String,
         peerDID: String,
+        personaId: String = UserDefaults.standard.string(forKey: "echo.activePersonaId") ?? "default",
         lastMessage: String = "",
         timestamp: String = "Now",
         unreadCount: Int = 0,
@@ -23,10 +29,23 @@ struct StoredConversation: Identifiable, Codable, Hashable, Sendable {
         self.id = id
         self.contactName = contactName
         self.peerDID = peerDID
+        self.personaId = personaId
         self.lastMessage = lastMessage
         self.timestamp = timestamp
         self.unreadCount = unreadCount
         self.isOnline = isOnline
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        contactName = try c.decode(String.self, forKey: .contactName)
+        peerDID = try c.decode(String.self, forKey: .peerDID)
+        personaId = try c.decodeIfPresent(String.self, forKey: .personaId) ?? "default"
+        lastMessage = try c.decodeIfPresent(String.self, forKey: .lastMessage) ?? ""
+        timestamp = try c.decodeIfPresent(String.self, forKey: .timestamp) ?? "Now"
+        unreadCount = try c.decodeIfPresent(Int.self, forKey: .unreadCount) ?? 0
+        isOnline = try c.decodeIfPresent(Bool.self, forKey: .isOnline) ?? false
     }
 }
 

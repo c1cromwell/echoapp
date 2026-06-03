@@ -199,7 +199,7 @@ public struct DisplayNameEntryView: View {
                 .foregroundStyle(Color.Echo.primaryContainer)
                 .frame(width: 16, height: 16)
                 .padding(.top, 1)
-            Text("You won't need a phone number, email, or password to use ECHO. Your identity lives only on this device.")
+            Text("Privacy receipt: ECHO creates a did:key on this device. No phone number, email, or central password — unlike Meta, X, or Telegram sign-up.")
                 .font(.system(size: 12))
                 .foregroundStyle(Color.Echo.onSurface.opacity(0.85))
                 .lineSpacing(2)

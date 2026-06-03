@@ -86,6 +86,24 @@ public struct ProfileTabView: View {
                                 did: sessionDID,
                                 trustTier: sessionTrustTier > 0 ? sessionTrustTier : nil
                             )
+
+                            NavigationLink {
+                                IntegrityExplainerView()
+                            } label: {
+                                HStack(spacing: Spacing.sm.rawValue) {
+                                    Image(systemName: "link.circle")
+                                        .foregroundColor(.echoSignal)
+                                    Text("How integrity anchoring works")
+                                        .typographyStyle(.body, color: .echoPrimaryText)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .foregroundColor(.echoGray400)
+                                }
+                                .padding(Spacing.md.rawValue)
+                                .background(Color.echoPaperDim)
+                                .cornerRadius(12)
+                            }
                         }
 
                         // Personas Section
@@ -179,6 +197,23 @@ public struct ProfileTabView: View {
                 title: "My QR Code",
                 action: onQRCode
             )
+
+            NavigationLink {
+                ContactsListView()
+            } label: {
+                HStack(spacing: Spacing.md.rawValue) {
+                    Image(systemName: "person.crop.circle.badge.plus")
+                        .frame(width: 24)
+                        .foregroundColor(.echoPrimary)
+                    Text("My Contacts")
+                        .typographyStyle(.body, color: .echoPrimaryText)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.echoGray400)
+                }
+                .padding(.vertical, Spacing.sm.rawValue)
+            }
 
             QuickActionRow(
                 icon: "person.2.fill",

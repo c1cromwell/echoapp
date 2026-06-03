@@ -321,15 +321,15 @@ Skill: **`echo-ios-agent-vs-xcode`**, **`echo-phase3-ios-wire`**.
 - [x] PHASE3 typing / receipts / reactions (privacy toggles via `PrivacySettingsStore`)
 - [x] Profile QR scan → add contact (`QRContactAddCoordinator`)
 - [x] Encrypted text payloads (Kinnami + `/identity/resolve`; sim decrypt)
-- [ ] Contact discovery + add contact
+- [x] Contact discovery + add contact
 - [ ] Paper/ink on **post-auth** screens (onboarding/login already paper/ink)
 
 ### Phase B — Hub parity (design system)
 
-- [ ] `MessagesHubView` with folder filters + pinned
-- [ ] `MessageActionsSheet` + `ChatSettingsSheet`
-- [ ] Persona header + switcher
-- [ ] Per-chat mute / silent
+- [x] `MessagesHubView` with folder filters + pinned (`PinnedConversationsStore`, `ContactTrustIndex`, `EditPinnedSheet`)
+- [x] `MessageActionsSheet` + `ChatSettingsSheet` (wired in `ChatView`)
+- [x] Persona header + switcher (persisted `PersonaSessionStore`, hidden gate via `PersonaGateView`)
+- [x] Per-chat mute / silent (`ConversationPreferencesStore` + hub mute badge)
 
 ### Phase C — Social graph
 

@@ -2,7 +2,7 @@ import SwiftUI
 
 /// A persona shown in the hub header / switcher. Hidden personas reveal nothing from
 /// the outside until a biometric gate passes (ux-spec §2.3, principle 6).
-public struct PersonaSummary: Identifiable, Equatable, Sendable {
+public struct PersonaSummary: Identifiable, Equatable, Hashable, Sendable {
     public let id: String
     public let name: String
     public let initials: String

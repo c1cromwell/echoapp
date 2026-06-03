@@ -53,6 +53,7 @@
 		2EAF9D71E765B033D83EB30F /* BackupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17D8577F2AEF60050B497273 /* BackupView.swift */; };
 		2EBDB781E9F9E3338A380A54 /* DriversLicenseEnrollmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E26908B044D2529A3AF3196 /* DriversLicenseEnrollmentView.swift */; };
 		2FEB81F194C9771E7367A871 /* ContactsScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3617296D58F3E5183D04F2DC /* ContactsScreens.swift */; };
+		P3S001012345678901234004 /* ContactsListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3S001012345678901234003 /* ContactsListViewModel.swift */; };
 		312161CDFC3760FC0C664259 /* EchoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DA5734FC837B81E3AB437EA /* EchoApp.swift */; };
 		3399739A9F2955088DF321FD /* EchoColorPalette+FirstRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = A36E448A4DBA558B75312595 /* EchoColorPalette+FirstRun.swift */; };
 		344D6D5F64214D153384A4D7 /* RewardsScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC2D26D748DC08F2C29096A /* RewardsScreens.swift */; };
@@ -184,6 +185,13 @@
 		F1A2B3C4012345678900002 /* OIDC4VCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900001 /* OIDC4VCClient.swift */; };
 		F1A2B3C4012345678900004 /* RegisterWithVerifiableCredentialUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900003 /* RegisterWithVerifiableCredentialUseCase.swift */; };
 		F1A2B3C4012345678900006 /* ContactDiscoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900005 /* ContactDiscoveryView.swift */; };
+		P3S001012345678901234002 /* ContactThreadHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3S001012345678901234001 /* ContactThreadHelper.swift */; };
+		P3B001012345678901234002 /* PinnedConversationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234001 /* PinnedConversationsStore.swift */; };
+		P3B001012345678901234004 /* ContactTrustIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234003 /* ContactTrustIndex.swift */; };
+		P3B001012345678901234006 /* PersonaSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234005 /* PersonaSessionStore.swift */; };
+		P3B001012345678901234008 /* MessagesHubSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234007 /* MessagesHubSupport.swift */; };
+		P3B00101234567890123400A /* EditPinnedSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234009 /* EditPinnedSheet.swift */; };
+		P3B00101234567890123400C /* IntegrityExplainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B00101234567890123400B /* IntegrityExplainerView.swift */; };
 		F1A2B3C4012345678900008 /* ContactDiscoveryAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900007 /* ContactDiscoveryAPIClient.swift */; };
 		F1A2B3C401234567890000A /* ContactDiscoveryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900009 /* ContactDiscoveryService.swift */; };
 		F1A2B3C401234567890000C /* PhoneNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C401234567890000B /* PhoneNormalizer.swift */; };
@@ -262,6 +270,7 @@
 		335CBE1170EA2977BE45071D /* CallViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallViewModel.swift; sourceTree = "<group>"; };
 		3611A4DB2DD50E20ACB4AB02 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		3617296D58F3E5183D04F2DC /* ContactsScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsScreens.swift; sourceTree = "<group>"; };
+		P3S001012345678901234003 /* ContactsListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsListViewModel.swift; sourceTree = "<group>"; };
 		38013E13A036137E8C571F27 /* DeviceManagementViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceManagementViewModel.swift; sourceTree = "<group>"; };
 		38C4A7F93C8ECC244BCDC593 /* NewModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewModels.swift; sourceTree = "<group>"; };
 		39CF996729D9443190C3AAFB /* DeviceFingerprintService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceFingerprintService.swift; sourceTree = "<group>"; };
@@ -390,6 +399,13 @@
 		F1A2B3C4012345678900001 /* OIDC4VCClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OIDC4VCClient.swift; sourceTree = "<group>"; };
 		F1A2B3C4012345678900003 /* RegisterWithVerifiableCredentialUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterWithVerifiableCredentialUseCase.swift; sourceTree = "<group>"; };
 		F1A2B3C4012345678900005 /* ContactDiscoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDiscoveryView.swift; sourceTree = "<group>"; };
+		P3S001012345678901234001 /* ContactThreadHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactThreadHelper.swift; sourceTree = "<group>"; };
+		P3B001012345678901234001 /* PinnedConversationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinnedConversationsStore.swift; sourceTree = "<group>"; };
+		P3B001012345678901234003 /* ContactTrustIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactTrustIndex.swift; sourceTree = "<group>"; };
+		P3B001012345678901234005 /* PersonaSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaSessionStore.swift; sourceTree = "<group>"; };
+		P3B001012345678901234007 /* MessagesHubSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesHubSupport.swift; sourceTree = "<group>"; };
+		P3B001012345678901234009 /* EditPinnedSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditPinnedSheet.swift; sourceTree = "<group>"; };
+		P3B00101234567890123400B /* IntegrityExplainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntegrityExplainerView.swift; sourceTree = "<group>"; };
 		F1A2B3C4012345678900007 /* ContactDiscoveryAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDiscoveryAPIClient.swift; sourceTree = "<group>"; };
 		F1A2B3C4012345678900009 /* ContactDiscoveryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDiscoveryService.swift; sourceTree = "<group>"; };
 		F1A2B3C401234567890000B /* PhoneNormalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneNormalizer.swift; sourceTree = "<group>"; };
@@ -561,6 +577,9 @@
 				F1A2B3C4012345678900007 /* ContactDiscoveryAPIClient.swift */,
 				F1A2B3C4012345678900009 /* ContactDiscoveryService.swift */,
 				W0E001012345678901234001 /* ConversationStore.swift */,
+				P3B001012345678901234001 /* PinnedConversationsStore.swift */,
+				P3B001012345678901234003 /* ContactTrustIndex.swift */,
+				P3B001012345678901234005 /* PersonaSessionStore.swift */,
 				W0E001012345678901234011 /* ConversationSignalService.swift */,
 				W0E001012345678901234003 /* CurrentUserSession.swift */,
 				90587F281B224F38E70F2137 /* IdentityService.swift */,
@@ -600,6 +619,8 @@
 				C51D1ECD4CDFC07B78CD4037 /* Sources/Features/Messaging/ChatSettingsSheet.swift */,
 				B1B896BB33EE967785204A57 /* Sources/Features/Messaging/MessageActionsSheet.swift */,
 				1878FA1FFD4E9EFD1EFB1AE5 /* Sources/Features/Messaging/ChatFolderFilterView.swift */,
+				P3B001012345678901234007 /* MessagesHubSupport.swift */,
+				P3B001012345678901234009 /* EditPinnedSheet.swift */,
 				DDF6D1C6D0E4EB6697FB6BD1 /* Sources/Services/ConversationPreferencesStore.swift */,
 				3141640DB14B49719F5CD49A /* Sources/Core/Security/StepUpAuthManager.swift */,
 				3C4FB342BDBA4A46BCB6A489 /* Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift */,
@@ -932,6 +953,7 @@
 			isa = PBXGroup;
 			children = (
 				3617296D58F3E5183D04F2DC /* ContactsScreens.swift */,
+				P3S001012345678901234003 /* ContactsListViewModel.swift */,
 			);
 			path = Contacts;
 			sourceTree = "<group>";
@@ -1001,6 +1023,7 @@
 				F36BE0D7C763283B1DD09A78 /* ContactDetailView.swift */,
 				7A0F02E0B74FC3D3CD2E6188 /* ContactDetailViewModel.swift */,
 				F1A2B3C4012345678900005 /* ContactDiscoveryView.swift */,
+				P3S001012345678901234001 /* ContactThreadHelper.swift */,
 				W0E00101234567890123400B /* InviteLinkSheet.swift */,
 			);
 			path = Contacts;
@@ -1197,6 +1220,7 @@
 			isa = PBXGroup;
 			children = (
 				W0E00101234567890123400F /* PrivacyHubView.swift */,
+				P3B00101234567890123400B /* IntegrityExplainerView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -1302,6 +1326,7 @@
 				55655F2761EA8CB28D17EAF1 /* ContactDetailView.swift in Sources */,
 				84ED889831FDB132A7F157C6 /* ContactDetailViewModel.swift in Sources */,
 				2FEB81F194C9771E7367A871 /* ContactsScreens.swift in Sources */,
+				P3S001012345678901234004 /* ContactsListViewModel.swift in Sources */,
 				84B202F49EED214B235AB7DC /* Container.swift in Sources */,
 				A716324DCA20209322F5C113 /* Coordinators.swift in Sources */,
 				F995E8FAF2297AA73B9133FB /* DeliveryStatus.swift in Sources */,
@@ -1442,12 +1467,19 @@
 				F1A2B3C4012345678900002 /* OIDC4VCClient.swift in Sources */,
 				F1A2B3C4012345678900004 /* RegisterWithVerifiableCredentialUseCase.swift in Sources */,
 				F1A2B3C4012345678900006 /* ContactDiscoveryView.swift in Sources */,
+				P3S001012345678901234002 /* ContactThreadHelper.swift in Sources */,
 				F1A2B3C4012345678900008 /* ContactDiscoveryAPIClient.swift in Sources */,
 				F1A2B3C401234567890000A /* ContactDiscoveryService.swift in Sources */,
 				F1A2B3C401234567890000C /* PhoneNormalizer.swift in Sources */,
 				F1A2B3C401234567890000E /* OPRFClient.swift in Sources */,
 				F1A2B3C4012345678900010 /* LiveOPRFClient.swift in Sources */,
 				W0E001012345678901234002 /* ConversationStore.swift in Sources */,
+				P3B001012345678901234002 /* PinnedConversationsStore.swift in Sources */,
+				P3B001012345678901234004 /* ContactTrustIndex.swift in Sources */,
+				P3B001012345678901234006 /* PersonaSessionStore.swift in Sources */,
+				P3B001012345678901234008 /* MessagesHubSupport.swift in Sources */,
+				P3B00101234567890123400A /* EditPinnedSheet.swift in Sources */,
+				P3B00101234567890123400C /* IntegrityExplainerView.swift in Sources */,
 				W0E001012345678901234004 /* CurrentUserSession.swift in Sources */,
 				W0E001012345678901234006 /* ChatDestinationView.swift in Sources */,
 				W0E001012345678901234008 /* NewConversationSheet.swift in Sources */,

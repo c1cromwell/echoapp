@@ -189,6 +189,10 @@ final class UsernameSearchViewModel {
         do {
             _ = try await socialAPI.addContact(did: hit.did, addedVia: "username_search")
             addedDIDs.insert(hit.did)
+            _ = await ContactThreadHelper.upsertDirectThread(
+                peerDID: hit.did,
+                displayName: "@\(hit.username)"
+            )
         } catch {
             addErrorMessage = error.localizedDescription
         }

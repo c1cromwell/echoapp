@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ContactDiscoveryView: View {
     @State private var viewModel = ContactDiscoveryViewModel()
+    @State private var threadToOpen: StoredConversation?
 
     var body: some View {
         List {
@@ -61,6 +62,9 @@ struct ContactDiscoveryView: View {
         } message: {
             Text(viewModel.addErrorMessage ?? "")
         }
+        .navigationDestination(item: $threadToOpen) { conversation in
+            ChatDestinationView(conversation: conversation)
+        }
     }
 
     private var addErrorBinding: Binding<Bool> {
@@ -79,16 +83,22 @@ struct ContactDiscoveryView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(contact.displayName)
                     .font(.headline)
-                Text(contact.did)
+                Text(ContactThreadHelper.truncatedDID(contact.did))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
             Spacer()
             if isAdded {
-                Label("Added", systemImage: "checkmark.circle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.green)
+                Button("Message") {
+                    Task {
+                        if let thread = await viewModel.threadForAdded(contact) {
+                            threadToOpen = thread
+                        }
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             } else if isAdding {
                 ProgressView()
             } else {
@@ -171,9 +181,20 @@ final class ContactDiscoveryViewModel {
         do {
             _ = try await socialAPI.addContact(did: contact.did, addedVia: "psi_discovery")
             addedDIDs.insert(contact.did)
+            _ = await ContactThreadHelper.upsertDirectThread(
+                peerDID: contact.did,
+                displayName: contact.displayName
+            )
         } catch {
             addErrorMessage = error.localizedDescription
         }
+    }
+
+    func threadForAdded(_ contact: DiscoveredContact) async -> StoredConversation? {
+        await ContactThreadHelper.upsertDirectThread(
+            peerDID: contact.did,
+            displayName: contact.displayName
+        )
     }
 }
 #endif

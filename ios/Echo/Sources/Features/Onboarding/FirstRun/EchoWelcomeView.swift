@@ -109,6 +109,7 @@ public struct EchoWelcomeView: View {
         ("End-to-end encrypted", "Not even Echo can read your messages."),
         ("Zero metadata",        "No phone book uploads. No graph."),
         ("Keys on this device",  "Hardware-bound. Never leave."),
+        ("Your did:key identity", "Not a Meta, X, or phone-number account."),
     ]
 }
 

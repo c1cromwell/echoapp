@@ -84,6 +84,11 @@ public struct IdentityCardView: View {
                             .font(.echomono(10))
                             .foregroundStyle(Color.echoTrustGreen)
                     }
+
+                    Text("Self-sovereign did:key · no phone required")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.echoInk55)
+                        .padding(.top, 2)
                 }
 
                 Spacer(minLength: 4)

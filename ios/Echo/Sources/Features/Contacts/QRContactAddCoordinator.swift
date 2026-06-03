@@ -49,14 +49,10 @@ final class QRContactAddCoordinator {
 
             _ = try await social.addContact(did: scanned.did, addedVia: "qr_scan")
 
-            let threadId = ConversationID.direct(localDID: myDID, peerDID: scanned.did)
-            let conversation = StoredConversation(
-                id: threadId,
-                contactName: displayHandle,
-                peerDID: scanned.did
+            createdConversation = await ContactThreadHelper.upsertDirectThread(
+                peerDID: scanned.did,
+                displayName: displayHandle
             )
-            ConversationStore.shared.upsert(conversation)
-            createdConversation = conversation
 
             resultIsError = false
             resultMessage = "Added \(displayHandle). Open Messages to start chatting."

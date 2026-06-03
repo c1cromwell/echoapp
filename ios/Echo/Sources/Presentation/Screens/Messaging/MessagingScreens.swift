@@ -142,6 +142,10 @@ struct ChatView: View {
     let currentUserDID: String
     let onSendMessage: (String) -> Void
 
+    private var canSend: Bool {
+        !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     init(
         viewModel: ChatDetailViewModel,
         contactName: String = "",
@@ -294,15 +298,15 @@ struct ChatView: View {
                             }
 
                         Button(action: {
-                            guard !messageText.isEmpty else { return }
                             let text = messageText
                             messageText = ""
                             Task { await viewModel.sendMessage(text) }
                         }) {
                             Image(systemName: "paperplane.fill")
                                 .font(.system(size: 18))
-                                .foregroundColor(.echoPrimary)
+                                .foregroundColor(canSend ? .echoPrimary : .echoInk40)
                         }
+                        .disabled(!canSend)
                         .accessibility(label: Text("Send message"))
                     }
                     .padding(Spacing.md.rawValue)
@@ -348,6 +352,10 @@ struct ChatView: View {
             if let token = try? await KeychainManager.shared.getAuthToken() {
                 await viewModel.connect(accessToken: token)
             }
+            let peerVisible = viewModel.messages
+                .filter { !$0.isFromCurrentUser }
+                .map(\.id)
+            await viewModel.onMessagesVisible(peerVisible)
         }
         .onDisappear {
             Task { await viewModel.disconnect() }

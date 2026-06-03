@@ -52,8 +52,8 @@ Exercise **only** the shipped screens (Welcome → display name → options/Face
 | 4 | Recovery → **SMS backup** | Enter phone → OTP (see dev OTP below) → Continue |
 | 5 | Main app / Messages tab | No crash; tab bar visible |
 | 6 | Settings → Privacy → discovery **ON** | Toggle saves |
-| 7 | Contacts → **Contacts on ECHO** → Scan | List or empty state (no crash) |
-| 8 | If match → **Add** | Contact added |
+| 7 | Me → **My Contacts** → **Find contacts on ECHO** → Scan | List or empty state (no crash) |
+| 8 | If match → **Add** → **Message** | Contact on server + DM thread in Messages |
 
 **Dev SMS OTP:** `.env` → `DEV_MODE=true`, restart `make dev`. After Send code, read header:
 
@@ -82,7 +82,9 @@ Profile → identity card → tap **QR icon** → share link or **Scan** another
 
 ### Phase 3 signals (two clients)
 
-Settings → Privacy → toggle **typing indicators** / **read receipts** (persisted locally). Two signed-in clients in the same thread:
+**Headless gate:** `make phase3-signals-proof` (Go WS relay tests + `EchoPhase3Tests`).
+
+**Manual:** Settings → Privacy → toggle **typing indicators** / **read receipts** (persisted locally). Two signed-in clients in the same `dm:` thread:
 
 | Signal | Pass if |
 |--------|---------|
@@ -95,6 +97,15 @@ Detail: [`PHASE3_IOS_UI_SPEC.md`](PHASE3_IOS_UI_SPEC.md) Step 5, [`E2E_LAUNCH_AN
 ### Encrypted message bodies
 
 Outbound chat uses Kinnami P-256 encryption when `GET /identity/resolve/{peerDid}` returns a device key. **Simulator ↔ simulator** decrypt works with software identity keys; physical device decrypt is a follow-up (Secure Enclave agreement export).
+
+### Messages hub (Phase B)
+
+| Check | Pass if |
+|-------|---------|
+| Folder chips | **Verified** / **Trusted** filter rows by contact trust (from `/v3/contacts/list`) |
+| Pin | Long-press row → Pin; appears in **PINNED** strip (max 5); **Edit** reorders |
+| Persona | Header switcher → **Work** vs **default** lists differ; **Hidden** requires Face ID |
+| Integrity | Tap blue secure bar on hub → explainer sheet |
 
 ### Optional (pre-TestFlight)
 

@@ -789,7 +789,7 @@ enum ContactsEndpoint: APIEndpoint {
         case .verifyInvite:
             return "/v3/contacts/verify"
         case .list:
-            return "/v3/contacts"
+            return "/v3/contacts/list"
         case .add:
             return "/v3/contacts/add"
         }

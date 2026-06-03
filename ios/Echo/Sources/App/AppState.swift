@@ -33,10 +33,8 @@ final class AppState {
         self.trustTier = UserDefaults.standard.integer(forKey: "echo.trustTier")
         self.root = Self.initialRoot()
 
-        let initials = Self.initials(from: displayName)
-        let defaultPersona = PersonaSummary(id: "default", name: displayName.isEmpty ? "Me" : displayName, initials: initials)
-        self.activePersona = defaultPersona
-        self.personas = [defaultPersona]
+        self.personas = PersonaSessionStore.defaultPersonas(displayName: displayName)
+        self.activePersona = PersonaSessionStore.resolveActive(in: personas)
     }
 
     private static func initials(from name: String) -> String {
@@ -87,6 +85,7 @@ final class AppState {
 
     func switchPersona(_ persona: PersonaSummary) {
         activePersona = persona
+        PersonaSessionStore.setActivePersonaId(persona.id)
     }
 }
 

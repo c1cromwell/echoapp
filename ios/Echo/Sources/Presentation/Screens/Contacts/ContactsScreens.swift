@@ -5,13 +5,13 @@ public struct ContactsListView: View {
     @State private var searchText = ""
     @State private var selectedFilter = "All"
     @State private var showInviteSheet = false
-    @State private var showUsernameSearch = false
-    @State private var contacts: [ContactModel] = [
-        ContactModel(id: "1", name: "John Doe", username: "johndoe", trustLevel: "Verified"),
-        ContactModel(id: "2", name: "Jane Smith", username: "janesmith", trustLevel: "Trusted"),
-        ContactModel(id: "3", name: "Alice Johnson", username: "alice_j", trustLevel: "Basic")
-    ]
-    
+    #if os(iOS)
+    @State private var viewModel = ContactsListViewModel()
+    @State private var chatThread: StoredConversation?
+    #else
+    @State private var contacts: [ContactModel] = []
+    #endif
+
     let onSelectContact: (String) -> Void
     
     public init(onSelectContact: @escaping (String) -> Void = { _ in }) {
@@ -19,7 +19,11 @@ public struct ContactsListView: View {
     }
     
     var filteredContacts: [ContactModel] {
+        #if os(iOS)
+        var filtered = viewModel.contacts
+        #else
         var filtered = contacts
+        #endif
         
         if !searchText.isEmpty {
             filtered = filtered.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
@@ -106,6 +110,21 @@ public struct ContactsListView: View {
                     .pickerStyle(.segmented)
                     .padding(.horizontal, Spacing.md.rawValue)
                     
+                    #if os(iOS)
+                    if viewModel.isLoading && viewModel.contacts.isEmpty {
+                        ProgressView("Loading contacts…")
+                            .frame(maxHeight: .infinity, alignment: .center)
+                    } else if let error = viewModel.errorMessage, viewModel.contacts.isEmpty {
+                        ContentUnavailableView {
+                            Label("Couldn't load contacts", systemImage: "exclamationmark.triangle")
+                        } description: {
+                            Text(error)
+                        } actions: {
+                            Button("Retry") { Task { await viewModel.refresh() } }
+                        }
+                        .frame(maxHeight: .infinity, alignment: .center)
+                    } else
+                    #endif
                     if filteredContacts.isEmpty {
                         VStack(spacing: Spacing.md.rawValue) {
                             Image(systemName: "person.slash")
@@ -115,7 +134,7 @@ public struct ContactsListView: View {
                             Text("No contacts found")
                                 .typographyStyle(.h4, color: .echoGray600)
                             
-                            Text("Add contacts to get started")
+                            Text("Find people on ECHO or add by @username")
                                 .typographyStyle(.body, color: .echoSecondaryText)
                         }
                         .frame(maxHeight: .infinity, alignment: .center)
@@ -126,7 +145,19 @@ public struct ContactsListView: View {
                                     name: contact.name,
                                     username: contact.username,
                                     trustLevel: contact.trustLevel,
-                                    onTap: { onSelectContact(contact.id) }
+                                    onTap: {
+                                        onSelectContact(contact.id)
+                                        #if os(iOS)
+                                        Task {
+                                            if let thread = await ContactThreadHelper.upsertDirectThread(
+                                                peerDID: contact.id,
+                                                displayName: contact.name
+                                            ) {
+                                                chatThread = thread
+                                            }
+                                        }
+                                        #endif
+                                    }
                                 )
                                 .listRowSeparator(.hidden)
                                 .listRowInsets(.init())
@@ -144,6 +175,13 @@ public struct ContactsListView: View {
         .sheet(isPresented: $showInviteSheet) {
             InviteLinkSheet()
         }
+        #if os(iOS)
+        .task { await viewModel.refresh() }
+        .refreshable { await viewModel.refresh() }
+        .navigationDestination(item: $chatThread) { conversation in
+            ChatDestinationView(conversation: conversation)
+        }
+        #endif
     }
 }
 

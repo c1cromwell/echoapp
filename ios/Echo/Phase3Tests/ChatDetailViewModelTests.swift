@@ -94,6 +94,15 @@ final class ChatDetailViewModelTests: XCTestCase {
         XCTAssertEqual(vm.messages.count, before)
     }
 
+    func testDisconnect_emitsTypingStop() async {
+        vm.onInputChanged("typing…")
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        transport.sentTexts.removeAll()
+        await vm.disconnect()
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertTrue(transport.sentTexts.contains(where: { $0.contains("\"state\":\"stop\"") }))
+    }
+
     func testReadReceiptDisabled_doesNotSend() async {
         vm.configure(
             conversationId: "conv-1",

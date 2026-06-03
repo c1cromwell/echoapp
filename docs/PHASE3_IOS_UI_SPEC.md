@@ -41,11 +41,12 @@ sources to `EchoApp.xcodeproj`, manual two-client checklist (Step 5 manual).
 |------|--------|-------|
 | Backend WS envelope + relay rules | ✅ Shipped | Ephemeral types require non-empty `to` ≠ sender |
 | Backend REST reactions | ✅ Shipped | `POST /v3/messages/react`, `GET /v3/messages/reactions` |
-| iOS wire models + signal service | ❌ Not started | No `ConversationSignal.swift` yet |
-| iOS WS auth token on connect | ❌ Not started | `WebSocketClient` still uses `wss://ws.echo.local`, no `?token=` |
-| iOS chat UI wired to domain models | ⚠️ Partial | `ChatView` uses local `ChatMessage` + `MessageStatus`, not `Message` + `DeliveryStatus` |
-| iOS ViewModel for open chat | ⚠️ Partial | `MessagingViewModel` exists but has no typing/receipt/reaction state |
-| Privacy toggles | ✅ Models exist | See **Privacy flags** below — names differ from early draft |
+| iOS wire models + signal service | ✅ Landed | `ConversationSignal.swift`, `ConversationSignalService`, `EchoPhase3Tests` |
+| iOS WS auth token on connect | ✅ Landed | `WebSocketURLBuilder` + tab-level + per-chat connect |
+| iOS chat UI wired to domain models | ⚠️ Partial | `ChatView` binds `ChatDetailViewModel`; boundary maps `DeliveryStatus` |
+| iOS ViewModel for open chat | ✅ Landed | `ChatDetailViewModel` — typing, receipts, reactions, text relay |
+| Privacy toggles | ✅ Wired | `PrivacySettingsStore` + `MessagingPrivacyPreferences.merged` in `ChatView` |
+| Two-client manual proof | 🔜 Required | `make phase3-signals-proof` then E2E §6.4 / Step 5 |
 
 **Can this be implemented with tests?** **Yes**, with a deliberate split:
 

@@ -13,6 +13,11 @@ struct MessagesTabView: View {
     @State private var recoveryPromptPresented = false
     @State private var pendingInviteCode: String?
     @State private var chatPath = SwiftUI.NavigationPath()
+    @State private var hiddenPersonaGate: PersonaSummary?
+
+    private var personaFilteredConversations: [StoredConversation] {
+        conversationStore.conversations.filter { $0.personaId == appState.activePersona.id }
+    }
 
     var body: some View {
         NavigationStack(path: $chatPath) {
@@ -28,17 +33,27 @@ struct MessagesTabView: View {
                     .navigationBarTitleDisplayMode(.inline)
                 } else {
                     MessagesHubView(
-                        conversations: conversationStore.conversations,
+                        conversations: personaFilteredConversations,
                         personas: appState.personas,
                         activePersona: appState.activePersona,
                         mutedIDs: mutedConversationIDs,
+                        trustTier: { conversationId in
+                            guard let conv = conversationStore.conversation(id: conversationId) else { return 1 }
+                            return ContactTrustIndex.shared.tier(conversationId: conversationId, peerDID: conv.peerDID)
+                        },
                         onSelectConversation: { id in
                             if let conversation = conversationStore.conversation(id: id) {
                                 chatPath.append(conversation)
                             }
                         },
                         onCompose: { composeSheetPresented = true },
-                        onSwitchPersona: { appState.switchPersona($0) }
+                        onOpenHidden: {
+                            if let hidden = appState.personas.first(where: { $0.isHidden }) {
+                                hiddenPersonaGate = hidden
+                            }
+                        },
+                        onSwitchPersona: { appState.switchPersona($0) },
+                        onSelectHiddenPersona: { hiddenPersonaGate = $0 }
                     )
                 }
             }
@@ -83,6 +98,16 @@ struct MessagesTabView: View {
         }
         .task {
             await connectSharedMessageRelay()
+            await refreshContactTrustIndex()
+        }
+        .sheet(item: $hiddenPersonaGate) { persona in
+            PersonaGateView(personaID: persona.id) {
+                Color.clear
+                    .onAppear {
+                        appState.switchPersona(persona)
+                        hiddenPersonaGate = nil
+                    }
+            }
         }
         .onReceive(
             NotificationCenter.default.publisher(for: .echoPendingInvite)
@@ -129,6 +154,13 @@ struct MessagesTabView: View {
     private var mutedConversationIDs: Set<String> {
         let store = ConversationPreferencesStore.shared
         return Set(conversationStore.conversations.map(\.id).filter { store.isMuted($0) })
+    }
+
+    private func refreshContactTrustIndex() async {
+        guard let social = DIContainer.shared.resolveContactSocialAPI() else { return }
+        if let contacts = try? await social.listContacts() {
+            ContactTrustIndex.shared.ingestRemoteContacts(contacts)
+        }
     }
 
     /// Keeps one WebSocket open for inbound chat + signals (Wave 0.1 relay E2E).

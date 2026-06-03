@@ -80,9 +80,11 @@ final class ChatDetailViewModel {
     }
 
     func disconnect() async {
+        await emitTypingStopIfNeeded()
         signalService.setConversationHandler(conversationId: conversationId, handler: nil)
         cancelTypingTasks()
         peerTypingClearTask?.cancel()
+        peerIsTyping = false
     }
 
     // MARK: - Typing
@@ -133,7 +135,7 @@ final class ChatDetailViewModel {
             deliveryStatus: .sending
         )
         messages.append(message)
-        onSend(text)
+        onSend(trimmed)
 
         do {
             let payload: TextMessagePayload
