@@ -135,6 +135,7 @@ struct ChatView: View {
     @State private var reactionTargetId: String?
     @State private var showChatSettings = false
     @State private var actionsTargetMessage: ChatDetailMessage?
+    @State private var reactorDetail: (emoji: String, reactors: [String])?
 
     let contactName: String
     let conversationId: String
@@ -164,7 +165,7 @@ struct ChatView: View {
 
     var body: some View {
         ZStack {
-            Color.echoBackground.ignoresSafeArea()
+            Color.echoPaper.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 EchoNavBar(
@@ -217,6 +218,9 @@ struct ChatView: View {
                                                     emoji: emoji
                                                 )
                                             }
+                                        },
+                                        onShowReactors: { emoji, reactors in
+                                            reactorDetail = (emoji, reactors)
                                         }
                                     )
                                 }
@@ -275,44 +279,20 @@ struct ChatView: View {
                         }
                     }
                 }
-
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 0) {
                 if viewModel.peerIsTyping {
-                    TypingIndicatorView()
+                    TypingIndicatorView(label: viewModel.typingStatusText)
                         .transition(.opacity.combined(with: .move(edge: .bottom)))
                         .padding(.vertical, 4)
+                        .padding(.horizontal, Spacing.md.rawValue)
                 }
-
-                VStack(spacing: Spacing.sm.rawValue) {
-                    HStack(spacing: Spacing.md.rawValue) {
-                        Button(action: {}) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.echoPrimary)
-                        }
-                        .accessibility(label: Text("Add attachment"))
-
-                        TextField("Message...", text: $messageText)
-                            .textFieldStyle(.roundedBorder)
-                            .onChange(of: messageText) { _, newValue in
-                                viewModel.onInputChanged(newValue)
-                            }
-
-                        Button(action: {
-                            let text = messageText
-                            messageText = ""
-                            Task { await viewModel.sendMessage(text) }
-                        }) {
-                            Image(systemName: "paperplane.fill")
-                                .font(.system(size: 18))
-                                .foregroundColor(canSend ? .echoPrimary : .echoInk40)
-                        }
-                        .disabled(!canSend)
-                        .accessibility(label: Text("Send message"))
-                    }
-                    .padding(Spacing.md.rawValue)
-                    .background(Color.echoSurface)
-                }
+                chatComposerBar
             }
+            .background(Color.echoPaperDim)
         }
         .navigationBarBackButtonHidden(true)
         .sheet(isPresented: $showChatSettings) {
@@ -322,6 +302,19 @@ struct ChatView: View {
                 onChange: { ConversationPreferencesStore.shared.save($0, for: conversationId) }
             )
             .presentationDetents([.medium, .large])
+        }
+        .sheet(item: Binding(
+            get: {
+                reactorDetail.map { ReactorDetailItem(emoji: $0.emoji, reactors: $0.reactors) }
+            },
+            set: { reactorDetail = $0.map { ($0.emoji, $0.reactors) } }
+        )) { item in
+            ReactionReactorDetailSheet(
+                emoji: item.emoji,
+                reactors: item.reactors,
+                currentUserDID: currentUserDID
+            )
+            .presentationDetents([.medium])
         }
         .sheet(item: $actionsTargetMessage) { message in
             MessageActionsSheet(
@@ -345,6 +338,7 @@ struct ChatView: View {
                 conversationId: conversationId,
                 peerDID: peerDID,
                 currentUserDID: currentUserDID,
+                peerDisplayName: contactName,
                 privacy: privacy,
                 reactionsAPI: reactions,
                 onSend: onSendMessage
@@ -379,6 +373,47 @@ struct ChatView: View {
         }
     }
 
+    /// Phase A chat composer (`docs/design-previews/phaseA-chat.html` + `previews.css` `.composer`).
+    private var chatComposerBar: some View {
+        HStack(spacing: Spacing.md.rawValue) {
+            Button(action: {}) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(Color.echoSignal)
+            }
+            .accessibilityLabel("Add attachment")
+
+            TextField("Message…", text: $messageText)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .background(Color.echoPaper)
+                .clipShape(Capsule())
+                .overlay(Capsule().strokeBorder(Color.echoHair, lineWidth: 1))
+                .onChange(of: messageText) { _, newValue in
+                    viewModel.onInputChanged(newValue)
+                }
+
+            Button {
+                let text = messageText
+                messageText = ""
+                Task { await viewModel.sendMessage(text) }
+            } label: {
+                Image(systemName: "paperplane.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(canSend ? Color.echoSignal : Color.echoInk40)
+            }
+            .disabled(!canSend)
+            .accessibilityLabel("Send message")
+        }
+        .padding(.horizontal, Spacing.md.rawValue)
+        .padding(.vertical, 12)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.echoHair)
+                .frame(height: 1)
+        }
+    }
+
     private func mapDeliveryStatus(_ status: DeliveryStatus?) -> MessageStatus {
         guard let status else { return .sent }
         switch status {
@@ -391,6 +426,12 @@ struct ChatView: View {
         case .verified:  return .verified
         }
     }
+}
+
+private struct ReactorDetailItem: Identifiable {
+    let id = UUID()
+    let emoji: String
+    let reactors: [String]
 }
 
 struct ChatMessage: Identifiable {

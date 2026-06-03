@@ -9,6 +9,7 @@ final class ChatDetailViewModel {
     // MARK: - Published UI state
 
     var peerIsTyping = false
+    var peerDisplayName = ""
     var messages: [ChatDetailMessage] = []
     var inputText = ""
     var errorMessage: String?
@@ -49,10 +50,18 @@ final class ChatDetailViewModel {
         }
     }
 
+    var typingStatusText: String? {
+        guard peerIsTyping, privacy.sendTypingIndicators else { return nil }
+        let name = peerDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if name.isEmpty { return "typing…" }
+        return "\(name) is typing…"
+    }
+
     func configure(
         conversationId: String,
         peerDID: String,
         currentUserDID: String,
+        peerDisplayName: String = "",
         privacy: MessagingPrivacyPreferences = .init(),
         reactionsAPI: (any ReactionsAPIClient)? = nil,
         onSend: ((String) -> Void)? = nil
@@ -60,6 +69,7 @@ final class ChatDetailViewModel {
         self.conversationId = conversationId
         self.peerDID = peerDID
         self.currentUserDID = currentUserDID
+        self.peerDisplayName = peerDisplayName
         self.privacy = privacy
         self.reactionsAPI = reactionsAPI
         if let onSend { self.onSend = onSend }
@@ -130,7 +140,7 @@ final class ChatDetailViewModel {
             id: UUID().uuidString,
             senderDID: currentUserDID,
             currentUserDID: currentUserDID,
-            content: text,
+            content: trimmed,
             timestamp: "Now",
             deliveryStatus: .sending
         )

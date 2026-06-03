@@ -121,6 +121,7 @@ struct MessagesTabView: View {
         ) { _ in
             checkFirstMessageRecoveryPrompt()
         }
+        .hidesGlacialTabBarWhenPushed(!chatPath.isEmpty)
     }
 
     private var recoveryExportSheet: some View {

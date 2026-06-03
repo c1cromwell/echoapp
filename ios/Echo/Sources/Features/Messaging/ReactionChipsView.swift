@@ -5,6 +5,7 @@ struct ReactionChipsView: View {
     let reactions: [ReactionCount]
     let currentUserDID: String
     let onTap: (String) -> Void
+    var onShowReactors: ((String, [String]) -> Void)?
 
     var body: some View {
         if !reactions.isEmpty {
@@ -40,6 +41,13 @@ struct ReactionChipsView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .contextMenu {
+                        if let onShowReactors, !reaction.reactors.isEmpty {
+                            Button("See who reacted") {
+                                onShowReactors(reaction.emoji, reaction.reactors)
+                            }
+                        }
+                    }
                 }
             }
         }

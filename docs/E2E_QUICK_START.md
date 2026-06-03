@@ -2,6 +2,8 @@
 
 **One page** for TestFlight prep and day-to-day iOS testing. Full detail: [`E2E_LAUNCH_AND_TESTING.md`](E2E_LAUNCH_AND_TESTING.md).
 
+**Sprint checklist:** [`WEEK_A_B_LAUNCH.md`](WEEK_A_B_LAUNCH.md) (Week A messaging go/no-go → Week B contacts).
+
 **Onboarding & login are frozen** — validate the shipped `FirstRunCoordinator` / `GlacialLoginScreen` flows below; do **not** redesign from the React prototype (`docs/Echo Design System Setup_latest/.../onboarding/*`). See [`ux-spec.md`](ux-spec.md) and [`ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) §0.
 
 ---
@@ -107,10 +109,36 @@ Outbound chat uses Kinnami P-256 encryption when `GET /identity/resolve/{peerDid
 | Persona | Header switcher → **Work** vs **default** lists differ; **Hidden** requires Face ID |
 | Integrity | Tap blue secure bar on hub → explainer sheet |
 
+### Contact discovery (Track A)
+
+| Check | Pass if |
+|-------|---------|
+| Invite deep link | Open `echo://invite?code=…` or `echo://invite/CODE` → accept sheet (cold start stashes until login) |
+| Profile / user link | `echo://profile?did=did:key:…` or `echo://user/did:key:…` parses for QR add |
+| Block contact | Contact detail → Block → `POST /v3/contacts/block` |
+| Favorites | Contact menu → favorite; **Favorites only** filter on contacts list |
+| PSI (real OPRF) | `make echooprf-ios` → embed `EchoOPRF.xcframework` → two devices share a phone contact match |
+
+### Multi-device (Track C / WO-288)
+
+| Check | Pass if |
+|-------|---------|
+| Link QR (old device) | Account → **Link new device** → QR with `echo://link-device?token=` |
+| Scan (new device) | Login → **Sign in on new device** → scan QR → device registered |
+| API aliases | `POST /v1/login/link-device/initiate` and `…/complete` mirror `/identity/devices/*` |
+
+### Messaging polish (Track B)
+
+| Check | Pass if |
+|-------|---------|
+| Typing label | Peer typing shows `{name} is typing…` under nav title contact name |
+| Reactions | Long-press reaction chip → **See who reacted** sheet |
+| Picker | Long-press message → expanded emoji row + recent emojis |
+
 ### Optional (pre-TestFlight)
 
-- **WO-100 wallet:** `OIDC4VC_ENABLED=true` in `.env` → VIP path → Digital ID.
-- **WO-221 PSI (real):** `./scripts/build-echooprf-ios.sh` + embed `EchoOPRF.xcframework` in EchoApp target.
+- **WO-100 wallet:** `OIDC4VC_ENABLED=true` in `.env` → VIP path → Digital ID (retry on failure in wallet sheet).
+- **WO-221 PSI (real):** `make echooprf-ios` + embed `EchoOPRF.xcframework` in EchoApp target.
 - **Phase 3 signals:** two simulators or sim + device — typing / read receipts ([`PHASE3_IOS_UI_SPEC.md`](PHASE3_IOS_UI_SPEC.md) Step 5).
 
 ---
@@ -127,6 +155,7 @@ Outbound chat uses Kinnami P-256 encryption when `GET /identity/resolve/{peerDid
 | Contact discovery always empty | SMS backup done, discovery opt-in ON, both users in phone book, OPRF framework for real PSI |
 | `xcodebuild` / `gomobile` fails | Full **Xcode.app**; `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer` |
 | Agent `swift test` fails on macOS | Known SPM cross-target noise — use `make ios-preflight BUILD=1` or Xcode build instead |
+| Tab bar covers chat composer | Rebuild — chat push should hide `GlacialTabBar`; composer uses bottom `safeAreaInset` |
 
 ---
 

@@ -185,6 +185,7 @@
 		F1A2B3C4012345678900002 /* OIDC4VCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900001 /* OIDC4VCClient.swift */; };
 		F1A2B3C4012345678900004 /* RegisterWithVerifiableCredentialUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900003 /* RegisterWithVerifiableCredentialUseCase.swift */; };
 		F1A2B3C4012345678900006 /* ContactDiscoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4012345678900005 /* ContactDiscoveryView.swift */; };
+		D288A005234567890123405 /* ReactionReactorDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D288A005234567890123415 /* ReactionReactorDetailSheet.swift */; };
 		P3S001012345678901234002 /* ContactThreadHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3S001012345678901234001 /* ContactThreadHelper.swift */; };
 		P3B001012345678901234002 /* PinnedConversationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234001 /* PinnedConversationsStore.swift */; };
 		P3B001012345678901234004 /* ContactTrustIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234003 /* ContactTrustIndex.swift */; };
@@ -399,6 +400,7 @@
 		F1A2B3C4012345678900001 /* OIDC4VCClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OIDC4VCClient.swift; sourceTree = "<group>"; };
 		F1A2B3C4012345678900003 /* RegisterWithVerifiableCredentialUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterWithVerifiableCredentialUseCase.swift; sourceTree = "<group>"; };
 		F1A2B3C4012345678900005 /* ContactDiscoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDiscoveryView.swift; sourceTree = "<group>"; };
+		D288A005234567890123415 /* ReactionReactorDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactionReactorDetailSheet.swift; sourceTree = "<group>"; };
 		P3S001012345678901234001 /* ContactThreadHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactThreadHelper.swift; sourceTree = "<group>"; };
 		P3B001012345678901234001 /* PinnedConversationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinnedConversationsStore.swift; sourceTree = "<group>"; };
 		P3B001012345678901234003 /* ContactTrustIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactTrustIndex.swift; sourceTree = "<group>"; };
@@ -743,6 +745,7 @@
 				W0E001012345678901234007 /* NewConversationSheet.swift */,
 				W0E001012345678901234019 /* ReactionChipsView.swift */,
 				W0E00101234567890123401B /* ReactionPickerView.swift */,
+				D288A005234567890123415 /* ReactionReactorDetailSheet.swift */,
 				W0E001012345678901234017 /* TypingIndicatorView.swift */,
 			);
 			path = Messaging;
@@ -1467,6 +1470,7 @@
 				F1A2B3C4012345678900002 /* OIDC4VCClient.swift in Sources */,
 				F1A2B3C4012345678900004 /* RegisterWithVerifiableCredentialUseCase.swift in Sources */,
 				F1A2B3C4012345678900006 /* ContactDiscoveryView.swift in Sources */,
+				D288A005234567890123405 /* ReactionReactorDetailSheet.swift in Sources */,
 				P3S001012345678901234002 /* ContactThreadHelper.swift in Sources */,
 				F1A2B3C4012345678900008 /* ContactDiscoveryAPIClient.swift in Sources */,
 				F1A2B3C401234567890000A /* ContactDiscoveryService.swift in Sources */,

@@ -322,6 +322,7 @@ Skill: **`echo-ios-agent-vs-xcode`**, **`echo-phase3-ios-wire`**.
 - [x] Profile QR scan → add contact (`QRContactAddCoordinator`)
 - [x] Encrypted text payloads (Kinnami + `/identity/resolve`; sim decrypt)
 - [x] Contact discovery + add contact
+- [x] **1:1 chat layout** per [`design-previews/phaseA-chat.html`](design-previews/phaseA-chat.html): hide `GlacialTabBar` on push; composer in `safeAreaInset` (paper-dim bar, pill field, signal send)
 - [ ] Paper/ink on **post-auth** screens (onboarding/login already paper/ink)
 
 ### Phase B — Hub parity (design system)

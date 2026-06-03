@@ -2,10 +2,16 @@
 import SwiftUI
 
 struct TypingIndicatorView: View {
+    var label: String?
     @State private var phase: Int = 0
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 8) {
+            if let label {
+                Text(label)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.Echo.onSurfaceVariant)
+            }
             ForEach(0..<3) { index in
                 Circle()
                     .fill(Color.Echo.onSurfaceVariant.opacity(0.5))

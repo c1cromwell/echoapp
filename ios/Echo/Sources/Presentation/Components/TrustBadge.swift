@@ -74,7 +74,7 @@ public struct TrustBadge: View {
         case "trusted":
             return "star.circle"
         case "verified":
-            return "shield.checkmark"
+            return "shield.checkmark.fill"
         case "highlytrusted":
             return "crown.circle"
         default:
