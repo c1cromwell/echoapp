@@ -145,10 +145,10 @@ func (s *Service) GetPhoneDiscoverySettings(ctx context.Context, did string) (ma
 		explicit = &v
 	}
 	return map[string]interface{}{
-		"did":                      did,
-		"trust_tier":               user.TrustTier,
-		"phone_discovery_opt_in":   explicit,
-		"phone_discoverable":       discoverable,
+		"did":                       did,
+		"trust_tier":                user.TrustTier,
+		"phone_discovery_opt_in":    explicit,
+		"phone_discoverable":        discoverable,
 		"tier_default_discoverable": user.TrustTier >= minTierForDefaultPhoneDiscovery,
 	}, nil
 }

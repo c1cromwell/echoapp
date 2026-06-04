@@ -70,16 +70,16 @@ func (s *Service) Register(ctx context.Context, holderDID string, req RegisterRe
 
 	now := time.Now().UTC()
 	ref := CredentialRef{
-		RefID:           uuid.NewString(),
-		HolderDID:       holderDID,
-		IssuerDID:       req.IssuerDID,
-		CredentialType:  req.CredentialType,
-		CredentialHash:  req.CredentialHash,
-		StatusListIndex: req.StatusListIndex,
-		StatusListCred:  strings.TrimSpace(req.StatusListCred),
+		RefID:            uuid.NewString(),
+		HolderDID:        holderDID,
+		IssuerDID:        req.IssuerDID,
+		CredentialType:   req.CredentialType,
+		CredentialHash:   req.CredentialHash,
+		StatusListIndex:  req.StatusListIndex,
+		StatusListCred:   strings.TrimSpace(req.StatusListCred),
 		RevocationStatus: "unknown",
-		CreatedAt:       now,
-		UpdatedAt:       now,
+		CreatedAt:        now,
+		UpdatedAt:        now,
 	}
 	if err := s.store.InsertCredentialRef(ctx, ref); err != nil {
 		if errors.Is(err, ErrDuplicateHash) {

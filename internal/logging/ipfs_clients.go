@@ -19,8 +19,8 @@ type (
 	StubIPFSStorage     = encblob.StubStorage
 )
 
-func NewPinataIPFSStorage() (*PinataIPFSStorage, error)   { return encblob.NewPinataStorage() }
-func NewStorjIPFSStorage() (*StorjIPFSStorage, error)     { return encblob.NewStorjStorage() }
+func NewPinataIPFSStorage() (*PinataIPFSStorage, error)     { return encblob.NewPinataStorage() }
+func NewStorjIPFSStorage() (*StorjIPFSStorage, error)       { return encblob.NewStorjStorage() }
 func NewFallbackIPFSStorage() (*FallbackIPFSStorage, error) { return encblob.NewFallbackStorage() }
 
 func NewFallbackIPFSStorageWithProviders(primary, secondary IPFSStorage) *FallbackIPFSStorage {

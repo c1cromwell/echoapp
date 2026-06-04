@@ -9,26 +9,26 @@ import (
 
 // TrustedIssuerRow is the Postgres representation of a trusted VC issuer (WO-118).
 type TrustedIssuerRow struct {
-	IssuerID                   string
-	Name                       string
-	DID                        string
-	IssuerType                 string
-	Jurisdiction               string
-	TrustLevel                 string
-	Status                     string
-	CredentialTypes            []string
-	VerificationPublicKeyB64   string
-	PublicKeyURL               string
-	RiskScore                  int
-	OnboardingWeight           int
-	ActivationThreshold        float64
-	ContactEmail               string
-	DocumentationURL           string
-	EstablishedAt              *time.Time
-	VerifiedAt                 time.Time
-	LastVerifiedAt             time.Time
-	SuspendedAt                *time.Time
-	RevokedAt                  *time.Time
+	IssuerID                 string
+	Name                     string
+	DID                      string
+	IssuerType               string
+	Jurisdiction             string
+	TrustLevel               string
+	Status                   string
+	CredentialTypes          []string
+	VerificationPublicKeyB64 string
+	PublicKeyURL             string
+	RiskScore                int
+	OnboardingWeight         int
+	ActivationThreshold      float64
+	ContactEmail             string
+	DocumentationURL         string
+	EstablishedAt            *time.Time
+	VerifiedAt               time.Time
+	LastVerifiedAt           time.Time
+	SuspendedAt              *time.Time
+	RevokedAt                *time.Time
 }
 
 func (p *PostgresDB) ListTrustedIssuers(ctx context.Context) ([]TrustedIssuerRow, error) {

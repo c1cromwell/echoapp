@@ -195,16 +195,16 @@ func issuerToJSON(issuer *onboarding.TrustedIssuer) map[string]interface{} {
 		credTypes[i] = string(ct)
 	}
 	return map[string]interface{}{
-		"issuer_id":                 issuer.ID,
-		"name":                      issuer.Name,
-		"issuer_did":                issuer.DID,
-		"issuer_type":               string(issuer.Type),
-		"jurisdiction":              string(issuer.Jurisdiction),
-		"trust_level":               string(issuer.TrustLevel),
-		"status":                    issuer.Status,
-		"trusted_credential_types":  credTypes,
+		"issuer_id":                   issuer.ID,
+		"name":                        issuer.Name,
+		"issuer_did":                  issuer.DID,
+		"issuer_type":                 string(issuer.Type),
+		"jurisdiction":                string(issuer.Jurisdiction),
+		"trust_level":                 string(issuer.TrustLevel),
+		"status":                      issuer.Status,
+		"trusted_credential_types":    credTypes,
 		"verification_public_key_b64": issuer.VerificationPublicKeyBase64,
-		"public_key_url":            issuer.PublicKeyURL,
-		"last_verified":             issuer.LastVerificationDate.UTC().Format(time.RFC3339),
+		"public_key_url":              issuer.PublicKeyURL,
+		"last_verified":               issuer.LastVerificationDate.UTC().Format(time.RFC3339),
 	}
 }

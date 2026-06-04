@@ -14,23 +14,23 @@ const (
 	RoleContact = "contact"
 	RoleOrg     = "org"
 
-	StatusPending  = "pending"
-	StatusActive   = "active"
-	StatusRevoked  = "revoked"
+	StatusPending = "pending"
+	StatusActive  = "active"
+	StatusRevoked = "revoked"
 
-	SessionInitiated  = "initiated"
-	SessionCompleted  = "completed"
-	SessionExpired    = "expired"
-	SessionCancelled  = "cancelled"
+	SessionInitiated = "initiated"
+	SessionCompleted = "completed"
+	SessionExpired   = "expired"
+	SessionCancelled = "cancelled"
 )
 
 var (
-	ErrNotConfigured     = errors.New("recovery not configured for holder")
-	ErrInvalidPolicy     = errors.New("invalid recovery policy")
+	ErrNotConfigured      = errors.New("recovery not configured for holder")
+	ErrInvalidPolicy      = errors.New("invalid recovery policy")
 	ErrInvalidShareholder = errors.New("invalid shareholder metadata")
-	ErrSessionNotFound   = errors.New("recovery session not found")
-	ErrSessionExpired    = errors.New("recovery session expired")
-	ErrForbiddenField    = errors.New("server cannot accept share material or recovery secrets")
+	ErrSessionNotFound    = errors.New("recovery session not found")
+	ErrSessionExpired     = errors.New("recovery session expired")
+	ErrForbiddenField     = errors.New("server cannot accept share material or recovery secrets")
 )
 
 // Policy is the holder's M-of-N recovery configuration (metadata only).
@@ -69,9 +69,9 @@ type Session struct {
 
 // SetupRequest registers recovery policy + shareholder metadata after client-side Shamir split.
 type SetupRequest struct {
-	Threshold    int                 `json:"threshold_m"`
-	Total        int                 `json:"total_n"`
-	Shareholders []ShareholderInput  `json:"shareholders"`
+	Threshold    int                `json:"threshold_m"`
+	Total        int                `json:"total_n"`
+	Shareholders []ShareholderInput `json:"shareholders"`
 }
 
 type ShareholderInput struct {
@@ -84,7 +84,7 @@ type ShareholderInput struct {
 
 // InitiateResponse lists guardians the holder should contact for shares.
 type InitiateResponse struct {
-	Session     Session       `json:"session"`
+	Session      Session       `json:"session"`
 	Shareholders []Shareholder `json:"shareholders"`
 }
 

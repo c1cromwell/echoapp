@@ -21,9 +21,9 @@ func init() {
 }
 
 type onboardingAdvanceRequest struct {
-	Action string          `json:"action"`
-	Phone  string          `json:"phone,omitempty"`
-	OTP    string          `json:"otp,omitempty"`
+	Action  string                   `json:"action"`
+	Phone   string                   `json:"phone,omitempty"`
+	OTP     string                   `json:"otp,omitempty"`
 	Profile onboardingProfilePayload `json:"profile,omitempty"`
 }
 

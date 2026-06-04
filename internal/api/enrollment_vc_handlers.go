@@ -21,11 +21,11 @@ type enrollmentVCSession struct {
 }
 
 type enrollmentClaimsRequest struct {
-	FamilyName       bool `json:"familyName"`
-	GivenName        bool `json:"givenName"`
-	AgeOver18        bool `json:"ageOver18"`
-	IssuingCountry   bool `json:"issuingCountry"`
-	Portrait         bool `json:"portrait"`
+	FamilyName     bool `json:"familyName"`
+	GivenName      bool `json:"givenName"`
+	AgeOver18      bool `json:"ageOver18"`
+	IssuingCountry bool `json:"issuingCountry"`
+	Portrait       bool `json:"portrait"`
 }
 
 type enrollmentVCStartRequest struct {
@@ -33,11 +33,11 @@ type enrollmentVCStartRequest struct {
 }
 
 type enrollmentVCFinishRequest struct {
-	SessionID   string                           `json:"session_id"`
-	CallbackURL string                           `json:"callback_url,omitempty"`
-	VPToken     string                           `json:"vp_token,omitempty"`
-	State       string                           `json:"state,omitempty"`
-	Submission  *oidc4vc.PresentationSubmission  `json:"presentation_submission,omitempty"`
+	SessionID   string                          `json:"session_id"`
+	CallbackURL string                          `json:"callback_url,omitempty"`
+	VPToken     string                          `json:"vp_token,omitempty"`
+	State       string                          `json:"state,omitempty"`
+	Submission  *oidc4vc.PresentationSubmission `json:"presentation_submission,omitempty"`
 }
 
 func (rt *Router) handleEnrollmentVC(w http.ResponseWriter, r *http.Request) {
@@ -171,9 +171,9 @@ func (rt *Router) handleEnrollmentVCFinish(w http.ResponseWriter, r *http.Reques
 		"assurance_level":           mapCredentialTypeToIAL(sess.CredentialType),
 		"disclosed_claims":          map[string]string{"holder_did": result.HolderDID},
 		"evidence": map[string]interface{}{
-			"kind":                         "openid4vp",
-			"vp_token":                     vpToken,
-			"presentation_submission_b64":  base64.StdEncoding.EncodeToString(submissionJSON),
+			"kind":                        "openid4vp",
+			"vp_token":                    vpToken,
+			"presentation_submission_b64": base64.StdEncoding.EncodeToString(submissionJSON),
 		},
 		"request_id": r.Header.Get("X-Request-ID"),
 	})
@@ -199,8 +199,8 @@ func mapCredentialTypeToIAL(credentialType string) string {
 
 func defaultPresentationSubmission(credentialType string) *oidc4vc.PresentationSubmission {
 	return &oidc4vc.PresentationSubmission{
-		ID:             uuid.New().String(),
-		DefinitionID:   "pres_def_" + strings.ToLower(credentialType),
+		ID:           uuid.New().String(),
+		DefinitionID: "pres_def_" + strings.ToLower(credentialType),
 		DescriptorMap: []oidc4vc.DescriptorMap{
 			{
 				ID:     "credential_0",

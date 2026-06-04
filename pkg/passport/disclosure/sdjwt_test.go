@@ -10,8 +10,8 @@ import (
 func buildTestJWT(t *testing.T, subjectClaims map[string]interface{}) string {
 	t.Helper()
 	vc := map[string]interface{}{
-		"@context": []string{"https://www.w3.org/2018/credentials/v1"},
-		"type":     []string{"VerifiableCredential", "ProofOfHumanity"},
+		"@context":          []string{"https://www.w3.org/2018/credentials/v1"},
+		"type":              []string{"VerifiableCredential", "ProofOfHumanity"},
 		"credentialSubject": subjectClaims,
 	}
 	payload, _ := json.Marshal(map[string]interface{}{

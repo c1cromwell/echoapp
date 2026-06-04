@@ -8,10 +8,10 @@ import (
 
 // MemStore is an in-memory recovery Store for tests.
 type MemStore struct {
-	mu            sync.Mutex
-	policies      map[string]Policy
-	shareholders  map[string][]Shareholder
-	sessions      map[string]Session
+	mu           sync.Mutex
+	policies     map[string]Policy
+	shareholders map[string][]Shareholder
+	sessions     map[string]Session
 }
 
 func NewMemStore() *MemStore {

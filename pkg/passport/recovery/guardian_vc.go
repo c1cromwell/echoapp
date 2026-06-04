@@ -10,9 +10,9 @@ import (
 // GuardianCredential builds the EchoGuardianCredential VC payload (ADR 0004 sketch).
 func GuardianCredential(holderDID, guardianDID string, shareIndex int, acceptedAt time.Time) *credentials.VerifiableCredential {
 	return &credentials.VerifiableCredential{
-		Context: []string{"https://www.w3.org/ns/credentials/v2"},
-		Type:    []string{"VerifiableCredential", "EchoGuardianCredential"},
-		Issuer:  "did:key:zEchoIdentityServicePlaceholder",
+		Context:      []string{"https://www.w3.org/ns/credentials/v2"},
+		Type:         []string{"VerifiableCredential", "EchoGuardianCredential"},
+		Issuer:       "did:key:zEchoIdentityServicePlaceholder",
 		IssuanceDate: acceptedAt.UTC(),
 		CredentialSubject: credentials.CredentialSubject{
 			ID: guardianDID,

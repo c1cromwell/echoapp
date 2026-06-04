@@ -7,10 +7,10 @@ func TestIsPhoneDiscoverable(t *testing.T) {
 	falseVal := false
 
 	cases := []struct {
-		name   string
-		tier   int
-		optIn  *bool
-		want   bool
+		name  string
+		tier  int
+		optIn *bool
+		want  bool
 	}{
 		{"tier3 default", 3, nil, true},
 		{"tier4 default", 4, nil, true},

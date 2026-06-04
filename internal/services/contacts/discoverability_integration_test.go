@@ -22,7 +22,7 @@ func TestCommitDiscoveryKeyRespectsTierPolicy(t *testing.T) {
 
 	if err := svc.CommitDiscoveryKey(ctx, "key_tier3", "did:key:tier3"); err != nil {
 		t.Fatal(err)
-	 }
+	}
 	if err := svc.CommitDiscoveryKey(ctx, "key_tier1", "did:key:tier1"); err != nil {
 		t.Fatal(err)
 	}
