@@ -71,6 +71,16 @@ curl -sD - -o /dev/null -X POST http://localhost:8000/v1/auth/sms-recovery/regis
 
 Force-quit → relaunch → Face ID login → app unlocks.
 
+### Sign out / new account (Settings tab)
+
+| Action | Result |
+|--------|--------|
+| **Sign Out** | Clears session tokens + WS; login screen (Face ID **not** auto-fired once — tap to unlock) |
+| **Set up a new account** | Same + resets onboarding flag → first-run flow (second simulator is safer for a clean second DID) |
+| Login footer **New to Echo? Create account** | Onboarding without clearing returning-user username |
+
+If Sign Out appeared to do nothing before, rebuild from latest `main` (wired `SessionSignOut` + `AppState.signOut()`).
+
 ### Two-client message relay (Wave 0.1)
 
 1. **User A:** New conversation → search **@username** of User B → open chat → send a message.

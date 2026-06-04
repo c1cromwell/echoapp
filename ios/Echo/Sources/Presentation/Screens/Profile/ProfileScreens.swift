@@ -2731,6 +2731,9 @@ public struct AboutView: View {
     let onHelpSupport: () -> Void
     let onAbout: () -> Void
     let onSignOut: () -> Void
+    let onNewAccountSetup: () -> Void
+
+    @State private var showNewAccountAlert = false
 
      init(
         onAccountSettings: @escaping () -> Void = {},
@@ -2740,7 +2743,8 @@ public struct AboutView: View {
         onStorageSettings: @escaping () -> Void = {},
         onHelpSupport: @escaping () -> Void = {},
         onAbout: @escaping () -> Void = {},
-        onSignOut: @escaping () -> Void = {}
+        onSignOut: @escaping () -> Void = {},
+        onNewAccountSetup: @escaping () -> Void = {}
     ) {
         self.onAccountSettings = onAccountSettings
         self.onPrivacySettings = onPrivacySettings
@@ -2750,6 +2754,7 @@ public struct AboutView: View {
         self.onHelpSupport = onHelpSupport
         self.onAbout = onAbout
         self.onSignOut = onSignOut
+        self.onNewAccountSetup = onNewAccountSetup
     }
 
      var body: some View {
@@ -2790,6 +2795,12 @@ public struct AboutView: View {
                                 size: .large,
                                 action: { showSignOutAlert = true }
                             )
+                            EchoButton(
+                                "Set up a new account",
+                                style: .secondary,
+                                size: .large,
+                                action: { showNewAccountAlert = true }
+                            )
                         }
                         .padding(.top, Spacing.lg.rawValue)
                     }
@@ -2802,7 +2813,13 @@ public struct AboutView: View {
             Button("Cancel", role: .cancel) {}
             Button("Sign Out", role: .destructive) { onSignOut() }
         } message: {
-            Text("Are you sure you want to sign out?")
+            Text("You'll return to the login screen. Use Face ID or passkey to sign back in.")
+        }
+        .alert("Set up a new account?", isPresented: $showNewAccountAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Continue", role: .destructive) { onNewAccountSetup() }
+        } message: {
+            Text("Starts onboarding again on this device. Your existing passkey identity may still be in the Secure Enclave — use a second simulator for a clean second account if onboarding fails.")
         }
     }
 }

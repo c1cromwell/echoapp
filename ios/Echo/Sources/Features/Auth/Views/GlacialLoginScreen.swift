@@ -406,6 +406,10 @@ public struct GlacialLoginScreen: View {
             loginState = .hardLocked(until: until)
         case .allowed:
             loginState = .normal
+            if SessionSignOut.shouldSkipLoginAutoUnlock {
+                SessionSignOut.consumeSkipLoginAutoUnlock()
+                return
+            }
             // Auto-trigger Face ID after brief settle
             try? await Task.sleep(nanoseconds: 400_000_000)
             await triggerBiometricLogin()

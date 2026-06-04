@@ -22,6 +22,7 @@ extension View {
 }
 
 struct MainTabView: View {
+    @Environment(AppState.self) private var appState
     @State private var selectedTab: MainTab = .messages
     @State private var hideTabBar = false
 
@@ -49,7 +50,14 @@ struct MainTabView: View {
                 .zIndex(selectedTab == .rewards ? 1 : 0)
 
                 NavigationStack {
-                    SettingsView()
+                    SettingsView(
+                        onSignOut: {
+                            Task { await appState.signOut() }
+                        },
+                        onNewAccountSetup: {
+                            Task { await appState.signOutForNewAccountSetup() }
+                        }
+                    )
                 }
                 .opacity(selectedTab == .settings ? 1 : 0)
                 .zIndex(selectedTab == .settings ? 1 : 0)

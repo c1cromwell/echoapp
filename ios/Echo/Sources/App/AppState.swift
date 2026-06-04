@@ -82,8 +82,22 @@ final class AppState {
         root = .authenticated
     }
 
-    func loggedOut() {
+    /// Sign out from Settings: clear tokens/WS and show login (Face ID not auto-fired once).
+    func signOut() async {
+        await SessionSignOut.perform()
+        selectedTab = .messages
         root = .login
+    }
+
+    /// Full reset for onboarding QA — also clears `echo.hasCompletedFirstRun`.
+    func signOutForNewAccountSetup() async {
+        await SessionSignOut.performIncludingOnboardingReset()
+        selectedTab = .messages
+        root = .firstRun
+    }
+
+    func loggedOut() {
+        Task { await signOut() }
     }
 
     func switchPersona(_ persona: PersonaSummary) {
