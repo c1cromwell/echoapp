@@ -13,10 +13,15 @@ struct MessagesTabView: View {
     @State private var recoveryPromptPresented = false
     @State private var pendingInviteCode: String?
     @State private var chatPath = SwiftUI.NavigationPath()
-    @State private var hiddenPersonaGate: PersonaSummary?
+    @State private var hiddenUnlocked = false
+    @State private var showBiometricGate = false
+    @State private var composeHiddenPresented = false
 
     private var personaFilteredConversations: [StoredConversation] {
-        conversationStore.conversations.filter { $0.personaId == appState.activePersona.id }
+        conversationStore.conversations.filter {
+            $0.personaId == appState.activePersona.id
+                && !ConversationPreferencesStore.shared.isHidden($0.id)
+        }
     }
 
     var body: some View {
@@ -34,6 +39,7 @@ struct MessagesTabView: View {
                 } else {
                     MessagesHubView(
                         conversations: personaFilteredConversations,
+                        hiddenConversations: hiddenConversations,
                         personas: appState.personas,
                         activePersona: appState.activePersona,
                         trustTier: { conversationId in
@@ -41,19 +47,18 @@ struct MessagesTabView: View {
                             return ContactTrustIndex.shared.tier(conversationId: conversationId, peerDID: conv.peerDID)
                         },
                         mutedIDs: mutedConversationIDs,
+                        hiddenUnlocked: hiddenUnlocked,
                         onSelectConversation: { id in
                             if let conversation = conversationStore.conversation(id: id) {
                                 chatPath.append(conversation)
                             }
                         },
                         onCompose: { composeSheetPresented = true },
-                        onOpenHidden: {
-                            if let hidden = appState.personas.first(where: { $0.isHidden }) {
-                                hiddenPersonaGate = hidden
-                            }
-                        },
+                        onComposeHidden: { composeHiddenPresented = true },
+                        onOpenHidden: { showBiometricGate = true },
+                        onLockHidden: { hiddenUnlocked = false },
                         onSwitchPersona: { appState.switchPersona($0) },
-                        onSelectHiddenPersona: { hiddenPersonaGate = $0 }
+                        onSelectHiddenPersona: { _ in showBiometricGate = true }
                     )
                 }
             }
@@ -100,13 +105,19 @@ struct MessagesTabView: View {
             await connectSharedMessageRelay()
             await refreshContactTrustIndex()
         }
-        .sheet(item: $hiddenPersonaGate) { persona in
-            PersonaGateView(personaID: persona.id) {
+        .sheet(isPresented: $showBiometricGate) {
+            PersonaGateView(personaID: "hidden-chats") {
                 Color.clear
                     .onAppear {
-                        appState.switchPersona(persona)
-                        hiddenPersonaGate = nil
+                        hiddenUnlocked = true
+                        showBiometricGate = false
                     }
+            }
+        }
+        .sheet(isPresented: $composeHiddenPresented) {
+            NewConversationSheet { conversation in
+                ConversationPreferencesStore.shared.setHidden(true, for: conversation.id)
+                chatPath.append(conversation)
             }
         }
         .onReceive(
@@ -151,7 +162,12 @@ struct MessagesTabView: View {
             || !conversationStore.conversations.isEmpty
     }
 
-    /// Conversations the user has muted — drives the mute badge on hub rows.
+    private var hiddenConversations: [StoredConversation] {
+        conversationStore.conversations.filter {
+            ConversationPreferencesStore.shared.isHidden($0.id)
+        }
+    }
+
     private var mutedConversationIDs: Set<String> {
         let store = ConversationPreferencesStore.shared
         return Set(conversationStore.conversations.map(\.id).filter { store.isMuted($0) })

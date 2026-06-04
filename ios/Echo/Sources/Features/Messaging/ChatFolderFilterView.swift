@@ -40,13 +40,12 @@ public struct ChatFolderFilterView: View {
 
     public var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.sm.rawValue) {
+            HStack(spacing: 6) {
                 ForEach(ChatFolder.allCases) { folder in
                     chip(folder)
                 }
             }
             .padding(.horizontal, Spacing.lg.rawValue)
-            .padding(.vertical, Spacing.sm.rawValue)
         }
     }
 
@@ -60,7 +59,7 @@ public struct ChatFolderFilterView: View {
         } label: {
             HStack(spacing: 6) {
                 Text(folder.title)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                 if let count = unreadCounts[folder], count > 0 {
                     Text(count > 99 ? "99+" : "\(count)")
                         .font(.system(size: 11, weight: .bold))
@@ -72,8 +71,8 @@ public struct ChatFolderFilterView: View {
                 }
             }
             .foregroundColor(isActive ? .white : .echoInk55)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 7)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
             .background(isActive ? Color.echoSignal : Color.echoPaperDim)
             .clipShape(Capsule())
         }

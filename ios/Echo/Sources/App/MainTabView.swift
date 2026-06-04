@@ -26,7 +26,7 @@ struct MainTabView: View {
     @State private var hideTabBar = false
 
     enum MainTab: String {
-        case messages, contacts, rewards, me
+        case messages, contacts, rewards, settings
     }
 
     var body: some View {
@@ -49,10 +49,10 @@ struct MainTabView: View {
                 .zIndex(selectedTab == .rewards ? 1 : 0)
 
                 NavigationStack {
-                    ProfileTabView()
+                    SettingsView()
                 }
-                .opacity(selectedTab == .me ? 1 : 0)
-                .zIndex(selectedTab == .me ? 1 : 0)
+                .opacity(selectedTab == .settings ? 1 : 0)
+                .zIndex(selectedTab == .settings ? 1 : 0)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .safeAreaPadding(.bottom, hideTabBar ? 0 : 66)
@@ -76,8 +76,8 @@ struct GlacialTabBar: View {
         HStack(spacing: 0) {
             tabButton(.messages, icon: "ellipsis.message", label: "Messages")
             tabButton(.contacts, icon: "person.2", label: "Contacts")
-            tabButton(.rewards, icon: "star", label: "Rewards")
-            tabButton(.me, icon: "person.crop.circle", label: "Profile")
+            tabButton(.rewards, icon: "gift", label: "Rewards")
+            tabButton(.settings, icon: "gearshape", label: "Settings")
         }
         .padding(.top, 10)
         .padding(.bottom, 28)

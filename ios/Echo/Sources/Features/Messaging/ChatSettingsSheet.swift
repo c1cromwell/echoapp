@@ -70,6 +70,16 @@ public struct ChatSettingsSheet: View {
             .padding(.vertical, Spacing.md.rawValue)
             .overlay(Divider(), alignment: .bottom)
 
+            // Hide conversation
+            row(icon: "eye.slash", title: "Hide conversation") {
+                Toggle("", isOn: Binding(
+                    get: { prefs.isHidden },
+                    set: { prefs.isHidden = $0; onChange(prefs) }
+                ))
+                .labelsHidden()
+                .tint(.echoSignal)
+            }
+
             // Verify (DID safety number analog)
             Button(action: onVerify) {
                 row(icon: "checkmark.shield", title: "Verify identity", showChevron: true) { EmptyView() }

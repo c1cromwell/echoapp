@@ -2730,8 +2730,7 @@ public struct AboutView: View {
             VStack(spacing: 0) {
                 EchoNavBar(
                     title: "Settings",
-                    showBackButton: true,
-                    onBackPressed: { dismiss() }
+                    showBackButton: false
                 )
 
                 ScrollView {

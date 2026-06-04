@@ -19,10 +19,12 @@ public enum DisappearingTimer: String, Codable, CaseIterable, Sendable {
 /// Per-conversation preferences backing the chat-settings sheet and row badges.
 public struct ConversationPreferences: Codable, Equatable, Sendable {
     public var isMuted: Bool
+    public var isHidden: Bool
     public var disappearing: DisappearingTimer
 
-    public init(isMuted: Bool = false, disappearing: DisappearingTimer = .off) {
+    public init(isMuted: Bool = false, isHidden: Bool = false, disappearing: DisappearingTimer = .off) {
         self.isMuted = isMuted
+        self.isHidden = isHidden
         self.disappearing = disappearing
     }
 }
@@ -89,5 +91,15 @@ public final class ConversationPreferencesStore {
 
     public func isMuted(_ conversationId: String) -> Bool {
         preferences(for: conversationId).isMuted
+    }
+
+    public func isHidden(_ conversationId: String) -> Bool {
+        preferences(for: conversationId).isHidden
+    }
+
+    public func setHidden(_ hidden: Bool, for conversationId: String) {
+        var prefs = preferences(for: conversationId)
+        prefs.isHidden = hidden
+        save(prefs, for: conversationId)
     }
 }

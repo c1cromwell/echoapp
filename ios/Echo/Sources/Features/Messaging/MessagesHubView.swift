@@ -6,8 +6,8 @@ import SwiftUI
 /// conversation list. Search is icon-toggled (no persistent search bar); hidden
 /// folders open via the folder icon (biometric-gated).
 struct MessagesHubView: View {
-    enum Segment: String, CaseIterable, Identifiable {
-        case chats, groups, pinned, channels
+    enum Segment: String, Identifiable {
+        case chats, groups, pinned, channels, hidden
         var id: String { rawValue }
         var title: String {
             switch self {
@@ -15,19 +15,25 @@ struct MessagesHubView: View {
             case .groups: return "Groups"
             case .pinned: return "Pinned"
             case .channels: return "Channels"
+            case .hidden: return "Hidden"
             }
         }
+        static let standard: [Segment] = [.chats, .groups, .pinned, .channels]
     }
 
     let conversations: [StoredConversation]
+    let hiddenConversations: [StoredConversation]
     let personas: [PersonaSummary]
     let activePersona: PersonaSummary
     let trustTier: (String) -> Int
     let mutedIDs: Set<String>
+    var hiddenUnlocked: Bool = false
 
     let onSelectConversation: (String) -> Void
     let onCompose: () -> Void
+    let onComposeHidden: () -> Void
     let onOpenHidden: () -> Void
+    let onLockHidden: () -> Void
     let onSwitchPersona: (PersonaSummary) -> Void
     let onSelectHiddenPersona: (PersonaSummary) -> Void
 
@@ -56,10 +62,11 @@ struct MessagesHubView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         switch segment {
-                        case .chats:   chatsContent
-                        case .groups:  groupsContent
-                        case .pinned:  pinnedContent
+                        case .chats:    chatsContent
+                        case .groups:   groupsContent
+                        case .pinned:   pinnedContent
                         case .channels: placeholder(icon: "dot.radiowaves.left.and.right", text: "Broadcast channels are coming after groups.")
+                        case .hidden:   hiddenContent
                         }
                     }
                 }
@@ -104,6 +111,13 @@ struct MessagesHubView: View {
                             Button("Done") { showIntegrityExplainer = false }
                         }
                     }
+            }
+        }
+        .onChange(of: hiddenUnlocked) { _, unlocked in
+            if unlocked {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { segment = .hidden }
+            } else if segment == .hidden {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { segment = .chats }
             }
         }
     }
@@ -151,12 +165,11 @@ struct MessagesHubView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Search conversations")
 
-                // Hidden folders — biometric-gated (folder icon next to search)
                 Button(action: onOpenHidden) {
-                    headerIcon("folder", filled: false)
+                    headerIcon("folder", filled: segment == .hidden)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Hidden folders")
+                .accessibilityLabel("Hidden chats")
 
                 Button(action: onCompose) {
                     headerIcon("square.and.pencil", filled: true)
@@ -229,10 +242,11 @@ struct MessagesHubView: View {
     /// dark pill; unselected are muted text (see docs/design-previews/messagehub1.png).
     private var segmentBar: some View {
         HStack(spacing: 4) {
-            ForEach(Segment.allCases) { seg in
+            ForEach(Segment.standard) { seg in
                 let isSelected = segment == seg
                 Button {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { segment = seg }
+                    onLockHidden()
                 } label: {
                     Text(seg.title)
                         .font(.system(size: 14, weight: isSelected ? .semibold : .medium))
@@ -254,7 +268,12 @@ struct MessagesHubView: View {
 
     @ViewBuilder
     private var chatsContent: some View {
+        Spacer().frame(height: 8)
+
         ChatFolderFilterView(selection: $folder, unreadCounts: folderUnreadCounts)
+            .padding(.leading, 4)
+
+        Spacer().frame(height: 6)
 
         if filtered.isEmpty {
             placeholder(icon: "bubble.left.and.bubble.right", text: "No conversations in this filter.")
@@ -356,6 +375,32 @@ struct MessagesHubView: View {
         placeholder(icon: "person.3", text: "You're not in any groups yet.\nTap “New group” to start one.")
     }
 
+    @ViewBuilder
+    private var hiddenContent: some View {
+        Button(action: onComposeHidden) {
+            HStack(spacing: 10) {
+                Image(systemName: "plus.circle.fill").font(.system(size: 20))
+                Text("New hidden chat").font(.system(size: 15, weight: .semibold))
+                Spacer()
+            }
+            .foregroundColor(.echoSignal)
+            .padding(.horizontal, Spacing.lg.rawValue)
+            .padding(.vertical, Spacing.md.rawValue)
+        }
+        .buttonStyle(.plain)
+
+        Divider().background(Color.echoHair).padding(.leading, Spacing.lg.rawValue)
+
+        if hiddenConversations.isEmpty {
+            placeholder(icon: "eye.slash", text: "No hidden chats yet.\nUse chat settings to hide a conversation, or tap \"New hidden chat\" above.")
+        } else {
+            ForEach(hiddenConversations) { conv in
+                conversationRow(conv)
+                Divider().background(Color.echoHair).padding(.leading, 76)
+            }
+        }
+    }
+
     private func placeholder(icon: String, text: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: icon).font(.system(size: 40)).foregroundColor(.echoInk40)
@@ -386,13 +431,16 @@ struct MessagesHubView_Previews: PreviewProvider {
                 StoredConversation(contactName: "Aria Rao", peerDID: "did:key:a", lastMessage: "Signed receipt ✓", timestamp: "9:32", unreadCount: 3, isOnline: true),
                 StoredConversation(contactName: "Kai Mercer", peerDID: "did:key:k", lastMessage: "Typing…", timestamp: "8:58"),
             ],
+            hiddenConversations: [],
             personas: [PersonaSummary(id: "default", name: "Aria (public)", initials: "AR")],
             activePersona: PersonaSummary(id: "default", name: "Aria (public)", initials: "AR"),
             trustTier: { _ in 3 },
             mutedIDs: [],
             onSelectConversation: { _ in },
             onCompose: {},
+            onComposeHidden: {},
             onOpenHidden: {},
+            onLockHidden: {},
             onSwitchPersona: { _ in },
             onSelectHiddenPersona: { _ in }
         )
