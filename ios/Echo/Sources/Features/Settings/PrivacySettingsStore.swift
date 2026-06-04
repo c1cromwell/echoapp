@@ -18,4 +18,24 @@ enum PrivacySettingsStore {
         UserDefaults.standard.set(data, forKey: key)
     }
 }
+
+/// Per-persona messaging privacy (typing / read receipts) for Phase 3 signal merge.
+enum PersonaPrivacySettingsStore {
+    private static func key(personaId: String) -> String {
+        "echo.personaPrivacy.\(personaId).v1"
+    }
+
+    static func load(personaId: String = PersonaSessionStore.activePersonaId) -> PersonaPrivacySettings {
+        guard let data = UserDefaults.standard.data(forKey: key(personaId: personaId)),
+              let decoded = try? JSONDecoder().decode(PersonaPrivacySettings.self, from: data) else {
+            return PersonaPrivacySettings()
+        }
+        return decoded
+    }
+
+    static func save(_ settings: PersonaPrivacySettings, personaId: String = PersonaSessionStore.activePersonaId) {
+        guard let data = try? JSONEncoder().encode(settings) else { return }
+        UserDefaults.standard.set(data, forKey: key(personaId: personaId))
+    }
+}
 #endif

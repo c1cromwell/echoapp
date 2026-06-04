@@ -136,6 +136,7 @@ struct ChatView: View {
     @State private var showChatSettings = false
     @State private var actionsTargetMessage: ChatDetailMessage?
     @State private var reactorDetail: (emoji: String, reactors: [String])?
+    @State private var groupsInCommonText = "No groups in common"
 
     let contactName: String
     let conversationId: String
@@ -294,8 +295,8 @@ struct ChatView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 0) {
-                if viewModel.peerIsTyping {
-                    TypingIndicatorView(label: viewModel.typingStatusText)
+                if let label = viewModel.typingStatusText {
+                    TypingIndicatorView(label: label)
                         .transition(.opacity.combined(with: .move(edge: .bottom)))
                         .padding(.vertical, 4)
                         .padding(.horizontal, Spacing.md.rawValue)
@@ -342,8 +343,10 @@ struct ChatView: View {
             let reactions: ReactionsAPI? = DIContainer.shared.resolveReactionsAPI()
             let privacy = MessagingPrivacyPreferences.merged(
                 global: PrivacySettingsStore.load(),
-                persona: PersonaPrivacySettings()
+                persona: PersonaPrivacySettingsStore.load()
             )
+            ActiveChatRegistry.openConversationId = conversationId
+            ConversationStore.shared.clearUnread(conversationId: conversationId)
             viewModel.configure(
                 conversationId: conversationId,
                 peerDID: peerDID,
@@ -360,8 +363,12 @@ struct ChatView: View {
                 .filter { !$0.isFromCurrentUser }
                 .map(\.id)
             await viewModel.onMessagesVisible(peerVisible)
+            await loadGroupsInCommonSummary()
         }
         .onDisappear {
+            if ActiveChatRegistry.openConversationId == conversationId {
+                ActiveChatRegistry.openConversationId = nil
+            }
             Task { await viewModel.disconnect() }
         }
         .onTapGesture {
@@ -458,7 +465,7 @@ struct ChatView: View {
             HStack(spacing: 6) {
                 Image(systemName: "person.2")
                     .font(.system(size: 13))
-                Text("No groups in common")
+                Text(groupsInCommonText)
                     .font(.system(size: 14))
             }
             .foregroundColor(.echoInk55)
@@ -475,11 +482,38 @@ struct ChatView: View {
         .padding(.bottom, 8)
     }
 
+    private func loadGroupsInCommonSummary() async {
+        guard !peerDID.isEmpty,
+              let client = DIContainer.shared.resolveAPIClient() else { return }
+        let social = ContactSocialAPIClient(apiClient: client)
+        guard let rel = try? await social.fetchRelationship(peerDID: peerDID) else { return }
+        let groups = rel.mutual_groups ?? []
+        let count = rel.mutual_groups_count ?? groups.count
+        guard count > 0 else {
+            groupsInCommonText = "No groups in common"
+            return
+        }
+        let names = groups.compactMap(\.name).filter { !$0.isEmpty }
+        if names.isEmpty {
+            groupsInCommonText = count == 1 ? "1 group in common" : "\(count) groups in common"
+        } else if names.count == 1, count == 1 {
+            groupsInCommonText = names[0]
+        } else {
+            let head = names.prefix(2).joined(separator: ", ")
+            groupsInCommonText = count > 2 ? "\(head) +\(count - 2) more" : head
+        }
+    }
+
     private func handleMessageAction(_ action: MessageAction, on message: ChatDetailMessage) {
         switch action {
         case .delete:
             viewModel.messages.removeAll { $0.id == message.id }
-        case .copy, .reply, .forward, .pin, .edit:
+            ConversationThreadStore.replace(conversationId: conversationId, messages: viewModel.messages)
+        case .copy:
+            #if os(iOS)
+            UIPasteboard.general.string = message.content
+            #endif
+        case .reply, .forward, .pin, .edit:
             break
         }
     }

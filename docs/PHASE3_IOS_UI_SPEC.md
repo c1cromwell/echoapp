@@ -43,10 +43,11 @@ sources to `EchoApp.xcodeproj`, manual two-client checklist (Step 5 manual).
 | Backend REST reactions | ✅ Shipped | `POST /v3/messages/react`, `GET /v3/messages/reactions` |
 | iOS wire models + signal service | ✅ Landed | `ConversationSignal.swift`, `ConversationSignalService`, `EchoPhase3Tests` |
 | iOS WS auth token on connect | ✅ Landed | `WebSocketURLBuilder` + tab-level + per-chat connect |
-| iOS chat UI wired to domain models | ⚠️ Partial | `ChatView` binds `ChatDetailViewModel`; boundary maps `DeliveryStatus` |
+| iOS chat UI wired to domain models | ✅ Wired | `ChatView` binds `ChatDetailViewModel`; boundary maps `DeliveryStatus` |
 | iOS ViewModel for open chat | ✅ Landed | `ChatDetailViewModel` — typing, receipts, reactions, text relay |
-| Privacy toggles | ✅ Wired | `PrivacySettingsStore` + `MessagingPrivacyPreferences.merged` in `ChatView` |
-| Two-client manual proof | 🔜 Required | `make phase3-signals-proof` then E2E §6.4 / Step 5 |
+| Local thread history | ✅ Wired | `ConversationThreadStore` + tab inbound relay |
+| Privacy toggles | ✅ Wired | `PrivacySettingsStore` + `PersonaPrivacySettingsStore` merged in `ChatView` |
+| Two-client manual proof | 🔜 Required | `make phase3-signals-proof` then [`TESTFLIGHT_WEEK_A_B.md`](TESTFLIGHT_WEEK_A_B.md) A1–A10 |
 
 **Can this be implemented with tests?** **Yes**, with a deliberate split:
 

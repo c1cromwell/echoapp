@@ -51,9 +51,13 @@ struct PrivacyHubView: View {
         .navigationTitle("Privacy")
         .task {
             privacySettings = PrivacySettingsStore.load()
+            personaPrivacySettings = PersonaPrivacySettingsStore.load()
             sessionDID = await CurrentUserSession.currentDID() ?? ""
         }
-        .onDisappear { PrivacySettingsStore.save(privacySettings) }
+        .onDisappear {
+            PrivacySettingsStore.save(privacySettings)
+            PersonaPrivacySettingsStore.save(personaPrivacySettings)
+        }
         .sheet(isPresented: $showPhoneBackup) {
             if !sessionDID.isEmpty {
                 SMSOTPSetupView(did: sessionDID) {

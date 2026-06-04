@@ -79,6 +79,27 @@ final class ChatDetailViewModelTests: XCTestCase {
         XCTAssertTrue(transport.sentTexts.contains(where: { $0.contains("\"type\":\"text\"") }))
     }
 
+    func testConfigure_loadsPersistedThread() async {
+        let stored = ChatDetailMessage(
+            id: "stored-1",
+            senderDID: "did:key:peer",
+            currentUserDID: "did:key:me",
+            content: "Earlier"
+        )
+        ConversationThreadStore.appendIfNew(conversationId: "conv-1", message: stored)
+        defer { UserDefaults.standard.removeObject(forKey: "echo.thread.v1.conv-1") }
+
+        let fresh = ChatDetailViewModel(signalService: service)
+        fresh.configure(
+            conversationId: "conv-1",
+            peerDID: "did:key:peer",
+            currentUserDID: "did:key:me",
+            reactionsAPI: reactions
+        )
+        XCTAssertEqual(fresh.messages.count, 1)
+        XCTAssertEqual(fresh.messages.first?.content, "Earlier")
+    }
+
     func testInboundTextMessage_appendsPeerMessage() async {
         transport.simulateIncoming("""
         {"type":"text","from":"did:key:peer","to":"did:key:me","conversation_id":"conv-1","payload":{"text":"Hey","message_id":"peer-msg-1"}}

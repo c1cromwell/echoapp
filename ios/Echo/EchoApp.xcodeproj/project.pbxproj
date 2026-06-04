@@ -228,6 +228,9 @@
 		W0E00101234567890123401C /* ReactionPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E00101234567890123401B /* ReactionPickerView.swift */; };
 		W0E00101234567890123401E /* ReactionsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E00101234567890123401F /* ReactionsAPI.swift */; };
 		W0E001012345678901234021 /* WebSocketURLBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E001012345678901234020 /* WebSocketURLBuilder.swift */; };
+		W0E001012345678901234023 /* ConversationThreadStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E001012345678901234022 /* ConversationThreadStore.swift */; };
+		W0E001012345678901234025 /* InboundTextMessageResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E001012345678901234024 /* InboundTextMessageResolver.swift */; };
+		W0E001012345678901234027 /* ActiveChatRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E001012345678901234026 /* ActiveChatRegistry.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -454,6 +457,9 @@
 		W0E00101234567890123401B /* ReactionPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactionPickerView.swift; sourceTree = "<group>"; };
 		W0E00101234567890123401F /* ReactionsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactionsAPI.swift; sourceTree = "<group>"; };
 		W0E001012345678901234020 /* WebSocketURLBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketURLBuilder.swift; sourceTree = "<group>"; };
+		W0E001012345678901234022 /* ConversationThreadStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationThreadStore.swift; sourceTree = "<group>"; };
+		W0E001012345678901234024 /* InboundTextMessageResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboundTextMessageResolver.swift; sourceTree = "<group>"; };
+		W0E001012345678901234026 /* ActiveChatRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveChatRegistry.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -594,6 +600,7 @@
 				F1A2B3C4012345678900007 /* ContactDiscoveryAPIClient.swift */,
 				F1A2B3C4012345678900009 /* ContactDiscoveryService.swift */,
 				W0E001012345678901234001 /* ConversationStore.swift */,
+				W0E001012345678901234022 /* ConversationThreadStore.swift */,
 				P3B001012345678901234001 /* PinnedConversationsStore.swift */,
 				P3B001012345678901234003 /* ContactTrustIndex.swift */,
 				P3B001012345678901234005 /* PersonaSessionStore.swift */,
@@ -746,6 +753,8 @@
 				W0E001012345678901234013 /* ChatDetailViewModel.swift */,
 				W0E001012345678901234005 /* ChatDestinationView.swift */,
 				W0E001012345678901234015 /* ConversationSignalLogic.swift */,
+				W0E001012345678901234024 /* InboundTextMessageResolver.swift */,
+				W0E001012345678901234026 /* ActiveChatRegistry.swift */,
 				P3B001012345678901234009 /* EditPinnedSheet.swift */,
 				01B3ED7C410F4D39DAB12468 /* EmptyState */,
 				P3B001012345678901234007 /* MessagesHubSupport.swift */,
@@ -1523,6 +1532,9 @@
 				W0E00101234567890123401C /* ReactionPickerView.swift in Sources */,
 				W0E00101234567890123401E /* ReactionsAPI.swift in Sources */,
 				W0E001012345678901234021 /* WebSocketURLBuilder.swift in Sources */,
+				W0E001012345678901234023 /* ConversationThreadStore.swift in Sources */,
+				W0E001012345678901234025 /* InboundTextMessageResolver.swift in Sources */,
+				W0E001012345678901234027 /* ActiveChatRegistry.swift in Sources */,
 				TF001A2B3C4D5E6F7890002 /* EchoAPIBaseURL.swift in Sources */,
 				TF001A2B3C4D5E6F7890004 /* DidKeyDeriver.swift in Sources */,
 			);

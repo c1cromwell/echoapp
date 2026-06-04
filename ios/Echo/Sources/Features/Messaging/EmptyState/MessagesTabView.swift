@@ -231,21 +231,28 @@ struct MessagesTabView: View {
 
         service.setInboundTextHandler { event in
             Task { @MainActor in
-                var preview = event.text
-                if let wire = event.wirePayload, wire.encrypted != nil {
-                    let client = DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
-                    let crypto = TextMessageCrypto(identityResolve: IdentityResolveClient(apiClient: client))
-                    if let decrypted = try? await crypto.decryptPayload(wire) {
-                        preview = decrypted
-                    } else {
-                        preview = "Encrypted message"
-                    }
-                }
+                let resolved = await InboundTextMessageResolver.resolveBody(for: event)
                 let store = ConversationStore.shared
                 let match = store.conversations.first(where: { $0.id == event.conversationId })
                     ?? store.conversations.first(where: { $0.peerDID == event.peerDID })
                 guard let conversation = match else { return }
-                store.appendMessagePreview(conversationId: conversation.id, preview: preview)
+
+                let currentDID = await CurrentUserSession.currentDID() ?? ""
+                guard !event.peerDID.isEmpty, event.peerDID != currentDID else { return }
+
+                let inbound = ChatDetailMessage(
+                    id: event.messageId,
+                    senderDID: event.peerDID,
+                    currentUserDID: currentDID,
+                    content: resolved.body,
+                    timestamp: "Now",
+                    deliveryStatus: .delivered
+                )
+                ConversationThreadStore.appendIfNew(conversationId: conversation.id, message: inbound)
+                store.appendMessagePreview(conversationId: conversation.id, preview: resolved.preview)
+                if ActiveChatRegistry.openConversationId != conversation.id {
+                    store.incrementUnread(conversationId: conversation.id)
+                }
             }
         }
 

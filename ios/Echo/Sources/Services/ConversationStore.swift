@@ -82,6 +82,20 @@ final class ConversationStore {
         persist()
     }
 
+    func clearUnread(conversationId: String) {
+        guard let idx = conversations.firstIndex(where: { $0.id == conversationId }) else { return }
+        guard conversations[idx].unreadCount > 0 else { return }
+        conversations[idx].unreadCount = 0
+        persist()
+    }
+
+    func incrementUnread(conversationId: String) {
+        guard let idx = conversations.firstIndex(where: { $0.id == conversationId }) else { return }
+        conversations[idx].unreadCount += 1
+        conversations[idx].timestamp = "Now"
+        persist()
+    }
+
     func conversation(id: String) -> StoredConversation? {
         conversations.first { $0.id == id }
     }

@@ -2,7 +2,8 @@
 
 **One page** for TestFlight prep and day-to-day iOS testing. Full detail: [`E2E_LAUNCH_AND_TESTING.md`](E2E_LAUNCH_AND_TESTING.md).
 
-**Sprint checklist:** [`WEEK_A_B_LAUNCH.md`](WEEK_A_B_LAUNCH.md) (Week A messaging go/no-go → Week B contacts).
+**Sprint checklist:** [`WEEK_A_B_LAUNCH.md`](WEEK_A_B_LAUNCH.md) (Week A messaging go/no-go → Week B contacts).  
+**TestFlight testers:** [`TESTFLIGHT_WEEK_A_B.md`](TESTFLIGHT_WEEK_A_B.md) (one-page A1–A10 / B1–B6 script).
 
 **Onboarding & login are frozen** — validate the shipped `FirstRunCoordinator` / `GlacialLoginScreen` flows below; do **not** redesign from the React prototype (`docs/Echo Design System Setup_latest/.../onboarding/*`). See [`ux-spec.md`](ux-spec.md) and [`ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) §0.
 
