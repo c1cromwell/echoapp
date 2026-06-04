@@ -59,11 +59,20 @@ Use **User A** and **User B**. Record pass/fail per row.
 
 ---
 
+## Week B+ — Message actions (optional after Week A)
+
+| # | Action | Pass if |
+|---|--------|---------|
+| C1 | Long-press → **Reply** → send | Quote strip shows; reply appears above your bubble |
+| C2 | Long-press → **Forward** → pick another chat | Message appears in other thread with ↪ prefix |
+| C3 | Long-press → **Pin** | Pinned banner at top; tap scrolls to message |
+| C4 | Long-press own message (<15 min) → **Edit** | Composer shows “Edit message”; text updates |
+
 ## Out of scope (do not file as Week A/B bugs)
 
 - Creating groups UI (coming soon sheet only)
 - Hub **Channels** tab
-- Reply / forward / pin / edit (not implemented)
+- Edit/delete synced to other devices via server
 
 ---
 

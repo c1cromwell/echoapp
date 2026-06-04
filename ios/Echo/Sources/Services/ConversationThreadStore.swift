@@ -8,6 +8,9 @@ struct StoredThreadMessage: Codable, Equatable, Sendable, Identifiable {
     var content: String
     var timestamp: String
     var deliveryStatus: DeliveryStatus?
+    var replyToMessageId: String?
+    var replyPreview: String?
+    var sentAtISO: String?
 
     func asChatDetailMessage(currentUserDID: String) -> ChatDetailMessage {
         ChatDetailMessage(
@@ -16,7 +19,10 @@ struct StoredThreadMessage: Codable, Equatable, Sendable, Identifiable {
             currentUserDID: currentUserDID,
             content: content,
             timestamp: timestamp,
-            deliveryStatus: deliveryStatus
+            deliveryStatus: deliveryStatus,
+            replyToMessageId: replyToMessageId,
+            replyPreview: replyPreview,
+            sentAt: StoredThreadMessage.parseSentAt(sentAtISO)
         )
     }
 
@@ -26,6 +32,26 @@ struct StoredThreadMessage: Codable, Equatable, Sendable, Identifiable {
         content = message.content
         timestamp = message.timestamp
         deliveryStatus = message.deliveryStatus
+        replyToMessageId = message.replyToMessageId
+        replyPreview = message.replyPreview
+        sentAtISO = StoredThreadMessage.formatSentAt(message.sentAt)
+    }
+
+    private static let sentAtFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    static func formatSentAt(_ date: Date?) -> String? {
+        guard let date else { return nil }
+        return sentAtFormatter.string(from: date)
+    }
+
+    static func parseSentAt(_ iso: String?) -> Date? {
+        guard let iso, !iso.isEmpty else { return nil }
+        return sentAtFormatter.date(from: iso)
+            ?? ISO8601DateFormatter().date(from: iso)
     }
 }
 

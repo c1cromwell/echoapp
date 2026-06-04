@@ -13,6 +13,8 @@ final class ChatDetailViewModel {
     var messages: [ChatDetailMessage] = []
     var inputText = ""
     var errorMessage: String?
+    var replyingTo: ChatDetailMessage?
+    var editingMessageId: String?
 
     // MARK: - Configuration
 
@@ -130,6 +132,37 @@ final class ChatDetailViewModel {
         inputText = ""
     }
 
+    func cancelComposerMode() {
+        replyingTo = nil
+        editingMessageId = nil
+    }
+
+    func beginReply(to message: ChatDetailMessage) {
+        editingMessageId = nil
+        replyingTo = message
+    }
+
+    func beginEdit(message: ChatDetailMessage) {
+        replyingTo = nil
+        editingMessageId = message.id
+        inputText = message.content
+    }
+
+    func applyEdit(messageId: String, newText: String) async -> Bool {
+        let trimmed = newText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let idx = messages.firstIndex(where: { $0.id == messageId }),
+              MessageComposerLogic.canEdit(
+                  sentAt: messages[idx].sentAt,
+                  isOwnMessage: messages[idx].isFromCurrentUser
+              ) else { return false }
+        messages[idx].content = trimmed
+        syncThreadStore()
+        editingMessageId = nil
+        inputText = ""
+        return true
+    }
+
     // MARK: - Outbound send
 
     /// Optimistically append an outbound message, route it to the send hook, and
@@ -137,9 +170,15 @@ final class ChatDetailViewModel {
     /// reconcile delivery status. Single source of truth for the send path —
     /// `ChatView` calls this instead of mutating `messages` directly.
     @discardableResult
-    func sendMessage(_ text: String) async -> String? {
+    func sendMessage(_ text: String, replyTo: ChatDetailMessage? = nil) async -> String? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
+
+        let replyTarget = replyTo ?? replyingTo
+        let replyId = replyTarget?.id
+        let replyPreview = replyTarget.map {
+            MessageComposerLogic.replyPreview(authorName: peerDisplayNameForReply($0), content: $0.content)
+        }
 
         let message = ChatDetailMessage(
             id: UUID().uuidString,
@@ -147,7 +186,10 @@ final class ChatDetailViewModel {
             currentUserDID: currentUserDID,
             content: trimmed,
             timestamp: "Now",
-            deliveryStatus: .sending
+            deliveryStatus: .sending,
+            replyToMessageId: replyId,
+            replyPreview: replyPreview,
+            sentAt: Date()
         )
         messages.append(message)
         ConversationThreadStore.appendIfNew(conversationId: conversationId, message: message)
@@ -181,8 +223,13 @@ final class ChatDetailViewModel {
             }
         }
 
+        cancelComposerMode()
         await onSendTapped()
         return message.id
+    }
+
+    private func peerDisplayNameForReply(_ message: ChatDetailMessage) -> String {
+        message.isFromCurrentUser ? "You" : peerDisplayName
     }
 
     private func scheduleIdleStopIfNeeded(hasText: Bool) async {
@@ -393,6 +440,9 @@ struct ChatDetailMessage: Identifiable, Equatable {
     var deliveryStatus: DeliveryStatus?
     var reactions: [ReactionCount]
     var isRead: Bool
+    var replyToMessageId: String?
+    var replyPreview: String?
+    var sentAt: Date?
 
     init(
         id: String,
@@ -402,7 +452,10 @@ struct ChatDetailMessage: Identifiable, Equatable {
         timestamp: String = "",
         deliveryStatus: DeliveryStatus? = nil,
         reactions: [ReactionCount] = [],
-        isRead: Bool = false
+        isRead: Bool = false,
+        replyToMessageId: String? = nil,
+        replyPreview: String? = nil,
+        sentAt: Date? = nil
     ) {
         self.id = id
         self.senderDID = senderDID
@@ -412,5 +465,8 @@ struct ChatDetailMessage: Identifiable, Equatable {
         self.deliveryStatus = deliveryStatus
         self.reactions = reactions
         self.isRead = isRead
+        self.replyToMessageId = replyToMessageId
+        self.replyPreview = replyPreview
+        self.sentAt = sentAt
     }
 }

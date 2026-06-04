@@ -23,7 +23,7 @@ Companion to [`E2E_QUICK_START.md`](E2E_QUICK_START.md), [`TESTFLIGHT_WEEK_A_B.m
 | Reactions (REST + WS, picker/chips) | ✅ | 🔜 A7 |
 | Glacial tab bar hidden on chat; composer `safeAreaInset` | ✅ | — |
 | Copy message action | ✅ | — |
-| Reply / forward / pin / edit | ⬜ | — |
+| Reply / forward / pin / edit | ✅ local | 🔜 |
 | Chat profile “groups in common” | ✅ API | 🔜 (Week B B3 overlap) |
 
 ### Week B — Contacts (after Week A green)
@@ -118,7 +118,21 @@ Use [`TESTFLIGHT_WEEK_A_B.md`](TESTFLIGHT_WEEK_A_B.md) steps **B1–B6**.
 
 ---
 
+## Week B+ — Message actions (landed on `main`)
+
+| Action | Behavior |
+|--------|----------|
+| **Reply** | Composer quote strip; stores reply metadata on sent message |
+| **Forward** | Sheet → pick another thread; `↪` prefix + local + WS send |
+| **Pin** | One pinned message per chat (banner); toggle to unpin |
+| **Edit** | Own messages within 15 minutes; local content update |
+
+No server-side edit/delete sync yet — local thread + relay text only.
+
+---
+
 ## Out of scope this sprint
 
 - Groups create UI beyond coming-soon sheet
 - Hub Channels segment implementation
+- Cross-device edit/delete reconciliation

@@ -137,6 +137,9 @@ struct ChatView: View {
     @State private var actionsTargetMessage: ChatDetailMessage?
     @State private var reactorDetail: (emoji: String, reactors: [String])?
     @State private var groupsInCommonText = "No groups in common"
+    @State private var pinnedMessageId: String?
+    @State private var showForwardSheet = false
+    @State private var forwardPreview = ""
 
     let contactName: String
     let conversationId: String
@@ -184,6 +187,20 @@ struct ChatView: View {
                 SecureThreadIndicator()
 
                 ScrollViewReader { proxy in
+                    if let pinned = pinnedMessage(for: pinnedMessageId) {
+                        ChatPinnedMessageBanner(
+                            authorLabel: pinned.isFromCurrentUser ? "Pinned · You" : "Pinned · \(contactName)",
+                            preview: pinned.content,
+                            onUnpin: {
+                                ConversationPinnedMessageStore.setPinnedMessageId(nil, conversationId: conversationId)
+                                pinnedMessageId = nil
+                            },
+                            onTap: {
+                                withAnimation { proxy.scrollTo(pinned.id, anchor: .center) }
+                            }
+                        )
+                    }
+
                     List {
                         if viewModel.messages.isEmpty {
                             contactProfileCard
@@ -196,6 +213,16 @@ struct ChatView: View {
                                 alignment: message.isFromCurrentUser ? .trailing : .leading,
                                 spacing: 4
                             ) {
+                                if let quote = message.replyPreview, !quote.isEmpty {
+                                    Text(quote)
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.echoInk55)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(Color.echoPaperDim)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        .frame(maxWidth: 280, alignment: message.isFromCurrentUser ? .trailing : .leading)
+                                }
                                 MessageBubble(
                                     message: message.content,
                                     isSent: message.isFromCurrentUser,
@@ -301,6 +328,23 @@ struct ChatView: View {
                         .padding(.vertical, 4)
                         .padding(.horizontal, Spacing.md.rawValue)
                 }
+                if let reply = viewModel.replyingTo {
+                    ChatComposerBanner(
+                        mode: .reply(
+                            author: reply.isFromCurrentUser ? "You" : contactName,
+                            preview: MessageComposerLogic.replyPreview(
+                                authorName: reply.isFromCurrentUser ? "You" : contactName,
+                                content: reply.content
+                            )
+                        ),
+                        onCancel: { viewModel.cancelComposerMode() }
+                    )
+                } else if viewModel.editingMessageId != nil {
+                    ChatComposerBanner(mode: .edit, onCancel: {
+                        viewModel.cancelComposerMode()
+                        messageText = ""
+                    })
+                }
                 chatComposerBar
             }
             .background(Color.echoPaperDim)
@@ -331,7 +375,10 @@ struct ChatView: View {
             MessageActionsSheet(
                 messagePreview: message.content,
                 isOwnMessage: message.isFromCurrentUser,
-                sentWithinEditWindow: message.isFromCurrentUser,
+                sentWithinEditWindow: MessageComposerLogic.canEdit(
+                    sentAt: message.sentAt,
+                    isOwnMessage: message.isFromCurrentUser
+                ),
                 onAction: { action in
                     handleMessageAction(action, on: message)
                     actionsTargetMessage = nil
@@ -364,6 +411,14 @@ struct ChatView: View {
                 .map(\.id)
             await viewModel.onMessagesVisible(peerVisible)
             await loadGroupsInCommonSummary()
+            pinnedMessageId = ConversationPinnedMessageStore.pinnedMessageId(conversationId: conversationId)
+        }
+        .sheet(isPresented: $showForwardSheet) {
+            ForwardMessageSheet(
+                messagePreview: forwardPreview,
+                excludingConversationId: conversationId,
+                onForwarded: { forwardPreview = "" }
+            )
         }
         .onDisappear {
             if ActiveChatRegistry.openConversationId == conversationId {
@@ -504,17 +559,38 @@ struct ChatView: View {
         }
     }
 
+    private func pinnedMessage(for id: String?) -> ChatDetailMessage? {
+        guard let id else { return nil }
+        return viewModel.messages.first { $0.id == id }
+    }
+
     private func handleMessageAction(_ action: MessageAction, on message: ChatDetailMessage) {
         switch action {
         case .delete:
             viewModel.messages.removeAll { $0.id == message.id }
             ConversationThreadStore.replace(conversationId: conversationId, messages: viewModel.messages)
+            if pinnedMessageId == message.id {
+                ConversationPinnedMessageStore.setPinnedMessageId(nil, conversationId: conversationId)
+                pinnedMessageId = nil
+            }
         case .copy:
             #if os(iOS)
             UIPasteboard.general.string = message.content
             #endif
-        case .reply, .forward, .pin, .edit:
-            break
+        case .reply:
+            viewModel.beginReply(to: message)
+        case .edit:
+            viewModel.beginEdit(message: message)
+            messageText = message.content
+        case .forward:
+            forwardPreview = message.content
+            showForwardSheet = true
+        case .pin:
+            let isPinned = ConversationPinnedMessageStore.togglePin(
+                messageId: message.id,
+                conversationId: conversationId
+            )
+            pinnedMessageId = isPinned ? message.id : nil
         }
     }
 
@@ -541,7 +617,13 @@ struct ChatView: View {
             Button {
                 let text = messageText
                 messageText = ""
-                Task { await viewModel.sendMessage(text) }
+                Task {
+                    if let editId = viewModel.editingMessageId {
+                        _ = await viewModel.applyEdit(messageId: editId, newText: text)
+                    } else {
+                        await viewModel.sendMessage(text)
+                    }
+                }
             } label: {
                 Image(systemName: "paperplane.fill")
                     .font(.system(size: 18, weight: .semibold))
