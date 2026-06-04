@@ -31,14 +31,14 @@ final class WalletCredentialEnrollmentViewModel {
 
         do {
             let useCase = RegisterWithVerifiableCredentialUseCase(enrollmentAPI: api)
-            let bundle = try await useCase.execute(claims: .minimumForTier4) { phase in
+            let bundle = try await useCase.execute(claims: .minimumForTier4) { [self] phase in
                 switch phase {
                 case .preparingRequest:
-                    state = .generatingRequest
+                    self.state = .generatingRequest
                 case .awaitingWallet:
-                    state = .awaitingWallet
+                    self.state = .awaitingWallet
                 case .verifying:
-                    state = .verifying
+                    self.state = .verifying
                 }
             }
             state = .success(bundle)

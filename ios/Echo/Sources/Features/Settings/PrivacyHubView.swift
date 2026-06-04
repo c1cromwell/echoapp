@@ -71,7 +71,7 @@ struct ContactDiscoverySettingsView: View {
                 }
                 .disabled(isLoading || api == nil)
             }
-            Section("Contact scan") {
+            Section {
                 Picker("Automatic scan", selection: $syncCadence) {
                     ForEach(ContactDiscoverySyncCadence.allCases, id: \.self) { cadence in
                         Text(cadence.label).tag(cadence)
@@ -80,6 +80,8 @@ struct ContactDiscoverySettingsView: View {
                 .onChange(of: syncCadence) { _, newValue in
                     ContactDiscoverySyncPreferences.cadence = newValue
                 }
+            } header: {
+                Text("Contact scan")
             } footer: {
                 Text("Manual only runs when you tap Scan in Privacy → Contact discovery (PSI). Weekly and monthly are stored locally until background sync ships.")
             }

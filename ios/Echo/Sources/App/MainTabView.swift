@@ -31,28 +31,31 @@ struct MainTabView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            TabView(selection: $selectedTab) {
-                NavigationStack {
-                    MessagesTabView()
-                }
-                .tag(MainTab.messages)
+            ZStack {
+                MessagesTabView()
+                    .opacity(selectedTab == .messages ? 1 : 0)
+                    .zIndex(selectedTab == .messages ? 1 : 0)
 
                 NavigationStack {
                     ContactsListView()
                 }
-                .tag(MainTab.contacts)
+                .opacity(selectedTab == .contacts ? 1 : 0)
+                .zIndex(selectedTab == .contacts ? 1 : 0)
 
                 NavigationStack {
                     RewardsDashboardView()
                 }
-                .tag(MainTab.rewards)
+                .opacity(selectedTab == .rewards ? 1 : 0)
+                .zIndex(selectedTab == .rewards ? 1 : 0)
 
                 NavigationStack {
                     ProfileTabView()
                 }
-                .tag(MainTab.me)
+                .opacity(selectedTab == .me ? 1 : 0)
+                .zIndex(selectedTab == .me ? 1 : 0)
             }
-            .labelsHidden()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .safeAreaPadding(.bottom, hideTabBar ? 0 : 66)
 
             if !hideTabBar {
                 GlacialTabBar(selectedTab: $selectedTab)
@@ -70,22 +73,21 @@ struct GlacialTabBar: View {
     @Binding var selectedTab: MainTabView.MainTab
 
     var body: some View {
-        HStack {
-            tabButton(.messages, icon: "message", label: "Messages")
+        HStack(spacing: 0) {
+            tabButton(.messages, icon: "ellipsis.message", label: "Messages")
             tabButton(.contacts, icon: "person.2", label: "Contacts")
             tabButton(.rewards, icon: "star", label: "Rewards")
-            tabButton(.me, icon: "person", label: "Profile")
+            tabButton(.me, icon: "person.crop.circle", label: "Profile")
         }
-        .padding(.horizontal, 8)
-        .padding(.bottom, 20) // safe area
-        .frame(height: 82)
+        .padding(.top, 10)
+        .padding(.bottom, 28)
         .background(
-            Color.Echo.surfaceContainerLowest
-                .shadow(color: Color.Echo.onSurface.opacity(0.04), radius: 8, y: -4)
+            Color.echoPaper
+                .shadow(color: Color.black.opacity(0.06), radius: 12, y: -4)
+                .ignoresSafeArea(edges: .bottom)
         )
     }
 
-    /// `icon` is the SF Symbol base name; the filled variant is shown when selected.
     private func tabButton(_ tab: MainTabView.MainTab, icon: String, label: String) -> some View {
         let isSelected = selectedTab == tab
         return Button {
@@ -94,22 +96,20 @@ struct GlacialTabBar: View {
             VStack(spacing: 4) {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: isSelected ? "\(icon).fill" : icon)
-                        .font(.system(size: 24, weight: isSelected ? .semibold : .regular))
-                        .foregroundStyle(isSelected ? Color.Echo.primaryContainer : Color.Echo.outline)
+                        .font(.system(size: 22))
+                        .foregroundStyle(isSelected ? Color.echoPrimary : Color.echoInk40)
 
-                    // Unread badge (Messages only)
                     if tab == .messages {
                         Circle()
-                            .fill(Color.Echo.error)
-                            .frame(width: 8, height: 8)
+                            .fill(Color.red)
+                            .frame(width: 7, height: 7)
                             .offset(x: 4, y: -2)
                     }
                 }
 
                 Text(label)
-                    .font(.system(size: 10))
-                    .fontWeight(isSelected ? .semibold : .medium)
-                    .foregroundStyle(isSelected ? Color.Echo.primaryContainer : Color.Echo.outline)
+                    .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
+                    .foregroundStyle(isSelected ? Color.echoPrimary : Color.echoInk40)
             }
             .frame(maxWidth: .infinity)
         }

@@ -31,6 +31,7 @@ struct ChatDestinationView: View {
                 ProgressView("Opening secure thread…")
             }
         }
+        .hidesGlacialTabBarWhenPushed(true)
         .task {
             currentUserDID = await CurrentUserSession.currentDID() ?? "did:key:unknown"
             viewModel = DIContainer.shared.makeChatDetailViewModel()
