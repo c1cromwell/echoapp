@@ -206,6 +206,7 @@ public struct SMSOTPSetupView: View {
                     key: "echo.sms.phone_hash",
                     value: "sha256:\(sha256Hex(phone))"
                 )
+                PhoneBackupStatus.markConfigured(maskedPhone: PhoneBackupStatus.maskedPhone(fromE164: phone))
                 await enableContactDiscoveryOptIn()
                 countdownTask?.cancel()
                 phase = .done

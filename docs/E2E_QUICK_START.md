@@ -115,8 +115,12 @@ Outbound chat uses Kinnami P-256 encryption when `GET /identity/resolve/{peerDid
 |-------|---------|
 | Invite deep link | Open `echo://invite?code=…` or `echo://invite/CODE` → accept sheet (cold start stashes until login) |
 | Profile / user link | `echo://profile?did=did:key:…` or `echo://user/did:key:…` parses for QR add |
+| Contact detail | Tap contact → profile → Message / Block / favorite menu |
+| Add mobile number | Settings → Privacy → **Add phone number** (or Account → Phone) → SMS OTP |
+| Groups in common | Both users in same group (create via API/dev) → contact detail lists shared groups |
+| Mutual contacts | Both added same third contact → detail shows **Mutual contacts** |
 | Block contact | Contact detail → Block → `POST /v3/contacts/block` |
-| Favorites | Contact menu → favorite; **Favorites only** filter on contacts list |
+| Favorites | Context menu or swipe → star; **Favorites only** filter on contacts list |
 | PSI (real OPRF) | `make echooprf-ios` → embed `EchoOPRF.xcframework` → two devices share a phone contact match |
 
 ### Multi-device (Track C / WO-288)

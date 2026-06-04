@@ -43,7 +43,7 @@ make ios-preflight BUILD=1
 
 ## Week B — Contacts credibility (after Week A green)
 
-**Goal:** Growth path without groups backend.
+**Goal:** Growth path without groups backend UI.
 
 ### Track (WO-222 + WO-39 partial)
 
@@ -51,11 +51,21 @@ make ios-preflight BUILD=1
 |------|--------|
 | `echo://invite?code=` and `echo://invite/CODE` | Cold start stashes; post-login sheet |
 | Profile QR → add contact | `POST /v3/contacts/add` |
-| Contacts tab → list → Message | Hub thread + chat |
-| Block contact | Detail → Block |
+| Contacts tab → tap row → **View profile** | `ContactDetailView` with block / favorite |
+| Contacts → **Message** (detail or swipe) | Hub thread + chat |
+| **Add phone number** | Settings → Privacy or Account → `SMSOTPSetupView` |
+| **Groups in common** | Contact detail shows mutual groups when both users share group membership |
+| Block contact | Contact detail → Block → `POST /v3/contacts/block` |
+| Favorites | Context menu / swipe → star; **Favorites only** filter |
 | PSI (optional) | `make echooprf-ios` + embed framework; two devices |
 
-**Defer:** Groups create, Channels, WO-288 device link, `/v1/login/link-device` aliases.
+### WO-288 multi-device (third sim optional)
+
+| Item | Verify |
+|------|--------|
+| Link QR | Settings → Devices → **Link new device** |
+| Scan | Login → **Sign in on new device** |
+| API | `/v1/login/link-device/*` aliases |
 
 ### Pick one for TestFlight 2 story
 
@@ -66,6 +76,5 @@ make ios-preflight BUILD=1
 
 ## Out of scope this sprint
 
-- `DeviceLinkFlowViews` / WO-288 (Wave 1)
-- Groups "New group" beyond coming-soon sheet
+- Groups create UI beyond coming-soon sheet
 - Hub Channels segment implementation

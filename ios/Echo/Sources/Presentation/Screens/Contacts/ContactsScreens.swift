@@ -8,28 +8,32 @@ public struct ContactsListView: View {
     @State private var showInviteSheet = false
     #if os(iOS)
     @State private var viewModel = ContactsListViewModel()
+    @State private var selectedContact: ContactModel?
     @State private var chatThread: StoredConversation?
     #else
     @State private var contacts: [ContactModel] = []
     #endif
 
     let onSelectContact: (String) -> Void
-    
+
     public init(onSelectContact: @escaping (String) -> Void = { _ in }) {
         self.onSelectContact = onSelectContact
     }
-    
+
     var filteredContacts: [ContactModel] {
         #if os(iOS)
         var filtered = viewModel.contacts
         #else
         var filtered = contacts
         #endif
-        
+
         if !searchText.isEmpty {
-            filtered = filtered.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+            filtered = filtered.filter {
+                $0.name.localizedCaseInsensitiveContains(searchText)
+                    || $0.username.localizedCaseInsensitiveContains(searchText)
+            }
         }
-        
+
         if selectedFilter != "All" {
             filtered = filtered.filter { $0.trustLevel == selectedFilter }
         }
@@ -45,11 +49,11 @@ public struct ContactsListView: View {
             return lhs.name < rhs.name
         }
     }
-    
+
     public var body: some View {
         ZStack {
             Color.echoBackground.ignoresSafeArea()
-            
+
             VStack(spacing: 0) {
                 EchoNavBar(
                     title: "Contacts",
@@ -61,43 +65,24 @@ public struct ContactsListView: View {
                 NavigationLink {
                     UsernameSearchView()
                 } label: {
-                    HStack {
-                        Image(systemName: "at")
-                        Text("Search by @username")
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, Spacing.lg.rawValue)
-                    .padding(.vertical, Spacing.sm.rawValue)
+                    discoveryLinkLabel(icon: "at", title: "Search by @username")
                 }
 
                 NavigationLink {
                     ContactDiscoveryView()
                 } label: {
-                    HStack {
-                        Image(systemName: "person.2.circle")
-                        Text("Find contacts on ECHO")
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, Spacing.lg.rawValue)
-                    .padding(.vertical, Spacing.sm.rawValue)
+                    discoveryLinkLabel(icon: "person.2.circle", title: "Find contacts on ECHO")
                 }
-                
+
                 VStack(spacing: Spacing.lg.rawValue) {
-                    // Search Bar
                     HStack {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 14))
                             .foregroundColor(.echoGray500)
-                        
+
                         TextField("Search contacts", text: $searchText)
                             .textFieldStyle(.roundedBorder)
-                        
+
                         if !searchText.isEmpty {
                             Button(action: { searchText = "" }) {
                                 Image(systemName: "xmark.circle.fill")
@@ -109,7 +94,7 @@ public struct ContactsListView: View {
                     .padding(Spacing.md.rawValue)
                     .background(Color.echoSurface)
                     .cornerRadius(12)
-                    
+
                     Toggle("Favorites only", isOn: $showFavoritesOnly)
                         .padding(.horizontal, Spacing.md.rawValue)
 
@@ -121,7 +106,7 @@ public struct ContactsListView: View {
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal, Spacing.md.rawValue)
-                    
+
                     #if os(iOS)
                     if viewModel.isLoading && viewModel.contacts.isEmpty {
                         ProgressView("Loading contacts…")
@@ -157,11 +142,42 @@ public struct ContactsListView: View {
         #if os(iOS)
         .task { await viewModel.refresh() }
         .refreshable { await viewModel.refresh() }
+        .navigationDestination(item: $selectedContact) { contact in
+            ContactDetailView(contactId: contact.id, displayName: contact.name) {
+                Task { await openChat(with: contact) }
+            }
+        }
         .navigationDestination(item: $chatThread) { conversation in
             ChatDestinationView(conversation: conversation)
         }
         #endif
     }
+
+    private func discoveryLinkLabel(icon: String, title: String) -> some View {
+        HStack {
+            Image(systemName: icon)
+            Text(title)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, Spacing.lg.rawValue)
+        .padding(.vertical, Spacing.sm.rawValue)
+    }
+
+    #if os(iOS)
+    private func openChat(with contact: ContactModel) async {
+        selectedContact = nil
+        onSelectContact(contact.id)
+        if let thread = await ContactThreadHelper.upsertDirectThread(
+            peerDID: contact.id,
+            displayName: contact.name
+        ) {
+            chatThread = thread
+        }
+    }
+    #endif
 
     private var contactsEmptyState: some View {
         VStack(spacing: Spacing.md.rawValue) {
@@ -186,24 +202,48 @@ public struct ContactsListView: View {
                     username: contact.username,
                     trustLevel: contact.trustLevel,
                     isFavorite: ContactFavoritesStore.isFavorite(did: contact.id),
-                    onTap: {
-                        onSelectContact(contact.id)
-                        #if os(iOS)
-                        Task {
-                            if let thread = await ContactThreadHelper.upsertDirectThread(
-                                peerDID: contact.id,
-                                displayName: contact.name
-                            ) {
-                                chatThread = thread
-                            }
-                        }
-                        #endif
-                    }
+                    onTap: { selectedContact = contact }
                 )
                 .listRowSeparator(.hidden)
                 .listRowInsets(.init())
                 .listRowBackground(Color.clear)
                 .padding(.vertical, Spacing.xs.rawValue)
+                .contextMenu {
+                    Button {
+                        ContactFavoritesStore.toggle(did: contact.id)
+                    } label: {
+                        Label(
+                            ContactFavoritesStore.isFavorite(did: contact.id) ? "Remove favorite" : "Add favorite",
+                            systemImage: "star"
+                        )
+                    }
+                    Button {
+                        Task { await openChat(with: contact) }
+                    } label: {
+                        Label("Message", systemImage: "message")
+                    }
+                    Button {
+                        selectedContact = contact
+                    } label: {
+                        Label("View profile", systemImage: "person.crop.circle")
+                    }
+                }
+                .swipeActions(edge: .leading) {
+                    Button {
+                        ContactFavoritesStore.toggle(did: contact.id)
+                    } label: {
+                        Label("Favorite", systemImage: "star.fill")
+                    }
+                    .tint(.yellow)
+                }
+                .swipeActions(edge: .trailing) {
+                    Button {
+                        Task { await openChat(with: contact) }
+                    } label: {
+                        Label("Message", systemImage: "message.fill")
+                    }
+                    .tint(.blue)
+                }
             }
         }
         .listStyle(.plain)
@@ -211,18 +251,12 @@ public struct ContactsListView: View {
     }
 }
 
-struct ContactModel: Identifiable {
+struct ContactModel: Identifiable, Hashable, Sendable {
     let id: String
     let name: String
     let username: String
     let trustLevel: String
 }
-
-// MARK: - Trust Dashboard Screen
-// `TrustDashboardView` now lives in Features/Trust/TrustDashboardView.swift —
-// the paper/ink T0–T4 trust-tier ladder + verification sources + VIP CTA (Phase B).
-
-// MARK: - Preview
 
 #if DEBUG
 struct ContactsAndTrustScreens_Previews: PreviewProvider {

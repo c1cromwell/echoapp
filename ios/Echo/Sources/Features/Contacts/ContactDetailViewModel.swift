@@ -12,8 +12,12 @@ import AppKit
 @MainActor
 class ContactDetailViewModel: ObservableObject {
     let contactId: String
+    private let preferredDisplayName: String?
 
     @Published var contact: ContactDetail = .empty
+    @Published var mutualGroups: [ContactSocialAPIClient.MutualGroup] = []
+    @Published var mutualContacts: [ContactSocialAPIClient.MutualContact] = []
+    @Published var relationshipError: String?
     @Published var sharedMedia: [SharedMediaItem] = []
     @Published var notificationsEnabled = true
     @Published var disappearingEnabled = false
@@ -32,16 +36,32 @@ class ContactDetailViewModel: ObservableObject {
         return ContactSocialAPIClient(apiClient: client)
     }
 
-    init(contactId: String) {
+    init(contactId: String, displayName: String? = nil) {
         self.contactId = contactId
+        self.preferredDisplayName = displayName
     }
 
     func loadContact() async {
         let tier = ContactTrustIndex.shared.tier(conversationId: "", peerDID: contactId)
+        var name = preferredDisplayName ?? ContactThreadHelper.truncatedDID(contactId)
+        var handle = contactId
+
+        if let client = DIContainer.shared.resolveAPIClient() {
+            let discovery = ContactDiscoveryAPIClient(apiClient: client)
+            if let profile = try? await discovery.resolveIdentity(did: contactId) {
+                if let username = profile.username, !username.isEmpty {
+                    handle = "@\(username)"
+                    if preferredDisplayName == nil {
+                        name = handle
+                    }
+                }
+            }
+        }
+
         contact = ContactDetail(
             id: contactId,
-            name: ContactThreadHelper.truncatedDID(contactId),
-            echoHandle: contactId,
+            name: name,
+            echoHandle: handle,
             avatarURL: nil,
             trustTier: Self.trustTier(fromNumeric: tier),
             trustScore: min(100, tier * 20),
@@ -52,6 +72,39 @@ class ContactDetailViewModel: ObservableObject {
             mutualContacts: 0,
             credentials: []
         )
+
+        await loadRelationship()
+    }
+
+    func loadRelationship() async {
+        guard let socialAPI else {
+            relationshipError = nil
+            return
+        }
+        relationshipError = nil
+        do {
+            let rel = try await socialAPI.fetchRelationship(peerDID: contactId)
+            mutualGroups = rel.mutual_groups ?? []
+            mutualContacts = rel.mutual_contacts ?? []
+            contact = ContactDetail(
+                id: contact.id,
+                name: contact.name,
+                echoHandle: contact.echoHandle,
+                avatarURL: contact.avatarURL,
+                trustTier: contact.trustTier,
+                trustScore: contact.trustScore,
+                did: contact.did,
+                isOnline: contact.isOnline,
+                verifiedDate: contact.verifiedDate,
+                mutualGroups: rel.mutual_groups_count ?? mutualGroups.count,
+                mutualContacts: rel.mutual_contacts_count ?? mutualContacts.count,
+                credentials: contact.credentials
+            )
+        } catch {
+            relationshipError = error.localizedDescription
+            mutualGroups = []
+            mutualContacts = []
+        }
     }
 
     func blockContact() async {

@@ -3,6 +3,7 @@ import SwiftUI
 
 struct DeviceManagementView: View {
     @StateObject var viewModel: DeviceManagementViewModel
+    @State private var showLinkNewDevice = false
     let onStepUpRequired: (StepUpAction, @escaping (String) -> Void) -> Void
     let onLoggedOut: () -> Void
 
@@ -50,6 +51,24 @@ struct DeviceManagementView: View {
                                 }
                             }
 
+                            Button {
+                                showLinkNewDevice = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "qrcode")
+                                    Text("Link new device")
+                                        .typographyStyle(.bodyLarge, color: .echoPrimary)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .foregroundColor(.echoGray400)
+                                }
+                                .padding(Spacing.lg.rawValue)
+                                .background(Color.echoSurface)
+                                .cornerRadius(12)
+                            }
+                            .buttonStyle(.plain)
+
                             // Log out all devices
                             if !viewModel.otherDevices.isEmpty {
                                 EchoButton(
@@ -80,6 +99,9 @@ struct DeviceManagementView: View {
             }
         }
         .task { await viewModel.loadDevices() }
+        .sheet(isPresented: $showLinkNewDevice) {
+            LinkNewDeviceQRView()
+        }
     }
 
     private func revokeDevice(id: String) {

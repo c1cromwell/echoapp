@@ -16,6 +16,7 @@ struct MessagesTabView: View {
     @State private var hiddenUnlocked = false
     @State private var showBiometricGate = false
     @State private var composeHiddenPresented = false
+    @State private var showCreateGroup = false
 
     private var personaFilteredConversations: [StoredConversation] {
         conversationStore.conversations.filter {
@@ -67,9 +68,18 @@ struct MessagesTabView: View {
             }
         }
         .sheet(isPresented: $composeSheetPresented) {
-            NewConversationSheet { conversation in
-                chatPath.append(conversation)
-            }
+            NewConversationSheet(
+                onConversationCreated: { conversation in
+                    chatPath.append(conversation)
+                },
+                onHiddenConversationCreated: { conversation in
+                    ConversationPreferencesStore.shared.setHidden(true, for: conversation.id)
+                    chatPath.append(conversation)
+                },
+                onNewGroup: {
+                    showCreateGroup = true
+                }
+            )
         }
         .sheet(isPresented: $enrollmentSheetPresented) {
             EnrollmentCoordinatorView(
@@ -115,10 +125,44 @@ struct MessagesTabView: View {
             }
         }
         .sheet(isPresented: $composeHiddenPresented) {
-            NewConversationSheet { conversation in
-                ConversationPreferencesStore.shared.setHidden(true, for: conversation.id)
-                chatPath.append(conversation)
+            NewConversationSheet(
+                onConversationCreated: { conversation in
+                    ConversationPreferencesStore.shared.setHidden(true, for: conversation.id)
+                    chatPath.append(conversation)
+                },
+                onHiddenConversationCreated: { conversation in
+                    ConversationPreferencesStore.shared.setHidden(true, for: conversation.id)
+                    chatPath.append(conversation)
+                },
+                onNewGroup: {
+                    showCreateGroup = true
+                }
+            )
+        }
+        .sheet(isPresented: $showCreateGroup) {
+            NavigationStack {
+                VStack(spacing: 14) {
+                    Image(systemName: "person.3.fill")
+                        .font(.system(size: 40))
+                        .foregroundColor(.echoInk40)
+                    Text("Create a group")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.echoInk)
+                    Text("Name your group and add trusted contacts. Group conversations arrive with the social-graph phase.")
+                        .font(.system(size: 14))
+                        .foregroundColor(.echoInk55)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(Spacing.xl.rawValue)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.echoPaper)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Done") { showCreateGroup = false }
+                    }
+                }
             }
+            .presentationDetents([.medium])
         }
         .onReceive(
             NotificationCenter.default.publisher(for: .echoPendingInvite)

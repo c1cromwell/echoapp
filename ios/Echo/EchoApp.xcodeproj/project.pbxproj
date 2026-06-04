@@ -195,6 +195,7 @@
 		F1A2B3C40123456789000A2 /* ContactDiscoverySyncPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C40123456789000A1 /* ContactDiscoverySyncPreferences.swift */; };
 		F1A2B3C40123456789000B2 /* DeviceLinkFlowViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C40123456789000B1 /* DeviceLinkFlowViews.swift */; };
 		F1A2B3C40123456789000B4 /* DeviceLinkAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C40123456789000B3 /* DeviceLinkAPIClient.swift */; };
+		F1A2B3C40123456789000C2 /* PhoneBackupStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C40123456789000C1 /* PhoneBackupStatus.swift */; };
 		F1D1D3FACDEC2DAD0957DE49 /* Service.swift in Sources */ = {isa = PBXBuildFile; fileRef = 449BB08C4DB7AF394D798FE4 /* Service.swift */; };
 		F2F596C925B9154A7632E2C1 /* AppleWalletMDLBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 931CC18F14B58BD447128F59 /* AppleWalletMDLBridge.swift */; };
 		F7B3F99A5D6E98C8A2D4CAED /* BIP39Wordlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 248C6BFDE16D5B8B0EC7D6EB /* BIP39Wordlist.swift */; };
@@ -416,6 +417,7 @@
 		F1A2B3C40123456789000A1 /* ContactDiscoverySyncPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDiscoverySyncPreferences.swift; sourceTree = "<group>"; };
 		F1A2B3C40123456789000B1 /* DeviceLinkFlowViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceLinkFlowViews.swift; sourceTree = "<group>"; };
 		F1A2B3C40123456789000B3 /* DeviceLinkAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceLinkAPIClient.swift; sourceTree = "<group>"; };
+		F1A2B3C40123456789000C1 /* PhoneBackupStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneBackupStatus.swift; sourceTree = "<group>"; };
 		F36BE0D7C763283B1DD09A78 /* ContactDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDetailView.swift; sourceTree = "<group>"; };
 		F3B759190B29A3A924BBDEA5 /* StakingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StakingView.swift; sourceTree = "<group>"; };
 		F4C447DAD513014EBF6EA4FE /* MessagingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagingService.swift; sourceTree = "<group>"; };
@@ -1032,6 +1034,7 @@
 				7A0F02E0B74FC3D3CD2E6188 /* ContactDetailViewModel.swift */,
 				F1A2B3C4012345678900005 /* ContactDiscoveryView.swift */,
 				F1A2B3C40123456789000A1 /* ContactDiscoverySyncPreferences.swift */,
+				F1A2B3C40123456789000C1 /* PhoneBackupStatus.swift */,
 				D288A001234567890123411 /* EchoDeepLink.swift */,
 				P3S001012345678901234001 /* ContactThreadHelper.swift */,
 				W0E00101234567890123400B /* InviteLinkSheet.swift */,
@@ -1379,6 +1382,7 @@
 				DE847C0061CDD1E519F15D1A /* GlacialLoginScreen.swift in Sources */,
 				F1A2B3C40123456789000B2 /* DeviceLinkFlowViews.swift in Sources */,
 				F1A2B3C40123456789000B4 /* DeviceLinkAPIClient.swift in Sources */,
+				F1A2B3C40123456789000C2 /* PhoneBackupStatus.swift in Sources */,
 				487536588FB9795F1DB3CCA6 /* GlacialNavigationBar.swift in Sources */,
 				CB10FE53227E0983E0A2E1AA /* GlacialTheme.swift in Sources */,
 				EEEDA2B55F7CFFFC2EB6AB80 /* GovernanceCoordinator.swift in Sources */,

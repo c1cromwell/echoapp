@@ -11,9 +11,11 @@ import AppKit
 public struct ContactDetailView: View {
     @StateObject private var viewModel: ContactDetailViewModel
     @Environment(\.dismiss) private var dismiss
+    var onMessage: (() -> Void)?
 
-    public init(contactId: String) {
-        _viewModel = StateObject(wrappedValue: ContactDetailViewModel(contactId: contactId))
+    public init(contactId: String, displayName: String? = nil, onMessage: (() -> Void)? = nil) {
+        self.onMessage = onMessage
+        _viewModel = StateObject(wrappedValue: ContactDetailViewModel(contactId: contactId, displayName: displayName))
     }
 
     public var body: some View {
@@ -53,7 +55,8 @@ public struct ContactDetailView: View {
                 // Action buttons — 4-column
                 HStack(spacing: 12) {
                     ContactActionButton(icon: "message.fill", label: "Message") {
-                        // Navigate to chat
+                        dismiss()
+                        onMessage?()
                     }
                     ContactActionButton(icon: "phone.fill", label: "Voice") {
                         viewModel.showVoiceCall = true
@@ -74,6 +77,54 @@ public struct ContactDetailView: View {
                     TrustRow(label: "Verified Since", value: viewModel.contact.verifiedDate)
                     TrustRow(label: "Mutual Groups", value: "\(viewModel.contact.mutualGroups)")
                     TrustRow(label: "Mutual Contacts", value: "\(viewModel.contact.mutualContacts)")
+                }
+
+                if !viewModel.mutualGroups.isEmpty {
+                    GhostBorderSection(title: "GROUPS IN COMMON") {
+                        ForEach(viewModel.mutualGroups) { group in
+                            HStack(spacing: 12) {
+                                Image(systemName: "person.3.fill")
+                                    .foregroundStyle(Color.Echo.primaryContainer)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(group.name ?? "Group")
+                                        .font(Font.Echo.bodyMedium)
+                                    if let count = group.member_count {
+                                        Text("\(count) members")
+                                            .font(Font.Echo.labelMd)
+                                            .foregroundStyle(Color.Echo.outline)
+                                    }
+                                }
+                                Spacer()
+                            }
+                        }
+                    }
+                } else if viewModel.relationshipError == nil {
+                    GhostBorderSection(title: "GROUPS IN COMMON") {
+                        Text("No shared groups yet")
+                            .font(Font.Echo.bodyMedium)
+                            .foregroundStyle(Color.Echo.outline)
+                    }
+                }
+
+                if !viewModel.mutualContacts.isEmpty {
+                    GhostBorderSection(title: "MUTUAL CONTACTS") {
+                        ForEach(viewModel.mutualContacts) { person in
+                            HStack(spacing: 12) {
+                                Image(systemName: "person.circle.fill")
+                                    .foregroundStyle(Color.Echo.primaryContainer)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    if let username = person.username, !username.isEmpty {
+                                        Text("@\(username)")
+                                            .font(Font.Echo.bodyMedium)
+                                    }
+                                    Text(ContactThreadHelper.truncatedDID(person.did))
+                                        .font(Font.Echo.labelMd)
+                                        .foregroundStyle(Color.Echo.outline)
+                                }
+                                Spacer()
+                            }
+                        }
+                    }
                 }
 
                 // Credentials card

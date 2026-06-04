@@ -772,6 +772,7 @@ enum ContactsEndpoint: APIEndpoint {
     case list
     case add
     case block
+    case relationship(peerDID: String)
 
     var path: String {
         switch self {
@@ -795,6 +796,9 @@ enum ContactsEndpoint: APIEndpoint {
             return "/v3/contacts/add"
         case .block:
             return "/v3/contacts/block"
+        case .relationship(let peerDID):
+            let encoded = peerDID.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? peerDID
+            return "/v3/contacts/relationship?peer_did=\(encoded)"
         }
     }
 }

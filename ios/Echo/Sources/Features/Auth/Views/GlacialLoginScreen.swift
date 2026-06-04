@@ -17,6 +17,7 @@ public struct GlacialLoginScreen: View {
     @State private var loginState: LoginState = .normal
     @State private var isUnlocking = false
     @State private var unlockError: String?
+    @State private var showLinkDevice = false
 
     let onSuccess: () -> Void
     let onRecovery: () -> Void
@@ -88,6 +89,9 @@ public struct GlacialLoginScreen: View {
         .preferredColorScheme(.light)
         .onAppear {
             Task { await setupLoginState() }
+        }
+        .sheet(isPresented: $showLinkDevice) {
+            LinkDeviceScanView()
         }
     }
 
@@ -330,6 +334,11 @@ public struct GlacialLoginScreen: View {
                     .foregroundStyle(Color.echoInk55)
                     .padding(4)
             }
+
+            Button("Sign in on new device") { showLinkDevice = true }
+                .font(.system(size: 12))
+                .foregroundStyle(Color.echoInk55)
+                .padding(4)
 
             Button("New to Echo? Create account", action: onGetStarted)
                 .font(.system(size: 12))

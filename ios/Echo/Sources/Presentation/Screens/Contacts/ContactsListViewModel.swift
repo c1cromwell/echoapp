@@ -34,17 +34,26 @@ final class ContactsListViewModel {
         do {
             let remote = try await socialAPI.listContacts()
             ContactTrustIndex.shared.ingestRemoteContacts(remote)
-            contacts = remote.compactMap { row in
-                guard let did = row.contactDid, !did.isEmpty else { return nil }
-                let label = row.trustBadge?.capitalized ?? "Contact"
-                return ContactModel(
-                    id: did,
-                    name: ContactThreadHelper.truncatedDID(did),
-                    username: did,
-                    trustLevel: label
-                )
+            let discoveryClient: ContactDiscoveryAPIClient? = {
+                guard let client = DIContainer.shared.resolveAPIClient() else { return nil }
+                return ContactDiscoveryAPIClient(apiClient: client)
+            }()
+
+            var models: [ContactModel] = []
+            for row in remote {
+                guard let did = row.contactDid, !did.isEmpty else { continue }
+                let badge = row.trustBadge?.capitalized ?? "Contact"
+                var name = ContactThreadHelper.truncatedDID(did)
+                var username = ContactThreadHelper.truncatedDID(did)
+                if let discoveryClient,
+                   let profile = try? await discoveryClient.resolveIdentity(did: did),
+                   let handle = profile.username, !handle.isEmpty {
+                    username = "@\(handle)"
+                    name = username
+                }
+                models.append(ContactModel(id: did, name: name, username: username, trustLevel: badge))
             }
-            .sorted { $0.name < $1.name }
+            contacts = models.sorted { $0.name < $1.name }
         } catch {
             errorMessage = error.localizedDescription
         }

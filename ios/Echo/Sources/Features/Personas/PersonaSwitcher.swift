@@ -94,41 +94,119 @@ public struct PersonaSwitcherSheet: View {
         self.onCreate = onCreate
     }
 
+    @State private var globalSilent: Bool = UserDefaults.standard.bool(forKey: "echo.globalSilent")
+    @State private var defaultTimer: DisappearingTimer = {
+        let raw = UserDefaults.standard.string(forKey: "echo.defaultDisappearing") ?? "off"
+        return DisappearingTimer(rawValue: raw) ?? .off
+    }()
+
     public var body: some View {
-        VStack(spacing: 0) {
-            Capsule()
-                .fill(Color.echoHair)
-                .frame(width: 38, height: 5)
-                .padding(.top, 8)
-                .padding(.bottom, 12)
+        ScrollView {
+            VStack(spacing: 0) {
+                Capsule()
+                    .fill(Color.echoHair)
+                    .frame(width: 38, height: 5)
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
 
-            Text("Switch persona")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundColor(.echoInk)
-                .padding(.bottom, 8)
+                Text("Settings & Personas")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.echoInk)
+                    .padding(.bottom, 12)
 
-            ForEach(personas) { persona in
-                row(persona)
-            }
+                // Chat settings section (phaseB-chat-settings)
+                chatSettingsSection
 
-            Button(action: onCreate) {
-                HStack(spacing: Spacing.md.rawValue) {
-                    Image(systemName: "plus.circle")
-                        .font(.system(size: 22))
-                        .foregroundColor(.echoSignal)
-                    Text("Create a persona")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.echoSignal)
-                    Spacer()
+                Divider().padding(.vertical, 8)
+
+                Text("PERSONAS")
+                    .font(.system(size: 11, weight: .bold))
+                    .tracking(1.5)
+                    .foregroundColor(.echoInk40)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Spacing.lg.rawValue)
+                    .padding(.bottom, 4)
+
+                ForEach(personas) { persona in
+                    row(persona)
                 }
-                .padding(.horizontal, Spacing.lg.rawValue)
-                .padding(.vertical, Spacing.md.rawValue)
-            }
-            .buttonStyle(.plain)
 
-            Spacer(minLength: 0)
+                Button(action: onCreate) {
+                    HStack(spacing: Spacing.md.rawValue) {
+                        Image(systemName: "plus.circle")
+                            .font(.system(size: 22))
+                            .foregroundColor(.echoSignal)
+                        Text("Create a persona")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.echoSignal)
+                        Spacer()
+                    }
+                    .padding(.horizontal, Spacing.lg.rawValue)
+                    .padding(.vertical, Spacing.md.rawValue)
+                }
+                .buttonStyle(.plain)
+
+                Spacer(minLength: 20)
+            }
         }
         .background(Color.echoPaper)
+    }
+
+    private var chatSettingsSection: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: Spacing.md.rawValue) {
+                Image(systemName: "bell.slash").frame(width: 24).foregroundColor(.echoInk55)
+                Text("Silent notifications")
+                    .font(.system(size: 15))
+                    .foregroundColor(.echoInk)
+                Spacer()
+                Toggle("", isOn: $globalSilent)
+                    .labelsHidden()
+                    .tint(.echoSignal)
+                    .onChange(of: globalSilent) { _, val in
+                        UserDefaults.standard.set(val, forKey: "echo.globalSilent")
+                    }
+            }
+            .padding(.horizontal, Spacing.lg.rawValue)
+            .padding(.vertical, Spacing.md.rawValue)
+            .overlay(Divider(), alignment: .bottom)
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: Spacing.md.rawValue) {
+                    Image(systemName: "timer").frame(width: 24).foregroundColor(.echoInk55)
+                    Text("Disappearing messages")
+                        .font(.system(size: 15))
+                        .foregroundColor(.echoInk)
+                    Spacer()
+                }
+                Picker("", selection: $defaultTimer) {
+                    ForEach(DisappearingTimer.allCases, id: \.self) { t in
+                        Text(t.label).tag(t)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: defaultTimer) { _, val in
+                    UserDefaults.standard.set(val.rawValue, forKey: "echo.defaultDisappearing")
+                }
+            }
+            .padding(.horizontal, Spacing.lg.rawValue)
+            .padding(.vertical, Spacing.md.rawValue)
+            .overlay(Divider(), alignment: .bottom)
+
+            HStack(spacing: Spacing.md.rawValue) {
+                Image(systemName: "checkmark.shield").frame(width: 24).foregroundColor(.echoInk55)
+                Text("Verify identity")
+                    .font(.system(size: 15))
+                    .foregroundColor(.echoInk)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.echoInk40)
+            }
+            .padding(.horizontal, Spacing.lg.rawValue)
+            .padding(.vertical, Spacing.md.rawValue)
+            .overlay(Divider(), alignment: .bottom)
+        }
     }
 
     @ViewBuilder

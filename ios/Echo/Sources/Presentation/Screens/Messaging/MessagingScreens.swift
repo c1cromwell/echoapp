@@ -163,23 +163,33 @@ struct ChatView: View {
         self.onSendMessage = onSendMessage
     }
 
+    private var contactInitials: String {
+        let cleaned = contactName.hasPrefix("@") ? String(contactName.dropFirst()) : contactName
+        let parts = cleaned.split(separator: " ").prefix(2)
+        return parts.map { String($0.prefix(1)).uppercased() }.joined()
+    }
+
+    private var trustTier: Int {
+        ContactTrustIndex.shared.tier(conversationId: conversationId, peerDID: peerDID)
+    }
+
     var body: some View {
         ZStack {
             Color.echoPaper.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                EchoNavBar(
-                    title: contactName,
-                    showBackButton: true,
-                    onBackPressed: { dismiss() },
-                    trailingAction: { showChatSettings = true },
-                    trailingIcon: Image(systemName: "info.circle")
-                )
+                chatNavigationBar
 
                 SecureThreadIndicator()
 
                 ScrollViewReader { proxy in
                     List {
+                        if viewModel.messages.isEmpty {
+                            contactProfileCard
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(.init())
+                                .listRowBackground(Color.clear)
+                        }
                         ForEach(viewModel.messages) { message in
                             VStack(
                                 alignment: message.isFromCurrentUser ? .trailing : .leading,
@@ -361,9 +371,110 @@ struct ChatView: View {
         }
     }
 
-    /// Handle a message action. Copy is handled inside the sheet (UIPasteboard);
-    /// Delete removes locally; Reply/Forward/Pin/Edit are wired to ViewModel hooks
-    /// in a later pass.
+    private var chatNavigationBar: some View {
+        HStack(spacing: 10) {
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.echoSignal)
+            }
+            .buttonStyle(.plain)
+
+            Text(contactInitials)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(width: 32, height: 32)
+                .background(NewConversationSheet.avatarColor(for: contactName))
+                .clipShape(Circle())
+
+            HStack(spacing: 4) {
+                Text(contactName)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.echoInk)
+                    .lineLimit(1)
+                if trustTier >= 2 {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.echoTrustGreen)
+                }
+            }
+
+            Spacer()
+
+            Button {} label: {
+                Image(systemName: "video")
+                    .font(.system(size: 18))
+                    .foregroundColor(.echoInk70)
+            }
+            .buttonStyle(.plain)
+
+            Button {} label: {
+                Image(systemName: "phone")
+                    .font(.system(size: 18))
+                    .foregroundColor(.echoInk70)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, Spacing.md.rawValue)
+        .padding(.vertical, 10)
+    }
+
+    private var contactProfileCard: some View {
+        VStack(spacing: 14) {
+            Text(contactInitials)
+                .font(.system(size: 28, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(width: 80, height: 80)
+                .background(NewConversationSheet.avatarColor(for: contactName))
+                .clipShape(Circle())
+
+            Button { showChatSettings = true } label: {
+                HStack(spacing: 4) {
+                    Text(contactName)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.echoInk)
+                    if trustTier >= 2 {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 15))
+                            .foregroundColor(.echoTrustGreen)
+                    }
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.echoInk40)
+                }
+            }
+            .buttonStyle(.plain)
+
+            if contactName.hasPrefix("@") {
+                HStack(spacing: 6) {
+                    Image(systemName: "at")
+                        .font(.system(size: 13))
+                    Text(String(contactName.dropFirst()))
+                        .font(.system(size: 14))
+                }
+                .foregroundColor(.echoInk55)
+            }
+
+            HStack(spacing: 6) {
+                Image(systemName: "person.2")
+                    .font(.system(size: 13))
+                Text("No groups in common")
+                    .font(.system(size: 14))
+            }
+            .foregroundColor(.echoInk55)
+        }
+        .padding(.vertical, 24)
+        .padding(.horizontal, Spacing.lg.rawValue)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.echoPaperDim)
+        )
+        .padding(.horizontal, Spacing.lg.rawValue)
+        .padding(.top, 16)
+        .padding(.bottom, 8)
+    }
+
     private func handleMessageAction(_ action: MessageAction, on message: ChatDetailMessage) {
         switch action {
         case .delete:

@@ -5,6 +5,12 @@ final class ContactsEndpointTests: XCTestCase {
     func testListContactsPath_matchesBackend() {
         XCTAssertEqual(ContactsEndpoint.list.path, "/v3/contacts/list")
     }
+
+    func testRelationshipPath_includesPeerDID() {
+        let path = ContactsEndpoint.relationship(peerDID: "did:key:zPeer").path
+        XCTAssertTrue(path.hasPrefix("/v3/contacts/relationship?peer_did="))
+        XCTAssertTrue(path.contains("did:key"))
+    }
 }
 
 #if os(iOS)

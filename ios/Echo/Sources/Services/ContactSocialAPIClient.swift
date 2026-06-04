@@ -94,5 +94,33 @@ struct ContactSocialAPIClient: Sendable {
             body: Body(contactDid: did)
         )
     }
+
+    struct ContactRelationship: Decodable, Sendable {
+        let peer_did: String?
+        let mutual_groups: [MutualGroup]?
+        let mutual_groups_count: Int?
+        let mutual_contacts: [MutualContact]?
+        let mutual_contacts_count: Int?
+    }
+
+    struct MutualGroup: Decodable, Sendable, Identifiable {
+        let groupId: String?
+        let name: String?
+        let type: String?
+        let member_count: Int?
+
+        var id: String { groupId ?? UUID().uuidString }
+    }
+
+    struct MutualContact: Decodable, Sendable, Identifiable {
+        let did: String
+        let username: String?
+
+        var id: String { did }
+    }
+
+    func fetchRelationship(peerDID: String) async throws -> ContactRelationship {
+        try await apiClient.get(endpoint: ContactsEndpoint.relationship(peerDID: peerDID))
+    }
 }
 #endif

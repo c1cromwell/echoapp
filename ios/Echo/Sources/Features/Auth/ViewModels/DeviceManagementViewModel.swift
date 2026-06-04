@@ -16,6 +16,12 @@ final class DeviceManagementViewModel: ObservableObject {
         self.tokenManager = tokenManager
     }
 
+    convenience init() {
+        let authAPI = AuthAPIClient(baseURL: EchoAPIBaseURL.resolved)
+        let tokens = TokenManager(keychain: KeychainAdapter(), apiClient: authAPI)
+        self.init(apiClient: authAPI, tokenManager: tokens)
+    }
+
     func loadDevices() async {
         isLoading = true
         defer { isLoading = false }

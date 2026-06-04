@@ -735,6 +735,7 @@ public struct AccountSettingsView: View {
     @State private var selectedStepUpMethod: StepUpMethod = StepUpAuthManager.shared.preferredMethod
     @State private var showStepUpMethodPicker = false
     @State private var isConfirmingMethodChange = false
+    @State private var showPhoneBackup = false
 
     public init(
         account: AccountInfo = AccountInfo(),
@@ -763,11 +764,18 @@ public struct AccountSettingsView: View {
                     VStack(spacing: Spacing.lg.rawValue) {
                         // Identity
                         SettingsSectionView(title: "Identity") {
-                            SettingsListItem(
-                                icon: Image(systemName: "phone.fill"),
-                                title: "Phone Number",
-                                value: maskedPhone
-                            )
+                            Button {
+                                if let did = account.did, !did.isEmpty {
+                                    showPhoneBackup = true
+                                }
+                            } label: {
+                                SettingsListItem(
+                                    icon: Image(systemName: "phone.fill"),
+                                    title: "Phone Number",
+                                    value: accountPhoneLabel
+                                )
+                            }
+                            .buttonStyle(.plain)
 
                             SettingsListItem(
                                 icon: Image(systemName: "envelope.fill"),
@@ -816,11 +824,20 @@ public struct AccountSettingsView: View {
                                 value: account.twoFactorEnabled ? "Enabled" : "Disabled"
                             )
 
-                            SettingsListItem(
-                                icon: Image(systemName: "desktopcomputer"),
-                                title: "Active Sessions",
-                                value: "\(account.activeSessionCount) devices"
-                            )
+                            NavigationLink {
+                                DeviceManagementView(
+                                    viewModel: DeviceManagementViewModel(),
+                                    onStepUpRequired: { _, completion in completion("") },
+                                    onLoggedOut: {}
+                                )
+                            } label: {
+                                SettingsListItem(
+                                    icon: Image(systemName: "desktopcomputer"),
+                                    title: "Devices",
+                                    value: "\(account.activeSessionCount) devices"
+                                )
+                            }
+                            .buttonStyle(.plain)
                         }
 
                         // Hidden Content Protection
@@ -1004,12 +1021,24 @@ public struct AccountSettingsView: View {
         }
         .presentationDetents([.fraction(0.5)])
         .presentationDragIndicator(.hidden)
+        .sheet(isPresented: $showPhoneBackup) {
+            if let did = account.did, !did.isEmpty {
+                SMSOTPSetupView(did: did) {
+                    showPhoneBackup = false
+                }
+            }
+        }
     }
 
-    private var maskedPhone: String {
-        guard !account.phone.isEmpty else { return "Not set" }
-        let last4 = String(account.phone.suffix(4))
-        return "+1 \u{2022}\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}\(last4)"
+    private var accountPhoneLabel: String {
+        if PhoneBackupStatus.hasBackup {
+            return PhoneBackupStatus.displayLabel
+        }
+        if !account.phone.isEmpty {
+            let last4 = String(account.phone.suffix(4))
+            return "+1 \u{2022}\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}\(last4)"
+        }
+        return "Add number"
     }
 
     private func truncatedDID(_ did: String) -> String {

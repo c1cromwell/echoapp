@@ -5,9 +5,25 @@ import SwiftUI
 struct PrivacyHubView: View {
     @State private var privacySettings = EnhancedPrivacySettings()
     @State private var personaPrivacySettings = PersonaPrivacySettings()
+    @State private var showPhoneBackup = false
+    @State private var sessionDID = ""
 
     var body: some View {
         List {
+            Section("Phone backup") {
+                HStack {
+                    Text("Mobile number")
+                    Spacer()
+                    Text(PhoneBackupStatus.displayLabel)
+                        .foregroundStyle(.secondary)
+                }
+                Button(PhoneBackupStatus.hasBackup ? "Update phone number" : "Add phone number") {
+                    showPhoneBackup = true
+                }
+            } footer: {
+                Text("We store only a hash for recovery and optional PSI discovery. Raw numbers are not kept on the server.")
+            }
+
             Section("Messaging privacy") {
                 NavigationLink("Privacy & security") {
                     PrivacySecuritySettingsView(settings: $privacySettings)
@@ -31,8 +47,18 @@ struct PrivacyHubView: View {
             }
         }
         .navigationTitle("Privacy")
-        .onAppear { privacySettings = PrivacySettingsStore.load() }
+        .task {
+            privacySettings = PrivacySettingsStore.load()
+            sessionDID = await CurrentUserSession.currentDID() ?? ""
+        }
         .onDisappear { PrivacySettingsStore.save(privacySettings) }
+        .sheet(isPresented: $showPhoneBackup) {
+            if !sessionDID.isEmpty {
+                SMSOTPSetupView(did: sessionDID) {
+                    showPhoneBackup = false
+                }
+            }
+        }
     }
 }
 

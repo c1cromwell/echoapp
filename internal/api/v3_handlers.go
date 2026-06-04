@@ -67,6 +67,7 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/v3/contacts/list", h.handleContactsList)
 	mux.HandleFunc("/v3/contacts/block", h.handleContactsBlock)
 	mux.HandleFunc("/v3/contacts/add", h.handleContactsAdd)
+	mux.HandleFunc("/v3/contacts/relationship", h.handleContactsRelationship)
 
 	// Rewards endpoints
 	mux.HandleFunc("/v3/rewards/claim", h.handleRewardsClaim)
@@ -330,6 +331,62 @@ func (h *V3Handlers) handleContactsAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSON(w, http.StatusCreated, contact)
+}
+
+func (h *V3Handlers) handleContactsRelationship(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	caller := h.getDID(r)
+	peer := r.URL.Query().Get("peer_did")
+	if caller == "" {
+		WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Authentication required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if peer == "" {
+		WriteError(w, http.StatusBadRequest, "MISSING_PEER", "peer_did query parameter is required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Contacts == nil {
+		WriteError(w, http.StatusServiceUnavailable, "CONTACTS_UNAVAILABLE", "Contacts service not configured", r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	mutualGroups := make([]map[string]interface{}, 0)
+	if h.Groups != nil {
+		for _, g := range h.Groups.MutualGroups(caller, peer) {
+			mutualGroups = append(mutualGroups, map[string]interface{}{
+				"groupId":      g.GroupID,
+				"name":         g.Name,
+				"type":         g.Type,
+				"member_count": g.MemberCount,
+			})
+		}
+	}
+
+	mutualContacts, err := h.Contacts.MutualContacts(r.Context(), caller, peer, 20)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "RELATIONSHIP_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	contactsPayload := make([]map[string]interface{}, 0, len(mutualContacts))
+	for _, c := range mutualContacts {
+		entry := map[string]interface{}{"did": c.DID}
+		if c.Username != "" {
+			entry["username"] = c.Username
+		}
+		contactsPayload = append(contactsPayload, entry)
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"peer_did":              peer,
+		"mutual_groups":         mutualGroups,
+		"mutual_groups_count":   len(mutualGroups),
+		"mutual_contacts":       contactsPayload,
+		"mutual_contacts_count": len(contactsPayload),
+		"request_id":            r.Header.Get("X-Request-ID"),
+	})
 }
 
 // --- Rewards Handlers ---
