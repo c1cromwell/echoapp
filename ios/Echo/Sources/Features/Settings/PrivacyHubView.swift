@@ -10,7 +10,7 @@ struct PrivacyHubView: View {
 
     var body: some View {
         List {
-            Section("Phone backup") {
+            Section {
                 HStack {
                     Text("Mobile number")
                     Spacer()
@@ -20,6 +20,8 @@ struct PrivacyHubView: View {
                 Button(PhoneBackupStatus.hasBackup ? "Update phone number" : "Add phone number") {
                     showPhoneBackup = true
                 }
+            } header: {
+                Text("Phone backup")
             } footer: {
                 Text("We store only a hash for recovery and optional PSI discovery. Raw numbers are not kept on the server.")
             }
