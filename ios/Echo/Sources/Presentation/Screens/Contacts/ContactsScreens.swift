@@ -9,6 +9,7 @@ public struct ContactsListView: View {
     @State private var selectedFilter = "All"
     @State private var showFavoritesOnly = false
     @State private var showAddContact = false
+    @State private var showUsernameSearch = false
     #if os(iOS)
     @State private var viewModel = ContactsListViewModel()
     @State private var selectedContact: ContactModel?
@@ -144,6 +145,9 @@ public struct ContactsListView: View {
         .navigationDestination(item: $chatThread) { conversation in
             ChatDestinationView(conversation: conversation)
         }
+        .navigationDestination(isPresented: $showUsernameSearch) {
+            UsernameSearchView()
+        }
         #endif
     }
 
@@ -232,6 +236,22 @@ public struct ContactsListView: View {
                     .background(Color.echoPaperDim)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+
+                Button {
+                    showUsernameSearch = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "at")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Add by @username")
+                            .font(.system(size: 15, weight: .medium))
+                    }
+                    .foregroundColor(.echoSignal)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(Color.echoPaperDim)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
             }
             .padding(.horizontal, 40)
             .padding(.top, 8)
@@ -242,6 +262,25 @@ public struct ContactsListView: View {
 
     private var contactsList: some View {
         List {
+            #if os(iOS)
+            Button {
+                showUsernameSearch = true
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "person.badge.plus")
+                        .foregroundColor(.echoSignal)
+                    Text("Add contact by @username")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.echoSignal)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.echoInk40)
+                }
+            }
+            .listRowBackground(Color.echoSurface)
+            #endif
+
             ForEach(filteredContacts) { contact in
                 ContactListItem(
                     name: contact.name,

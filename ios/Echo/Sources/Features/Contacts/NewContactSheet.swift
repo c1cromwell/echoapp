@@ -7,7 +7,10 @@ struct NewContactSheet: View {
 
     @State private var firstName = ""
     @State private var lastName = ""
+    @State private var echoUsername = ""
     @State private var phoneNumber = ""
+    @State private var showQRScanner = false
+    @State private var qrCoordinator = QRContactAddCoordinator()
     @State private var selectedCountry = CountryDialCode.unitedStates
     @State private var showCountryPicker = false
     @State private var syncToPhone = true
@@ -17,9 +20,16 @@ struct NewContactSheet: View {
 
     let onSaved: () -> Void
 
+    private var trimmedUsername: String {
+        echoUsername
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "@", with: "")
+    }
+
     private var canSave: Bool {
-        !firstName.trimmingCharacters(in: .whitespaces).isEmpty
+        let hasName = !firstName.trimmingCharacters(in: .whitespaces).isEmpty
             || !lastName.trimmingCharacters(in: .whitespaces).isEmpty
+        return hasName || trimmedUsername.count >= 2
     }
 
     var body: some View {
@@ -27,6 +37,7 @@ struct NewContactSheet: View {
             ScrollView {
                 VStack(spacing: 16) {
                     nameFields
+                    echoUsernameField
                     phoneFields
                     syncToggle
                     qrCodeButton
@@ -84,6 +95,49 @@ struct NewContactSheet: View {
             .sheet(isPresented: $showCountryPicker) {
                 CountryPickerSheet(selected: $selectedCountry)
             }
+            .sheet(isPresented: $showQRScanner) {
+                NavigationStack {
+                    LiveQRCodeScannerView { raw in
+                        showQRScanner = false
+                        Task {
+                            await qrCoordinator.handleScan(raw)
+                            if qrCoordinator.resultIsError {
+                                saveError = qrCoordinator.resultMessage
+                            } else if qrCoordinator.resultMessage != nil {
+                                saveSuccess = true
+                                onSaved()
+                                try? await Task.sleep(nanoseconds: 800_000_000)
+                                dismiss()
+                            }
+                        }
+                    }
+                    .navigationTitle("Scan profile QR")
+                    .navigationBarTitleDisplayMode(.inline)
+                }
+            }
+        }
+    }
+
+    private var echoUsernameField: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("ECHO username (optional)")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.echoInk55)
+                .padding(.horizontal, Spacing.lg.rawValue)
+            HStack(spacing: 8) {
+                Text("@")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.echoInk55)
+                TextField("username", text: $echoUsername)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.system(size: 16))
+            }
+            .padding(.horizontal, Spacing.lg.rawValue)
+            .padding(.vertical, 14)
+            .background(Color.echoPaperDim)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .padding(.horizontal, Spacing.lg.rawValue)
         }
     }
 
@@ -168,7 +222,7 @@ struct NewContactSheet: View {
     // MARK: - QR Code
 
     private var qrCodeButton: some View {
-        Button {} label: {
+        Button { showQRScanner = true } label: {
             HStack(spacing: 12) {
                 Image(systemName: "qrcode")
                     .font(.system(size: 18))
@@ -194,7 +248,7 @@ struct NewContactSheet: View {
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
             .joined(separator: " ")
-        guard !name.isEmpty else { return }
+        guard !name.isEmpty || trimmedUsername.count >= 2 else { return }
 
         isSaving = true
         saveError = nil
@@ -202,15 +256,17 @@ struct NewContactSheet: View {
         Task { @MainActor in
             defer { isSaving = false }
 
-            if syncToPhone {
+            if syncToPhone, !name.isEmpty {
                 await saveToPhoneContacts(firstName: firstName, lastName: lastName, phone: fullPhoneNumber)
             }
 
-            if !phoneNumber.isEmpty {
-                await attemptEchoDiscovery(name: name, phone: fullPhoneNumber)
+            if trimmedUsername.count >= 2, await addEchoContactByUsername() {
+                saveSuccess = true
+            } else if saveError == nil {
+                saveSuccess = true
             }
 
-            saveSuccess = true
+            guard saveError == nil else { return }
             onSaved()
             try? await Task.sleep(nanoseconds: 800_000_000)
             dismiss()
@@ -247,12 +303,32 @@ struct NewContactSheet: View {
         }
     }
 
-    private func attemptEchoDiscovery(name: String, phone: String) async {
-        guard let client = DIContainer.shared.resolveAPIClient() else { return }
+    /// Returns true when an ECHO contact was added via @username.
+    private func addEchoContactByUsername() async -> Bool {
+        let handle = trimmedUsername
+        guard handle.count >= 2 else { return false }
+
+        guard let client = DIContainer.shared.resolveAPIClient() else {
+            saveError = "Sign in required to add ECHO contacts."
+            return false
+        }
+
         let social = ContactSocialAPIClient(apiClient: client)
-        if let results = try? await social.searchUsername(name.replacingOccurrences(of: " ", with: "")),
-           let first = results.first {
-            _ = try? await social.addContact(did: first.did, addedVia: "manual_add")
+        do {
+            let results = try await social.searchUsername(handle)
+            guard let first = results.first else {
+                saveError = "No ECHO user found for @\(handle)."
+                return false
+            }
+            _ = try await social.addContact(did: first.did, addedVia: "manual_add")
+            _ = await ContactThreadHelper.upsertDirectThread(
+                peerDID: first.did,
+                displayName: "@\(first.username)"
+            )
+            return true
+        } catch {
+            saveError = error.localizedDescription
+            return false
         }
     }
 }

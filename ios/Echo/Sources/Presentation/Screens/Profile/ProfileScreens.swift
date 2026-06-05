@@ -2722,6 +2722,7 @@ public struct AboutView: View {
  struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     @State private var showSignOutAlert = false
+    @State private var vipStatusLabel = VIPSubscriptionStore.statusLabel
 
     let onAccountSettings: () -> Void
     let onPrivacySettings: () -> Void
@@ -2770,9 +2771,32 @@ public struct AboutView: View {
                 ScrollView {
                     VStack(spacing: Spacing.lg.rawValue) {
                         VStack(spacing: 0) {
+                            NavigationLink {
+                                VIPSubscriptionView()
+                            } label: {
+                                SettingsNavLinkLabel(
+                                    icon: "star.circle.fill",
+                                    title: "ECHO VIP",
+                                    value: vipStatusLabel
+                                )
+                            }
+                            Divider().padding(.leading, 52)
+                            NavigationLink {
+                                UsernameSearchView()
+                            } label: {
+                                SettingsNavLinkLabel(
+                                    icon: "person.badge.plus",
+                                    title: "Add contact by username"
+                                )
+                            }
+                            Divider().padding(.leading, 52)
                             SettingsNavRow(icon: "person.fill", title: "Account", action: onAccountSettings)
                             Divider().padding(.leading, 52)
-                            SettingsNavRow(icon: "lock.fill", title: "Privacy & Security", action: onPrivacySettings)
+                            NavigationLink {
+                                PrivacyHubView()
+                            } label: {
+                                SettingsNavLinkLabel(icon: "lock.fill", title: "Privacy & Security")
+                            }
                             Divider().padding(.leading, 52)
                             SettingsNavRow(icon: "bell.fill", title: "Notifications", action: onNotificationSettings)
                             Divider().padding(.leading, 52)
@@ -2821,6 +2845,7 @@ public struct AboutView: View {
         } message: {
             Text("Starts onboarding again on this device. Your existing passkey identity may still be in the Secure Enclave — use a second simulator for a clean second account if onboarding fails.")
         }
+        .onAppear { vipStatusLabel = VIPSubscriptionStore.statusLabel }
     }
 }
 
@@ -3035,23 +3060,38 @@ struct SettingsNavRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: Spacing.md.rawValue) {
-                Image(systemName: icon)
-                    .foregroundColor(.echoGray500)
-                    .frame(width: 24)
-
-                Text(title)
-                    .typographyStyle(.body, color: .echoPrimaryText)
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .foregroundColor(.echoGray400)
-                    .font(.system(size: 14))
-            }
-            .padding(.horizontal, Spacing.lg.rawValue)
-            .frame(height: 56)
+            SettingsNavLinkLabel(icon: icon, title: title)
         }
+    }
+}
+
+struct SettingsNavLinkLabel: View {
+    let icon: String
+    let title: String
+    var value: String?
+
+    var body: some View {
+        HStack(spacing: Spacing.md.rawValue) {
+            Image(systemName: icon)
+                .foregroundColor(.echoGray500)
+                .frame(width: 24)
+
+            Text(title)
+                .typographyStyle(.body, color: .echoPrimaryText)
+
+            Spacer()
+
+            if let value {
+                Text(value)
+                    .typographyStyle(.caption, color: .echoGray400)
+            }
+
+            Image(systemName: "chevron.right")
+                .foregroundColor(.echoGray400)
+                .font(.system(size: 14))
+        }
+        .padding(.horizontal, Spacing.lg.rawValue)
+        .frame(height: 56)
     }
 }
 
