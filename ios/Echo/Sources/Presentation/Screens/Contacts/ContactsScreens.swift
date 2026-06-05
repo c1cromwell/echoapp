@@ -24,12 +24,19 @@ public struct ContactsListView: View {
         self.onSelectContact = onSelectContact
     }
 
-    var filteredContacts: [ContactModel] {
+    private var displayedContacts: [ContactModel] {
         #if os(iOS)
-        var filtered = viewModel.contacts
+        if !viewModel.contacts.isEmpty {
+            return viewModel.contacts
+        }
+        return importedContacts
         #else
-        var filtered = contacts
+        return contacts
         #endif
+    }
+
+    var filteredContacts: [ContactModel] {
+        var filtered = displayedContacts
 
         if !searchText.isEmpty {
             filtered = filtered.filter {
@@ -103,7 +110,7 @@ public struct ContactsListView: View {
                     if viewModel.isLoading && viewModel.contacts.isEmpty {
                         ProgressView("Loading contacts…")
                             .frame(maxHeight: .infinity, alignment: .center)
-                    } else if viewModel.contacts.isEmpty {
+                    } else if displayedContacts.isEmpty {
                         contactsEmptyState
                     } else if filteredContacts.isEmpty {
                         contactsEmptyState

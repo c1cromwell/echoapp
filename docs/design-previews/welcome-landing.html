@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Echo — Welcome Landing</title>
+<link rel="stylesheet" href="previews.css">
+<style>
+  .welcome-phone {
+    background: var(--echo-ink) !important;
+    color: #fff;
+  }
+  .welcome-phone .statusbar {
+    color: #fff;
+  }
+  .welcome-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 28px;
+  }
+  .echo-logo-circle {
+    width: 160px;
+    height: 160px;
+    position: relative;
+    margin-bottom: 32px;
+  }
+  .echo-logo-circle .core {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 14px; height: 14px;
+    background: var(--echo-signal);
+    border-radius: 50%;
+  }
+  .echo-logo-circle .ring {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 2px solid var(--echo-signal);
+  }
+  .echo-logo-circle .ring.r1 { width: 44px; height: 44px; opacity: 0.85; }
+  .echo-logo-circle .ring.r2 { width: 68px; height: 68px; opacity: 0.7; }
+  .echo-logo-circle .ring.r3 { width: 96px; height: 96px; opacity: 0.55; }
+  .echo-logo-circle .ring.r4 { width: 124px; height: 124px; opacity: 0.4; }
+  .echo-logo-circle .ring.r5 { width: 154px; height: 154px; opacity: 0.25; }
+  .welcome-title {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #fff;
+    margin-bottom: 16px;
+  }
+  .welcome-sub {
+    font-size: 16px;
+    color: rgba(255,255,255,0.8);
+    text-align: center;
+    line-height: 1.5;
+  }
+  .welcome-sub .bold {
+    font-weight: 600;
+  }
+  .welcome-cta-area {
+    padding: 0 28px 16px;
+  }
+  .welcome-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 16px;
+    background: var(--echo-signal);
+    color: #fff;
+    font-size: 17px;
+    font-weight: 600;
+    border-radius: 14px;
+    border: none;
+    cursor: pointer;
+  }
+  .welcome-cta .arrow {
+    font-size: 15px;
+  }
+  .welcome-secondary {
+    text-align: center;
+    padding: 10px 0 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.5);
+  }
+</style>
+</head>
+<body>
+
+<div class="frame-col">
+  <div class="phone welcome-phone">
+    <div class="notch"></div>
+    <div class="statusbar">
+      <span>9:41</span>
+      <span></span>
+    </div>
+
+    <div class="welcome-body">
+      <div class="echo-logo-circle">
+        <div class="core"></div>
+        <div class="ring r1"></div>
+        <div class="ring r2"></div>
+        <div class="ring r3"></div>
+        <div class="ring r4"></div>
+        <div class="ring r5"></div>
+      </div>
+
+      <div class="welcome-title">ECHO</div>
+
+      <div class="welcome-sub">
+        Always Secure, Always Private<br>
+        <span class="bold">Your Data, Your Community</span>
+      </div>
+    </div>
+
+    <div class="welcome-cta-area">
+      <button class="welcome-cta">
+        Let's Go <span class="arrow">&rarr;</span>
+      </button>
+      <div class="welcome-secondary">I already have an account</div>
+    </div>
+  </div>
+
+  <div class="caption">
+    <b>Welcome Landing</b>
+    Telegram-style centered layout with Echo ripple logo, tagline, and single CTA.
+  </div>
+</div>
+
+</body>
+</html>

@@ -72,7 +72,21 @@ final class AuthAPIClient: AuthAPIClientProtocol {
         body: Encodable? = nil,
         token: String? = nil
     ) async throws -> Data {
-        var request = URLRequest(url: baseURL.appendingPathComponent(path))
+        try await makeRequest(
+            url: baseURL.appendingPathComponent(path),
+            method: method,
+            body: body,
+            token: token
+        )
+    }
+
+    private func makeRequest(
+        url: URL,
+        method: String = "POST",
+        body: Encodable? = nil,
+        token: String? = nil
+    ) async throws -> Data {
+        var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(
@@ -233,7 +247,7 @@ final class AuthAPIClient: AuthAPIClientProtocol {
             let allDevices: Bool
         }
         _ = try await makeRequest(
-            path: "auth/logout",
+            url: EchoAPIBaseURL.url(path: "/v3/auth/revoke"),
             body: Body(allDevices: allDevices),
             token: token
         )

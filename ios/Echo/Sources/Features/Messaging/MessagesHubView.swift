@@ -2,23 +2,22 @@ import SwiftUI
 
 /// Messages hub (spec §3.2 + docs/design-previews/messagehub1.png). Layout:
 /// persona switcher → "Messages" title with search / hidden-folders / new-message
-/// icons → segment bar (Chats · Groups · Pinned · Channels) → trust folder chips →
-/// conversation list. Search is icon-toggled (no persistent search bar); hidden
-/// folders open via the folder icon (biometric-gated).
+/// icons → segment bar (Chats · Groups · Channels) → pinned strip → conversation list.
+/// Search is icon-toggled (no persistent search bar); hidden folders open via the
+/// folder icon (biometric-gated).
 struct MessagesHubView: View {
     enum Segment: String, Identifiable {
-        case chats, groups, pinned, channels, hidden
+        case chats, groups, channels, hidden
         var id: String { rawValue }
         var title: String {
             switch self {
             case .chats: return "Chats"
             case .groups: return "Groups"
-            case .pinned: return "Pinned"
             case .channels: return "Channels"
             case .hidden: return "Hidden"
             }
         }
-        static let standard: [Segment] = [.chats, .groups, .pinned, .channels]
+        static let standard: [Segment] = [.chats, .groups, .channels]
     }
 
     let conversations: [StoredConversation]
@@ -40,7 +39,6 @@ struct MessagesHubView: View {
     @Bindable private var pinnedStore = PinnedConversationsStore.shared
     @State private var searchText = ""
     @State private var showSearch = false
-    @State private var folder: ChatFolder = .all
     @State private var segment: Segment = .chats
     @State private var showPersonaSheet = false
     @State private var showEditPins = false
@@ -55,7 +53,7 @@ struct MessagesHubView: View {
             VStack(spacing: 0) {
                 header
                 secureBar
-                Color.clear.frame(height: 12) // breathing room under the secure line
+                Color.clear.frame(height: 12)
                 if showSearch { searchField }
                 segmentBar
 
@@ -64,7 +62,6 @@ struct MessagesHubView: View {
                         switch segment {
                         case .chats:    chatsContent
                         case .groups:   groupsContent
-                        case .pinned:   pinnedContent
                         case .channels: placeholder(icon: "dot.radiowaves.left.and.right", text: "Broadcast channels are coming after groups.")
                         case .hidden:   hiddenContent
                         }
@@ -122,28 +119,18 @@ struct MessagesHubView: View {
         }
     }
 
-    private var folderUnreadCounts: [ChatFolder: Int] {
-        MessagesHubSupport.folderUnreadCounts(
-            conversations: conversations,
-            trustTier: { trustTier($0) }
-        )
-    }
-
     private var filtered: [StoredConversation] {
         let unpinned = conversations.filter { !pinnedStore.isPinned($0.id) }
         return unpinned.filter { conv in
-            (searchText.isEmpty || conv.contactName.localizedCaseInsensitiveContains(searchText))
-                && folder.includes(tier: trustTier(conv.id))
+            searchText.isEmpty || conv.contactName.localizedCaseInsensitiveContains(searchText)
         }
         .sorted { ($0.unreadCount > 0) && ($1.unreadCount == 0) }
     }
 
     private var header: some View {
         VStack(spacing: 0) {
-            // Persona switcher (tap to switch active persona)
             PersonaSwitcherHeader(active: activePersona) { showPersonaSheet = true }
 
-            // Title row: "Messages" + search / new-message icons (see messagehub1.png)
             HStack(spacing: Spacing.sm.rawValue) {
                 Text("Messages")
                     .font(.system(size: 28, weight: .bold))
@@ -183,8 +170,6 @@ struct MessagesHubView: View {
         }
     }
 
-    /// Circular header icon button. `filled` = signal-blue fill / white glyph (new
-    /// message + active search); otherwise a paper-dim circle with an ink glyph.
     private func headerIcon(_ systemName: String, filled: Bool) -> some View {
         Image(systemName: systemName)
             .font(.system(size: 17, weight: .medium))
@@ -238,8 +223,6 @@ struct MessagesHubView: View {
         .transition(.move(edge: .top).combined(with: .opacity))
     }
 
-    /// Tabbed bar — only the selected tab's content shows below. Selected tab is a
-    /// dark pill; unselected are muted text (see docs/design-previews/messagehub1.png).
     private var segmentBar: some View {
         HStack(spacing: 4) {
             ForEach(Segment.standard) { seg in
@@ -268,15 +251,14 @@ struct MessagesHubView: View {
 
     @ViewBuilder
     private var chatsContent: some View {
-        Spacer().frame(height: 8)
-
-        ChatFolderFilterView(selection: $folder, unreadCounts: folderUnreadCounts)
-            .padding(.leading, 4)
+        if !pinnedConversations.isEmpty {
+            pinnedStrip
+        }
 
         Spacer().frame(height: 6)
 
         if filtered.isEmpty {
-            placeholder(icon: "bubble.left.and.bubble.right", text: "No conversations in this filter.")
+            placeholder(icon: "bubble.left.and.bubble.right", text: "No conversations yet.")
         } else {
             ForEach(filtered) { conv in
                 conversationRow(conv)
@@ -285,43 +267,103 @@ struct MessagesHubView: View {
         }
     }
 
-    /// Pinned conversations, in pin order (Pinned segment — replaces the old strip).
+    private var pinnedStrip: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("PINNED")
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(1)
+                .foregroundColor(.echoInk40)
+                .padding(.leading, Spacing.lg.rawValue)
+                .padding(.top, 10)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 14) {
+                    ForEach(pinnedConversations) { conv in
+                        Button { onSelectConversation(conv.id) } label: {
+                            VStack(spacing: 4) {
+                                ZStack(alignment: .bottomTrailing) {
+                                    pinnedAvatar(for: conv)
+                                    if conv.unreadCount > 0 {
+                                        Circle()
+                                            .fill(Color.echoSignal)
+                                            .frame(width: 10, height: 10)
+                                            .overlay(Circle().stroke(Color.echoPaper, lineWidth: 1.5))
+                                    }
+                                }
+                                Text(conv.contactName.split(separator: " ").first.map(String.init) ?? conv.contactName)
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.echoInk55)
+                                    .lineLimit(1)
+                            }
+                            .frame(width: 52)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, Spacing.lg.rawValue)
+            }
+
+            Divider().background(Color.echoHair)
+                .padding(.top, 6)
+        }
+    }
+
+    private func pinnedAvatar(for conv: StoredConversation) -> some View {
+        let initials = conv.contactName.split(separator: " ").prefix(2).map { String($0.first ?? " ") }.joined()
+        return Text(initials)
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundColor(.white)
+            .frame(width: 40, height: 40)
+            .background(NewConversationSheet.avatarColor(for: conv.contactName))
+            .clipShape(Circle())
+    }
+
     private var pinnedConversations: [StoredConversation] {
         pinnedStore.orderedIDs.compactMap { id in conversations.first { $0.id == id } }
     }
 
     @ViewBuilder
-    private var pinnedContent: some View {
-        if pinnedConversations.isEmpty {
-            placeholder(icon: "pin.slash", text: "No pinned conversations.\nLong-press a chat and choose Pin to keep it here.")
-        } else {
-            HStack {
-                Spacer()
-                Button("Edit pins") { showEditPins = true }
-                    .font(.system(size: 13, weight: .semibold))
+    private func trustOverlay(tier: Int) -> some View {
+        if tier >= 3 {
+            HStack(spacing: 2) {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 11))
+                    .foregroundColor(.echoTrustGreen)
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 11))
                     .foregroundColor(.echoSignal)
             }
-            .padding(.horizontal, Spacing.lg.rawValue)
-            .padding(.vertical, Spacing.sm.rawValue)
-
-            ForEach(pinnedConversations) { conv in
-                conversationRow(conv)
-                Divider().background(Color.echoHair).padding(.leading, 76)
-            }
+        } else if tier >= 2 {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 11))
+                .foregroundColor(.echoTrustGreen)
+        } else {
+            Text("unverified")
+                .font(.system(size: 8, weight: .semibold))
+                .foregroundColor(.echoAlert)
         }
     }
 
     @ViewBuilder
     private func conversationRow(_ conv: StoredConversation) -> some View {
+        let tier = trustTier(conv.id)
         HStack(spacing: 0) {
-            ConversationListItem(
-                contactName: conv.contactName,
-                lastMessage: conv.lastMessage,
-                timestamp: conv.timestamp,
-                unreadCount: conv.unreadCount,
-                isOnline: conv.isOnline,
-                onTap: { onSelectConversation(conv.id) }
-            )
+            HStack(spacing: Spacing.md.rawValue) {
+                ZStack(alignment: .bottomTrailing) {
+                    ConversationListItem(
+                        contactName: conv.contactName,
+                        lastMessage: conv.lastMessage,
+                        timestamp: conv.timestamp,
+                        unreadCount: conv.unreadCount,
+                        isOnline: conv.isOnline,
+                        onTap: { onSelectConversation(conv.id) }
+                    )
+                }
+                .overlay(alignment: .topLeading) {
+                    trustOverlay(tier: tier)
+                        .offset(x: 36, y: 2)
+                }
+            }
             if mutedIDs.contains(conv.id) {
                 Image(systemName: "bell.slash.fill")
                     .font(.system(size: 12))
@@ -352,7 +394,6 @@ struct MessagesHubView: View {
         }
     }
 
-    /// Groups segment: a "New group" action + the groups the user belongs to.
     @ViewBuilder
     private var groupsContent: some View {
         Button {
@@ -371,8 +412,7 @@ struct MessagesHubView: View {
 
         Divider().background(Color.echoHair).padding(.leading, Spacing.lg.rawValue)
 
-        // Groups the user belongs to (none wired yet — backend arrives in a later phase).
-        placeholder(icon: "person.3", text: "You're not in any groups yet.\nTap “New group” to start one.")
+        placeholder(icon: "person.3", text: "You\u{2019}re not in any groups yet.\nTap \u{201C}New group\u{201D} to start one.")
     }
 
     @ViewBuilder
@@ -428,8 +468,8 @@ struct MessagesHubView_Previews: PreviewProvider {
     static var previews: some View {
         MessagesHubView(
             conversations: [
-                StoredConversation(contactName: "Aria Rao", peerDID: "did:key:a", lastMessage: "Signed receipt ✓", timestamp: "9:32", unreadCount: 3, isOnline: true),
-                StoredConversation(contactName: "Kai Mercer", peerDID: "did:key:k", lastMessage: "Typing…", timestamp: "8:58"),
+                StoredConversation(contactName: "Aria Rao", peerDID: "did:key:a", lastMessage: "Signed receipt \u{2713}", timestamp: "9:32", unreadCount: 3, isOnline: true),
+                StoredConversation(contactName: "Kai Mercer", peerDID: "did:key:k", lastMessage: "Typing\u{2026}", timestamp: "8:58"),
             ],
             hiddenConversations: [],
             personas: [PersonaSummary(id: "default", name: "Aria (public)", initials: "AR")],

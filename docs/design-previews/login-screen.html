@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Echo — Login Screen</title>
+<link rel="stylesheet" href="previews.css">
+<style>
+  .login-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 28px;
+  }
+
+  .login-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px 0;
+    width: 100%;
+  }
+  .login-header .logo-dot {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--echo-signal);
+    position: relative;
+  }
+  .login-header .logo-dot::after {
+    content: "";
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--echo-signal);
+  }
+  .login-header .brand {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--echo-ink);
+  }
+
+  .login-tagline {
+    font-size: 17px;
+    color: var(--echo-ink-70);
+    margin-bottom: 24px;
+  }
+  .login-username {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--echo-ink-40);
+    margin-bottom: 12px;
+  }
+
+  .login-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 16px 20px;
+    background: var(--echo-paper-dim);
+    border-radius: 16px;
+    border: 1px solid var(--echo-hair);
+    cursor: pointer;
+  }
+  .login-card:hover {
+    background: var(--echo-paper-edge);
+  }
+  .login-card .icon-circle {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: rgba(14, 122, 184, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: var(--echo-signal);
+    flex-shrink: 0;
+  }
+  .login-card .card-text {
+    flex: 1;
+  }
+  .login-card .card-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--echo-ink);
+  }
+  .login-card .card-sub {
+    font-size: 13px;
+    color: var(--echo-ink-55);
+    margin-top: 2px;
+  }
+  .login-card .card-chev {
+    font-size: 14px;
+    color: var(--echo-ink-40);
+  }
+
+  .alt-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 28px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .alt-toggle .label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--echo-ink-40);
+  }
+  .alt-toggle .chev {
+    font-size: 10px;
+    color: var(--echo-ink-40);
+    transition: transform 0.2s;
+  }
+  .alt-toggle.open .chev {
+    transform: rotate(180deg);
+  }
+
+  .alt-options {
+    width: 100%;
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .alt-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    background: var(--echo-paper-dim);
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--echo-ink);
+  }
+  .alt-row:hover {
+    background: var(--echo-paper-edge);
+  }
+  .alt-row .ic {
+    font-size: 14px;
+    color: var(--echo-signal);
+  }
+  .alt-row .spacer { flex: 1; }
+  .alt-row .chev {
+    font-size: 12px;
+    color: var(--echo-ink-40);
+  }
+
+  .login-footer {
+    padding: 0 28px 48px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--echo-ink-55);
+  }
+  .login-footer a {
+    color: var(--echo-signal);
+    font-weight: 600;
+    text-decoration: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="frame-col">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar">
+      <span>9:41</span>
+      <span></span>
+    </div>
+
+    <div class="login-header">
+      <div class="logo-dot"></div>
+      <span class="brand">ECHO</span>
+    </div>
+
+    <div class="login-body">
+      <div class="login-tagline">Private Messaging, Always</div>
+      <div class="login-username">@thechadcromwell</div>
+
+      <div class="login-card">
+        <div class="icon-circle">&#x1f5dd;</div>
+        <div class="card-text">
+          <div class="card-title">Secure Login</div>
+          <div class="card-sub">FaceID, TouchID, or PIN</div>
+        </div>
+        <div class="card-chev">&#x203A;</div>
+      </div>
+
+      <div class="alt-toggle open" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('hidden')">
+        <span class="label">SECURE ALTERNATIVE</span>
+        <span class="chev">&#x25BE;</span>
+      </div>
+      <div class="alt-options">
+        <div class="alt-row">
+          <span class="ic">&#x1F4AC;</span>
+          Recover via SMS
+          <span class="spacer"></span>
+          <span class="chev">&#x203A;</span>
+        </div>
+        <div class="alt-row">
+          <span class="ic">&#x1F517;</span>
+          Sign in on new device
+          <span class="spacer"></span>
+          <span class="chev">&#x203A;</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="login-footer">
+      New to ECHO? <a href="#">Get Started</a>
+    </div>
+  </div>
+
+  <div class="caption">
+    <b>Login Screen</b>
+    Centered layout with Secure Login card, collapsible alternative options, and Get Started footer.
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.hidden').forEach(el => el.style.display = 'none');
+document.querySelectorAll('.alt-toggle').forEach(toggle => {
+  toggle.addEventListener('click', () => {
+    const opts = toggle.nextElementSibling;
+    if (opts.style.display === 'none') {
+      opts.style.display = '';
+    } else {
+      opts.style.display = 'none';
+    }
+  });
+});
+</script>
+
+</body>
+</html>

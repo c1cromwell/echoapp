@@ -21,7 +21,7 @@ enum AuthEndpoint: APIEndpoint {
         case .refreshToken:
             return "/auth/refresh"
         case .logout:
-            return "/auth/logout"
+            return "/v3/auth/revoke"
         case .verifyBiometric:
             return "/auth/verify-biometric"
         case .createPasskey:

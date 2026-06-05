@@ -30,11 +30,13 @@ enum SessionSignOut {
     }
 
     private static func bestEffortServerLogout() async {
-        guard let token = try? await KeychainManager.shared.getAuthToken(), !token.isEmpty else {
+        guard let client = DIContainer.shared.resolveAPIClient(),
+              (try? await KeychainManager.shared.getAuthToken()) != nil else {
             return
         }
-        let client = AuthAPIClient(baseURL: EchoAPIBaseURL.resolved)
-        try? await client.logout(token: token, allDevices: false)
+        struct Empty: Encodable {}
+        struct RevokeResponse: Decodable { let revoked: Bool? }
+        let _: RevokeResponse? = try? await client.post(endpoint: AuthEndpoint.logout, body: Empty())
     }
 
     private static func clearLocalCredentials() async {

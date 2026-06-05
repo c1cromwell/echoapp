@@ -11,6 +11,10 @@ final class ContactsEndpointTests: XCTestCase {
         XCTAssertTrue(path.hasPrefix("/v3/contacts/relationship?peer_did="))
         XCTAssertTrue(path.contains("did:key"))
     }
+
+    func testLogoutPath_matchesBackendRevoke() {
+        XCTAssertEqual(AuthEndpoint.logout.path, "/v3/auth/revoke")
+    }
 }
 
 #if os(iOS)
