@@ -22,20 +22,8 @@
     padding: 12px 28px 0;
     width: 100%;
   }
-  .login-header .logo-dot {
+  .login-header .logo-svg {
     width: 22px; height: 22px;
-    border-radius: 50%;
-    border: 2px solid var(--echo-signal);
-    position: relative;
-  }
-  .login-header .logo-dot::after {
-    content: "";
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--echo-signal);
   }
   .login-header .brand {
     font-size: 18px;
@@ -178,11 +166,12 @@
     </div>
 
     <div class="login-header">
-      <div class="logo-dot"></div>
+      <img class="logo-svg" src="../logos/echo-ripple-brand.svg" alt="Echo logo">
       <span class="brand">ECHO</span>
     </div>
 
     <div class="login-body">
+      <img style="width:120px;height:120px;margin-bottom:24px" src="../logos/echo-ripple-brand.svg" alt="Echo logo">
       <div class="login-tagline">Private Messaging, Always</div>
       <div class="login-username">@thechadcromwell</div>
 

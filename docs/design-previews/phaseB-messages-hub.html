@@ -37,10 +37,12 @@
     display: inline-flex; align-items: center; gap: 2px; margin-left: 4px;
   }
   .trust-inline .seal {
-    font-size: 11px;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; border-radius: 50%;
+    font-size: 7px; font-weight: 700; color: #fff;
   }
-  .trust-inline .seal.verified { color: var(--echo-trust-green); }
-  .trust-inline .seal.trusted { color: var(--echo-signal); }
+  .trust-inline .seal.verified { background: var(--echo-trust-green); }
+  .trust-inline .seal.trusted { background: var(--echo-signal); }
   .trust-inline .unverified-label {
     font-size: 8px; font-weight: 600; color: var(--echo-alert);
   }

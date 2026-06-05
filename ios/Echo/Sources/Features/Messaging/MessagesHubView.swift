@@ -322,21 +322,24 @@ struct MessagesHubView: View {
         pinnedStore.orderedIDs.compactMap { id in conversations.first { $0.id == id } }
     }
 
+    private func trustBadgeCircle(_ color: Color) -> some View {
+        Image(systemName: "checkmark")
+            .font(.system(size: 7, weight: .bold))
+            .foregroundColor(.white)
+            .frame(width: 14, height: 14)
+            .background(color)
+            .clipShape(Circle())
+    }
+
     @ViewBuilder
     private func trustOverlay(tier: Int) -> some View {
         if tier >= 3 {
             HStack(spacing: 2) {
-                Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 11))
-                    .foregroundColor(.echoTrustGreen)
-                Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 11))
-                    .foregroundColor(.echoSignal)
+                trustBadgeCircle(.echoTrustGreen)
+                trustBadgeCircle(.echoSignal)
             }
         } else if tier >= 2 {
-            Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 11))
-                .foregroundColor(.echoTrustGreen)
+            trustBadgeCircle(.echoTrustGreen)
         } else {
             Text("unverified")
                 .font(.system(size: 8, weight: .semibold))

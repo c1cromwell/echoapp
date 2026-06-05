@@ -49,17 +49,23 @@ public struct GlacialLoginScreen: View {
         case noAccount
     }
 
+    @State private var showAlternative = false
+
     public var body: some View {
         ZStack {
             Color.echoPaper.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                HStack {
+                HStack(spacing: 8) {
                     EchoRippleMark(size: 22, color: .echoSignal)
+                    Text("ECHO")
+                        .font(.system(size: 18, weight: .bold))
+                        .tracking(1)
+                        .foregroundStyle(Color.echoInk)
                     Spacer()
                 }
                 .padding(.horizontal, 28)
-                .padding(.top, 8)
+                .padding(.top, 12)
 
                 Spacer()
 
@@ -98,59 +104,142 @@ public struct GlacialLoginScreen: View {
     // MARK: - Login views
 
     private var normalLoginView: some View {
-        VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 0) {
-                Text(savedUsername.isEmpty ? "" : "@\(savedUsername)")
-                    .font(.echomono(11))
-                    .foregroundStyle(Color.echoInk40)
-                    .padding(.bottom, 8)
+        VStack(spacing: 24) {
+            VStack(spacing: 0) {
+                EchoRippleMark(size: 120, color: .echoSignal)
+                    .padding(.bottom, 24)
 
-                Text("Look at\nyour phone.")
-                    .font(.system(size: 32, weight: .semibold))
-                    .tracking(-0.8)
-                    .lineSpacing(2)
-                    .foregroundStyle(Color.echoInk)
+                Text("Private Messaging, Always")
+                    .font(.system(size: 17))
+                    .foregroundStyle(Color.echoInk70)
+                    .padding(.bottom, 24)
 
-                Text("Face ID will unlock in a moment.")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color.echoInk55)
-                    .padding(.top, 10)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 28)
+                if !savedUsername.isEmpty {
+                    Text("@\(savedUsername)")
+                        .font(.echomono(11))
+                        .foregroundStyle(Color.echoInk40)
+                        .padding(.bottom, 12)
+                }
 
-            VStack(spacing: 18) {
                 Button(action: { Task { await triggerBiometricLogin() } }) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.echoPaperDim)
-                            .frame(width: 112, height: 112)
-                            .overlay(Circle().stroke(Color.echoHair, lineWidth: 1))
+                    HStack(spacing: 14) {
                         Image(systemName: "faceid")
-                            .font(.system(size: 48, weight: .ultraLight))
-                            .foregroundStyle(isUnlocking ? Color.echoSignal : Color.echoInk)
+                            .font(.system(size: 28, weight: .light))
+                            .foregroundStyle(Color.echoSignal)
+                            .frame(width: 44, height: 44)
+                            .background(Color.echoSignal.opacity(0.12))
+                            .clipShape(Circle())
                             .scaleEffect(isUnlocking ? 1.05 : 1.0)
                             .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true),
                                        value: isUnlocking)
-                    }
-                }
-                .disabled(isUnlocking)
 
-                Group {
-                    if let error = unlockError {
-                        Text(error)
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color.echoAlert)
-                            .multilineTextAlignment(.center)
-                    } else {
-                        Text(isUnlocking ? "● SCANNING" : "")
-                            .font(.echomono(10))
-                            .tracking(1)
-                            .foregroundStyle(Color.echoTrustGreen)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Secure Login")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(Color.echoInk)
+                            Text("FaceID, TouchID, or PIN")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.echoInk55)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.echoInk40)
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+                    .background(Color.echoPaperDim)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.echoHair, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(SpringPressStyle())
+                .disabled(isUnlocking)
+                .padding(.horizontal, 28)
+
+                if let error = unlockError {
+                    Text(error)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.echoAlert)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 12)
+                } else if isUnlocking {
+                    Text("SCANNING")
+                        .font(.echomono(10))
+                        .tracking(1)
+                        .foregroundStyle(Color.echoTrustGreen)
+                        .padding(.top, 12)
                 }
             }
-            .padding(.top, 44)
+
+            VStack(spacing: 8) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        showAlternative.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text("SECURE ALTERNATIVE")
+                            .font(.system(size: 11, weight: .semibold))
+                            .tracking(1)
+                            .foregroundStyle(Color.echoInk40)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Color.echoInk40)
+                            .rotationEffect(.degrees(showAlternative ? 180 : 0))
+                    }
+                }
+
+                if showAlternative {
+                    VStack(spacing: 10) {
+                        Button(action: { triggerRecovery() }) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "message.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(Color.echoSignal)
+                                Text("Recover via SMS")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundStyle(Color.echoInk)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(Color.echoInk40)
+                            }
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 14)
+                            .background(Color.echoPaperDim)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        .buttonStyle(.plain)
+
+                        Button { showLinkDevice = true } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "link")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(Color.echoSignal)
+                                Text("Sign in on new device")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundStyle(Color.echoInk)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(Color.echoInk40)
+                            }
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 14)
+                            .background(Color.echoPaperDim)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 28)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
         }
     }
 
@@ -320,30 +409,22 @@ public struct GlacialLoginScreen: View {
     // MARK: - Footer
 
     private var footerLinks: some View {
-        VStack(spacing: 4) {
-            if case .normal = loginState {
-                Button("Use passkey", action: onPasskeyLogin)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color.echoInk)
-                    .padding(8)
-            }
-
-            if case .noAccount = loginState {} else {
+        VStack(spacing: 8) {
+            if case .noAccount = loginState {} else if case .normal = loginState {} else {
                 Button("Recover account") { triggerRecovery() }
-                    .font(.system(size: 12))
+                    .font(.system(size: 13))
                     .foregroundStyle(Color.echoInk55)
                     .padding(4)
             }
 
-            Button("Sign in on new device") { showLinkDevice = true }
-                .font(.system(size: 12))
-                .foregroundStyle(Color.echoInk55)
-                .padding(4)
-
-            Button("New to Echo? Create account", action: onGetStarted)
-                .font(.system(size: 12))
-                .foregroundStyle(Color.echoSignal)
-                .padding(.top, 4)
+            HStack(spacing: 4) {
+                Text("New to ECHO?")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.echoInk55)
+                Button("Get Started", action: onGetStarted)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color.echoSignal)
+            }
         }
     }
 

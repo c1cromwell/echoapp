@@ -7,11 +7,8 @@
 <link rel="stylesheet" href="previews.css">
 <style>
   .welcome-phone {
-    background: var(--echo-ink) !important;
-    color: #fff;
-  }
-  .welcome-phone .statusbar {
-    color: #fff;
+    background: var(--echo-paper) !important;
+    color: var(--echo-ink);
   }
   .welcome-body {
     flex: 1;
@@ -21,42 +18,21 @@
     justify-content: center;
     padding: 0 28px;
   }
-  .echo-logo-circle {
+  .echo-logo {
     width: 160px;
     height: 160px;
-    position: relative;
     margin-bottom: 32px;
   }
-  .echo-logo-circle .core {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 14px; height: 14px;
-    background: var(--echo-signal);
-    border-radius: 50%;
-  }
-  .echo-logo-circle .ring {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    border: 2px solid var(--echo-signal);
-  }
-  .echo-logo-circle .ring.r1 { width: 44px; height: 44px; opacity: 0.85; }
-  .echo-logo-circle .ring.r2 { width: 68px; height: 68px; opacity: 0.7; }
-  .echo-logo-circle .ring.r3 { width: 96px; height: 96px; opacity: 0.55; }
-  .echo-logo-circle .ring.r4 { width: 124px; height: 124px; opacity: 0.4; }
-  .echo-logo-circle .ring.r5 { width: 154px; height: 154px; opacity: 0.25; }
   .welcome-title {
     font-size: 36px;
     font-weight: 700;
     letter-spacing: 1.5px;
-    color: #fff;
+    color: var(--echo-ink);
     margin-bottom: 16px;
   }
   .welcome-sub {
     font-size: 16px;
-    color: rgba(255,255,255,0.8);
+    color: var(--echo-ink-70);
     text-align: center;
     line-height: 1.5;
   }
@@ -89,7 +65,7 @@
     padding: 10px 0 6px;
     font-size: 14px;
     font-weight: 500;
-    color: rgba(255,255,255,0.5);
+    color: var(--echo-ink-55);
   }
 </style>
 </head>
@@ -104,14 +80,7 @@
     </div>
 
     <div class="welcome-body">
-      <div class="echo-logo-circle">
-        <div class="core"></div>
-        <div class="ring r1"></div>
-        <div class="ring r2"></div>
-        <div class="ring r3"></div>
-        <div class="ring r4"></div>
-        <div class="ring r5"></div>
-      </div>
+      <img class="echo-logo" src="../logos/echo-ripple-brand.svg" alt="Echo logo">
 
       <div class="welcome-title">ECHO</div>
 

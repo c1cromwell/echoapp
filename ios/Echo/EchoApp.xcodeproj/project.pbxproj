@@ -50,6 +50,8 @@
 		3973D5EE01A5A461D989AD45 /* RecoveryCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56BFC00502030305A3ADCD52 /* RecoveryCoordinator.swift */; };
 		3ADA25FCFF9B7B005460980F /* WalletViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B679C97AB41C5A8896B25EF /* WalletViewModel.swift */; };
 		3CE3DDA326CF1AE787EF1EA7 /* Endpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = B53E64017DF46F0C1D4DF28E /* Endpoints.swift */; };
+		3D2F15A22FD2E52C0020765D /* EchoWelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2F15A12FD2E52C0020765D /* EchoWelcomeView.swift */; };
+		3D2F15A42FD305E70020765D /* MessagesHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2F15A32FD305E70020765D /* MessagesHubView.swift */; };
 		3D737E97D9F6CBA1C1C0C7C2 /* WalletCredentialEnrollmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB3F2272967F4E123A1DE17B /* WalletCredentialEnrollmentView.swift */; };
 		3D9852EE2FD2515C00058340 /* NewContactSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D9852ED2FD2515C00058340 /* NewContactSheet.swift */; };
 		3DDB230C2FC734B3008D0406 /* ConversationSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DDB230A2FC734B3008D0406 /* ConversationSignal.swift */; };
@@ -281,6 +283,8 @@
 		3B75CA8C52C3A9434A8B8279 /* EchoButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoButton.swift; sourceTree = "<group>"; };
 		3C05A999CF9E116DBCB842A7 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		3C4FB342BDBA4A46BCB6A489 /* Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift; sourceTree = "<group>"; };
+		3D2F15A12FD2E52C0020765D /* EchoWelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoWelcomeView.swift; sourceTree = "<group>"; };
+		3D2F15A32FD305E70020765D /* MessagesHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesHubView.swift; sourceTree = "<group>"; };
 		3D9852ED2FD2515C00058340 /* NewContactSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewContactSheet.swift; sourceTree = "<group>"; };
 		3DDB230A2FC734B3008D0406 /* ConversationSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationSignal.swift; sourceTree = "<group>"; };
 		3DDB230B2FC734B3008D0406 /* ConversationSignalTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationSignalTransport.swift; sourceTree = "<group>"; };
@@ -776,6 +780,7 @@
 				W0E00101234567890123401B /* ReactionPickerView.swift */,
 				D288A005234567890123415 /* ReactionReactorDetailSheet.swift */,
 				W0E001012345678901234017 /* TypingIndicatorView.swift */,
+				3D2F15A32FD305E70020765D /* MessagesHubView.swift */,
 			);
 			path = Messaging;
 			sourceTree = "<group>";
@@ -1232,6 +1237,7 @@
 				6197E3CE5113FD3073710C05 /* FirstRunCoordinator.swift */,
 				4D8E691D75032F9424C0D8CE /* SilentProvisionService.swift */,
 				159B7E22B0490C8325290E1D /* WelcomeCarouselView.swift */,
+				3D2F15A12FD2E52C0020765D /* EchoWelcomeView.swift */,
 			);
 			path = FirstRun;
 			sourceTree = "<group>";
@@ -1394,6 +1400,7 @@
 				9FCF66C6917A6C8B271F5323 /* EchoTabBar.swift in Sources */,
 				586028F5A719EB34EEE8C08D /* EchoTextField.swift in Sources */,
 				3CE3DDA326CF1AE787EF1EA7 /* Endpoints.swift in Sources */,
+				3D2F15A22FD2E52C0020765D /* EchoWelcomeView.swift in Sources */,
 				A36686A3CDC4F794588D5DE5 /* EnrollmentAPIClient.swift in Sources */,
 				3566ABF7C390638A0A34888E /* EnrollmentComponents.swift in Sources */,
 				E3AAD5ACF260E4D8B7F3317D /* EnrollmentCoordinator.swift in Sources */,
@@ -1421,6 +1428,7 @@
 				F87F0FFF3BDDDE670F5300DE /* KeychainManager.swift in Sources */,
 				54941CC2787A54B6C3F2C753 /* KeychainProtocols.swift in Sources */,
 				4E153AF553C3C37A97C74D3E /* KinnamiEncryption.swift in Sources */,
+				3D2F15A42FD305E70020765D /* MessagesHubView.swift in Sources */,
 				067676C93F25354E9EFF5CE4 /* ListItems.swift in Sources */,
 				97560CFEE37395CB56D2874C /* LocalDatabase.swift in Sources */,
 				A47F15313B1340EF6D5FC214 /* LoginView.swift in Sources */,

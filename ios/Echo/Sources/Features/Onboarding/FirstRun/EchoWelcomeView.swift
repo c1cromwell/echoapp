@@ -11,7 +11,7 @@ public struct EchoWelcomeView: View {
 
     public var body: some View {
         ZStack {
-            Color.echoInk.ignoresSafeArea()
+            Color.echoPaper.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Spacer()
@@ -22,16 +22,16 @@ public struct EchoWelcomeView: View {
                 Text("ECHO")
                     .font(.system(size: 36, weight: .bold))
                     .tracking(1.5)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.echoInk)
                     .padding(.bottom, 16)
 
                 Text("Always Secure, Always Private")
                     .font(.system(size: 16))
-                    .foregroundStyle(Color.white.opacity(0.8))
+                    .foregroundStyle(Color.echoInk70)
 
                 Text("Your Data, Your Community")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color.white.opacity(0.8))
+                    .foregroundStyle(Color.echoInk70)
                     .padding(.top, 4)
 
                 Spacer()
@@ -53,14 +53,14 @@ public struct EchoWelcomeView: View {
 
                     Button("I already have an account", action: onAlreadyHaveAccount)
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(Color.white.opacity(0.5))
+                        .foregroundStyle(Color.echoInk55)
                         .padding(.vertical, 6)
                 }
                 .padding(.horizontal, 28)
                 .padding(.bottom, 16)
             }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 }
 

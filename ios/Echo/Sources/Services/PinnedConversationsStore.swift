@@ -1,13 +1,13 @@
 import Foundation
 import Observation
 
-/// Persisted pin order for the Messages hub (spec §5.5, max 5).
+/// Persisted pin order for the Messages hub (spec §5.5, max 20).
 @MainActor
 @Observable
 public final class PinnedConversationsStore {
     public static let shared = PinnedConversationsStore()
 
-    public static let maxPins = 5
+    public static let maxPins = 20
 
     private(set) var orderedIDs: [String] = []
     private let storageKey = "echo.pinned.conversations.v1"
