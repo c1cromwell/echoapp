@@ -40,7 +40,7 @@ enum SessionSignOut {
     private static func clearLocalCredentials() async {
         let tokenManager = TokenManager(keychain: KeychainAdapter(), apiClient: AuthAPIClient())
         tokenManager.clearTokens()
-        BiometricIntegrityService().clearBiometricState()
+        BiometricIntegrityService(keychain: KeychainAdapter()).clearBiometricState()
 
         try? await KeychainManager.shared.clearAuthCredentials()
         for service in ["com.echo.auth", "com.echo.tokens", "com.echo.credentials"] {

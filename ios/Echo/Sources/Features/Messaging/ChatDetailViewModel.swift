@@ -157,7 +157,7 @@ final class ChatDetailViewModel {
                   isOwnMessage: messages[idx].isFromCurrentUser
               ) else { return false }
         messages[idx].content = trimmed
-        syncThreadStore()
+        ConversationThreadStore.replace(conversationId: conversationId, messages: messages)
         editingMessageId = nil
         inputText = ""
         return true

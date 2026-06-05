@@ -51,6 +51,7 @@
 		3ADA25FCFF9B7B005460980F /* WalletViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B679C97AB41C5A8896B25EF /* WalletViewModel.swift */; };
 		3CE3DDA326CF1AE787EF1EA7 /* Endpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = B53E64017DF46F0C1D4DF28E /* Endpoints.swift */; };
 		3D737E97D9F6CBA1C1C0C7C2 /* WalletCredentialEnrollmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB3F2272967F4E123A1DE17B /* WalletCredentialEnrollmentView.swift */; };
+		3D9852EE2FD2515C00058340 /* NewContactSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D9852ED2FD2515C00058340 /* NewContactSheet.swift */; };
 		3DDB230C2FC734B3008D0406 /* ConversationSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DDB230A2FC734B3008D0406 /* ConversationSignal.swift */; };
 		3DDB230D2FC734B3008D0406 /* ConversationSignalTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DDB230B2FC734B3008D0406 /* ConversationSignalTransport.swift */; };
 		438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BAE98848BA987C5A80A8C29 /* Sources/Features/Contacts/QRContactAddCoordinator.swift */; };
@@ -71,7 +72,6 @@
 		5802DC68FD2AD94BF4559B69 /* SecureEnclaveManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42A1185BD0CD5B9A60D72585 /* SecureEnclaveManager.swift */; };
 		586028F5A719EB34EEE8C08D /* EchoTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46E4E0EE1C40DB8D0B214710 /* EchoTextField.swift */; };
 		59377B9DF47C401D5068938A /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C05A999CF9E116DBCB842A7 /* AppState.swift */; };
-		A1B2C3D401234567890ABC02 /* SessionSignOut.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D401234567890ABC01 /* SessionSignOut.swift */; };
 		59E8F775DE3CE4DB0C228459 /* CallViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 335CBE1170EA2977BE45071D /* CallViewModel.swift */; };
 		5AF3B8087411248D3FABABC8 /* Sources/Services/IdentityResolveClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BE1DF715DD46161989FCE7 /* Sources/Services/IdentityResolveClient.swift */; };
 		5BE9E0B99708F64D2C597A18 /* Sources/Features/Trust/TrustDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B77A834EA1E7DEEE5FFF163D /* Sources/Features/Trust/TrustDashboardView.swift */; };
@@ -123,6 +123,7 @@
 		9E907E104A04ACF540F617AB /* DisplayNameEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50817FADA36E4A64D063463D /* DisplayNameEntryView.swift */; };
 		9EFFC1D22C27CD50E7EEFD4F /* FirstRunCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6197E3CE5113FD3073710C05 /* FirstRunCoordinator.swift */; };
 		9FCF66C6917A6C8B271F5323 /* EchoTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A305A0E3763671F7D28B71 /* EchoTabBar.swift */; };
+		A1B2C3D401234567890ABC02 /* SessionSignOut.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D401234567890ABC01 /* SessionSignOut.swift */; };
 		A1B2C3D4E5F60718293A4B5C /* Contacts/ContactUseCases.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* Contacts/ContactUseCases.swift */; };
 		A36686A3CDC4F794588D5DE5 /* EnrollmentAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6F05E1329999CB64D520138 /* EnrollmentAPIClient.swift */; };
 		A47F15313B1340EF6D5FC214 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F88ED50062F05CA053C41BB5 /* LoginView.swift */; };
@@ -279,8 +280,8 @@
 		3B355D26B7A704237F7ACEEF /* EchoApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EchoApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B75CA8C52C3A9434A8B8279 /* EchoButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoButton.swift; sourceTree = "<group>"; };
 		3C05A999CF9E116DBCB842A7 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
-		A1B2C3D401234567890ABC01 /* SessionSignOut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSignOut.swift; sourceTree = "<group>"; };
 		3C4FB342BDBA4A46BCB6A489 /* Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift; sourceTree = "<group>"; };
+		3D9852ED2FD2515C00058340 /* NewContactSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewContactSheet.swift; sourceTree = "<group>"; };
 		3DDB230A2FC734B3008D0406 /* ConversationSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationSignal.swift; sourceTree = "<group>"; };
 		3DDB230B2FC734B3008D0406 /* ConversationSignalTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationSignalTransport.swift; sourceTree = "<group>"; };
 		4023A7E250044C538B50953F /* Sources/Features/Auth/Views/SMSOTPSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Auth/Views/SMSOTPSetupView.swift; sourceTree = "<group>"; };
@@ -348,6 +349,7 @@
 		9B651E3B2334AC002FD93084 /* AuthError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthError.swift; sourceTree = "<group>"; };
 		9DBA2A027C3B24A1107626C0 /* DigitalEvidenceBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DigitalEvidenceBridge.swift; sourceTree = "<group>"; };
 		9DE9B01FC700C282006EC335 /* BiometricIntegrityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricIntegrityService.swift; sourceTree = "<group>"; };
+		A1B2C3D401234567890ABC01 /* SessionSignOut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSignOut.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A4B5D /* Contacts/ContactUseCases.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Contacts/ContactUseCases.swift; sourceTree = "<group>"; };
 		A36E448A4DBA558B75312595 /* EchoColorPalette+FirstRun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EchoColorPalette+FirstRun.swift"; sourceTree = "<group>"; };
 		A4896834BF6E4E5D9034D065 /* Sources/Features/Onboarding/FirstRun/BiometricEnrollmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/FirstRun/BiometricEnrollmentView.swift; sourceTree = "<group>"; };
@@ -1058,6 +1060,7 @@
 				D288A001234567890123411 /* EchoDeepLink.swift */,
 				P3S001012345678901234001 /* ContactThreadHelper.swift */,
 				W0E00101234567890123400B /* InviteLinkSheet.swift */,
+				3D9852ED2FD2515C00058340 /* NewContactSheet.swift */,
 			);
 			path = Contacts;
 			sourceTree = "<group>";
@@ -1516,6 +1519,7 @@
 				F1A2B3C40123456789000A2 /* ContactDiscoverySyncPreferences.swift in Sources */,
 				D288A001234567890123401 /* EchoDeepLink.swift in Sources */,
 				D288A004234567890123404 /* ContactFavoritesStore.swift in Sources */,
+				3D9852EE2FD2515C00058340 /* NewContactSheet.swift in Sources */,
 				D288A005234567890123405 /* ReactionReactorDetailSheet.swift in Sources */,
 				P3S001012345678901234002 /* ContactThreadHelper.swift in Sources */,
 				F1A2B3C4012345678900008 /* ContactDiscoveryAPIClient.swift in Sources */,

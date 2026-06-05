@@ -1,15 +1,19 @@
 import SwiftUI
+#if os(iOS)
+import Contacts
+#endif
 
 /// Contacts - Contacts List Screen
 public struct ContactsListView: View {
     @State private var searchText = ""
     @State private var selectedFilter = "All"
     @State private var showFavoritesOnly = false
-    @State private var showInviteSheet = false
+    @State private var showAddContact = false
     #if os(iOS)
     @State private var viewModel = ContactsListViewModel()
     @State private var selectedContact: ContactModel?
     @State private var chatThread: StoredConversation?
+    @State private var importedContacts: [ContactModel] = []
     #else
     @State private var contacts: [ContactModel] = []
     #endif
@@ -58,21 +62,9 @@ public struct ContactsListView: View {
                 EchoNavBar(
                     title: "Contacts",
                     showBackButton: false,
-                    trailingAction: { showInviteSheet = true },
-                    trailingIcon: Image(systemName: "person.badge.plus")
+                    trailingAction: { showAddContact = true },
+                    trailingIcon: Image(systemName: "plus")
                 )
-
-                NavigationLink {
-                    UsernameSearchView()
-                } label: {
-                    discoveryLinkLabel(icon: "at", title: "Search by @username")
-                }
-
-                NavigationLink {
-                    ContactDiscoveryView()
-                } label: {
-                    discoveryLinkLabel(icon: "person.2.circle", title: "Find contacts on ECHO")
-                }
 
                 VStack(spacing: Spacing.lg.rawValue) {
                     HStack {
@@ -111,15 +103,8 @@ public struct ContactsListView: View {
                     if viewModel.isLoading && viewModel.contacts.isEmpty {
                         ProgressView("Loading contacts…")
                             .frame(maxHeight: .infinity, alignment: .center)
-                    } else if let error = viewModel.errorMessage, viewModel.contacts.isEmpty {
-                        ContentUnavailableView {
-                            Label("Couldn't load contacts", systemImage: "exclamationmark.triangle")
-                        } description: {
-                            Text(error)
-                        } actions: {
-                            Button("Retry") { Task { await viewModel.refresh() } }
-                        }
-                        .frame(maxHeight: .infinity, alignment: .center)
+                    } else if viewModel.contacts.isEmpty {
+                        contactsEmptyState
                     } else if filteredContacts.isEmpty {
                         contactsEmptyState
                     } else {
@@ -136,10 +121,12 @@ public struct ContactsListView: View {
                 .echoSpacing(.lg)
             }
         }
-        .sheet(isPresented: $showInviteSheet) {
-            InviteLinkSheet()
-        }
         #if os(iOS)
+        .sheet(isPresented: $showAddContact) {
+            NewContactSheet {
+                Task { await viewModel.refresh() }
+            }
+        }
         .task { await viewModel.refresh() }
         .refreshable { await viewModel.refresh() }
         .navigationDestination(item: $selectedContact) { contact in
@@ -153,19 +140,6 @@ public struct ContactsListView: View {
         #endif
     }
 
-    private func discoveryLinkLabel(icon: String, title: String) -> some View {
-        HStack {
-            Image(systemName: icon)
-            Text(title)
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, Spacing.lg.rawValue)
-        .padding(.vertical, Spacing.sm.rawValue)
-    }
-
     #if os(iOS)
     private func openChat(with contact: ContactModel) async {
         selectedContact = nil
@@ -177,19 +151,84 @@ public struct ContactsListView: View {
             chatThread = thread
         }
     }
+
+    private func importPhoneContacts() async {
+        let store = CNContactStore()
+        do {
+            let granted = try await store.requestAccess(for: .contacts)
+            guard granted else { return }
+            let keys = [CNContactGivenNameKey, CNContactFamilyNameKey, CNContactPhoneNumbersKey] as [CNKeyDescriptor]
+            let request = CNContactFetchRequest(keysToFetch: keys)
+            var imported: [ContactModel] = []
+            try store.enumerateContacts(with: request) { contact, _ in
+                let name = [contact.givenName, contact.familyName]
+                    .filter { !$0.isEmpty }
+                    .joined(separator: " ")
+                guard !name.isEmpty else { return }
+                let phone = contact.phoneNumbers.first?.value.stringValue ?? ""
+                imported.append(ContactModel(id: UUID().uuidString, name: name, username: phone, trustLevel: "Acquaintance"))
+            }
+            importedContacts = imported
+            await viewModel.refresh()
+        } catch {
+            // Permission denied or fetch failed — no action needed
+        }
+    }
     #endif
 
     private var contactsEmptyState: some View {
-        VStack(spacing: Spacing.md.rawValue) {
-            Image(systemName: "person.slash")
-                .font(.system(size: 48))
-                .foregroundColor(.echoGray400)
+        VStack(spacing: 20) {
+            Image(systemName: "person.crop.circle.badge.plus")
+                .font(.system(size: 52))
+                .foregroundColor(.echoInk40)
 
-            Text("No contacts found")
-                .typographyStyle(.h4, color: .echoGray600)
+            Text("No contacts yet")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.echoInk)
 
-            Text("Find people on ECHO or add by @username")
-                .typographyStyle(.body, color: .echoSecondaryText)
+            Text("Import from your phone or add a new contact manually.")
+                .font(.system(size: 14))
+                .foregroundColor(.echoInk55)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+
+            #if os(iOS)
+            VStack(spacing: 12) {
+                Button {
+                    Task { await importPhoneContacts() }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "person.2.fill")
+                            .font(.system(size: 14))
+                        Text("Import from Phone")
+                            .font(.system(size: 15, weight: .medium))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(Color.echoSignal)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+
+                Button {
+                    showAddContact = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Add Contact")
+                            .font(.system(size: 15, weight: .medium))
+                    }
+                    .foregroundColor(.echoSignal)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(Color.echoPaperDim)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+            }
+            .padding(.horizontal, 40)
+            .padding(.top, 8)
+            #endif
         }
         .frame(maxHeight: .infinity, alignment: .center)
     }
