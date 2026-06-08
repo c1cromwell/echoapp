@@ -216,6 +216,8 @@
 		P3S001012345678901234004 /* ContactsListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3S001012345678901234003 /* ContactsListViewModel.swift */; };
 		TF001A2B3C4D5E6F7890002 /* EchoAPIBaseURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = TF001A2B3C4D5E6F7890001 /* EchoAPIBaseURL.swift */; };
 		TF001A2B3C4D5E6F7890004 /* DidKeyDeriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = TF001A2B3C4D5E6F7890003 /* DidKeyDeriver.swift */; };
+		VIP001012345678901234002 /* VIPSubscriptionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = VIP001012345678901234001 /* VIPSubscriptionStore.swift */; };
+		VIP001012345678901234004 /* VIPSubscriptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = VIP001012345678901234003 /* VIPSubscriptionView.swift */; };
 		W0E001012345678901234002 /* ConversationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E001012345678901234001 /* ConversationStore.swift */; };
 		W0E001012345678901234004 /* CurrentUserSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E001012345678901234003 /* CurrentUserSession.swift */; };
 		W0E001012345678901234006 /* ChatDestinationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E001012345678901234005 /* ChatDestinationView.swift */; };
@@ -224,8 +226,6 @@
 		W0E00101234567890123400C /* InviteLinkSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E00101234567890123400B /* InviteLinkSheet.swift */; };
 		W0E00101234567890123400E /* AcceptInviteSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E00101234567890123400D /* AcceptInviteSheet.swift */; };
 		W0E001012345678901234010 /* PrivacyHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E00101234567890123400F /* PrivacyHubView.swift */; };
-		VIP001012345678901234002 /* VIPSubscriptionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = VIP001012345678901234001 /* VIPSubscriptionStore.swift */; };
-		VIP001012345678901234004 /* VIPSubscriptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = VIP001012345678901234003 /* VIPSubscriptionView.swift */; };
 		W0E001012345678901234012 /* ConversationSignalService.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E001012345678901234011 /* ConversationSignalService.swift */; };
 		W0E001012345678901234014 /* ChatDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E001012345678901234013 /* ChatDetailViewModel.swift */; };
 		W0E001012345678901234016 /* ConversationSignalLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E001012345678901234015 /* ConversationSignalLogic.swift */; };
@@ -454,6 +454,8 @@
 		P3S001012345678901234003 /* ContactsListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsListViewModel.swift; sourceTree = "<group>"; };
 		TF001A2B3C4D5E6F7890001 /* EchoAPIBaseURL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoAPIBaseURL.swift; sourceTree = "<group>"; };
 		TF001A2B3C4D5E6F7890003 /* DidKeyDeriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DidKeyDeriver.swift; sourceTree = "<group>"; };
+		VIP001012345678901234001 /* VIPSubscriptionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VIPSubscriptionStore.swift; sourceTree = "<group>"; };
+		VIP001012345678901234003 /* VIPSubscriptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VIPSubscriptionView.swift; sourceTree = "<group>"; };
 		W0E001012345678901234001 /* ConversationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationStore.swift; sourceTree = "<group>"; };
 		W0E001012345678901234003 /* CurrentUserSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentUserSession.swift; sourceTree = "<group>"; };
 		W0E001012345678901234005 /* ChatDestinationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatDestinationView.swift; sourceTree = "<group>"; };
@@ -462,8 +464,6 @@
 		W0E00101234567890123400B /* InviteLinkSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteLinkSheet.swift; sourceTree = "<group>"; };
 		W0E00101234567890123400D /* AcceptInviteSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcceptInviteSheet.swift; sourceTree = "<group>"; };
 		W0E00101234567890123400F /* PrivacyHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyHubView.swift; sourceTree = "<group>"; };
-		VIP001012345678901234001 /* VIPSubscriptionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VIPSubscriptionStore.swift; sourceTree = "<group>"; };
-		VIP001012345678901234003 /* VIPSubscriptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VIPSubscriptionView.swift; sourceTree = "<group>"; };
 		W0E001012345678901234011 /* ConversationSignalService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationSignalService.swift; sourceTree = "<group>"; };
 		W0E001012345678901234013 /* ChatDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatDetailViewModel.swift; sourceTree = "<group>"; };
 		W0E001012345678901234015 /* ConversationSignalLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationSignalLogic.swift; sourceTree = "<group>"; };

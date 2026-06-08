@@ -262,7 +262,7 @@ struct MessagesHubView: View {
         } else {
             ForEach(filtered) { conv in
                 conversationRow(conv)
-                Divider().background(Color.echoHair).padding(.leading, 76)
+                Divider().background(Color.echoHair).padding(.horizontal, 18)
             }
         }
     }
@@ -304,6 +304,7 @@ struct MessagesHubView: View {
             }
 
             Divider().background(Color.echoHair)
+                .padding(.horizontal, 18)
                 .padding(.top, 6)
         }
     }
@@ -350,30 +351,64 @@ struct MessagesHubView: View {
     @ViewBuilder
     private func conversationRow(_ conv: StoredConversation) -> some View {
         let tier = trustTier(conv.id)
-        HStack(spacing: 0) {
-            HStack(spacing: Spacing.md.rawValue) {
+        let initials = conv.contactName.split(separator: " ").prefix(2).map { String($0.first ?? " ") }.joined()
+        Button { onSelectConversation(conv.id) } label: {
+            HStack(spacing: 12) {
                 ZStack(alignment: .bottomTrailing) {
-                    ConversationListItem(
-                        contactName: conv.contactName,
-                        lastMessage: conv.lastMessage,
-                        timestamp: conv.timestamp,
-                        unreadCount: conv.unreadCount,
-                        isOnline: conv.isOnline,
-                        onTap: { onSelectConversation(conv.id) }
-                    )
+                    Text(initials)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 48, height: 48)
+                        .background(NewConversationSheet.avatarColor(for: conv.contactName))
+                        .clipShape(Circle())
+                    if conv.isOnline {
+                        Circle()
+                            .fill(Color.echoTrustGreen)
+                            .frame(width: 12, height: 12)
+                            .overlay(Circle().stroke(Color.echoPaper, lineWidth: 2))
+                            .offset(x: 1, y: 1)
+                    }
                 }
-                .overlay(alignment: .topLeading) {
-                    trustOverlay(tier: tier)
-                        .offset(x: 36, y: 2)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(conv.contactName)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.echoInk)
+                            .lineLimit(1)
+                        trustOverlay(tier: tier)
+                    }
+                    Text(conv.lastMessage)
+                        .font(.system(size: 14))
+                        .foregroundColor(.echoInk55)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+
+                VStack(alignment: .trailing, spacing: 6) {
+                    Text(conv.timestamp)
+                        .font(.system(size: 12))
+                        .foregroundColor(.echoInk40)
+                    if conv.unreadCount > 0 {
+                        Text("\(min(conv.unreadCount, 99))")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .frame(minWidth: 20, minHeight: 20)
+                            .background(Color.echoSignal)
+                            .clipShape(Capsule())
+                    } else if mutedIDs.contains(conv.id) {
+                        Image(systemName: "bell.slash.fill")
+                            .font(.system(size: 13))
+                            .foregroundColor(.echoInk40)
+                    }
                 }
             }
-            if mutedIDs.contains(conv.id) {
-                Image(systemName: "bell.slash.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(.echoInk40)
-                    .padding(.trailing, Spacing.lg.rawValue)
-            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
         }
+        .buttonStyle(.plain)
         .contextMenu {
             if pinnedStore.isPinned(conv.id) {
                 Button {
@@ -439,7 +474,7 @@ struct MessagesHubView: View {
         } else {
             ForEach(hiddenConversations) { conv in
                 conversationRow(conv)
-                Divider().background(Color.echoHair).padding(.leading, 76)
+                Divider().background(Color.echoHair).padding(.horizontal, 18)
             }
         }
     }

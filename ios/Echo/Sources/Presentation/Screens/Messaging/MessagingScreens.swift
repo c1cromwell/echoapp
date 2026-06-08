@@ -192,7 +192,9 @@ struct ChatView: View {
                             authorLabel: pinned.isFromCurrentUser ? "Pinned · You" : "Pinned · \(contactName)",
                             preview: pinned.content,
                             onUnpin: {
+                                #if os(iOS)
                                 ConversationPinnedMessageStore.setPinnedMessageId(nil, conversationId: conversationId)
+                                #endif
                                 pinnedMessageId = nil
                             },
                             onTap: {
@@ -411,7 +413,9 @@ struct ChatView: View {
                 .map(\.id)
             await viewModel.onMessagesVisible(peerVisible)
             await loadGroupsInCommonSummary()
+            #if os(iOS)
             pinnedMessageId = ConversationPinnedMessageStore.pinnedMessageId(conversationId: conversationId)
+            #endif
         }
         .sheet(isPresented: $showForwardSheet) {
             ForwardMessageSheet(
@@ -570,7 +574,9 @@ struct ChatView: View {
             viewModel.messages.removeAll { $0.id == message.id }
             ConversationThreadStore.replace(conversationId: conversationId, messages: viewModel.messages)
             if pinnedMessageId == message.id {
+                #if os(iOS)
                 ConversationPinnedMessageStore.setPinnedMessageId(nil, conversationId: conversationId)
+                #endif
                 pinnedMessageId = nil
             }
         case .copy:
@@ -586,11 +592,13 @@ struct ChatView: View {
             forwardPreview = message.content
             showForwardSheet = true
         case .pin:
+            #if os(iOS)
             let isPinned = ConversationPinnedMessageStore.togglePin(
                 messageId: message.id,
                 conversationId: conversationId
             )
             pinnedMessageId = isPinned ? message.id : nil
+            #endif
         }
     }
 

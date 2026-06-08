@@ -54,9 +54,12 @@ public struct PersonaSwitcherHeader: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.echoInk)
                 if isVerified {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 14))
-                        .foregroundColor(.echoTrustGreen)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 16, height: 16)
+                        .background(Color.echoTrustGreen)
+                        .clipShape(Circle())
                 }
                 Image(systemName: "chevron.down")
                     .font(.system(size: 11, weight: .semibold))
@@ -114,7 +117,6 @@ public struct PersonaSwitcherSheet: View {
                     .foregroundColor(.echoInk)
                     .padding(.bottom, 12)
 
-                // Chat settings section (phaseB-chat-settings)
                 chatSettingsSection
 
                 Divider().padding(.vertical, 8)
