@@ -45,11 +45,10 @@ Single reference for **automated regression** (CI, scripts, agents) and **manual
 # From repo root — should pass before manual E2E or TestFlight work
 make release-check          # Go build + tests + vet + fmt + VERSION
 
-cd ios/Echo && DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
-  xcodebuild -project EchoApp.xcodeproj -scheme EchoApp \
+cd ios/Echo && xcodebuild -project EchoApp.xcodeproj -scheme EchoApp \
   -sdk iphonesimulator \
   -destination 'generic/platform=iOS Simulator' \
-  build --target Echo --target EchoSecurityTests
+  build
 ```
 
 If both complete without errors, continue to [§3](#3-environment-setup) and [§4](#4-automated-regression). Otherwise complete [`CONTRIBUTING.md`](../CONTRIBUTING.md) first.
