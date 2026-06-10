@@ -12,7 +12,8 @@ object DataRoutes {
 
   def merkleRootRoutes: HttpRoutes[IO] =
     HttpRoutes.of[IO] {
-      case req @ GET -> Root / "data-application" / "merkle-roots" / root
+      // Tessellation mounts data-application custom routes under /data-application.
+      case req @ GET -> Root / "merkle-roots" / root
           if req.method == Method.GET =>
         DataMerkleRootIndex.lookup(root) match {
           case Some(status) => Ok(status.asJson)
