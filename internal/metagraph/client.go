@@ -64,9 +64,17 @@ func (c *MetagraphClient) SubmitCurrencyL1(ctx context.Context, tx CurrencyL1Tra
 	return c.submitTransaction(ctx, c.config.CurrencyL1URL+"/transactions", tx)
 }
 
-// SubmitDataL1 submits a Data L1 transaction (MerkleCommitment, TrustCommitment).
+// SubmitDataL1 posts a Data L1 data-application update.
+// Tessellation 4.x expects a signed POST /data body when IdentitySigner is set.
 func (c *MetagraphClient) SubmitDataL1(ctx context.Context, tx interface{}) (string, error) {
-	return c.submitTransaction(ctx, c.config.DataL1URL+"/transactions", tx)
+	base := c.config.DataL1URL
+	if base == "" {
+		return "", fmt.Errorf("metagraph: DataL1URL is not configured")
+	}
+	if c.config.IdentitySigner != nil {
+		return c.SubmitSignedData(ctx, base, tx, *c.config.IdentitySigner)
+	}
+	return c.submitTransaction(ctx, base+"/transactions", tx)
 }
 
 // QueryValidators returns active L1 validators from the metagraph.

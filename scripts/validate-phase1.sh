@@ -268,7 +268,11 @@ fi
 step 5 "Commit Merkle root to local Data L1 and verify finality"
 
 # Build a deterministic 32-byte SHA-256 root.
-MERKLE_ROOT=$(printf 'phase1-validation-%s' "$DID_KEY" | openssl dgst -sha256 | awk '{print $2}')
+# macOS LibreSSL prints "(stdin)= <hex>"; GNU openssl uses "<hex>".
+MERKLE_ROOT=$(printf 'phase1-validation-%s' "$DID_KEY" | openssl dgst -sha256 2>/dev/null | sed -E 's/^.*[= ]//')
+if [ -z "$MERKLE_ROOT" ] || [ "${#MERKLE_ROOT}" -ne 64 ]; then
+  MERKLE_ROOT=$(printf 'phase1-validation-%s' "$DID_KEY" | shasum -a 256 2>/dev/null | awk '{print $1}')
+fi
 ok "computed Merkle root: $MERKLE_ROOT"
 
 # Submit via POST /v1/data-l1/merkle-roots (public route, no auth required).

@@ -1,7 +1,8 @@
 package com.echo.shared_data.types
 
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, DecodingFailure, Encoder, HCursor}
 import io.circe.generic.semiauto._
+import io.constellationnetwork.currency.dataApplication.DataUpdate
 
 /**
  * On-chain state persisted in metagraph snapshots.
@@ -109,6 +110,9 @@ object MerkleRoot {
 
 // --- Update types submitted to L1 endpoints ---
 
+/** Updates accepted by the Echo Data L1 data application (Tessellation POST /data). */
+sealed trait DataLayerUpdate extends DataUpdate
+
 sealed trait EchoUpdate
 
 case class TokenLockUpdate(
@@ -136,12 +140,30 @@ case class RewardClaimUpdate(
 case class TrustCommitmentUpdate(
   commitment: String,
   epoch:      Long
-) extends EchoUpdate
+) extends EchoUpdate with DataLayerUpdate
 
 case class MerkleRootUpdate(
   root:      String,
   leafCount: Int
-) extends EchoUpdate
+) extends EchoUpdate with DataLayerUpdate
+
+object DataLayerUpdate {
+
+  private val merkleDec = deriveDecoder[MerkleRootUpdate]
+  private val trustDec  = deriveDecoder[TrustCommitmentUpdate]
+
+  implicit val decoder: Decoder[DataLayerUpdate] = Decoder.instance { c: HCursor =>
+    val keys = c.keys.map(_.toSet).getOrElse(Set.empty)
+    if (keys.contains("root")) merkleDec(c)
+    else if (keys.contains("commitment")) trustDec(c)
+    else Left(DecodingFailure("Unrecognized DataLayerUpdate JSON shape", c.history))
+  }
+
+  implicit val encoder: Encoder[DataLayerUpdate] = Encoder.instance {
+    case u: MerkleRootUpdate      => deriveEncoder[MerkleRootUpdate].apply(u)
+    case u: TrustCommitmentUpdate => deriveEncoder[TrustCommitmentUpdate].apply(u)
+  }
+}
 
 object EchoUpdate {
   implicit val encoder: Encoder[EchoUpdate] = Encoder.instance {

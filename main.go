@@ -134,10 +134,16 @@ func (s *Server) Start() error {
 		router.IdentityL1 = metagraph.NewMetagraphClient(cfg)
 	}
 	if d1 := os.Getenv("DATA_L1_URL"); d1 != "" {
-		router.DataL1 = metagraph.NewMetagraphClient(metagraph.MetagraphConfig{
+		cfg := metagraph.MetagraphConfig{
 			DataL1URL: d1,
 			Timeout:   30 * time.Second,
-		})
+		}
+		if signer, err := loadIdentitySigningConfig(); err != nil {
+			log.Printf("Data L1 signing disabled: %v", err)
+		} else if signer != nil {
+			cfg.IdentitySigner = signer
+		}
+		router.DataL1 = metagraph.NewMetagraphClient(cfg)
 	}
 
 	credCfg := credentials.LoadConfig()
