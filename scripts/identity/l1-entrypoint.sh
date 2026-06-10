@@ -15,11 +15,11 @@
 #
 set -euo pipefail
 
-WORKDIR=/code/identity-l1
 SHARED=/shared-identity
+WORKDIR="$SHARED/l1-workdir"
 SELF_IP="${IDENTITY_L1_IP:-172.50.0.51}"
 
-mkdir -p "$WORKDIR"
+mkdir -p "$WORKDIR" "$SHARED"
 cd "$WORKDIR"
 
 cp "$(ls /jars/*assembly*.jar | head -1)" identity-l1.jar
@@ -64,6 +64,8 @@ fi
 export CL_L0_TOKEN_IDENTIFIER="$(tr -d '\r\n' < "$SHARED/identity.address")"
 echo "[identity-l1] identity metagraph id: $CL_L0_TOKEN_IDENTIFIER"
 
-rm -rf data logs
+if [ ! -d data ]; then
+  rm -rf data logs
+fi
 echo "[identity-l1] Starting run-initial-validator (foreground) on ${SELF_IP}…"
 exec java -jar identity-l1.jar run-initial-validator --ip "$SELF_IP"

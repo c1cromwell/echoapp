@@ -65,13 +65,15 @@ func TrustTierCommitmentHex(tier int, nonce string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// SubmitIdentityL1 posts an Identity Metagraph L1 transaction (e.g. device key
-// registration). The payload must encode as one of the Identity L1 update types;
-// most callers use [DeviceKeyRegistrationUpdate].
+// SubmitIdentityL1 posts an Identity Metagraph L1 data-application update.
+// Tessellation 4.x expects a signed POST /data body when IdentitySigner is set.
 func (c *MetagraphClient) SubmitIdentityL1(ctx context.Context, tx interface{}) (string, error) {
 	base := c.config.IdentityL1URL
 	if base == "" {
 		return "", fmt.Errorf("metagraph: IdentityL1URL is not configured")
+	}
+	if c.config.IdentitySigner != nil {
+		return c.SubmitSignedData(ctx, base, tx, *c.config.IdentitySigner)
 	}
 	return c.submitTransaction(ctx, base+"/transactions", tx)
 }

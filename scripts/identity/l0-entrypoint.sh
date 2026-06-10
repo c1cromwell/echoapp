@@ -12,8 +12,8 @@
 #
 set -euo pipefail
 
-WORKDIR=/code/identity-l0
 SHARED=/shared-identity
+WORKDIR="$SHARED/l0-workdir"
 SELF_IP="${IDENTITY_L0_IP:-172.50.0.50}"
 
 mkdir -p "$WORKDIR" "$SHARED"
@@ -51,9 +51,14 @@ if [ -z "$CL_GLOBAL_L0_PEER_ID" ]; then
 fi
 echo "[identity-l0] Global L0 peer id:   $CL_GLOBAL_L0_PEER_ID"
 
-# Fresh genesis on each boot (mirrors hydra's force_genesis=true dev default).
-# create-genesis is deterministic for a fixed genesis.csv + owner key, so the
-# Identity metagraph id is stable across restarts.
+if [ -d data/incremental_snapshot ]; then
+  export CL_L0_TOKEN_IDENTIFIER="$(tr -d '\r\n' < "$SHARED/identity.address")"
+  echo "[identity-l0] Resuming from persisted snapshots (run-rollback)…"
+  echo "[identity-l0] identity metagraph id: $CL_L0_TOKEN_IDENTIFIER"
+  exec java -jar identity-l0.jar run-rollback --ip "$SELF_IP"
+fi
+
+# First boot only — mirrors Euclid metagraph-l0 genesis for Tessellation 4.x.
 rm -rf data logs
 echo "[identity-l0] Creating genesis from genesis.csv…"
 java -jar identity-l0.jar create-genesis genesis.csv

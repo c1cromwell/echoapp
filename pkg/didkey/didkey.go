@@ -129,6 +129,18 @@ func Parse(did string) (*ecdsa.PublicKey, error) {
 	return decompressP256(pubBytes)
 }
 
+// PublicKeyHexUncompressed returns SEC1 uncompressed P-256 hex (04 || X || Y).
+func PublicKeyHexUncompressed(pub *ecdsa.PublicKey) (string, error) {
+	if pub == nil || pub.Curve == nil {
+		return "", ErrInvalidPublicKey
+	}
+	raw := elliptic.Marshal(elliptic.P256(), pub.X, pub.Y)
+	if len(raw) != 65 || raw[0] != 0x04 {
+		return "", fmt.Errorf("%w: unexpected uncompressed length", ErrInvalidPublicKey)
+	}
+	return hex.EncodeToString(raw), nil
+}
+
 // MustDerive is the panicking variant of Derive — useful for tests and
 // constant-defined fixtures only.
 func MustDerive(pub *ecdsa.PublicKey) string {

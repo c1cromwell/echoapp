@@ -281,7 +281,7 @@ dev: ## Bring up full Phase-1 cluster
 	done
 	@echo ""
 	@echo "[5/5] Starting backend stack (Postgres + Redis + NATS + MinIO + echoapp)..."
-	@$(COMPOSE_TESTNET) up -d --build
+	@ECHOAPP_ROOT=$(CURDIR) bash -c 'source ./scripts/identity/ensure-identity-service-key.sh && exec $(COMPOSE_TESTNET) up -d --build'
 	@echo ""
 	@echo "Waiting for backend health..."
 	@deadline=$$(( $$(date +%s) + 60 )); \
@@ -304,7 +304,7 @@ dev: ## Bring up full Phase-1 cluster
 	@echo "Next: make validate-phase1"
 
 testnet-up: ## Bring up backend stack only (assumes metagraph already running)
-	@$(COMPOSE_TESTNET) up -d --build
+	@ECHOAPP_ROOT=$(CURDIR) bash -c 'source ./scripts/identity/ensure-identity-service-key.sh && exec $(COMPOSE_TESTNET) up -d --build'
 
 testnet-down: ## Tear down backend stack
 	@$(COMPOSE_TESTNET) down
@@ -346,8 +346,8 @@ start-identity: ## Start Identity L0 + L1 nodes (requires sbt assembly + running
 	  echo "  ✗ Global L0 not reachable on :9000 — Identity L0 peers with it. Run 'make dev' first."; \
 	  exit 1; \
 	fi; \
-	echo "  ✓ Global L0 reachable"
-	docker compose -f docker-compose.identity.yml up -d
+	echo "  ✓ Global L0 reachable"; \
+	ECHOAPP_ROOT=$(CURDIR) bash -c 'source ./scripts/identity/ensure-identity-service-key.sh && export IDENTITY_SERVICE_DID IDENTITY_SERVICE_PUBLIC_KEY_HEX && docker compose -f docker-compose.identity.yml up -d'
 	@echo "  Waiting for Identity L0 on :9600 (genesis can take ~30s)..."
 	@for i in $$(seq 1 40); do \
 	  if curl -fsS --max-time 2 http://localhost:9600/node/info >/dev/null 2>&1; then \

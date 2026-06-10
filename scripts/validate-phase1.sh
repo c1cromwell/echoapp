@@ -68,6 +68,12 @@ printf "Identity L0:    %s (separate metagraph — 'make start-identity')\n" "$I
 printf "Finality limit: %ss\n" "$FINALITY_TIMEOUT_SECS"
 
 step 0 "Prerequisites"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/identity/ensure-identity-service-key.sh
+# Identity L1 POST /data requires a stable service DID + signing key on backend and L1/L0.
+source "$SCRIPT_DIR/identity/ensure-identity-service-key.sh"
+ok "identity service signing key ready (${IDENTITY_SERVICE_DID:0:24}…)"
+
 PREREQ_OK=1
 for cmd in curl jq openssl xxd; do
   if require_cmd "$cmd"; then

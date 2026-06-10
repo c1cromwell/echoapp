@@ -122,10 +122,16 @@ func (s *Server) Start() error {
 		router.TokenService().SetRedisBackend(redisClient)
 	}
 	if l1 := os.Getenv("IDENTITY_L1_URL"); l1 != "" {
-		router.IdentityL1 = metagraph.NewMetagraphClient(metagraph.MetagraphConfig{
+		cfg := metagraph.MetagraphConfig{
 			IdentityL1URL: l1,
 			Timeout:       30 * time.Second,
-		})
+		}
+		if signer, err := loadIdentitySigningConfig(); err != nil {
+			log.Printf("Identity L1 signing disabled: %v", err)
+		} else if signer != nil {
+			cfg.IdentitySigner = signer
+		}
+		router.IdentityL1 = metagraph.NewMetagraphClient(cfg)
 	}
 	if d1 := os.Getenv("DATA_L1_URL"); d1 != "" {
 		router.DataL1 = metagraph.NewMetagraphClient(metagraph.MetagraphConfig{
@@ -477,4 +483,20 @@ func main() {
 	}
 
 	log.Println("Server stopped")
+}
+
+func loadIdentitySigningConfig() (*metagraph.IdentitySigningConfig, error) {
+	pemPath := os.Getenv("IDENTITY_SERVICE_KEY_PEM")
+	if pemPath == "" {
+		return nil, nil
+	}
+	pem, err := os.ReadFile(pemPath)
+	if err != nil {
+		return nil, fmt.Errorf("read IDENTITY_SERVICE_KEY_PEM: %w", err)
+	}
+	cfg, err := metagraph.LoadIdentitySigningFromPEM(pem)
+	if err != nil {
+		return nil, err
+	}
+	return &cfg, nil
 }

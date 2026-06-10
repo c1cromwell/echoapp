@@ -63,6 +63,8 @@ services:
       CL_P2P_HTTP_PORT: "9601"
       CL_CLI_HTTP_PORT: "9602"
       IDENTITY_L0_IP: "172.50.0.50"
+      IDENTITY_SERVICE_DID: ${IDENTITY_SERVICE_DID:-}
+      IDENTITY_SERVICE_PUBLIC_KEY_HEX: ${IDENTITY_SERVICE_PUBLIC_KEY_HEX:-}
     networks:
       custom-network:
         ipv4_address: 172.50.0.50
@@ -90,6 +92,8 @@ services:
       CL_L0_PEER_HTTP_HOST: "172.50.0.50"
       CL_L0_PEER_HTTP_PORT: "9600"
       IDENTITY_L1_IP: "172.50.0.51"
+      IDENTITY_SERVICE_DID: ${IDENTITY_SERVICE_DID:-}
+      IDENTITY_SERVICE_PUBLIC_KEY_HEX: ${IDENTITY_SERVICE_PUBLIC_KEY_HEX:-}
     networks:
       custom-network:
         ipv4_address: 172.50.0.51

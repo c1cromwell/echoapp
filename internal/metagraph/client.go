@@ -17,6 +17,8 @@ type MetagraphConfig struct {
 	DataL1URL     string
 	IdentityL1URL string
 	Timeout       time.Duration
+	// Identity signing (Phase 1 POST /data to Identity L1).
+	IdentitySigner *IdentitySigningConfig
 }
 
 // MetagraphClient is an HTTP client for the Constellation metagraph APIs.

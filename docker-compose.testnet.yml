@@ -59,8 +59,12 @@ services:
       # Identity Metagraph endpoints (WO-276 skeleton; WO-272 validation logic)
       - IDENTITY_L0_URL=http://host.docker.internal:9600
       - IDENTITY_L1_URL=http://host.docker.internal:9500
+      - IDENTITY_SERVICE_DID=${IDENTITY_SERVICE_DID:-}
+      - IDENTITY_SERVICE_PUBLIC_KEY_HEX=${IDENTITY_SERVICE_PUBLIC_KEY_HEX:-}
+      - IDENTITY_SERVICE_KEY_PEM=/app/.keys/identity-service.pem
     volumes:
       - ./migrations:/app/migrations:ro
+      - ./.keys:/app/.keys:ro
     networks:
       - echo-testnet
     healthcheck:

@@ -2,6 +2,7 @@ package com.echo.shared_data.types
 
 import io.circe.{Decoder, DecodingFailure, Encoder, HCursor}
 import io.circe.generic.semiauto._
+import io.constellationnetwork.currency.dataApplication.{DataCalculatedState, DataOnChainState, DataUpdate}
 
 /**
  * On-chain state persisted in Identity Metagraph snapshots.
@@ -20,7 +21,7 @@ case class IdentityOnChainState(
   orgRoleCredentials: Map[String, EchoOrgRoleCredential], // keyed by credentialId
   deviceKeys:         Map[String, DeviceKeyRecord],      // keyed by subjectDID#publicKeyHex
   usernames:          Map[String, UsernameRecord]        // keyed by lowercased username (public Data L1 index)
-)
+) extends DataOnChainState
 
 object IdentityOnChainState {
   val empty: IdentityOnChainState =
@@ -38,7 +39,7 @@ case class IdentityCalculatedState(
   totalCredentialsIssued: Long,
   revokedCredentialCount: Long,
   trustTierCounts:        Map[Int, Long] // tier -> count of subjects at that tier
-)
+) extends DataCalculatedState
 
 object IdentityCalculatedState {
   val empty: IdentityCalculatedState =
@@ -173,7 +174,7 @@ object UsernameRecord {
 
 // --- Update messages submitted to Identity L1 endpoints ---
 
-sealed trait IdentityUpdate
+sealed trait IdentityUpdate extends DataUpdate
 
 case class VCIssuanceUpdate(
   credentialId:   String,
