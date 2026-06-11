@@ -67,7 +67,7 @@ make metagraph-test         # Scala L1 tests
 cd ios/Echo && swift test --filter EchoPhase3Tests
 ```
 
-Full setup: [`CONTRIBUTING.md`](CONTRIBUTING.md). TestFlight & E2E: [`docs/E2E_LAUNCH_AND_TESTING.md`](docs/E2E_LAUNCH_AND_TESTING.md).
+Full setup & daily regression: [`docs/E2E_QUICK_START.md`](docs/E2E_QUICK_START.md). Launch & sign-off: [`docs/E2E_LAUNCH_AND_TESTING.md`](docs/E2E_LAUNCH_AND_TESTING.md).
 
 ## Agent constraints
 

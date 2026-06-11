@@ -11,8 +11,8 @@ description: >-
 
 | Doc | Use |
 |-----|-----|
-| **[`docs/E2E_QUICK_START.md`](../../docs/E2E_QUICK_START.md)** | **Default** — iOS smoke, agent vs human, troubleshooting |
-| [`docs/E2E_LAUNCH_AND_TESTING.md`](../../docs/E2E_LAUNCH_AND_TESTING.md) | Full tiers, env vars, TestFlight upload |
+| **[`docs/E2E_QUICK_START.md`](../../docs/E2E_QUICK_START.md)** | **Default** — setup, daily regression by milestone, rebuild, iOS smoke |
+| [`docs/E2E_LAUNCH_AND_TESTING.md`](../../docs/E2E_LAUNCH_AND_TESTING.md) | Feature matrix, full E2E procedures, TestFlight, sign-off |
 
 ## Agent workflow (iOS testing help)
 

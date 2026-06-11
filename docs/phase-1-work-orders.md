@@ -123,7 +123,7 @@ Set up the Phase 1 local development testnet infrastructure: Euclid SDK Docker c
 
 - **Go backend local configuration:** `.env.local` for the backend stack pointing to local metagraph cluster and local Redis/PostgreSQL. Single-command startup (`make dev`).
 - **iOS local configuration:** Xcode scheme `Debug-Local` pointing to `localhost` backend; WebSocket connection to local relay service; self-signed TLS cert for local HTTPS.
-- **Developer onboarding docs:** `CONTRIBUTING.md` covering prerequisites (Docker, Go 1.21+, Xcode 15+, JDK 21), first-run setup, how to run tests, how to submit Scala L1 validation changes.
+- **Developer onboarding docs:** `docs/E2E_QUICK_START.md` covering prerequisites (Docker, Go 1.21+, Xcode 15+, JDK 21), first-run setup, daily regression, full rebuild, how to run tests, how to submit Scala L1 validation changes.
 - **Phase 1 go/no-go validation script:** end-to-end flow test (see `scripts/validate-phase1.sh`):
   1. Derive `did:key` locally from a test P-256 key pair (no chain transaction, no Atala PRISM).
   2. Register DID with local Identity Service (`POST /identity/register`).
@@ -1833,7 +1833,7 @@ This WO creates the **module skeleton** for the Identity Metagraph and wires it 
 - [x] `metagraph/euclid.json` shows 6 containers in `docker.default_containers` (includes `global-l0` … `identity-l1`).
 - [x] No zero-UUIDs remain in any Scala source under `metagraph/`.
 - [x] Static compile surrogate: `make metagraph-verify-skeleton` passes in CI (jq + bash).
-- [x] `cd metagraph && sbt compile` — **manual / developer host**; gated by CONTRIBUTING + setup-euclid prerequisites.
+- [x] `cd metagraph && sbt compile` — **manual / developer host**; gated by E2E_QUICK_START + setup-euclid prerequisites.
 - [x] `scripts/hydra start-genesis` + `/node/info` 200 on all six layers — **exercised by `make dev`** on a machine with Euclid cloned (not runnable in headless CI without Docker).
 
 ## Hand-off notes

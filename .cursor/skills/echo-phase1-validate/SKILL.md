@@ -71,5 +71,5 @@ make start-identity   # L0 :9600, L1 :9500
 ## Related
 
 - [`docs/E2E_LAUNCH_AND_TESTING.md`](../../docs/E2E_LAUNCH_AND_TESTING.md) — full launch & regression guide
-- [`CONTRIBUTING.md`](../../CONTRIBUTING.md) — first-time dev setup
+- [`docs/E2E_QUICK_START.md`](../../docs/E2E_QUICK_START.md) — setup, rebuild, daily regression
 - Skill: `echo-testing`, `echo-local-dev` MCP + `echo-ios-agent-vs-xcode`

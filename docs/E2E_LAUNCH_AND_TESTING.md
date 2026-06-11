@@ -1,12 +1,14 @@
-# Echo — E2E Launch & Testing Guide
+# Echo — E2E launch, testing & sign-off
 
-Single reference for **automated regression** (CI, scripts, agents) and **manual E2E** on Mac/Xcode (simulator + physical iPhone + TestFlight).
+**Full reference** for automated regression, manual E2E, TestFlight upload, and **release sign-off with delivered feature sets**.
 
-**Start here for iOS testing:** [`E2E_QUICK_START.md`](E2E_QUICK_START.md) — one page, agent vs Xcode split, 15‑min smoke path, troubleshooting.
+| Doc | Audience |
+|-----|----------|
+| **[`E2E_QUICK_START.md`](E2E_QUICK_START.md)** | Daily regression, setup, full rebuild (Go + Scala + iOS) |
+| **This file** | Launch tiers, step-by-step procedures, TestFlight, sign-off |
+| [`TESTFLIGHT_WEEK_A_B.md`](TESTFLIGHT_WEEK_A_B.md) | External tester scripts |
 
-**Frozen UX:** iOS **onboarding and login** flows are correct as shipped (`FirstRunCoordinator`, `GlacialLoginScreen`). E2E checklists **validate** them; they are **not** targets for prototype alignment or redesign — see [`ux-spec.md`](ux-spec.md) §2.1–2.2 and [`ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) §0.
-
-**Not** the developer onboarding guide — see [`CONTRIBUTING.md`](../CONTRIBUTING.md) for first-time setup.
+**Frozen UX:** onboarding/login flows are canonical as shipped — validate only; do not redesign ([`ux-spec.md`](ux-spec.md) §2.1–2.2).
 
 ---
 
@@ -14,44 +16,82 @@ Single reference for **automated regression** (CI, scripts, agents) and **manual
 
 | Goal | Start here |
 |------|------------|
-| **iOS testing (most common)** | **[`E2E_QUICK_START.md`](E2E_QUICK_START.md)** → `make ios-preflight` |
-| Pre-merge / weekly regression | [§4 Automated regression](#4-automated-regression) → `make regression` |
-| TestFlight launch (full path) | Quick start + [§8](#8-testflight--app-store) + [§9 Launch checklist](#9-launch-checklist--sign-off) |
-| Metagraph + backend E2E | [§3](#3-environment-setup) + [`metagraph-backend-e2e-testing.md`](metagraph-backend-e2e-testing.md) |
-| Phase 3 messaging signals | [§6.4](#64-phase-3--typing-read-receipts-reactions-wo-192) + [`PHASE3_IOS_UI_SPEC.md`](PHASE3_IOS_UI_SPEC.md) |
-| Agent automation | Skill **`echo-testing`** + MCP `echo-local-dev` (`run_ios_preflight`, `run_regression`) |
+| First-time setup / daily gates | [`E2E_QUICK_START.md`](E2E_QUICK_START.md) §0–5 |
+| Pre-merge / weekly regression | [§4 Automated regression](#4-automated-regression) |
+| Feature QA on simulator | [§6 Manual E2E — Simulator](#6-manual-e2e--ios-simulator) |
+| Device + PSI + biometrics | [§7 Manual E2E — Physical iPhone](#7-manual-e2e--physical-iphone) |
+| TestFlight upload | [§8 TestFlight & App Store](#8-testflight--app-store) |
+| Release sign-off | [§9 Launch checklist & sign-off](#9-launch-checklist--sign-off) |
+| Metagraph cluster detail | [`metagraph-backend-e2e-testing.md`](metagraph-backend-e2e-testing.md) |
 
 ---
 
-## 1. Testing tiers & gates
+## 1. Feature delivery matrix
+
+What each milestone **ships** and which tests prove it.
+
+### Phase 1 — Foundation (WO-230 go/no-go)
+
+| Feature set | Delivered capability | Automated proof | Launch required |
+|-------------|---------------------|-----------------|-----------------|
+| **P1-Identity** | `did:key` derive + register; trust-tier `H(tier‖nonce)` on Identity L1 | `validate-phase1` Steps 1–3 | ✅ |
+| **P1-Relay** | WebSocket message send/receive | Step 4 + `TestE2E_MessageSendReceive` | ✅ |
+| **P1-Data-L1** | Merkle root `POST /data` + finality poll | Step 5 | ✅ |
+| **P1-Chain** | Global L0 snapshot advancement | Step 6 | ✅ |
+| **P1-Security** | Passkey-signed REST; T0–T7 pre-validation | `make release-check` + Semgrep CI | ✅ |
+
+```bash
+make regression-with-phase1   # must print Go/No-Go: GO, all steps ok
+```
+
+### Week A — Messaging (Wave 0.1)
+
+| Feature set | Delivered capability | Automated | Manual (required) |
+|-------------|---------------------|-----------|---------------------|
+| **A-DM** | Deterministic `dm:` threads; send/receive | `make phase3-signals-proof` | A1–A5 |
+| **A-Chat-UI** | `ChatView`, composer, tab bar hide | `make ios-preflight BUILD=1` | A2–A5 |
+| **A-Phase3** | Typing, read receipts, reactions | `EchoPhase3Tests` + Go WS tests | A6–A9 |
+| **A-Persist** | Local thread history | — | A10 |
+
+Tester script: [`TESTFLIGHT_WEEK_A_B.md`](TESTFLIGHT_WEEK_A_B.md) **A1–A10**.
+
+### Week B — Contacts & discovery
+
+| Feature set | Delivered capability | Manual |
+|-------------|---------------------|--------|
+| **B-Invite** | `echo://invite` deep link | B1 |
+| **B-QR** | Profile QR add contact | B2 |
+| **B-Detail** | Block, favorite, Message | B3 |
+| **B-SMS** | Phone backup + OTP | B4 |
+| **B-Social** | Mutual contacts / groups in common | B5 |
+| **B-Link-device** | WO-288 QR link new device | B6 |
+| **B-PSI** | OPRF contact discovery (optional) | `make echooprf-ios` + two devices |
+
+### Phase 2+ (when in scope)
+
+| Feature set | Proof |
+|-------------|-------|
+| OIDC4VC wallet (WO-100) | §6.5 + `OIDC4VC_ENABLED=true` |
+| VIP / credentials | `go test ./internal/api/ -run EnrollmentVC` |
+| Passport / sync | Phase 2 work orders + manual QA |
+
+Mark **N/A** on sign-off for features not in the release build.
+
+---
+
+## 2. Testing tiers & gates
 
 | Tier | Runs where | When | Automatable |
 |------|------------|------|-------------|
-| **A — CI** | GitHub Actions | Every push/PR to `main` / `develop` | ✅ Fully |
-| **B — Headless regression** | Mac or Linux (Go); Mac + Xcode (iOS SPM) | Pre-release, weekly | ✅ `make regression` |
-| **C — Backend E2E** | Mac + Docker + Euclid | Before TestFlight; after metagraph changes | ✅ `make validate-phase1` |
-| **D — iOS build verify** | Mac + Xcode.app | After iOS project changes | ✅ `xcodebuild` |
-| **E — Simulator manual E2E** | Mac + Xcode Simulator | Before TestFlight; feature QA | ❌ Checklists §6 |
-| **F — Device manual E2E** | Physical iPhone(s) | Before TestFlight; biometrics, PSI, LAN | ❌ Checklists §7 |
-| **G — TestFlight regression** | Physical device + prod/staging API | After each uploaded build | ❌ Checklist §8e |
+| **A — CI** | GitHub Actions | Every push/PR | ✅ |
+| **B — Headless regression** | Mac/Linux + Xcode | Pre-release, weekly | ✅ `make regression` |
+| **C — Backend E2E** | Mac + Docker + Euclid | After metagraph changes | ✅ `make validate-phase1` |
+| **D — iOS build verify** | Mac + Xcode.app | After iOS changes | ✅ `make ios-preflight BUILD=1` |
+| **E — Simulator manual** | Xcode Simulator | Feature QA | ❌ §6 |
+| **F — Device manual** | Physical iPhone | Pre-TestFlight | ❌ §7 |
+| **G — TestFlight** | Device + HTTPS API | Per uploaded build | ❌ §8e |
 
-**Rule:** Tiers A–D must be green before running E–G. Tier C may `skip` metagraph steps for simulator-only work; **all steps `ok`** required for launch go/no-go.
-
----
-
-## 2. Prerequisites & quick-start
-
-```bash
-# From repo root — should pass before manual E2E or TestFlight work
-make release-check          # Go build + tests + vet + fmt + VERSION
-
-cd ios/Echo && xcodebuild -project EchoApp.xcodeproj -scheme EchoApp \
-  -sdk iphonesimulator \
-  -destination 'generic/platform=iOS Simulator' \
-  build
-```
-
-If both complete without errors, continue to [§3](#3-environment-setup) and [§4](#4-automated-regression). Otherwise complete [`CONTRIBUTING.md`](../CONTRIBUTING.md) first.
+**Rule:** Tiers **A–D** green before **E–G**. Tier **C** must be full **GO** (no skips) for TestFlight sign-off.
 
 ---
 
@@ -60,562 +100,293 @@ If both complete without errors, continue to [§3](#3-environment-setup) and [§
 ### 3a. Local backend stack
 
 ```bash
-cp .env.example .env    # first time
+cp .env.example .env
 make dev
 make dev-status
 curl -s http://localhost:8000/health | jq .status   # → "operational"
 ```
 
-Optional Identity nodes (VC / trust tier). The Identity Metagraph is **separate**
-from the Euclid cluster and is **not** hydra-managed (see
-[ADR-0002](adr/0002-identity-metagraph-deployment.md)); start it only after
-`make dev` is up — it genesis-boots its own L0 and peers with the running Global L0:
+### 3b. Identity metagraph (Step 3)
 
 ```bash
-make start-identity                                  # L0 :9600, L1 :9500
-# verify both reach Ready (genesis takes ~30s):
-curl -s http://localhost:9600/node/info | jq .state  # → "Ready"
-curl -s http://localhost:9500/node/info | jq .state  # → "Ready"
+make start-identity
+curl -s http://localhost:9600/node/info | jq .state
+curl -s http://localhost:9500/node/info | jq .state
 ```
 
-### 3b. WO-230 go/no-go validation
+Separate from hydra — see [ADR-0002](adr/0002-identity-metagraph-deployment.md).
+
+### 3c. WO-230 validation
 
 ```bash
 make validate-phase1
 ```
 
-Expected for a clean Phase 1 build:
+Expected for launch:
 
 ```
-✓ Step 0 — prerequisites
-✓ Step 1 — derive did:key locally
-✓ Step 2 — register DID with backend
-✓ Step 3 — Identity Metagraph L0/L1 reachable
-✓ Step 4 — test message through relay
-✓ Step 5 — Merkle root submitted to Data L1
-✓ Step 6 — Global L0 snapshot height increments
-Go/No-Go: GO ✓
+✓ Steps 0–6 all ok
+Go/No-Go: GO
 ```
 
-Step 3 needs `make start-identity` (separate metagraph) and Step 5 needs the Euclid cluster; both show `skip` when those aren't running — fine for simulator-only. **All steps must be `ok` before TestFlight sign-off.**
+Full rebuild if Steps 3/5 fail: [`E2E_QUICK_START.md` §3b](E2E_QUICK_START.md#3b-scala-metagraph-assembly-jars).
 
-Details: [`metagraph-backend-e2e-testing.md`](metagraph-backend-e2e-testing.md), skill **`echo-phase1-validate`**.
-
-### 3c. Physical device — LAN `API_URL`
-
-Physical iPhone cannot reach `localhost`. Point at your Mac's LAN IP:
+### 3d. Physical device — LAN `API_URL`
 
 ```bash
-ipconfig getifaddr en0   # Wi-Fi — e.g. 192.168.1.42
-
-# In .env:
-API_URL=http://192.168.1.42:8000
+ipconfig getifaddr en0
+# .env: API_URL=http://192.168.x.x:8000
 make dev-restart
 ```
 
-In Xcode scheme **Echo** → Environment / build setting: `API_URL` = same LAN URL. Phone and Mac on **same Wi‑Fi**; macOS firewall allows inbound :8000.
-
-For TestFlight, use your **deployed HTTPS** backend — see [§8b](#8b-backend-deployment).
-
-### 3d. Feature flags
-
-**OIDC4VC (WO-100)** — in `.env`:
-
-```bash
-OIDC4VC_ENABLED=true
-OIDC4VC_VERIFIER_BASE_URL=http://localhost:8000   # or public URL
-```
-
-Smoke:
-
-```bash
-curl -s -o /dev/null -w "%{http_code}\n" \
-  -X POST http://localhost:8000/v1/enrollment/vc/start \
-  -H 'Content-Type: application/json' \
-  -d '{"requested_claims":{"givenName":true,"familyName":true,"ageOver18":true}}'
-# → 200 with session_id + wallet URL when verifier mounted
-```
-
-Unit tests: `go test ./internal/api/ -run EnrollmentVC -count=1`
-
-**SMS recovery (dev):** `DEV_MODE=true` — OTP echoed in `X-Dev-OTP` response header (never in prod).
+Xcode scheme **EchoApp** → `API_URL` = same LAN URL.
 
 ### 3e. Environment variable reference
 
-All variables live in `.env` (copy from `.env.example`).
-
 | Variable | Example | Required for |
 |----------|---------|--------------|
-| `API_PORT` | `8000` | Backend listen port |
-| `API_URL` | `http://192.168.1.42:8000` | Device / deployed client URL |
-| `DATABASE_HOST` | `localhost` | PostgreSQL |
-| `REDIS_HOST` | `localhost` | Rate limiting, OTP sessions, device tokens |
-| `IDENTITY_L1_URL` | `http://localhost:9500` | WO-274 VC anchor |
-| `DATA_L1_URL` | `http://localhost:9400` | WO-230 Merkle root |
-| `IDENTITY_SERVICE_DID` | `did:key:z…` | Scala validator authorized-sender check |
-| `LOG_MASTER_KEY` | `<64 hex chars>` | WO-53 audit log encryption |
-| `OIDC4VC_ENABLED` | `true` | WO-100 wallet enrollment |
-| `APNS_KEY_PATH` | `./keys/AuthKey.p8` | iOS push notifications |
-| `APNS_KEY_ID` | `ABC123DEFG` | APNs key identifier |
-| `APNS_TEAM_ID` | `XYZTEAMID` | Apple Developer team ID |
-| `APNS_BUNDLE_ID` | `com.echo.app` | Must match Xcode bundle ID |
-| `APNS_ENVIRONMENT` | `sandbox` (TestFlight) / `production` (App Store) | |
-| `DEV_MODE` | `true` (dev only!) | OTP in `X-Dev-OTP` header |
-| `TWILIO_ACCOUNT_SID` | `ACxxxxxxxx` | SMS OTP (Wave 12) |
-| `TWILIO_AUTH_TOKEN` | `…` | SMS OTP |
-| `TWILIO_FROM` | `+15005550006` | SMS sender number |
+| `API_URL` | `http://192.168.1.42:8000` | Device clients |
+| `IDENTITY_L1_URL` | `http://localhost:9500` | VC / trust tier |
+| `DATA_L1_URL` | `http://localhost:9400` | Merkle anchor |
+| `IDENTITY_SERVICE_DID` | `did:key:z…` | L1 authorized sender |
+| `IDENTITY_SERVICE_KEY_PEM` | `/app/.keys/identity-service.pem` | Signed `POST /data` |
+| `OIDC4VC_ENABLED` | `true` | WO-100 |
+| `DEV_MODE` | `true` (dev only) | `X-Dev-OTP` header |
+| `APNS_*` | sandbox key | Push on device |
 
-Generate `IDENTITY_SERVICE_DID`:
-
-```bash
-go run ./cmd/didkey -out ./.keys/identity-service.pem
-# Paste into .env: IDENTITY_SERVICE_DID=did:key:z6Mkh…
-```
-
-Generate `LOG_MASTER_KEY`:
-
-```bash
-openssl rand -hex 32
-# Paste 64-char hex into .env: LOG_MASTER_KEY=<value>
-```
+Generate keys: [`E2E_QUICK_START.md` §2–3](E2E_QUICK_START.md).
 
 ---
 
 ## 4. Automated regression
 
-### 4a. One command (recommended)
-
 ```bash
-make regression                    # Go release-check + targeted suites + iOS SPM
-make regression-quick              # Go race tests only
-make regression-with-phase1        # + validate-phase1 (needs Docker + Euclid)
+make regression                 # Go + iOS SPM
+make regression-quick             # Go race only
+make regression-with-phase1       # + validate-phase1
+make release-check                # Go gate
+./scripts/run-regression.sh --help
 ```
 
-Underlying script: `scripts/run-regression.sh` (`--quick`, `--with-phase1`, `--ios-only`).
+| Step | Gate |
+|------|------|
+| `make release-check` | ✅ |
+| API + contacts + OPRF Go tests | ✅ |
+| `EchoSecurityTests` + `EchoPhase3Tests` | ✅ (Xcode) |
 
-### 4b. What `make regression` includes
-
-| Step | Command / target | Hard gate? |
-|------|------------------|------------|
-| Go build + race tests + vet + fmt | `make release-check` | ✅ |
-| Enrollment VC, WS, reactions, contacts | `go test ./internal/api/ … ./internal/services/contacts/… ./mobile/echooprf/…` | ✅ |
-| iOS library + security tests | `swift build --target Echo`, `EchoSecurityTests` | ✅ (needs Xcode.app) |
-| Phase 3 logic tests | `swift test --filter EchoPhase3Tests` | ✅ |
-| OPRF mobile interop | `go test ./mobile/echooprf/...` | ✅ |
-
-### 4c. CI (Tier A)
-
-| Workflow | Gate |
-|----------|------|
-| Go CI | `go test -race ./internal/... ./pkg/...` |
-| iOS SPM (`.github/workflows/ios-ci.yml`) | `EchoSecurityTests`, `EchoPhase3Tests` |
-| T0–T7 data classification | `semgrep --config .semgrep/t0_t7_rules.yaml --error .` |
-
-### 4d. API regression (full Go suite)
-
-```bash
-go test -race -count=1 ./internal/... ./pkg/... ./test/...
-semgrep --config .semgrep/t0_t7_rules.yaml --error .
-```
-
-### 4e. MCP automation (Cursor agents)
-
-Server: **`echo-local-dev`** (see `tools/echo-local-dev-mcp/README.md`).
-
-| Tool | Equivalent |
-|------|------------|
-| `run_ios_preflight` | `make ios-preflight` (optional `build`, `tests`) |
-| `run_regression` | `make regression` (`quick`, `with_phase1`) |
-| `smoke_ios_backend` | Health + SMS + OIDC4VC endpoints iOS needs |
-| `run_release_check` | `make release-check` |
-| `run_validate_phase1` | `make validate-phase1` |
-| `run_ios_phase3_tests` | `swift test --filter EchoPhase3Tests` |
-| `health_backend` | `curl localhost:8000/health` |
-| `cluster_status` | `make dev-status` |
-
-**Agent workflow before asking you to open Xcode:**
-
-1. `cluster_status` + `health_backend`
-2. `run_ios_preflight` with `build=true` if iOS code changed
-3. `smoke_ios_backend` if onboarding/SMS/OIDC fails in Simulator
-
-Agent skill: **`.cursor/skills/echo-testing`**. Human checklist: **[`E2E_QUICK_START.md`](E2E_QUICK_START.md)**.
+**MCP `echo-local-dev`:** `run_regression`, `run_validate_phase1`, `run_ios_preflight`, `cluster_status`.
 
 ---
 
 ## 5. iOS automated (Mac + Xcode)
 
-Requires **Xcode.app** (not Command Line Tools only).
+```bash
+make ios-preflight BUILD=1 TESTS=1
+make phase3-signals-proof
+make echooprf-ios    # WO-221 PSI framework
+```
 
-### 5a. SPM tests (same as CI)
+| Target | Role |
+|--------|------|
+| `EchoSecurityTests` | Crypto, Secure Enclave, passkey |
+| `EchoPhase3Tests` | Typing, receipts, reactions |
+
+Archive preflight: [§8c](#8c-archive--upload-to-app-store-connect).
+
+---
+
+## 6. Manual E2E — iOS Simulator
+
+**Prerequisites:** `make dev` up; Simulator Face ID enrolled; scheme **EchoApp**; `API_URL=http://localhost:8000`.
+
+### 6.1 Onboarding (frozen flow)
+
+| Step | Action | Expected |
+|------|--------|----------|
+| 1 | Cold launch | Welcome → set up |
+| 2 | Username | Availability OK |
+| 3 | Face ID | DID registered |
+| 4 | SMS recovery | OTP verified |
+| 5 | Continue | Messages tab |
+
+### 6.2 Login (returning user)
+
+| Step | Action | Expected |
+|------|--------|----------|
+| 1 | Foreground after background | Storage lock → unlock |
+| 2 | Relaunch | `GlacialLoginScreen` → Face ID |
+| 3 | 5 failures | `BiometricLockoutView` |
+
+### 6.3 Messaging
+
+| Step | Action | Expected |
+|------|--------|----------|
+| 1 | Send message | Sent status |
+| 2 | Second client receives | In thread |
+| 3 | Header | Verified / fingerprint |
+
+### 6.4 Phase 3 signals (WO-192)
+
+Two signed-in clients, same `dm:` thread.
+
+| Test | Pass |
+|------|------|
+| Typing | Indicator; ~6s clear |
+| Read receipts | Delivered → read |
+| Reactions | 👍 toggle; REST match |
+| Privacy | Non-participant gets no WS signal |
+
+Spec: [`PHASE3_IOS_UI_SPEC.md`](PHASE3_IOS_UI_SPEC.md).
+
+### 6.5 OIDC4VC (WO-100)
+
+`OIDC4VC_ENABLED=true` → enrollment → wallet → `echo-enroll://` callback.
+
+### 6.6 PSI discovery (WO-221)
+
+`EchoOPRF.xcframework` embedded; both users SMS-verified; `POST /v3/contacts/psi` (blinded only).
+
+### 6.7 Hidden persona
+
+Settings → Hidden persona → Face ID gate; re-lock after background.
+
+### 6.8 SMS recovery (dev)
+
+`DEV_MODE=true` → `X-Dev-OTP` on register endpoint.
+
+---
+
+## 7. Manual E2E — Physical iPhone
+
+Minimum **device** set before TestFlight external:
+
+- [ ] §6.1–6.3 on device (LAN `API_URL`)
+- [ ] Real Face ID / Touch ID
+- [ ] APNs push (`APNS_ENVIRONMENT=sandbox`)
+- [ ] WO-100 / WO-221 if in release scope
+- [ ] Phase 3 two-client (sim + device)
+- [ ] Two-device PSI ([§7b](#7b-two-device-psi-regression))
+
+### 7b. Two-device PSI regression
+
+1. Device A + B: onboard, SMS verify, discovery opt-in.
+2. Save each other's numbers in iOS Contacts.
+3. Both scan — matched contacts appear.
+
+---
+
+## 8. TestFlight & App Store
+
+### 8a. Signing (one-time)
+
+- Bundle ID `com.echo.app` in App Store Connect
+- Push + Associated Domains capabilities
+- Distribution cert + profile
+- APNs `.p8` key in backend `.env`
+
+### 8b. Backend deployment
+
+TestFlight requires **HTTPS** API (not localhost). Deploy Go API + Postgres + Redis; run `make migrate`; set secrets; point iOS `API_URL` to production URL.
+
+### 8c. Archive & upload
 
 ```bash
 cd ios/Echo
-export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
-
-swift build --target Echo --target EchoSecurityTests --target EchoPhase3Tests
-swift test --filter EchoSecurityTests
-swift test --filter EchoPhase3Tests
-```
-
-| Target | Work orders | Role |
-|--------|-------------|------|
-| `EchoSecurityTests` | WO-208/211/223/224 | Crypto, Secure Enclave, passkey |
-| `EchoPhase3Tests` | WO-192 | Typing, receipts, reactions logic |
-| `EchoTests` | Legacy | Advisory only — may not compile |
-
-### 5b. EchoApp target build (compile gate)
-
-```bash
-cd ios/Echo
-xcodebuild -project EchoApp.xcodeproj -scheme EchoApp \
-  -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
-  -configuration Debug build
-```
-
-Or: `make ios-preflight BUILD=1`
-
-### 5c. Live OPRF framework (WO-221)
-
-```bash
-./scripts/build-echooprf-ios.sh
-```
-
-Then in Xcode: EchoApp → **Frameworks** → add `ios/Echo/Libraries/EchoOPRF.xcframework` → **Embed & Sign**.
-
-Without the framework, `OPRFClientFactory` falls back to `MockOPRFClient` (dev only — not valid for PSI launch QA).
-
-### 5d. Archive (pre-TestFlight compile)
-
-```bash
-cd ios/Echo
-xcodebuild -project EchoApp.xcodeproj \
-  -scheme Echo \
+xcodebuild -project EchoApp.xcodeproj -scheme "Echo (TestFlight)" \
   -configuration Release \
   -archivePath /tmp/Echo.xcarchive \
   -destination 'generic/platform=iOS' \
   archive
 ```
 
-Full upload flow: [§8c](#8c-archive--upload-to-app-store-connect).
+Xcode: **Product → Archive → Distribute → App Store Connect**.
 
----
+### 8d. Internal / external testing
 
-## 6. Manual E2E — iOS Simulator
+- **Internal:** up to 100 testers, no review
+- **External:** Beta App Review; privacy policy + screenshots required
 
-**Prerequisites:** [§3a](#3a-local-backend-stack) running; Simulator with Face ID enrolled (Features → Face ID → Enrolled).
-
-Set scheme env **`API_URL`** = `http://localhost:8000` (default in **EchoApp** scheme).
-
-Open `ios/Echo/EchoApp.xcodeproj` → scheme **EchoApp** → Run on **iPhone 16 Pro** simulator.
-
-### 6.1 Onboarding (new user) — FirstRunCoordinator (**frozen / do not redesign**)
-
-Validate this path only. Ignore React prototype onboarding routes and `Echo_v3_2` carousel/login specs. Bugfixes and backend wiring OK; no flow or visual refactors.
-
-| Step | Action | Expected |
-|------|--------|----------|
-| 1 | Cold launch (no account) | Welcome → tap set up |
-| 2 | Enter display name / username | Availability check OK |
-| 3 | Onboarding options → Face ID | Key generated + DID registered (`POST /identity/register`) |
-| 4 | Recovery setup → **SMS backup** (recommended) | OTP verify; discovery opt-in best-effort |
-| 5 | Continue | Main app / Messages tab |
-| **Verify** | Backend | `curl -s http://localhost:8000/health` → operational |
-| **Verify** | Dev OTP | `DEV_MODE=true` → `X-Dev-OTP` on SMS register |
-
-Optional VIP path: checkbox on options screen → Digital ID (WO-100) or Standard IDV → recovery.
-
-Legacy `NameAndKeyView` flow may still exist for demos; **TestFlight path is FirstRunCoordinator above.**
-
-Simulator Face ID: Features → Face ID → **Enrolled** → **Matching Face** when prompted.
-
-### 6.2 Login (returning user) — **frozen / do not redesign**
-
-`GlacialLoginScreen`, `StorageLockedView`, and lockout screens are canonical. Do not replace with prototype `onboarding/login.tsx`.
-
-| Step | Action | Expected |
-|------|--------|----------|
-| 1 | Background app, foreground | `StorageLockedView` (storage key zeroed) |
-| 2 | Tap "Unlock" | Face ID prompt |
-| 3 | Face ID succeeds | Main app shown |
-| 4 | Force-quit and relaunch | `GlacialLoginScreen` — "@username" mono label; Face ID auto-triggers ~400ms |
-| 5 | Face ID succeeds | Main app |
-| 6 | Trigger 5 Face ID failures | `BiometricLockoutView` — requires passcode |
-
-### 6.3 Messaging (backend required)
-
-| Step | Action | Expected |
-|------|--------|----------|
-| 1 | New conversation → send | Message shows sent status |
-| 2 | Receive from second client/curl | Appears in thread |
-| 3 | Check conversation header | Verified / key fingerprint visible |
-| **Verify** | Backend logs | No plaintext message bodies |
-
-Backend smoke (no iOS):
-
-```bash
-make validate-phase1   # Step 4 exercises relay
-```
-
-### 6.4 Phase 3 — typing, read receipts, reactions (WO-192)
-
-**Needs two signed-in accounts** (two simulators if supported, or simulator + device).
-
-| Test | Pass criteria |
-|------|---------------|
-| Typing | A types → B sees indicator; stop/send clears; ~6s safety clear |
-| Read receipts | B opens chat → A status → read; privacy off → stays delivered |
-| Reactions | Long-press 👍; toggle off; REST matches UI |
-| Privacy leak | Account C not in thread receives **no** ephemeral WS signals |
-
-Detail: [`PHASE3_IOS_UI_SPEC.md` Step 5](PHASE3_IOS_UI_SPEC.md), skill **`echo-phase3-ios-wire`**.
-
-### 6.5 OIDC4VC wallet enrollment (WO-100)
-
-**Backend:** `OIDC4VC_ENABLED=true`
-
-| Step | Action | Expected |
-|------|--------|----------|
-| 1 | Enrollment → Mobile wallet credential | `WalletCredentialEnrollmentView` |
-| 2 | Start flow | `POST /v1/enrollment/vc/start` succeeds; wallet / browser opens |
-| 3 | Complete presentation | `echo-enroll://` callback or manual finish with VP |
-| 4 | Finish | `POST /v1/enrollment/vc/finish` → onboarding continues |
-| 5 | Dev fallback | Browser `/verification/ui` handoff page loads |
-
-**Verify URL scheme:** `EchoApp-Info.plist` contains `echo-enroll` (merged via `INFOPLIST_FILE`).
-
-### 6.6 PSI contact discovery (WO-221)
-
-**Backend:** contacts PSI endpoints; both test users SMS-verified (discovery index populated).
-
-**iOS:** `EchoOPRF.xcframework` embedded ([§5c](#5c-live-oprf-framework-wo-221)) for real PSI.
-
-| Step | Action | Expected |
-|------|--------|----------|
-| 1 | Contacts tab → **Contacts on ECHO** | `ContactDiscoveryView` |
-| 2 | Grant Contacts permission | Prompt appears once |
-| 3 | Scan | Loading → results or empty state (no crash) |
-| 4 | Two users with shared phone book entry | Matched contact shows display name + DID |
-| **Verify** | Network | `POST /v3/contacts/psi` — blinded payloads only (no raw phones in logs) |
-
-Unit tests: `go test ./mobile/echooprf/...`
-
-### 6.7 Hidden persona gate
-
-| Step | Action | Expected |
-|------|--------|----------|
-| 1 | Settings → Personas → Hidden | Lock icon |
-| 2 | Open persona | `PersonaGateView`; Face ID ~300ms |
-| 3 | Background 2+ min | Re-lock on foreground |
-
-### 6.8 SMS recovery (dev)
-
-Enable `DEV_MODE=true`. Flow: Recovery Setup → Add phone → verify OTP from `X-Dev-OTP` header.
-
-| Step | Action | Expected |
-|------|--------|----------|
-| 1 | Recovery Setup → "Add phone backup" | `SMSOTPSetupView` |
-| 2 | Enter valid E.164 (+12125551234) | "Send verification code" enabled |
-| 3 | Tap send | `POST /v1/auth/sms-recovery/register` → 200 |
-| 4 | Enter OTP | "Phone backup added ✓" |
-
-### 6.9 Rate limiting (backend resilience)
-
-```bash
-for i in $(seq 1 105); do
-  curl -s -o /dev/null -w "%{http_code}\n" \
-    -H "Authorization: Bearer $TOKEN" \
-    http://localhost:8000/v3/messages
-done | sort | uniq -c
-# Expected: ~100 × 200, ~5 × 429
-```
-
----
-
-## 7. Manual E2E — Physical iPhone
-
-Simulator cannot exercise Secure Enclave, real Face ID, or realistic PSI with two real phone books.
-
-Use [§3c](#3c-physical-device--lan-api_url) for network setup.
-
-### 7a. Device checklist (minimum launch set)
-
-Run **§6.1–6.3** on device, plus:
-
-- [ ] Real Face ID / Touch ID unlock paths
-- [ ] Push notification delivery (APNs sandbox + `APNS_*` in backend `.env`)
-- [ ] Background/foreground storage lock
-- [ ] WO-100 wallet enrollment with real wallet or dev VP UI
-- [ ] WO-221 contact discovery with **live OPRF** + second device
-- [ ] Phase 3 two-client test (§6.4) across simulator + device
-
-### 7b. Two-device PSI regression
-
-1. Device A: onboard + SMS verify phone `+1…`
-2. Device B: onboard + SMS verify; save A's number in iOS Contacts
-3. Both: run contact discovery scan
-4. B should see A in **Contacts on ECHO** (and vice versa if symmetric)
-
----
-
-## 8. TestFlight & App Store
-
-### 8a. iOS signing setup (one-time)
-
-Requires active **Apple Developer Program** membership.
-
-**App Store Connect:**
-
-1. **Identifiers → +** → App ID → Bundle ID: `com.echo.app`
-   - Capabilities: **Push Notifications**, **Associated Domains** (passkeys)
-2. **Certificates → +** → Apple Distribution → save `.p12`
-3. **Provisioning Profiles → +** → App Store → download
-
-**Xcode** (`ios/Echo/EchoApp.xcodeproj`):
-
-1. Target **Echo** → **Signing & Capabilities**
-2. **Team** = your Apple Developer team
-3. **Bundle Identifier**: `com.echo.app`
-4. **Automatically manage signing** (recommended)
-
-**APNs for TestFlight:** App Store Connect → **Keys → +** → APNs → download `.p8`. Set `APNS_KEY_PATH`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_BUNDLE_ID=com.echo.app`, `APNS_ENVIRONMENT=sandbox` in backend `.env`.
-
-**TestFlight scheme:**
-
-1. Duplicate `Debug` scheme → name `Echo (TestFlight)`
-2. **Run** → Build Configuration → `Release`
-3. Set `API_URL` to deployed backend ([§8b](#8b-backend-deployment))
-
-### 8b. Backend deployment
-
-TestFlight app must connect to a real HTTPS backend (not localhost).
-
-| Service | Minimum spec | Notes |
-|---------|--------------|-------|
-| Go API server | 1 vCPU / 512 MB RAM | fly.io, Render, Railway, VPS |
-| PostgreSQL | Managed | Run migrations: `make migrate` |
-| Redis | Upstash free tier | Rate limiting + OTP |
-| TLS | Let's Encrypt | Required — iOS enforces HTTPS |
-
-Quick Fly.io path:
-
-```bash
-brew install flyctl && fly auth login
-fly launch --name echo-api --region sjc
-fly secrets set DATABASE_HOST=... REDIS_HOST=... IDENTITY_L1_URL=...
-fly deploy
-curl -s https://echo-api.fly.dev/health | jq .status   # → "operational"
-```
-
-Update iOS `Release.xcconfig` or scheme: `API_URL = https://echo-api.fly.dev`
-
-### 8c. Archive & upload to App Store Connect
-
-```bash
-cd ios/Echo
-xcodebuild \
-  -project EchoApp.xcodeproj \
-  -scheme "Echo (TestFlight)" \
-  -configuration Release \
-  -archivePath /tmp/Echo.xcarchive \
-  -destination "generic/platform=iOS" \
-  archive
-```
-
-Or Xcode: **Product → Archive** → Organizer → **Distribute App** → **App Store Connect** → **Upload**.
-
-Options: strip Swift symbols, automatically manage signing.
-
-### 8d. Internal & external testing
-
-**Internal** (up to 100 testers, no Apple review):
-
-1. App Store Connect → TestFlight → build appears (~5 min)
-2. Add Internal Testers → **Enable** build
-3. Testers install via TestFlight app
-
-**External** (requires Beta App Review, 1–3 business days):
-
-- Privacy Policy URL, screenshots, no placeholder content on first launch
-
-### 8e. TestFlight regression (after each upload)
+### 8e. TestFlight regression (per build)
 
 | # | Check | Pass |
 |---|-------|------|
-| 1 | Install from TestFlight app | Opens without crash |
-| 2 | API points to **deployed** HTTPS backend | Health OK in network log |
-| 3 | Full onboarding on clean install | §6.1 |
+| 1 | Install from TestFlight | No crash on launch |
+| 2 | HTTPS backend health | Network log OK |
+| 3 | Onboarding clean install | §6.1 |
 | 4 | Login + biometric | §6.2 |
 | 5 | Send/receive message | §6.3 |
-| 6 | Phase 3 signals (if build includes) | §6.4 |
-| 7 | No crash in Organizer first 24h | Crash rate acceptable |
-| 8 | Export compliance answered in ASC | Standard encryption exemption |
-
-Use **Release** + production/staging `API_URL`. APNs: `APNS_ENVIRONMENT=sandbox` for TestFlight.
+| 6 | Phase 3 (if in build) | §6.4 |
+| 7 | 24h crash rate | Acceptable in Organizer |
+| 8 | Export compliance | Answered in ASC |
 
 ---
 
 ## 9. Launch checklist & sign-off
 
-Use this template for any TestFlight or App Store launch. Adjust dates in your release plan.
+Complete for every TestFlight or App Store release. Copy the template into your release ticket.
 
-### Phase A — Backend + local E2E green
+### Phase A — Automated + local E2E
 
-- [ ] `make validate-phase1` passes all 6 steps (or documented skips for simulator-only)
-- [ ] `make regression` passed on release commit SHA
-- [ ] Physical iPhone on LAN: full onboarding (§6.1) works
-- [ ] Login biometric auto-trigger works on device (§6.2)
-- [ ] Hidden persona gate works on device (§6.7)
-- [ ] T0–T7 Semgrep CI passes on release branch
+| # | Check | Feature set | Pass |
+|---|-------|-------------|:----:|
+| A1 | `make regression` on release SHA | P1-Security, A-Phase3 headless | ☐ |
+| A2 | `make validate-phase1` all steps `ok` | P1-Identity, P1-Data-L1, P1-Chain | ☐ |
+| A3 | Semgrep T0–T7 CI green | P1-Security | ☐ |
+| A4 | Simulator §6.1–6.3 | A-DM, A-Chat-UI | ☐ |
+| A5 | Week A A1–A10 (if messaging release) | A-* | ☐ |
+| A6 | Week B B1–B6 (if contacts release) | B-* | ☐ |
 
-### Phase B — Signing + backend deployed
+### Phase B — Deploy + device
 
-- [ ] Apple Developer account active
-- [ ] Bundle ID `com.echo.app` registered in App Store Connect
-- [ ] Distribution certificate + provisioning profile created
-- [ ] Backend deployed to public HTTPS URL
-- [ ] TestFlight scheme `API_URL` points to deployed backend
-- [ ] Physical device connects to deployed backend (Xcode network logs)
-- [ ] APNs key configured
+| # | Check | Pass |
+|---|-------|:----:|
+| B1 | Apple Developer + bundle ID ready | ☐ |
+| B2 | Backend HTTPS deployed + migrations | ☐ |
+| B3 | TestFlight scheme `API_URL` → deployed API | ☐ |
+| B4 | Device §7 minimum on LAN or staging | ☐ |
+| B5 | APNs configured | ☐ |
 
-### Phase C — TestFlight build live
+### Phase C — TestFlight live
 
-- [ ] Archive builds successfully
-- [ ] Upload to App Store Connect — build visible in TestFlight
-- [ ] Internal testers added, build enabled
-- [ ] Full onboarding on TestFlight build (not simulator)
-- [ ] Login + biometric on TestFlight build
-- [ ] §8e TestFlight regression complete
-- [ ] No crashes in first 24h (Xcode Organizer)
+| # | Check | Pass |
+|---|-------|:----:|
+| C1 | Archive + upload succeeded | ☐ |
+| C2 | Internal testers enabled | ☐ |
+| C3 | §8e regression on TestFlight build | ☐ |
+| C4 | No blocker crashes 24h | ☐ |
 
 **Definition of done:**
 
-> At least one TestFlight internal build installable on a real device, with onboarding → login → send message → hidden persona gate working end-to-end against the deployed backend.
+> At least one TestFlight internal build on a real device: onboarding → login → send message → (scoped features) working against the deployed HTTPS backend.
 
-### Release sign-off (copy for WO closure)
+### Release sign-off template
 
 ```markdown
-## Echo release test sign-off — vX.Y.Z — DATE
+## Echo release sign-off — vX.Y.Z — DATE
+
+**Commit SHA:** _______
+**TestFlight build:** _______
+**Backend URL:** _______
+
+### Feature sets in this release
+- [ ] P1-Identity  - [ ] P1-Relay  - [ ] P1-Data-L1  - [ ] P1-Chain
+- [ ] Week A messaging  - [ ] Week B contacts
+- [ ] Phase 3 signals  - [ ] WO-100 OIDC4VC  - [ ] WO-221 PSI
 
 ### Automated (required)
-- [ ] CI green on commit SHA: _______
-- [ ] `make regression` passed locally
-- [ ] `make validate-phase1` all steps ok (launch only)
+- [ ] CI green on SHA
+- [ ] `make regression` passed
+- [ ] `make validate-phase1` → GO (all ok)
 
-### Manual simulator (required pre-TestFlight)
-- [ ] §6.1 Onboarding
-- [ ] §6.2 Login / lockout
-- [ ] §6.3 Messaging
-- [ ] §6.4 Phase 3 signals (if in scope)
-- [ ] §6.5 OIDC4VC (if in scope)
-- [ ] §6.6 PSI discovery (if in scope)
+### Manual simulator
+- [ ] §6.1 Onboarding  - [ ] §6.2 Login  - [ ] §6.3 Messaging
+- [ ] §6.4 Phase 3 (if shipped)  - [ ] §6.5 OIDC4VC (if shipped)  - [ ] §6.6 PSI (if shipped)
 
-### Manual device (required for TestFlight external / App Store)
+### Manual device / TestFlight
 - [ ] §7a device checklist
-- [ ] §8e TestFlight regression on build _______
+- [ ] §8e TestFlight regression
 
-### Sign-off
-Tester: _______  Environment: dev / staging / prod  Result: GO / NO-GO
+**Tester:** _______  **Environment:** dev / staging / prod  **Result:** GO / NO-GO
 ```
 
 ---
@@ -624,50 +395,24 @@ Tester: _______  Environment: dev / staging / prod  Result: GO / NO-GO
 
 | Issue | Workaround |
 |-------|------------|
-| iOS testing feels overwhelming | Use **[`E2E_QUICK_START.md`](E2E_QUICK_START.md)** + `make ios-preflight` |
-| Wrong Xcode scheme name | Use **EchoApp**, not "Echo" |
-| Face ID doesn't trigger in Simulator | Features → Face ID → Enrolled → Matching Face |
-| `SecureEnclave` fails in Simulator | Expected — hardware-only; `USE_MOCK_SECURE_ENCLAVE=1` in scheme |
-| `POST /identity/register` 400 on device | `API_URL` must be LAN IP, not `localhost` |
-| APNs push not delivered | `APNS_ENVIRONMENT=sandbox` for TestFlight |
-| TestFlight "Missing Compliance" | ASC → Build → Export Compliance → standard encryption |
-| Biometric lockout wrong countdown | Check `BiometricLockState.hardLocked(until:)` in `SecureEnclaveManager` |
-| `validate-phase1` step 5 skips | Needs Euclid cluster + `DATA_L1_URL=http://localhost:9400` |
-| `gomobile bind` fails (CLT only) | Full Xcode.app; see `./scripts/build-echooprf-ios.sh` |
+| Overwhelming test matrix | [`E2E_QUICK_START.md` §0](E2E_QUICK_START.md) daily table |
+| Wrong scheme | Use **EchoApp**, not Echo |
+| Face ID in Simulator | Features → Face ID → Enrolled |
+| Device `localhost` API | LAN IP in scheme `API_URL` |
+| Step 5 validate fail | Rebuild Data L1 JAR — quick start §3b |
+| Step 3 skip | `make start-identity` |
+| `gomobile` fails | Full Xcode.app |
 
 ---
 
 ## 11. Command reference
 
 ```bash
-# ── Automated regression ──────────────────────────────────────────────────
-make regression
-make regression-quick
-make regression-with-phase1
-make release-check
-./scripts/run-regression.sh --help
-
-# ── Backend ───────────────────────────────────────────────────────────────
-make dev && make dev-status
-make dev-restart && make dev-logs && make dev-stop
-make validate-phase1
-make start-identity
-go test -race -count=1 ./internal/... ./pkg/... ./test/...
-semgrep --config .semgrep/t0_t7_rules.yaml --error .
-
-# ── iOS (Mac + Xcode) ─────────────────────────────────────────────────────
-cd ios/Echo && swift test --filter EchoSecurityTests
-cd ios/Echo && swift test --filter EchoPhase3Tests
-./scripts/build-echooprf-ios.sh
-xcodebuild -project ios/Echo/EchoApp.xcodeproj -scheme Echo \
-  -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build
-xcodebuild -project ios/Echo/EchoApp.xcodeproj -scheme "Echo (TestFlight)" \
-  -configuration Release -archivePath /tmp/Echo.xcarchive \
-  -destination 'generic/platform=iOS' archive
-
-# ── Metagraph ─────────────────────────────────────────────────────────────
-make metagraph-test
-cd metagraph && sbt test
+make dev && make dev-status && make validate-phase1
+make regression && make regression-with-phase1
+make ios-preflight BUILD=1 TESTS=1
+make phase3-signals-proof && make metagraph-test
+make start-identity && make stop-identity
 ```
 
 ---
@@ -676,10 +421,10 @@ cd metagraph && sbt test
 
 | Doc | Contents |
 |-----|----------|
-| [`PHASE3_IOS_UI_SPEC.md`](PHASE3_IOS_UI_SPEC.md) | Phase 3 agent vs Xcode split, Step 5 detail |
-| [`metagraph-backend-e2e-testing.md`](metagraph-backend-e2e-testing.md) | Hydra cluster, node URLs |
-| [`COMPETITIVE_AUDIT_IMPLEMENTATION_PLAN.md`](COMPETITIVE_AUDIT_IMPLEMENTATION_PLAN.md) | Wave 0+ E2E gates |
-| [`CONTRIBUTING.md`](../CONTRIBUTING.md) | First-time dev setup |
-| [`AGENTS.md`](../AGENTS.md) | Agent skills index |
+| [`E2E_QUICK_START.md`](E2E_QUICK_START.md) | Setup, rebuild, daily regression |
+| [`PHASE3_IOS_UI_SPEC.md`](PHASE3_IOS_UI_SPEC.md) | Phase 3 wiring |
+| [`metagraph-backend-e2e-testing.md`](metagraph-backend-e2e-testing.md) | Hydra cluster |
+| [`WEEK_A_B_LAUNCH.md`](WEEK_A_B_LAUNCH.md) | Sprint execution |
+| [`AGENTS.md`](../AGENTS.md) | Agent skills |
 
 **Skills:** `echo-testing`, `echo-phase1-validate`, `echo-ios-agent-vs-xcode`, `echo-phase3-ios-wire`

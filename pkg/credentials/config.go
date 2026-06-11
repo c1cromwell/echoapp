@@ -72,7 +72,7 @@ type CredentialConfig struct {
 // the credential issuer + StatusList2021 publisher (Phase 1; ADR-0001).
 type MetagraphConfig struct {
 	// L0 + L1 endpoints for the Identity Metagraph (env-overridable;
-	// see CONTRIBUTING.md and Makefile dev target).
+	// see docs/E2E_QUICK_START.md and Makefile dev target).
 	IdentityL0URL string
 	IdentityL1URL string
 
