@@ -1,10 +1,20 @@
 package onboarding
 
 import (
+	"encoding/hex"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
+
+// testP256PublicKeyHex matches pkg/didkey test vectors (uncompressed P-256).
+const testP256PublicKeyHex = "042a8db0febf8361d5b16c0bd5711625a78d22af9559d0e987666be09ed521459873ec2364e35aa21dbfeb8a63a0b52b61e5c56fbe06fc7ad8cc2143cb1929189a"
+
+func testP256PublicKeyBytes() []byte {
+	b, _ := hex.DecodeString(testP256PublicKeyHex)
+	return b
+}
 
 func newTestOnboardingService() *OnboardingService {
 	phone := NewPhoneVerificationService()
@@ -192,7 +202,7 @@ func TestPasskeyFlow(t *testing.T) {
 			t.Fatalf("SetupPasskey failed: %v", err)
 		}
 
-		err = svc.CompletePasskey(session.ID, challenge.ID, "cred-id", []byte("public-key-data"), PasskeyFaceID, "iPhone 15")
+		_, err = svc.CompletePasskey(session.ID, challenge.ID, "cred-id", testP256PublicKeyBytes(), PasskeyFaceID, "iPhone 15")
 		if err != nil {
 			t.Fatalf("CompletePasskey failed: %v", err)
 		}
@@ -201,8 +211,8 @@ func TestPasskeyFlow(t *testing.T) {
 		if s.CurrentStep != StepRecovery {
 			t.Errorf("step = %s, want recovery_setup", s.CurrentStep)
 		}
-		if s.DID == "" {
-			t.Error("DID should be generated")
+		if !strings.HasPrefix(s.DID, "did:key:") {
+			t.Errorf("DID = %q, want did:key prefix", s.DID)
 		}
 		if s.Steps[StepPasskey] != StatusCompleted {
 			t.Error("passkey step should be completed")
@@ -628,7 +638,7 @@ func TestFullOnboardingFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup passkey: %v", err)
 	}
-	if err := svc.CompletePasskey(session.ID, challenge.ID, "cred-final", []byte("final-key"), PasskeyFaceID, "iPhone"); err != nil {
+	if _, err := svc.CompletePasskey(session.ID, challenge.ID, "cred-final", testP256PublicKeyBytes(), PasskeyFaceID, "iPhone"); err != nil {
 		t.Fatalf("complete passkey: %v", err)
 	}
 
@@ -756,7 +766,7 @@ func advanceToRecovery(t *testing.T, svc *OnboardingService) *OnboardingSession 
 	session := advanceToPasskey(t, svc)
 	challenge, _ := svc.SetupPasskey(session.ID)
 	credID := "cred-" + session.ID[:8]
-	svc.CompletePasskey(session.ID, challenge.ID, credID, []byte("key-"+session.ID[:8]), PasskeyFaceID, "Test Device")
+	svc.CompletePasskey(session.ID, challenge.ID, credID, testP256PublicKeyBytes(), PasskeyFaceID, "Test Device")
 	s, _ := svc.GetSession(session.ID)
 	return s
 }

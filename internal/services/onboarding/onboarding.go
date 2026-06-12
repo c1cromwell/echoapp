@@ -1,11 +1,15 @@
 package onboarding
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"regexp"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/thechadcromwell/echoapp/pkg/didkey"
 )
 
 // OnboardingStep represents a step in the onboarding flow
@@ -60,7 +64,10 @@ type SecuritySetupItem struct {
 // OnboardingSession tracks a user's progress through the onboarding flow
 type OnboardingSession struct {
 	ID                 string
-	PhoneNumber        string
+	PhoneNumber        string // cleared after passkey or delete_phone (WO-203 FR6)
+	PhoneHash          string // sha256:hex after OTP verify — no raw number retained long-term
+	PhoneDecoupled     bool
+	PhoneVerified      bool
 	UserID             string
 	DID                string
 	RegistrationMethod RegistrationMethod
@@ -251,6 +258,8 @@ func (s *OnboardingService) VerifyOTP(sessionID, code string) error {
 	}
 
 	s.mu.Lock()
+	session.PhoneVerified = true
+	session.PhoneHash = hashPhoneE164(session.PhoneNumber)
 	session.Steps[StepOTP] = StatusCompleted
 	session.Steps[StepPasskey] = StatusActive
 	session.CurrentStep = StepPasskey
@@ -281,31 +290,47 @@ func (s *OnboardingService) SetupPasskey(sessionID string) (*PasskeyChallenge, e
 }
 
 // CompletePasskey registers the passkey credential and generates DID
-func (s *OnboardingService) CompletePasskey(sessionID, challengeID, credentialID string, publicKey []byte, passkeyType PasskeyType, deviceInfo string) error {
+func (s *OnboardingService) CompletePasskey(sessionID, challengeID, credentialID string, publicKey []byte, passkeyType PasskeyType, deviceInfo string) (string, error) {
+	return s.CompletePasskeyHex(sessionID, challengeID, credentialID, hex.EncodeToString(publicKey), passkeyType, deviceInfo)
+}
+
+// CompletePasskeyHex registers a passkey and derives a did:key from the P-256 public key (ADR-0001).
+func (s *OnboardingService) CompletePasskeyHex(sessionID, challengeID, credentialID, publicKeyHex string, passkeyType PasskeyType, deviceInfo string) (string, error) {
 	session, err := s.GetSession(sessionID)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if session.CurrentStep != StepPasskey {
-		return ErrStepNotReady
+		return "", ErrStepNotReady
 	}
 
-	cred, err := s.passkey.RegisterCredential(challengeID, credentialID, publicKey, passkeyType, deviceInfo)
+	pubBytes, err := hex.DecodeString(publicKeyHex)
+	if err != nil || len(pubBytes) == 0 {
+		return "", ErrPasskeyInvalidData
+	}
+
+	cred, err := s.passkey.RegisterCredential(challengeID, credentialID, pubBytes, passkeyType, deviceInfo)
 	if err != nil {
-		return err
+		return "", err
+	}
+
+	did, err := didkey.DeriveFromPublicKeyHex(publicKeyHex)
+	if err != nil {
+		return "", err
 	}
 
 	s.mu.Lock()
-	session.DID = GenerateDID(cred.PublicKey)
+	session.DID = did
 	session.UserID = cred.UserID
+	session.PhoneNumber = ""
 	session.Steps[StepPasskey] = StatusCompleted
 	session.Steps[StepRecovery] = StatusActive
 	session.CurrentStep = StepRecovery
 	session.UpdatedAt = time.Now()
 	s.mu.Unlock()
 
-	return nil
+	return did, nil
 }
 
 // SkipPasskey skips passkey setup (flagged as incomplete)
@@ -609,6 +634,41 @@ func (s *OnboardingService) HasNudgeCard(sessionID string) (bool, error) {
 	return len(session.SkippedSteps) > 0, nil
 }
 
+// DeletePhoneNumber removes stored phone material after DID creation (WO-203 FR6).
+func (s *OnboardingService) DeletePhoneNumber(sessionID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	session, err := s.getSessionLocked(sessionID)
+	if err != nil {
+		return err
+	}
+	if session.DID == "" {
+		return ErrStepNotReady
+	}
+	session.PhoneNumber = ""
+	session.PhoneHash = ""
+	session.PhoneDecoupled = true
+	session.UpdatedAt = time.Now()
+	return nil
+}
+
+// ProgressiveIdentityPrompts returns backend hints for credential upgrade flows (WO-203 FR7).
+func (s *OnboardingService) ProgressiveIdentityPrompts(session *OnboardingSession) map[string]interface{} {
+	if session == nil {
+		return map[string]interface{}{}
+	}
+	return map[string]interface{}{
+		"credential_enrollment_available": true,
+		"suggested_flows": []string{
+			"wallet_credential",
+			"mdl",
+			"idv_vip",
+		},
+		"current_assurance": "device_verified",
+	}
+}
+
 // CheckUsernameAvailability checks if a username is available
 func (s *OnboardingService) CheckUsernameAvailability(username string) (bool, error) {
 	if !usernameRegex.MatchString(username) {
@@ -633,4 +693,9 @@ func (s *OnboardingService) getSessionLocked(sessionID string) (*OnboardingSessi
 	}
 
 	return session, nil
+}
+
+func hashPhoneE164(e164 string) string {
+	sum := sha256.Sum256([]byte(e164))
+	return "sha256:" + hex.EncodeToString(sum[:])
 }

@@ -428,8 +428,11 @@ echooprf-ios: ## Build EchoOPRF.xcframework for WO-221 PSI (requires Xcode + gom
 	@chmod +x scripts/build-echooprf-ios.sh
 	@./scripts/build-echooprf-ios.sh
 
-echooprf-link: ## Print Xcode steps to embed EchoOPRF.xcframework (after echooprf-ios)
+echooprf-link: ## Embed EchoOPRF.xcframework in Xcode project (after echooprf-ios)
 	@chmod +x scripts/link-echooprf-xcode.sh
 	@./scripts/link-echooprf-xcode.sh
+
+echooprf-test: ## Run OPRF interop tests (Go server + mobile/echooprf)
+	@go test ./mobile/echooprf/... ./internal/api/... -run 'PSI|OPRF' -count=1
 
 .DEFAULT_GOAL := help

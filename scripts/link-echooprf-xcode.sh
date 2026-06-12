@@ -16,10 +16,17 @@ if grep -q 'EchoOPRF.xcframework' "$PBXPROJ" 2>/dev/null; then
   exit 0
 fi
 
+if command -v python3 >/dev/null; then
+  python3 "${ROOT}/scripts/embed-echooprf-pbxproj.py" && exit 0
+fi
+
 cat <<EOF
 Built: $FRAMEWORK
 
-Add to EchoApp in Xcode (one-time):
+Add to EchoApp in Xcode (one-time), or re-run after installing python3:
+  python3 scripts/embed-echooprf-pbxproj.py
+
+Manual steps:
   1. Open ios/Echo/EchoApp.xcodeproj
   2. EchoApp target → General → Frameworks, Libraries, and Embedded Content
   3. + → Add Other → Add Files → select EchoOPRF.xcframework
