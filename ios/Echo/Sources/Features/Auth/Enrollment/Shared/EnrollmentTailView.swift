@@ -54,13 +54,13 @@ final class EnrollmentTailViewModel {
                 switch step {
                 case .creatingIdentity:
                     coordinator.stage = .creatingDID
-                    currentStep = .creatingIdentity
+                    self.currentStep = .creatingIdentity
                 case .creatingWallet:
                     coordinator.stage = .creatingWallet
-                    currentStep = .creatingWallet
+                    self.currentStep = .creatingWallet
                 case .registeringPasskey:
                     coordinator.stage = .registeringPasskey
-                    currentStep = .registeringPasskey
+                    self.currentStep = .registeringPasskey
                 }
             }
 
