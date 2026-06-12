@@ -133,17 +133,26 @@ final class UsernameSearchViewModel {
     var addingDID: String?
     var addErrorMessage: String?
 
+    private let searchUseCase: UsernameSearchUseCase?
     private let socialAPI: ContactSocialAPIClient?
     private var debounceTask: Task<Void, Never>?
 
-    init(socialAPI: ContactSocialAPIClient? = nil) {
-        if let socialAPI {
-            self.socialAPI = socialAPI
-        } else if let resolved = DIContainer.shared.resolveContactSocialAPI() {
-            self.socialAPI = resolved
+    init(
+        searchUseCase: UsernameSearchUseCase? = nil,
+        socialAPI: ContactSocialAPIClient? = nil
+    ) {
+        if let searchUseCase {
+            self.searchUseCase = searchUseCase
+            self.socialAPI = socialAPI ?? DIContainer.shared.resolveContactSocialAPI()
+        } else if let resolved = DIContainer.shared.resolveUsernameSearchUseCase() {
+            self.searchUseCase = resolved
+            self.socialAPI = socialAPI ?? DIContainer.shared.resolveContactSocialAPI()
         } else if let client = DIContainer.shared.resolveAPIClient() {
-            self.socialAPI = ContactSocialAPIClient(apiClient: client)
+            let api = ContactSocialAPIClient(apiClient: client)
+            self.searchUseCase = UsernameSearchUseCase(client: api)
+            self.socialAPI = socialAPI ?? api
         } else {
+            self.searchUseCase = nil
             self.socialAPI = nil
         }
     }
@@ -162,7 +171,7 @@ final class UsernameSearchViewModel {
     func search(_ handle: String) async {
         let trimmed = handle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 2 else { return }
-        guard let socialAPI else {
+        guard let searchUseCase else {
             errorMessage = "Sign in required to search."
             return
         }
@@ -171,7 +180,7 @@ final class UsernameSearchViewModel {
         lastQuery = trimmed
         defer { isSearching = false; hasSearched = true }
         do {
-            hits = try await socialAPI.searchUsername(trimmed)
+            hits = try await searchUseCase.search(handle: trimmed)
         } catch {
             errorMessage = error.localizedDescription
         }

@@ -131,7 +131,7 @@ actor EnrollmentAPIClient {
     struct IDVSession: Decodable, Sendable {
         let id: String
         let clientSecret: String
-        let provider: String   // "stripe_identity" | "sumsub"
+        let provider: String   // "dev_stub" | "stripe_identity" | "sumsub"
     }
 
     func startIDVSession() async throws -> IDVSession {
@@ -148,11 +148,21 @@ actor EnrollmentAPIClient {
 
     // MARK: - Shared tail
 
-    func registerDIDFromBundle(_ bundle: VerifiedIdentityBundle) async throws -> String {
+    func registerDIDFromBundle(
+        _ bundle: VerifiedIdentityBundle,
+        publicKeyHex: String
+    ) async throws -> String {
+        struct Body: Encodable {
+            let credential_reference: String
+            let public_key_hex: String
+        }
         struct R: Decodable { let did: String }
         let r: R = try await post(
             path: "/v1/enrollment/did",
-            body: ["credential_reference": bundle.credentialReferenceUUID.uuidString]
+            body: Body(
+                credential_reference: bundle.credentialReferenceUUID.uuidString,
+                public_key_hex: publicKeyHex
+            )
         )
         return r.did
     }
@@ -163,8 +173,24 @@ actor EnrollmentAPIClient {
         return r.address
     }
 
-    func registerPasskey(did: String) async throws {
-        let _: EmptyResponse = try await post(path: "/v1/enrollment/passkey", body: ["did": did])
+    func registerPasskey(
+        did: String,
+        publicKeyHex: String,
+        attestation: PasskeyRegistrationResult
+    ) async throws {
+        struct Body: Encodable {
+            let did: String
+            let public_key: String
+            let attestation: String
+        }
+        let _: EmptyResponse = try await post(
+            path: "/v1/enrollment/passkey",
+            body: Body(
+                did: did,
+                public_key: publicKeyHex,
+                attestation: attestation.attestationObject.base64EncodedString()
+            )
+        )
     }
 
     // MARK: - Transport helpers

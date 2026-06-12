@@ -21,6 +21,7 @@
 		0B4FE7EA463245E7B6531EEA /* Sources/Features/Onboarding/VIP/VIPStandardIDVView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E6EA147E2FF4D5F80E78EB1 /* Sources/Features/Onboarding/VIP/VIPStandardIDVView.swift */; };
 		0FE66933DF0640D2D48559B4 /* DigitalEvidenceBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBA2A027C3B24A1107626C0 /* DigitalEvidenceBridge.swift */; };
 		0FFEB52AED61050CC4EBD41A /* EnrollmentTailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A0240156C862C9CBA4FA0A /* EnrollmentTailView.swift */; };
+		C3D4E5F60718293A4B5C6D7E /* CredentialEnrollmentTailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C6D /* CredentialEnrollmentTailService.swift */; };
 		113D1831CE8D691664096254 /* TrustTierBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D5AF14FB3F52481E6067ED /* TrustTierBadge.swift */; };
 		1411B71227274A6D2B383C77 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98C229FC30EE9C6760D7C826 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift */; };
 		141B61A5C244A38E6CD1888D /* QRIdentityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A3969657C8BE94FC969D441 /* QRIdentityView.swift */; };
@@ -248,6 +249,7 @@
 		01B611B57B284D0999ADD396 /* Sources/DesignSystem/FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/DesignSystem/FlowLayout.swift; sourceTree = "<group>"; };
 		045F0D37A2347418E665A94B /* GovernanceWeightView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GovernanceWeightView.swift; sourceTree = "<group>"; };
 		05A0240156C862C9CBA4FA0A /* EnrollmentTailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentTailView.swift; sourceTree = "<group>"; };
+		B2C3D4E5F60718293A4B5C6D /* CredentialEnrollmentTailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialEnrollmentTailService.swift; sourceTree = "<group>"; };
 		0628452B4B7E0BC97FCF5484 /* BiometricAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthManager.swift; sourceTree = "<group>"; };
 		07EB4AC07F9F7A037F2CAFE3 /* AnchoringTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnchoringTracker.swift; sourceTree = "<group>"; };
 		08AB58ED1AF62C1DA3CC0D1D /* NotificationCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCenterView.swift; sourceTree = "<group>"; };
@@ -1206,6 +1208,7 @@
 			children = (
 				8D31158E5FAFEB804F593D66 /* EnrollmentComponents.swift */,
 				05A0240156C862C9CBA4FA0A /* EnrollmentTailView.swift */,
+				B2C3D4E5F60718293A4B5C6D /* CredentialEnrollmentTailService.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -1413,6 +1416,7 @@
 				44A76F73C2FA0EC4B2B302B3 /* EnrollmentMethodPickerView.swift in Sources */,
 				6238DD99EFF012D3A7FEEEB4 /* EnrollmentModels.swift in Sources */,
 				0FFEB52AED61050CC4EBD41A /* EnrollmentTailView.swift in Sources */,
+				C3D4E5F60718293A4B5C6D7E /* CredentialEnrollmentTailService.swift in Sources */,
 				62CFC3951E9205C32DCCF05F /* EnterpriseProfileView.swift in Sources */,
 				AD923851DBC3DEBD43DD01E9 /* EvidenceService.swift in Sources */,
 				9EFFC1D22C27CD50E7EEFD4F /* FirstRunCoordinator.swift in Sources */,

@@ -164,32 +164,63 @@ struct ContactDiscoverySettingsView: View {
 /// Account deletion and export — links existing profile actions (WO-228).
 private struct AccountDataView: View {
     @State private var showDeleteConfirm = false
+    @State private var isDeleting = false
+    @State private var deleteError: String?
 
     var body: some View {
         List {
             Section {
-                Text("Your messages stay E2E encrypted. Account deletion revokes credentials on the Identity Metagraph; your did:key string remains mathematically valid.")
+                Text("Your messages stay E2E encrypted. Account deletion revokes server sessions and refresh tokens; durable Identity Metagraph revocation ships in a later wave.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+            }
+            if let deleteError {
+                Section {
+                    Text(deleteError)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
             }
             Section {
                 Button(role: .destructive) {
                     showDeleteConfirm = true
                 } label: {
-                    Text("Delete account…")
+                    if isDeleting {
+                        HStack {
+                            ProgressView()
+                            Text("Deleting…")
+                        }
+                    } else {
+                        Text("Delete account…")
+                    }
                 }
+                .disabled(isDeleting)
             }
         }
         .navigationTitle("Data & deletion")
         .alert("Delete account?", isPresented: $showDeleteConfirm) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
-                Task {
-                    _ = try? await DIContainer.shared.resolveUserRepository()?.deleteAccount()
-                }
+                Task { await deleteAccount() }
             }
         } message: {
             Text("This cannot be undone from the device alone. Confirm you have exported your recovery phrase.")
+        }
+    }
+
+    private func deleteAccount() async {
+        guard let repository = DIContainer.shared.resolveUserRepository() else {
+            deleteError = "Sign in required to delete your account."
+            return
+        }
+        isDeleting = true
+        deleteError = nil
+        defer { isDeleting = false }
+        do {
+            try await repository.deleteAccount()
+            await SessionSignOut.performIncludingOnboardingReset()
+        } catch {
+            deleteError = error.localizedDescription
         }
     }
 }

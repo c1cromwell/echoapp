@@ -85,7 +85,13 @@ struct MessagesTabView: View {
         .sheet(isPresented: $enrollmentSheetPresented) {
             EnrollmentCoordinatorView(
                 coordinator: EnrollmentCoordinator(
-                    onComplete: { _ in enrollmentSheetPresented = false },
+                    onComplete: { bundle in
+                        enrollmentSheetPresented = false
+                        UserDefaults.standard.set(
+                            bundle.assuranceLevel.trustTier,
+                            forKey: "echo.trustTier"
+                        )
+                    },
                     onCancel: { enrollmentSheetPresented = false }
                 )
             )

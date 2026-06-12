@@ -50,17 +50,19 @@ final class EnrollmentTailViewModel {
 
     func run(bundle: VerifiedIdentityBundle, coordinator: EnrollmentCoordinator) async {
         do {
-            coordinator.stage = .creatingDID
-            currentStep = .creatingIdentity
-            let did = try await api.registerDIDFromBundle(bundle)
-
-            coordinator.stage = .creatingWallet
-            currentStep = .creatingWallet
-            let walletAddress = try await api.createWalletForDID(did: did)
-
-            coordinator.stage = .registeringPasskey
-            currentStep = .registeringPasskey
-            try await api.registerPasskey(did: did)
+            let result = try await CredentialEnrollmentTailService.run(bundle: bundle, api: api) { step in
+                switch step {
+                case .creatingIdentity:
+                    coordinator.stage = .creatingDID
+                    currentStep = .creatingIdentity
+                case .creatingWallet:
+                    coordinator.stage = .creatingWallet
+                    currentStep = .creatingWallet
+                case .registeringPasskey:
+                    coordinator.stage = .registeringPasskey
+                    currentStep = .registeringPasskey
+                }
+            }
 
             currentStep = .done
             didComplete = true
@@ -68,7 +70,7 @@ final class EnrollmentTailViewModel {
             // Short beat so the user sees the success state before transitioning.
             try? await Task.sleep(for: .milliseconds(700))
 
-            _ = walletAddress
+            _ = result.walletAddress
             coordinator.tailFinished(with: bundle)
         } catch let enrollError as EnrollmentError {
             self.error = enrollError

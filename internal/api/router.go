@@ -86,6 +86,10 @@ type Router struct {
 	enrollmentVerified      map[string]enrollmentVerifiedRecord
 	enrollmentWalletMu      sync.Mutex
 	enrollmentWalletByDID   map[string]string
+	enrollmentMDLMu         sync.Mutex
+	enrollmentMDLSessions   map[string]enrollmentMDLSession
+	enrollmentIDVMu         sync.Mutex
+	enrollmentIDVSessions   map[string]enrollmentIDVSession
 	passportPresentSessions map[string]passportPresentSession
 
 	// smsSessions is an in-memory fallback OTP-session store used only when
@@ -259,6 +263,8 @@ var publicPaths = map[string]bool{
 	"/v1/enrollment/wallet":            true,
 	"/v1/enrollment/passkey":           true,
 	"/v1/enrollment/mdl/start":         true,
+	"/v1/enrollment/mdl/finish":        true,
+	"/v1/enrollment/mdl/ui":            true,
 	"/v1/enrollment/idv/start":         true,
 	"/v1/enrollment/idv/await":         true,
 	"/v1/data-l1/merkle-roots":         true,
@@ -274,6 +280,7 @@ var publicPaths = map[string]bool{
 	"/v1/auth/login/challenge":         true, // Phase 1: nonce for passkey signing (public)
 	"/identity/register":               true,
 	"/identity/devices":                true,
+	"/v1/identity/link-wallet":         true,
 	"/v1/login/link-device/complete":   true, // WO-288: secondary device token consume (no JWT yet)
 }
 
@@ -544,6 +551,12 @@ func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
 		rt.handleCheckUsername(w, r)
 	case "/v1/users/profile":
 		rt.v1GetProfile(w, r)
+	case "/v1/users/account":
+		rt.handleDeleteAccount(w, r)
+	case "/v1/identity/link-wallet":
+		rt.handleLinkWallet(w, r)
+	case "/v1/enrollment/mdl/ui":
+		rt.handleEnrollmentMDLUI(w, r)
 
 	// --- Auth endpoints (REQ-INFRA-004) ---
 	case "/v1/auth/step-up":

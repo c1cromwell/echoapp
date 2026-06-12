@@ -135,21 +135,24 @@ final class ContactDiscoveryViewModel {
     var addingDID: String?
     var addErrorMessage: String?
 
-    private let service: ContactDiscoveryService
+    private let discoveryUseCase: ContactDiscoveryUseCase
     private let socialAPI: ContactSocialAPIClient?
 
-    init(service: ContactDiscoveryService? = nil, socialAPI: ContactSocialAPIClient? = nil) {
-        if let service {
-            self.service = service
-        } else if let resolved: ContactDiscoveryService = DIContainer.shared.resolveContactDiscoveryService() {
-            self.service = resolved
-        } else if let client = DIContainer.shared.resolveAPIClient() {
-            let api = ContactDiscoveryAPIClient(apiClient: client)
-            self.service = ContactDiscoveryService(oprf: OPRFClientFactory.makeDefault(), api: api)
+    init(
+        discoveryUseCase: ContactDiscoveryUseCase? = nil,
+        socialAPI: ContactSocialAPIClient? = nil
+    ) {
+        if let discoveryUseCase {
+            self.discoveryUseCase = discoveryUseCase
+        } else if let resolved = DIContainer.shared.resolveContactDiscoveryUseCase() {
+            self.discoveryUseCase = resolved
+        } else if let service: ContactDiscoveryService = DIContainer.shared.resolveContactDiscoveryService() {
+            self.discoveryUseCase = ContactDiscoveryUseCase(service: service)
         } else {
             let config = APIConfiguration.default
             let api = ContactDiscoveryAPIClient(apiClient: APIClient(configuration: config))
-            self.service = ContactDiscoveryService(oprf: OPRFClientFactory.makeDefault(), api: api)
+            let service = ContactDiscoveryService(oprf: OPRFClientFactory.makeDefault(), api: api)
+            self.discoveryUseCase = ContactDiscoveryUseCase(service: service)
         }
 
         if let socialAPI {
@@ -168,7 +171,7 @@ final class ContactDiscoveryViewModel {
         errorMessage = nil
         defer { isLoading = false }
         do {
-            contacts = try await service.discoverFromDeviceContacts()
+            contacts = try await discoveryUseCase.discoverContacts()
             lastSyncedAt = Date()
         } catch ContactDiscoveryError.noMatches {
             contacts = []

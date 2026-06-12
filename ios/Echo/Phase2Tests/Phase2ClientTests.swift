@@ -118,5 +118,27 @@ final class EchoAPIBaseURLTests: XCTestCase {
         let url = EchoAPIBaseURL.url(path: "/v1/auth/sms-recovery/register")
         XCTAssertTrue(url.path.hasSuffix("/v1/auth/sms-recovery/register"))
     }
+
+    func testDeleteAccountPathUsesV1() {
+        XCTAssertEqual(UserEndpoint.deleteAccount.path, "/v1/users/account")
+    }
+}
+
+// MARK: - WO-39 contact use cases
+
+final class ContactUseCaseTests: XCTestCase {
+    func testQRContactExchange_parsesEchoProfileURL() {
+        let useCase = QRContactExchangeUseCase()
+        let parsed = useCase.parseScannedPayload("echo://profile?did=did:key:zPeer&u=alice")
+        XCTAssertEqual(parsed?.0, "did:key:zPeer")
+        XCTAssertEqual(parsed?.1, "alice")
+    }
+
+    func testQRContactExchange_parsesRawDID() {
+        let useCase = QRContactExchangeUseCase()
+        let parsed = useCase.parseScannedPayload("did:key:zRaw")
+        XCTAssertEqual(parsed?.0, "did:key:zRaw")
+        XCTAssertNil(parsed?.1)
+    }
 }
 #endif

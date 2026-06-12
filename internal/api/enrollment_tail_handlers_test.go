@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -61,6 +62,39 @@ func TestEnrollmentDID_and_Wallet(t *testing.T) {
 	addr2, _ := walletResp2["address"].(string)
 	if addr2 != addr {
 		t.Fatalf("expected stable wallet address, got %q vs %q", addr2, addr)
+	}
+}
+
+func TestEnrollmentDID_registersDeviceKey(t *testing.T) {
+	rt := NewRouter([]string{"*"})
+	rt.DIDRegistry = NewMemoryDIDRegistry()
+	ref := "550e8400-e29b-41d4-a716-446655440001"
+	rt.storeEnrollmentVerified(ref, enrollmentVerifiedRecord{
+		HolderDID:      "did:key:zHolder",
+		AssuranceLevel: "ial2",
+		CredentialType: "KYCLite",
+		ExpiresAt:      time.Now().Add(5 * time.Minute),
+	})
+
+	pubHex := "042a8db0febf8361d5b16c0bd5711625a78d22af9559d0e987666be09ed521459873ec2364e35aa21dbfeb8a63a0b52b61e5c56fbe06fc7ad8cc2143cb1929189a"
+	body, _ := json.Marshal(map[string]string{
+		"credential_reference": ref,
+		"public_key_hex":       pubHex,
+	})
+	req := httptest.NewRequest(http.MethodPost, "/v1/enrollment/did", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	rt.Handler().ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("enrollment/did want 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	binding, err := rt.DIDRegistry.Lookup(context.Background(), "did:key:zHolder")
+	if err != nil {
+		t.Fatalf("lookup: %v", err)
+	}
+	if binding.PublicKeyHex != pubHex {
+		t.Fatalf("public key = %q", binding.PublicKeyHex)
 	}
 }
 

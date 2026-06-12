@@ -4,7 +4,7 @@ import SwiftUI
 struct InviteLinkSheet: View {
     @Environment(\.dismiss) private var dismiss
 
-    @State private var invite: InviteLinkResponse?
+    @State private var shareURL: URL?
     @State private var isLoading = false
     @State private var errorMessage: String?
 
@@ -13,7 +13,7 @@ struct InviteLinkSheet: View {
             Group {
                 if isLoading {
                     ProgressView("Creating invite…")
-                } else if let invite, let url = invite.shareURL {
+                } else if let url = shareURL {
                     VStack(spacing: 16) {
                         Text("Share this link")
                             .font(.headline)
@@ -49,12 +49,12 @@ struct InviteLinkSheet: View {
     private func loadInvite() async {
         isLoading = true
         defer { isLoading = false }
-        guard let client = DIContainer.shared.resolveAPIClient() else {
+        guard let useCase = DIContainer.shared.resolveInviteLinkUseCase() else {
             errorMessage = "Sign in required"
             return
         }
         do {
-            invite = try await ContactSocialAPIClient(apiClient: client).createInviteLink()
+            shareURL = try await useCase.generateInviteLink()
         } catch {
             errorMessage = error.localizedDescription
         }

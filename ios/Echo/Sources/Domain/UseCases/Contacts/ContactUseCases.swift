@@ -23,19 +23,10 @@ struct QRContactExchangeUseCase: Sendable {
     }
 
     func parseScannedPayload(_ raw: String) -> (did: String, username: String?)? {
-        if raw.hasPrefix("did:") {
-            return (raw, nil)
+        if let parsed = ScannedIdentityParser.parse(raw) {
+            return (parsed.did, parsed.username)
         }
-        guard let url = URL(string: raw),
-              url.scheme == "echo",
-              url.host == "profile",
-              let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-            return nil
-        }
-        let did = components.queryItems?.first(where: { $0.name == "did" })?.value
-        let username = components.queryItems?.first(where: { $0.name == "u" })?.value
-        guard let did, !did.isEmpty else { return nil }
-        return (did, username)
+        return nil
     }
 }
 

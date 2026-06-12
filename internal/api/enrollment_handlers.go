@@ -293,7 +293,12 @@ func (rt *Router) handleEnrollmentDID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.PublicKeyHex != "" && rt.DIDRegistry != nil {
-		_, _, _ = rt.DIDRegistry.Register(r.Context(), did, req.PublicKeyHex)
+		ctx := r.Context()
+		if _, err := rt.DIDRegistry.Lookup(ctx, did); err == nil {
+			_, _ = rt.DIDRegistry.RegisterAdditionalDevice(ctx, did, req.PublicKeyHex, "credential-enrollment")
+		} else {
+			_, _, _ = rt.DIDRegistry.Register(ctx, did, req.PublicKeyHex)
+		}
 	}
 
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
@@ -338,26 +343,4 @@ func (rt *Router) handleEnrollmentWallet(w http.ResponseWriter, r *http.Request)
 		"request_id": r.Header.Get("X-Request-ID"),
 		"note":       fmt.Sprintf("wallet proxy for %s", req.DID),
 	})
-}
-
-// handleEnrollmentMDL handles POST /v1/enrollment/mdl/start and /mdl/finish.
-func (rt *Router) handleEnrollmentMDL(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
-		return
-	}
-	WriteError(w, http.StatusNotImplemented, "NOT_IMPLEMENTED",
-		"mDL enrollment is not yet available; use VC wallet enrollment or first-run onboarding",
-		r.Header.Get("X-Request-ID"))
-}
-
-// handleEnrollmentIDV handles POST /v1/enrollment/idv/start and /idv/await.
-func (rt *Router) handleEnrollmentIDV(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
-		return
-	}
-	WriteError(w, http.StatusNotImplemented, "NOT_IMPLEMENTED",
-		"IDV enrollment is not yet available; use VC wallet enrollment or VIP verify",
-		r.Header.Get("X-Request-ID"))
 }

@@ -12,16 +12,18 @@ final class QRContactAddCoordinator {
     var createdConversation: StoredConversation?
 
     func handleScan(_ raw: String) async {
-        guard let scanned = ScannedIdentityParser.parse(raw) else {
+        let qrUseCase = DIContainer.shared.resolveQRContactExchangeUseCase() ?? QRContactExchangeUseCase()
+        guard let scanned = qrUseCase.parseScannedPayload(raw) else {
             presentError("Unrecognized QR — scan an Echo profile code.")
             return
         }
+        let (peerDID, username) = scanned
 
         guard let myDID = await CurrentUserSession.currentDID() else {
             presentError("Sign in before adding contacts.")
             return
         }
-        if scanned.did == myDID {
+        if peerDID == myDID {
             presentError("That’s your own profile code.")
             return
         }
@@ -38,8 +40,8 @@ final class QRContactAddCoordinator {
         let discovery = ContactDiscoveryAPIClient(apiClient: client)
 
         do {
-            var displayHandle = scanned.username.map { "@\($0)" } ?? scanned.did
-            if let profile = try? await discovery.resolveIdentity(did: scanned.did) {
+            var displayHandle = username.map { "@\($0)" } ?? peerDID
+            if let profile = try? await discovery.resolveIdentity(did: peerDID) {
                 if let u = profile.username, !u.isEmpty {
                     displayHandle = "@\(u)"
                 } else if let name = profile.display_name, !name.isEmpty {
@@ -47,10 +49,10 @@ final class QRContactAddCoordinator {
                 }
             }
 
-            _ = try await social.addContact(did: scanned.did, addedVia: "qr_scan")
+            _ = try await social.addContact(did: peerDID, addedVia: "qr_scan")
 
             createdConversation = await ContactThreadHelper.upsertDirectThread(
-                peerDID: scanned.did,
+                peerDID: peerDID,
                 displayName: displayHandle
             )
 

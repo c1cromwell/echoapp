@@ -34,27 +34,25 @@ final class IDVFallbackViewModel {
         do {
             let session = try await api.startIDVSession()
 
-            // PRODUCTION INTEGRATION POINT — Stripe Identity:
-            //
-            //   import StripeIdentity
-            //
-            //   state = .capturing
-            //   let result = try await StripeIdentity.present(
-            //       verificationSessionClientSecret: session.clientSecret,
-            //       brandLogo: UIImage(named: "EchoLogoMark") ?? UIImage()
-            //   )
-            //   guard result.status == .verified else { throw ... }
-            //
-            //   state = .processing
-            //   let bundle = try await api.awaitIDVResult(sessionID: session.id)
-            //   state = .success(bundle)
-            //   coordinator.credentialVerified(bundle)
-
-            state = .capturing
-            _ = session
-            throw EnrollmentError.deviceUnsupported(
-                reason: "IDV SDK not wired. Link StripeIdentity via SPM per MISSING_FEATURES_GAP_ANALYSIS.md §4."
-            )
+            switch session.provider {
+            case "dev_stub":
+                // Local cluster path: backend completes IDV without Stripe/Sumsub SDK.
+                state = .processing
+                let bundle = try await api.awaitIDVResult(sessionID: session.id)
+                state = .success(bundle)
+                coordinator.credentialVerified(bundle)
+            case "stripe_identity":
+                // PRODUCTION: import StripeIdentity and present(session.clientSecret).
+                state = .capturing
+                throw EnrollmentError.deviceUnsupported(
+                    reason: "Stripe Identity SDK not linked in this build. Add StripeIdentity via SPM."
+                )
+            default:
+                state = .capturing
+                throw EnrollmentError.deviceUnsupported(
+                    reason: "IDV provider \(session.provider) is not supported on iOS yet."
+                )
+            }
         } catch let error as EnrollmentError {
             state = .failure(error)
         } catch {

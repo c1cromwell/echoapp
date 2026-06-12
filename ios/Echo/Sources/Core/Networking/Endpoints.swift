@@ -119,7 +119,7 @@ enum UserEndpoint: APIEndpoint {
         case .uploadAvatar:
             return "/users/avatar"
         case .deleteAccount:
-            return "/users/account"
+            return "/v1/users/account"
         }
     }
 }

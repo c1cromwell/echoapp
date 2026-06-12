@@ -428,4 +428,8 @@ echooprf-ios: ## Build EchoOPRF.xcframework for WO-221 PSI (requires Xcode + gom
 	@chmod +x scripts/build-echooprf-ios.sh
 	@./scripts/build-echooprf-ios.sh
 
+echooprf-link: ## Print Xcode steps to embed EchoOPRF.xcframework (after echooprf-ios)
+	@chmod +x scripts/link-echooprf-xcode.sh
+	@./scripts/link-echooprf-xcode.sh
+
 .DEFAULT_GOAL := help

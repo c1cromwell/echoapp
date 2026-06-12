@@ -123,6 +123,32 @@ final class DIContainer {
             return ContactSocialAPIClient(apiClient: client)
         }
 
+        // WO-39 / WO-221 / WO-222 contact use cases
+        registerFactory(ServiceKeys.contactDiscoveryUseCase) { [weak self] () -> ContactDiscoveryUseCase in
+            let service: ContactDiscoveryService = self?.resolve(ServiceKeys.contactDiscoveryService)
+                ?? ContactDiscoveryService(
+                    oprf: OPRFClientFactory.makeDefault(),
+                    api: ContactDiscoveryAPIClient(apiClient: APIClient(configuration: .default))
+                )
+            return ContactDiscoveryUseCase(service: service)
+        }
+
+        registerFactory(ServiceKeys.inviteLinkUseCase) { [weak self] () -> InviteLinkUseCase in
+            let client: ContactSocialAPIClient = self?.resolve(ServiceKeys.contactSocialAPI)
+                ?? ContactSocialAPIClient(apiClient: APIClient(configuration: .default))
+            return InviteLinkUseCase(client: client)
+        }
+
+        registerFactory(ServiceKeys.usernameSearchUseCase) { [weak self] () -> UsernameSearchUseCase in
+            let client: ContactSocialAPIClient = self?.resolve(ServiceKeys.contactSocialAPI)
+                ?? ContactSocialAPIClient(apiClient: APIClient(configuration: .default))
+            return UsernameSearchUseCase(client: client)
+        }
+
+        registerFactory(ServiceKeys.qrContactExchangeUseCase) {
+            QRContactExchangeUseCase()
+        }
+
         // Phase B: per-conversation preferences (mute / disappearing timer)
         registerFactory(ServiceKeys.conversationPreferences) {
             ConversationPreferencesStore()
@@ -210,6 +236,10 @@ enum ServiceKeys {
     static let reactionsAPI = "networking.reactionsAPI"
     static let contactDiscoveryService = "services.contactDiscovery"
     static let contactSocialAPI = "services.contactSocialAPI"
+    static let contactDiscoveryUseCase = "usecase.contactDiscovery"
+    static let inviteLinkUseCase = "usecase.inviteLink"
+    static let usernameSearchUseCase = "usecase.usernameSearch"
+    static let qrContactExchangeUseCase = "usecase.qrContactExchange"
     static let conversationPreferences = "services.conversationPreferences"
     
     // Storage
@@ -290,6 +320,22 @@ extension DIContainer {
 
     func resolveContactSocialAPI() -> ContactSocialAPIClient? {
         resolve(ServiceKeys.contactSocialAPI)
+    }
+
+    func resolveContactDiscoveryUseCase() -> ContactDiscoveryUseCase? {
+        resolve(ServiceKeys.contactDiscoveryUseCase)
+    }
+
+    func resolveInviteLinkUseCase() -> InviteLinkUseCase? {
+        resolve(ServiceKeys.inviteLinkUseCase)
+    }
+
+    func resolveUsernameSearchUseCase() -> UsernameSearchUseCase? {
+        resolve(ServiceKeys.usernameSearchUseCase)
+    }
+
+    func resolveQRContactExchangeUseCase() -> QRContactExchangeUseCase? {
+        resolve(ServiceKeys.qrContactExchangeUseCase)
     }
 
     /// Factory for Phase 3 chat detail (WO-192) — uses registered `ConversationSignalService`.
