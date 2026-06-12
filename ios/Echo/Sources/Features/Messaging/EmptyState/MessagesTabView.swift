@@ -6,6 +6,7 @@ import SwiftUI
 
 struct MessagesTabView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.scenePhase) private var scenePhase
     @Bindable private var conversationStore = ConversationStore.shared
 
     @State private var composeSheetPresented = false
@@ -114,6 +115,10 @@ struct MessagesTabView: View {
         .task {
             await connectSharedMessageRelay()
             await refreshContactTrustIndex()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task { await connectSharedMessageRelay() }
         }
         .sheet(isPresented: $showBiometricGate) {
             PersonaGateView(personaID: "hidden-chats") {

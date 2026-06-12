@@ -232,12 +232,35 @@ final class AuthAPIClient: AuthAPIClientProtocol {
     func refreshToken(_ token: String) async throws -> AuthTokenResponse {
         struct Body: Encodable {
             let refreshToken: String
+            let deviceId: String
+            enum CodingKeys: String, CodingKey {
+                case refreshToken = "refresh_token"
+                case deviceId = "device_id"
+            }
         }
+        struct V3RefreshResponse: Decodable {
+            let accessToken: String
+            let refreshToken: String
+            let expiresIn: Int
+            enum CodingKeys: String, CodingKey {
+                case accessToken = "access_token"
+                case refreshToken = "refresh_token"
+                case expiresIn = "expires_in"
+            }
+        }
+        let deviceId = deviceService.collectDeviceInfo().deviceId
         let data = try await makeRequest(
-            path: "auth/token/refresh",
-            body: Body(refreshToken: token)
+            url: EchoAPIBaseURL.url(path: "/v3/auth/refresh"),
+            body: Body(refreshToken: token, deviceId: deviceId)
         )
-        return try decoder.decode(AuthTokenResponse.self, from: data)
+        let v3 = try decoder.decode(V3RefreshResponse.self, from: data)
+        return AuthTokenResponse(
+            accessToken: v3.accessToken,
+            refreshToken: v3.refreshToken,
+            expiresAt: Date().addingTimeInterval(TimeInterval(v3.expiresIn)),
+            user: nil,
+            passkeyChallenge: nil
+        )
     }
 
     // MARK: - Logout

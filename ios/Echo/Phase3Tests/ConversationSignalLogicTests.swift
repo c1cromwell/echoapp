@@ -73,4 +73,12 @@ final class ConversationSignalLogicTests: XCTestCase {
         let off = MessagingPrivacyPreferences(sendTypingIndicators: false, sendReadReceipts: true)
         XCTAssertFalse(TypingIndicatorLogic.shouldEmitStart(isBurstActive: false, hasText: true, privacy: off))
     }
+
+    func testReadReceiptDisplay_capsAtDeliveredWhenPrivacyOff() {
+        let off = MessagingPrivacyPreferences(sendTypingIndicators: true, sendReadReceipts: false)
+        XCTAssertEqual(ReadReceiptLogic.displayStatus(.read, privacy: off), .delivered)
+        XCTAssertEqual(ReadReceiptLogic.displayStatus(.delivered, privacy: off), .delivered)
+        let on = MessagingPrivacyPreferences(sendTypingIndicators: true, sendReadReceipts: true)
+        XCTAssertEqual(ReadReceiptLogic.displayStatus(.read, privacy: on), .read)
+    }
 }

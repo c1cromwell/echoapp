@@ -123,4 +123,3 @@ func signTessellationDataHash(hashHex string, priv *secp256k1.PrivateKey) ([]byt
 	sig := secp256k1ecdsa.Sign(priv, digest[:])
 	return sig.Serialize(), nil
 }
-

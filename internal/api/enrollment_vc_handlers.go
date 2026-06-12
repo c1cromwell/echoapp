@@ -161,9 +161,17 @@ func (rt *Router) handleEnrollmentVCFinish(w http.ResponseWriter, r *http.Reques
 
 	rt.deleteEnrollmentVCSession(state)
 
+	credRef := uuid.New().String()
+	rt.storeEnrollmentVerified(credRef, enrollmentVerifiedRecord{
+		HolderDID:      result.HolderDID,
+		AssuranceLevel: mapCredentialTypeToIAL(sess.CredentialType),
+		CredentialType: sess.CredentialType,
+		ExpiresAt:      time.Now().Add(30 * time.Minute),
+	})
+
 	submissionJSON, _ := json.Marshal(submission)
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"credential_reference_uuid": uuid.New().String(),
+		"credential_reference_uuid": credRef,
 		"issuer_did":                rt.verifierDID(),
 		"credential_type":           sess.CredentialType,
 		"issued_at":                 time.Now().UTC().Format(time.RFC3339),

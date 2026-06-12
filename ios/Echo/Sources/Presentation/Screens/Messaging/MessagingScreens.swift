@@ -228,7 +228,12 @@ struct ChatView: View {
                                 MessageBubble(
                                     message: message.content,
                                     isSent: message.isFromCurrentUser,
-                                    status: mapDeliveryStatus(message.deliveryStatus),
+                                    status: mapDeliveryStatus(
+                                        viewModel.displayedDeliveryStatus(message.deliveryStatus)
+                                    ),
+                                    deliveryStatus: message.isFromCurrentUser
+                                        ? viewModel.displayedDeliveryStatus(message.deliveryStatus)
+                                        : nil,
                                     timestamp: message.timestamp
                                 )
                                 .onAppear {
@@ -408,6 +413,7 @@ struct ChatView: View {
             if let token = try? await KeychainManager.shared.getAuthToken() {
                 await viewModel.connect(accessToken: token)
             }
+            await viewModel.reconcileReactionsOnOpen()
             let peerVisible = viewModel.messages
                 .filter { !$0.isFromCurrentUser }
                 .map(\.id)

@@ -63,6 +63,13 @@ enum TypingIndicatorLogic {
 }
 
 enum ReadReceiptLogic {
+    /// Caps displayed outbound status at `.delivered` when read receipts are disabled.
+    static func displayStatus(_ status: DeliveryStatus?, privacy: MessagingPrivacyPreferences) -> DeliveryStatus? {
+        guard let status else { return nil }
+        guard !privacy.sendReadReceipts, status == .read else { return status }
+        return .delivered
+    }
+
     static func pendingPeerMessageIDs(
         messages: [(id: String, senderDID: String, isRead: Bool)],
         currentUserDID: String,

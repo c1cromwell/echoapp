@@ -1,8 +1,11 @@
 package api
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -14,6 +17,51 @@ import (
 
 	"github.com/thechadcromwell/echoapp/pkg/didkey"
 )
+
+// enrollmentVerifiedRecord is the server-side tail of a successful VC/mDL/IDV finish.
+type enrollmentVerifiedRecord struct {
+	HolderDID      string
+	AssuranceLevel string
+	CredentialType string
+	ExpiresAt      time.Time
+}
+
+func (rt *Router) storeEnrollmentVerified(ref string, rec enrollmentVerifiedRecord) {
+	rt.enrollmentVerifiedMu.Lock()
+	defer rt.enrollmentVerifiedMu.Unlock()
+	if rt.enrollmentVerified == nil {
+		rt.enrollmentVerified = make(map[string]enrollmentVerifiedRecord)
+	}
+	rt.enrollmentVerified[ref] = rec
+}
+
+func (rt *Router) loadEnrollmentVerified(ref string) (enrollmentVerifiedRecord, bool) {
+	rt.enrollmentVerifiedMu.Lock()
+	defer rt.enrollmentVerifiedMu.Unlock()
+	rec, ok := rt.enrollmentVerified[ref]
+	if !ok || time.Now().After(rec.ExpiresAt) {
+		return enrollmentVerifiedRecord{}, false
+	}
+	return rec, true
+}
+
+func trustTierForIAL(ial string) int {
+	switch ial {
+	case "ial3":
+		return 5
+	case "ial2":
+		return 4
+	case "ial1":
+		return 2
+	default:
+		return 1
+	}
+}
+
+func deterministicDAGAddress(did string) string {
+	sum := sha256.Sum256([]byte(did))
+	return "DAG" + hex.EncodeToString(sum[:])[:36]
+}
 
 // displayNameAllowed matches per PRD v3.1 AC-INFRA-004.4 and mirrors the iOS DisplayNameValidator.
 // Allowed: Unicode letters, digits, space, hyphen, underscore, apostrophe.
@@ -204,6 +252,91 @@ func (rt *Router) handleRestoreDID(w http.ResponseWriter, r *http.Request) {
 		"trust_tier":     1,
 		"wallet_address": req.WalletAddress,
 		"request_id":     r.Header.Get("X-Request-ID"),
+	})
+}
+
+// handleEnrollmentDID handles POST /v1/enrollment/did.
+// Links a verified credential reference to the holder DID for enrollment tail.
+func (rt *Router) handleEnrollmentDID(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	var req struct {
+		CredentialReference string `json:"credential_reference"`
+		PublicKeyHex        string `json:"public_key_hex"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.CredentialReference == "" {
+		WriteError(w, http.StatusBadRequest, "MISSING_FIELDS", "credential_reference is required", r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	rec, ok := rt.loadEnrollmentVerified(req.CredentialReference)
+	if !ok {
+		WriteError(w, http.StatusBadRequest, "CREDENTIAL_REF_UNKNOWN", "Credential reference expired or unknown", r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	did := strings.TrimSpace(rec.HolderDID)
+	if did == "" && req.PublicKeyHex != "" {
+		derived, err := didkey.DeriveFromPublicKeyHex(req.PublicKeyHex)
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "INVALID_PUBLIC_KEY", err.Error(), r.Header.Get("X-Request-ID"))
+			return
+		}
+		did = derived
+	}
+	if did == "" {
+		WriteError(w, http.StatusBadRequest, "HOLDER_DID_MISSING", "Verified credential did not include a holder DID", r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	if req.PublicKeyHex != "" && rt.DIDRegistry != nil {
+		_, _, _ = rt.DIDRegistry.Register(r.Context(), did, req.PublicKeyHex)
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"did":             did,
+		"trust_tier":      trustTierForIAL(rec.AssuranceLevel),
+		"credential_type": rec.CredentialType,
+		"assurance_level": rec.AssuranceLevel,
+		"request_id":      r.Header.Get("X-Request-ID"),
+	})
+}
+
+// handleEnrollmentWallet handles POST /v1/enrollment/wallet.
+// Provisions a Constellation wallet address for the enrolled DID (Phase 2 proxy).
+func (rt *Router) handleEnrollmentWallet(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	var req struct {
+		DID string `json:"did"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.DID == "" {
+		WriteError(w, http.StatusBadRequest, "MISSING_FIELDS", "did is required", r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	rt.enrollmentWalletMu.Lock()
+	if rt.enrollmentWalletByDID == nil {
+		rt.enrollmentWalletByDID = make(map[string]string)
+	}
+	addr, ok := rt.enrollmentWalletByDID[req.DID]
+	if !ok {
+		addr = deterministicDAGAddress(req.DID)
+		rt.enrollmentWalletByDID[req.DID] = addr
+	}
+	rt.enrollmentWalletMu.Unlock()
+
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"address":    addr,
+		"did":        req.DID,
+		"request_id": r.Header.Get("X-Request-ID"),
+		"note":       fmt.Sprintf("wallet proxy for %s", req.DID),
 	})
 }
 

@@ -82,6 +82,10 @@ type Router struct {
 
 	enrollmentVCMu          sync.Mutex
 	enrollmentVCSessions    map[string]enrollmentVCSession
+	enrollmentVerifiedMu    sync.Mutex
+	enrollmentVerified      map[string]enrollmentVerifiedRecord
+	enrollmentWalletMu      sync.Mutex
+	enrollmentWalletByDID   map[string]string
 	passportPresentSessions map[string]passportPresentSession
 
 	// smsSessions is an in-memory fallback OTP-session store used only when
@@ -250,6 +254,10 @@ var publicPaths = map[string]bool{
 	"/v1/auth/restore-challenge":       true,
 	"/v1/auth/restore-did":             true,
 	"/v1/enrollment/vc/start":          true,
+	"/v1/enrollment/vc/finish":         true,
+	"/v1/enrollment/did":               true,
+	"/v1/enrollment/wallet":            true,
+	"/v1/enrollment/passkey":           true,
 	"/v1/enrollment/mdl/start":         true,
 	"/v1/enrollment/idv/start":         true,
 	"/v1/enrollment/idv/await":         true,
@@ -550,6 +558,10 @@ func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
 	// --- Enrollment tail endpoints (REQ-INFRA-004) ---
 	case "/v1/enrollment/passkey":
 		rt.handleRegisterPasskey(w, r)
+	case "/v1/enrollment/did":
+		rt.handleEnrollmentDID(w, r)
+	case "/v1/enrollment/wallet":
+		rt.handleEnrollmentWallet(w, r)
 	case "/v1/enrollment/vc/start", "/v1/enrollment/vc/finish":
 		rt.handleEnrollmentVC(w, r)
 	case "/v1/enrollment/mdl/start", "/v1/enrollment/mdl/finish":

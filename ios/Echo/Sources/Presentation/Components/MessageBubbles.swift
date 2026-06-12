@@ -18,6 +18,7 @@ public struct MessageBubble: View {
     let message: String
     let isSent: Bool
     let status: MessageStatus
+    let deliveryStatus: DeliveryStatus?
     let timestamp: String
     let showDeliveryStatus: Bool
     
@@ -25,12 +26,14 @@ public struct MessageBubble: View {
         message: String,
         isSent: Bool,
         status: MessageStatus = .sent,
+        deliveryStatus: DeliveryStatus? = nil,
         timestamp: String,
         showDeliveryStatus: Bool = true
     ) {
         self.message = message
         self.isSent = isSent
         self.status = status
+        self.deliveryStatus = deliveryStatus
         self.timestamp = timestamp
         self.showDeliveryStatus = showDeliveryStatus
     }
@@ -104,7 +107,10 @@ public struct MessageBubble: View {
                 Text(timestamp)
                     .typographyStyle(.caption, color: .echoInk40)
                 
-                if showDeliveryStatus, let statusIcon = statusIcon {
+                if showDeliveryStatus, isSent, let deliveryStatus {
+                    SmartCheckmarkView(status: deliveryStatus, eventId: nil, onTapVerified: nil)
+                        .accessibility(label: Text("Status: \(deliveryStatus.displayLabel)"))
+                } else if showDeliveryStatus, let statusIcon = statusIcon {
                     Image(systemName: statusIcon)
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(statusColor)

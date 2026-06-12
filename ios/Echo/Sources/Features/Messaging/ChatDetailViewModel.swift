@@ -52,6 +52,10 @@ final class ChatDetailViewModel {
         }
     }
 
+    func displayedDeliveryStatus(_ status: DeliveryStatus?) -> DeliveryStatus? {
+        ReadReceiptLogic.displayStatus(status, privacy: privacy)
+    }
+
     var typingStatusText: String? {
         guard peerIsTyping, privacy.sendTypingIndicators else { return nil }
         let name = peerDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -85,6 +89,15 @@ final class ChatDetailViewModel {
             Task { @MainActor in
                 self?.handleSignal(event)
             }
+        }
+    }
+
+    /// Bulk GET for messages that may have reactions while offline.
+    func reconcileReactionsOnOpen() async {
+        guard reactionsAPI != nil else { return }
+        let ids = messages.map(\.id)
+        for id in ids {
+            await reconcileReactions(messageId: id)
         }
     }
 

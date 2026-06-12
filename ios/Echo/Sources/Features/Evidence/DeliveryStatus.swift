@@ -5,7 +5,7 @@ import SwiftUI
 
 /// Message delivery lifecycle.
 /// Each status is progressive — a message moves forward through these states.
-enum DeliveryStatus: String, Codable, Comparable {
+public enum DeliveryStatus: String, Codable, Comparable {
     case sending      // Encrypting / queued locally (offline)
     case sent         // Accepted by relay server, recipient offline
     case delivered    // Delivered to recipient's device
@@ -72,7 +72,7 @@ enum DeliveryStatus: String, Codable, Comparable {
         }
     }
 
-    static func < (lhs: DeliveryStatus, rhs: DeliveryStatus) -> Bool {
+    public static func < (lhs: DeliveryStatus, rhs: DeliveryStatus) -> Bool {
         lhs.sortOrder < rhs.sortOrder
     }
 }
