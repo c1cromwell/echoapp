@@ -109,6 +109,12 @@ final class DIContainer {
             return ReactionsAPI(apiClient: client)
         }
 
+        registerFactory(ServiceKeys.receiptsAPI) { [weak self] () -> MessageReceiptsAPI in
+            let client: APIClient = self?.resolve(ServiceKeys.apiClient)
+                ?? APIClient(configuration: .default)
+            return MessageReceiptsAPI(apiClient: client)
+        }
+
         // WO-221: private contact discovery (OPRF + PSI)
         registerFactory(ServiceKeys.contactDiscoveryService) { [weak self] () -> ContactDiscoveryService in
             let client: APIClient = self?.resolve(ServiceKeys.apiClient)
@@ -234,6 +240,7 @@ enum ServiceKeys {
     static let webSocketClient = "networking.webSocketClient"
     static let conversationSignalService = "networking.conversationSignalService"
     static let reactionsAPI = "networking.reactionsAPI"
+    static let receiptsAPI = "networking.receiptsAPI"
     static let contactDiscoveryService = "services.contactDiscovery"
     static let contactSocialAPI = "services.contactSocialAPI"
     static let contactDiscoveryUseCase = "usecase.contactDiscovery"
@@ -308,6 +315,10 @@ extension DIContainer {
 
     func resolveReactionsAPI() -> ReactionsAPI? {
         resolve(ServiceKeys.reactionsAPI)
+    }
+
+    func resolveReceiptsAPI() -> MessageReceiptsAPI? {
+        resolve(ServiceKeys.receiptsAPI)
     }
 
     func resolveContactDiscoveryService() -> ContactDiscoveryService? {

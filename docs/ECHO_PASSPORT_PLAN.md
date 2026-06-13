@@ -112,6 +112,9 @@ The first "transact in daily life" feature, fully inside Messaging, using rails 
 
 ### Wave C — Verifier Marketplace + External Rails + Recovery Hardening  *(Phase 5; verifier marketplace in Phase 7)*
 Make the vault useful *outside* Echo and turn the verifier side into revenue.
+- **Payment wire = x402** (ADR 0006): the verifier and merchant surfaces speak HTTP `402 Payment
+  Required` for interop with the agent-payment ecosystem, layered on the existing on-chain
+  `AllowSpend`/`SpendTransaction` consent (WO-315 verifier, WO-317 merchant rail). No raw PAN on the wire.
 - **Deliverables:** relying-party / verifier API (request a presentation, pay per-verification in
   ECHO); merchant payment via licensed rail adapter (card tokenization / Open Banking PISP
   partner — Echo orchestrates consent, partner moves money); tokenized payment-instrument
@@ -125,6 +128,10 @@ Make the vault useful *outside* Echo and turn the verifier side into revenue.
 
 ### Wave D — Network State Capstone  *(Phase 7 → Network State, the post-P7 capstone)*
 The original vision: agentic, glasses-native, citizenship-bound.
+- **Agentic claims formalized** (ADR 0006, WO-316): agent/glasses present a VC + initiate an
+  x402-backed payment under a **GNAP grant** (least-privilege, revocable) with fresh per-action
+  confirmation on every payment. GNAP fills the authorization role — **"x401" is not a real spec and
+  is not adopted.**
 - **Deliverables:** **Network State citizenship VC** (staking-gated; the credential that gates
   membership-tier physical access); **agentic/glasses presentation + payment** (a GNAP-style
   consent protocol so an agent presents credentials and initiates per-action-confirmed payments

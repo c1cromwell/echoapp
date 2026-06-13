@@ -135,4 +135,41 @@ final class ChatDetailViewModelTests: XCTestCase {
         await vm.onMessageAppeared(messageId: "in-1", senderDID: "did:key:peer")
         XCTAssertFalse(transport.sentTexts.contains(where: { $0.contains("read_receipt") }))
     }
+
+    // MARK: - Durable receipts (WO-192/48)
+
+    func testOnMessageAppeared_persistsDurableReadReceipt() async {
+        let receipts = MockMessageReceiptsAPIClient()
+        vm.configure(
+            conversationId: "conv-1",
+            peerDID: "did:key:peer",
+            currentUserDID: "did:key:me",
+            privacy: MessagingPrivacyPreferences(sendTypingIndicators: true, sendReadReceipts: true),
+            reactionsAPI: reactions,
+            receiptsAPI: receipts
+        )
+        await vm.onMessageAppeared(messageId: "in-1", senderDID: "did:key:peer")
+        XCTAssertEqual(receipts.markReadCalls, ["in-1"], "read should be durably persisted via REST")
+    }
+
+    func testReconcileReceiptsOnOpen_advancesOwnMessageToRead() async {
+        let receipts = MockMessageReceiptsAPIClient()
+        receipts.statuses["out-1"] = MessageStatusResponse(
+            messageId: "out-1", conversationId: "conv-1", status: "read",
+            deliveredAt: "2026-05-25T00:00:00Z", readAt: "2026-05-25T00:00:01Z"
+        )
+        vm.configure(
+            conversationId: "conv-1",
+            peerDID: "did:key:peer",
+            currentUserDID: "did:key:me",
+            reactionsAPI: reactions,
+            receiptsAPI: receipts
+        )
+        vm.messages = [
+            ChatDetailMessage(id: "out-1", senderDID: "did:key:me", currentUserDID: "did:key:me", deliveryStatus: .delivered),
+            ChatDetailMessage(id: "in-1", senderDID: "did:key:peer", currentUserDID: "did:key:me"),
+        ]
+        await vm.reconcileReceiptsOnOpen()
+        XCTAssertEqual(vm.messages.first(where: { $0.id == "out-1" })?.deliveryStatus, .read)
+    }
 }

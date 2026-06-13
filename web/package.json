@@ -1,0 +1,36 @@
+{
+  "name": "echo-comply-portal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Echo Comply — web admin portal (WO-309). Next.js + Supabase. Thin client over the Go Comply APIs; zero-PII (hashes/CIDs/aggregates only).",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "generate-api": "openapi-typescript ../openapi.yaml -o src/lib/api/schema.d.ts"
+  },
+  "dependencies": {
+    "next": "^15.3.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.45.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "openapi-typescript": "^7.6.0",
+    "tailwindcss": "^3.4.0",
+    "postcss": "^8.4.0",
+    "autoprefixer": "^10.4.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^15.3.0"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}

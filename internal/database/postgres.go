@@ -250,7 +250,7 @@ func (p *PostgresDB) Enqueue(ctx context.Context, msg *QueuedMessage) error {
 	_, err := p.pool.Exec(ctx,
 		`INSERT INTO message_queue (message_id, conversation_id, sender_did, recipient_did, encrypted_payload, status, queued_at, expires_at)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		msg.MessageID, "", msg.SenderDID, msg.RecipientDID, msg.Payload, "queued", msg.CreatedAt, msg.ExpiresAt)
+		msg.MessageID, msg.ConversationID, msg.SenderDID, msg.RecipientDID, msg.Payload, "queued", msg.CreatedAt, msg.ExpiresAt)
 	if err != nil {
 		return fmt.Errorf("enqueue message: %w", err)
 	}
@@ -284,14 +284,56 @@ func (p *PostgresDB) Dequeue(ctx context.Context, recipientDID string, limit int
 
 func (p *PostgresDB) MarkDelivered(ctx context.Context, messageID string) error {
 	tag, err := p.pool.Exec(ctx,
-		`UPDATE message_queue SET status = 'delivered' WHERE message_id = $1`, messageID)
+		`UPDATE message_queue
+		   SET status = 'delivered',
+		       delivered_at = COALESCE(delivered_at, NOW())
+		 WHERE message_id = $1 AND status <> 'read'`, messageID)
 	if err != nil {
 		return fmt.Errorf("mark delivered: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		// Either the message is unknown, or it is already 'read' (a no-op upgrade).
+		var exists bool
+		if qErr := p.pool.QueryRow(ctx,
+			`SELECT EXISTS(SELECT 1 FROM message_queue WHERE message_id = $1)`, messageID).Scan(&exists); qErr == nil && exists {
+			return nil
+		}
+		return ErrNotFound
+	}
+	return nil
+}
+
+// MarkRead records a read receipt (WO-192). Read implies delivered.
+func (p *PostgresDB) MarkRead(ctx context.Context, messageID string) error {
+	tag, err := p.pool.Exec(ctx,
+		`UPDATE message_queue
+		   SET status = 'read',
+		       delivered_at = COALESCE(delivered_at, NOW()),
+		       read_at = COALESCE(read_at, NOW())
+		 WHERE message_id = $1`, messageID)
+	if err != nil {
+		return fmt.Errorf("mark read: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
 		return ErrNotFound
 	}
 	return nil
+}
+
+// GetMessageMeta returns delivery-state + routing metadata (no content).
+func (p *PostgresDB) GetMessageMeta(ctx context.Context, messageID string) (*MessageMeta, error) {
+	var m MessageMeta
+	err := p.pool.QueryRow(ctx,
+		`SELECT message_id, conversation_id, sender_did, recipient_did, status, delivered_at, read_at
+		   FROM message_queue WHERE message_id = $1`, messageID).
+		Scan(&m.MessageID, &m.ConversationID, &m.SenderDID, &m.RecipientDID, &m.Status, &m.DeliveredAt, &m.ReadAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("get message meta: %w", err)
+	}
+	return &m, nil
 }
 
 func (p *PostgresDB) PurgeExpired(ctx context.Context) (int, error) {

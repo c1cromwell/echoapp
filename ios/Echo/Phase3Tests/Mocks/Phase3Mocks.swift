@@ -43,3 +43,28 @@ final class MockReactionsAPIClient: ReactionsAPIClient, @unchecked Sendable {
         responses[messageId] ?? MessageReactionsResponse(messageId: messageId, reactions: [])
     }
 }
+
+/// Mock durable receipts client (WO-192/48). Records markRead calls and serves
+/// canned status responses for reconnect-sync tests.
+final class MockMessageReceiptsAPIClient: MessageReceiptsAPIClient, @unchecked Sendable {
+    var markReadCalls: [String] = []
+    var markDeliveredCalls: [String] = []
+    var statuses: [String: MessageStatusResponse] = [:]
+
+    @discardableResult
+    func markRead(messageId: String) async throws -> MessageReceiptResponse {
+        markReadCalls.append(messageId)
+        return MessageReceiptResponse(messageId: messageId, receiptType: "read", timestamp: "")
+    }
+
+    @discardableResult
+    func markDelivered(messageId: String) async throws -> MessageReceiptResponse {
+        markDeliveredCalls.append(messageId)
+        return MessageReceiptResponse(messageId: messageId, receiptType: "delivered", timestamp: "")
+    }
+
+    func status(messageId: String) async throws -> MessageStatusResponse {
+        statuses[messageId]
+            ?? MessageStatusResponse(messageId: messageId, conversationId: "conv-1", status: "queued", deliveredAt: nil, readAt: nil)
+    }
+}

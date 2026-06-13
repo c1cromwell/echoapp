@@ -227,16 +227,22 @@ func (s *Server) Start() error {
 		log.Println("Private contact discovery enabled (OPRF-PSI)")
 	}
 
+	notifSvc := notification.NewService(db)
+	offlineNotifier := api.NewOfflineNotifier(notifSvc) // WO-57: content-blind push for offline recipients
+	router.WSHub.SetOfflineNotifier(offlineNotifier)    // push on undelivered direct messages
+
 	router.V3 = &api.V3Handlers{
 		DB:           db,
 		Contacts:     contactsSvc,
-		Notification: notification.NewService(db),
+		Notification: notifSvc,
 		Media:        mediaSvc,
 		Rewards:      rewardsSvc.NewService(db, emission),
 		Groups:       groups.NewGroupService(),
 		Broadcasts:   broadcast_channels.NewChannelService(),
 		RateLimiter:  rateLimiter,
-		IdentityL1:   router.IdentityL1, // D1: anchor @username -> DID on registration
+		IdentityL1:   router.IdentityL1,  // D1: anchor @username -> DID on registration
+		Signals:      router.WSHub,       // WO-10/192: live reaction + read-receipt fan-out over WS
+		Notifier:     offlineNotifier,    // WO-57: push reactions to offline peers
 	}
 
 	// WO-53: Start audit log publisher background goroutine.
