@@ -14,6 +14,17 @@ public enum DisappearingTimer: String, Codable, CaseIterable, Sendable {
         case .d7:  return "7d"
         }
     }
+
+    public var seconds: Int {
+        switch self {
+        case .off: return 0
+        case .s30: return 30
+        case .m5:  return 300
+        case .h1:  return 3600
+        case .h24: return 86400
+        case .d7:  return 604800
+        }
+    }
 }
 
 /// Per-conversation preferences backing the chat-settings sheet and row badges.

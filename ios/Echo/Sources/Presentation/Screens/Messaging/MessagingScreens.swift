@@ -361,7 +361,13 @@ struct ChatView: View {
             ChatSettingsSheet(
                 contactName: contactName,
                 preferences: ConversationPreferencesStore.shared.preferences(for: conversationId),
-                onChange: { ConversationPreferencesStore.shared.save($0, for: conversationId) }
+                onChange: { [viewModel] newPrefs in
+                    let oldPrefs = ConversationPreferencesStore.shared.preferences(for: conversationId)
+                    ConversationPreferencesStore.shared.save(newPrefs, for: conversationId)
+                    if newPrefs.disappearing != oldPrefs.disappearing {
+                        Task { await viewModel.setDisappearing(ttlSeconds: newPrefs.disappearing.seconds) }
+                    }
+                }
             )
             .presentationDetents([.medium, .large])
         }
