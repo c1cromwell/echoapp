@@ -59,12 +59,51 @@ type ReactionSignal struct {
 	Emoji          string `json:"emoji"` // empty = removed
 }
 
+// EditSignal is the payload of a Type:"edit" WS message — a message was edited.
+// Ciphertext is opaque (JSON-encoded as base64); the peer decrypts and replaces.
+type EditSignal struct {
+	ConversationID string `json:"conversation_id"`
+	MessageID      string `json:"message_id"`
+	Ciphertext     []byte `json:"ciphertext"`
+	Version        int    `json:"version,omitempty"` // server-retained version, if any
+}
+
+// DeleteSignal is the payload of a Type:"delete" WS message — a synchronized
+// delete (WO-84). The peer tombstones the message locally.
+type DeleteSignal struct {
+	ConversationID string `json:"conversation_id"`
+	MessageID      string `json:"message_id"`
+}
+
+// PinSignal is the payload of a Type:"pin" WS message — a message was pinned or
+// unpinned in the conversation (WO-59).
+type PinSignal struct {
+	ConversationID string `json:"conversation_id"`
+	MessageID      string `json:"message_id"`
+	Pinned         bool   `json:"pinned"`
+}
+
+// DisappearingSignal is the payload of a Type:"disappearing_config" WS message —
+// the conversation's disappearing-message TTL changed; the peer applies the timer.
+type DisappearingSignal struct {
+	ConversationID string `json:"conversation_id"`
+	TTLSeconds     int    `json:"ttl_seconds"`
+}
+
 // Client represents a single WebSocket connection.
 type Client struct {
 	hub    *Hub
 	conn   *websocket.Conn
 	userID string
 	send   chan []byte
+}
+
+// OfflineNotifier is invoked when a directed message cannot be delivered live
+// because the recipient is not connected. Implementations send a content-blind
+// push (conversation id + sender only, never content) so the device wakes and
+// fetches. Best-effort and must not block; the hub calls it asynchronously.
+type OfflineNotifier interface {
+	NotifyUndelivered(recipientID, senderID, conversationID string)
 }
 
 // Hub manages all active WebSocket connections and routes messages.
@@ -74,6 +113,7 @@ type Hub struct {
 	broadcast  chan []byte
 	register   chan *Client
 	unregister chan *Client
+	notifier   OfflineNotifier // optional; push for offline recipients (WO-57)
 }
 
 // NewHub creates a new WebSocket hub.
@@ -119,6 +159,33 @@ func (h *Hub) Run() {
 	}
 }
 
+// SignalPublisher pushes an ephemeral conversation signal to a single user over
+// their live WebSocket connection, if any. It is best-effort: a false return means
+// the user was offline or their buffer was full. The durable REST API (reactions,
+// receipts) remains the source of truth — the signal is only a live nudge.
+//
+// *Hub satisfies this interface; handlers depend on the interface so they can be
+// tested without a real hub (and so a nil publisher is a safe no-op).
+type SignalPublisher interface {
+	PublishSignal(to string, msg WSMessage) bool
+}
+
+// PublishSignal marshals msg and delivers it to `to` if they are connected.
+// It fills Timestamp when empty. Returns false if `to` is empty or offline.
+func (h *Hub) PublishSignal(to string, msg WSMessage) bool {
+	if h == nil || to == "" {
+		return false
+	}
+	if msg.Timestamp == "" {
+		msg.Timestamp = time.Now().UTC().Format(time.RFC3339)
+	}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return false
+	}
+	return h.SendToUser(to, data)
+}
+
 // SendToUser delivers a message to a specific user if connected.
 // Returns true if the user was found and the message was queued.
 func (h *Hub) SendToUser(userID string, data []byte) bool {
@@ -134,6 +201,25 @@ func (h *Hub) SendToUser(userID string, data []byte) bool {
 	default:
 		return false
 	}
+}
+
+// SetOfflineNotifier configures the push notifier used when a directed message's
+// recipient is offline (WO-57). Safe to call once at startup before serving.
+func (h *Hub) SetOfflineNotifier(n OfflineNotifier) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.notifier = n
+}
+
+// notifyUndelivered fires a content-blind push asynchronously if a notifier is set.
+func (h *Hub) notifyUndelivered(recipientID, senderID, conversationID string) {
+	h.mu.RLock()
+	n := h.notifier
+	h.mu.RUnlock()
+	if n == nil || recipientID == "" {
+		return
+	}
+	go n.NotifyUndelivered(recipientID, senderID, conversationID)
 }
 
 // ConnectedUsers returns the list of currently connected user IDs.
@@ -284,7 +370,10 @@ func (c *Client) routeInbound(msg WSMessage) {
 	}
 
 	if msg.To != "" {
-		c.hub.SendToUser(msg.To, outBytes)
+		// Directed message: deliver live, or push so the offline device wakes (WO-57).
+		if !c.hub.SendToUser(msg.To, outBytes) {
+			c.hub.notifyUndelivered(msg.To, c.userID, msg.ConversationID)
+		}
 	} else {
 		c.hub.broadcast <- outBytes
 	}

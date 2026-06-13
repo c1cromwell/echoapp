@@ -50,13 +50,29 @@ type Credential struct {
 
 // QueuedMessage represents a message in the offline queue.
 type QueuedMessage struct {
-	MessageID    string    `json:"messageId"`
-	SenderDID    string    `json:"senderDid"`
-	RecipientDID string    `json:"recipientDid"`
-	Payload      []byte    `json:"payload"`
-	Status       string    `json:"status"`
-	CreatedAt    time.Time `json:"createdAt"`
-	ExpiresAt    time.Time `json:"expiresAt"`
+	MessageID    string     `json:"messageId"`
+	ConversationID string   `json:"conversationId,omitempty"`
+	SenderDID    string     `json:"senderDid"`
+	RecipientDID string     `json:"recipientDid"`
+	Payload      []byte     `json:"payload"`
+	Status       string     `json:"status"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	ExpiresAt    time.Time  `json:"expiresAt"`
+	DeliveredAt  *time.Time `json:"deliveredAt,omitempty"`
+	ReadAt       *time.Time `json:"readAt,omitempty"`
+}
+
+// MessageMeta is the delivery-state + routing view of a queued message, used to
+// drive read receipts (WO-192) and server-authoritative reaction fan-out (WO-10).
+// It carries no message content — only metadata the relay already holds.
+type MessageMeta struct {
+	MessageID      string     `json:"messageId"`
+	ConversationID string     `json:"conversationId,omitempty"`
+	SenderDID      string     `json:"senderDid"`
+	RecipientDID   string     `json:"recipientDid"`
+	Status         string     `json:"status"`
+	DeliveredAt    *time.Time `json:"deliveredAt,omitempty"`
+	ReadAt         *time.Time `json:"readAt,omitempty"`
 }
 
 // MerkleBatch represents a batch of message hashes for L1 anchoring.
@@ -164,6 +180,13 @@ type MessageQueueStore interface {
 	Enqueue(ctx context.Context, msg *QueuedMessage) error
 	Dequeue(ctx context.Context, recipientDID string, limit int) ([]*QueuedMessage, error)
 	MarkDelivered(ctx context.Context, messageID string) error
+	// MarkRead records that the recipient has read the message (WO-192). It is a
+	// monotonic upgrade of delivery state: a read message is also delivered.
+	MarkRead(ctx context.Context, messageID string) error
+	// GetMessageMeta returns the delivery-state + routing metadata for a message
+	// (no content). Used to sync receipts on reconnect and to route reaction
+	// signals to the counterparty. Returns ErrNotFound if the message is unknown.
+	GetMessageMeta(ctx context.Context, messageID string) (*MessageMeta, error)
 	PurgeExpired(ctx context.Context) (int, error)
 }
 
@@ -232,6 +255,7 @@ type DB interface {
 	SMSRecoveryStore
 	ReactionStore
 	ContactDiscoveryStore
+	MessageOpsStore
 }
 
 // ReactionRow is a single emoji reaction by one reactor on one message.
@@ -303,6 +327,13 @@ type MemoryDB struct {
 
 	reactions      map[string]map[string]string // messageID → reactorDID → emoji
 	discoveryIndex map[string]string            // hex(OPRF_k(phone)) → did
+
+	// M1 message ops (WO-25/84/59). Content stays opaque; metadata only.
+	editVersions map[string][]*MessageEdit  // messageID → ordered immutable versions (retained convos)
+	deletedMsgs  map[string]bool            // messageID → tombstoned
+	pins         map[string][]*PinnedMessage // conversationID → pinned messages (max 5)
+	retained     map[string]bool            // conversationID → retention/litigation-hold flag
+	disappearing map[string]int             // conversationID → disappearing TTL seconds (0 = off)
 }
 
 func NewMemoryDB() *MemoryDB {
@@ -326,6 +357,11 @@ func NewMemoryDB() *MemoryDB {
 		smsRecoveryByPhone: make(map[string]string),
 		reactions:          make(map[string]map[string]string),
 		discoveryIndex:     make(map[string]string),
+		editVersions:       make(map[string][]*MessageEdit),
+		deletedMsgs:        make(map[string]bool),
+		pins:               make(map[string][]*PinnedMessage),
+		retained:           make(map[string]bool),
+		disappearing:       make(map[string]int),
 	}
 }
 
@@ -607,7 +643,52 @@ func (m *MemoryDB) MarkDelivered(ctx context.Context, messageID string) error {
 		return ErrNotFound
 	}
 	msg.Status = "delivered"
+	if msg.DeliveredAt == nil {
+		now := time.Now()
+		msg.DeliveredAt = &now
+	}
 	return nil
+}
+
+// MarkRead records a read receipt (WO-192). Read implies delivered, so both
+// timestamps are set if not already present.
+func (m *MemoryDB) MarkRead(ctx context.Context, messageID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	msg, ok := m.messages[messageID]
+	if !ok {
+		return ErrNotFound
+	}
+	now := time.Now()
+	if msg.DeliveredAt == nil {
+		msg.DeliveredAt = &now
+	}
+	msg.Status = "read"
+	if msg.ReadAt == nil {
+		msg.ReadAt = &now
+	}
+	return nil
+}
+
+// GetMessageMeta returns delivery-state + routing metadata for a message.
+func (m *MemoryDB) GetMessageMeta(ctx context.Context, messageID string) (*MessageMeta, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	msg, ok := m.messages[messageID]
+	if !ok {
+		return nil, ErrNotFound
+	}
+	return &MessageMeta{
+		MessageID:      msg.MessageID,
+		ConversationID: msg.ConversationID,
+		SenderDID:      msg.SenderDID,
+		RecipientDID:   msg.RecipientDID,
+		Status:         msg.Status,
+		DeliveredAt:    msg.DeliveredAt,
+		ReadAt:         msg.ReadAt,
+	}, nil
 }
 
 func (m *MemoryDB) PurgeExpired(ctx context.Context) (int, error) {

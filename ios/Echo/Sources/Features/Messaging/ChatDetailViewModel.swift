@@ -27,6 +27,7 @@ final class ChatDetailViewModel {
     private let signalService: ConversationSignalService
     private let textCrypto: TextMessageCrypto
     private var reactionsAPI: (any ReactionsAPIClient)?
+    private var receiptsAPI: (any MessageReceiptsAPIClient)?
     private var privacy: MessagingPrivacyPreferences = .init()
 
     /// Outbound send hook. Wire to `MessagingService` / `MessageRelayManager` from Xcode;
@@ -70,6 +71,7 @@ final class ChatDetailViewModel {
         peerDisplayName: String = "",
         privacy: MessagingPrivacyPreferences = .init(),
         reactionsAPI: (any ReactionsAPIClient)? = nil,
+        receiptsAPI: (any MessageReceiptsAPIClient)? = nil,
         onSend: ((String) -> Void)? = nil
     ) {
         self.conversationId = conversationId
@@ -78,6 +80,7 @@ final class ChatDetailViewModel {
         self.peerDisplayName = peerDisplayName
         self.privacy = privacy
         self.reactionsAPI = reactionsAPI
+        self.receiptsAPI = receiptsAPI
         if let onSend { self.onSend = onSend }
 
         messages = ConversationThreadStore.load(
@@ -306,6 +309,9 @@ final class ChatDetailViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
+        // Durable receipt so read state survives the peer being offline; the server
+        // fans out a live read_receipt to the sender (WO-192).
+        await persistReadReceipts([messageId])
     }
 
     func onMessagesVisible(_ visiblePeerMessageIDs: [String]) async {
@@ -322,6 +328,33 @@ final class ChatDetailViewModel {
             )
         } catch {
             errorMessage = error.localizedDescription
+        }
+        await persistReadReceipts(batch)
+    }
+
+    /// Best-effort durable read receipts (WO-192). The WS signal is the live nudge;
+    /// this REST call is what makes read state survive an offline peer.
+    private func persistReadReceipts(_ messageIds: [String]) async {
+        guard let receiptsAPI else { return }
+        for id in messageIds {
+            _ = try? await receiptsAPI.markRead(messageId: id)
+        }
+    }
+
+    /// On open/reconnect, pull durable delivery state for our own sent messages so
+    /// read receipts missed while offline are reconciled (WO-48). Never regresses.
+    func reconcileReceiptsOnOpen() async {
+        guard let receiptsAPI else { return }
+        let ownIDs = messages.filter { $0.isFromCurrentUser }.map(\.id)
+        for id in ownIDs {
+            guard let status = try? await receiptsAPI.status(messageId: id),
+                  let incoming = status.deliveryStatus,
+                  let idx = messages.firstIndex(where: { $0.id == id }) else { continue }
+            messages[idx].deliveryStatus = DeliveryStatusAdvancement.advanced(
+                current: messages[idx].deliveryStatus,
+                incoming: incoming
+            )
+            syncThreadMessage(messages[idx])
         }
     }
 

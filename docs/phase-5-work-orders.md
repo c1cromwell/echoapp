@@ -2398,3 +2398,64 @@ hash + reference, never the legal instrument), plus verified job/income/housing 
 **Acceptance Criteria:**
 - Legal-doc VC stores only a hash + issuer attestation; raw document never on server/chain.
 - Employment/income VCs verify against accredited issuer signatures.
+
+---
+
+# Echo Passport — x402 Payment Interop (ADR 0006)
+
+> Added 2026-06-12 per `docs/CROSS_PRODUCT_GAP_REVIEW.md` and `docs/adr/0006-passport-x402-agentic.md`.
+> Adopt **x402** (HTTP `402 Payment Required`) as the payment wire protocol for Passport's verifier and
+> merchant surfaces, layered on the existing on-chain **AllowSpend / SpendTransaction** consent +
+> settlement. x402 = how a charge is requested/proven over HTTP; AllowSpend = the single-use,
+> biometric-gated authorization. No raw PAN/PII on the wire (tokenized instrument references only).
+
+### WO-315: Echo Passport — x402 Facilitator + Verifier Pays-Per-Presentation (Wave C)
+
+**Status:** 📋 Backlog · **Depends:** WO-301/302 (verifier/rails), AllowSpend primitives, WO-295 (disclosure)
+**Blueprint:** Decentralized Identity and Authentication
+
+## Summary
+
+Expose the verifier-pays-per-presentation marketplace over **x402**: a relying party requests a
+presentation, receives `402 Payment Required` (CAIP-2 network, price, accepted token), and pays in
+ECHO/stablecoin; the payment is backed by a single-use `AllowSpend` and settled as a
+`SpendTransaction` on Currency L1. Extends `pkg/passport/verifier/` and `/v1/verify/request`.
+
+## In Scope
+
+- x402 facilitator: emit/validate `402` payment requirements; verify x402 payment proofs.
+- Bridge x402 ⇄ `AllowSpend`/`SpendTransaction` (replay-safe, single-use mapping).
+- Per-presentation metering + fee split (70% holder / 30% Privacy Commons Treasury, per plan).
+
+## Out of Scope
+
+- Standing approvals; raw PAN/PII on the wire (tokenized references only).
+
+**Acceptance Criteria:**
+- A verifier completes an x402 round-trip and receives a selective-disclosure presentation.
+- Payment settles as a single-use `SpendTransaction` on Currency L1; the fee split is applied.
+- Replaying an x402 proof cannot double-spend the backing `AllowSpend`.
+
+### WO-317: Echo Passport — x402 ↔ External Merchant Rail Adapter (Wave C/D)
+
+**Status:** 📋 Backlog · **Depends:** WO-315, WO-302 (licensed rail / PISP partner)
+**Blueprint:** Decentralized Identity and Authentication
+
+## Summary
+
+Adapter (`pkg/payments/rails/`) that bridges an x402 payment to a licensed external rail (card-network
+tokenization / Open Banking PISP partner). Echo orchestrates consent and passes a presentation + a
+**tokenized** instrument reference; the partner moves the money. Echo is never the money transmitter.
+
+## In Scope
+
+- Rail adapter interface + 1 reference adapter; consent → x402 → rail call mapping.
+- Tokenized payment-instrument references (never a PAN), per ADR 0003.
+
+## Out of Scope
+
+- Echo holding funds or acting as money transmitter (licensing remains a deferred open item, WO-302).
+
+**Acceptance Criteria:**
+- A merchant payment completes via the licensed rail with only a tokenized instrument reference.
+- No raw PAN/account number enters any VC, blob, chain payload, or x402 message (T0–T7 gate green).

@@ -395,6 +395,7 @@ struct ChatView: View {
         }
         .task {
             let reactions: ReactionsAPI? = DIContainer.shared.resolveReactionsAPI()
+            let receipts: MessageReceiptsAPI? = DIContainer.shared.resolveReceiptsAPI()
             let privacy = MessagingPrivacyPreferences.merged(
                 global: PrivacySettingsStore.load(),
                 persona: PersonaPrivacySettingsStore.load()
@@ -408,12 +409,14 @@ struct ChatView: View {
                 peerDisplayName: contactName,
                 privacy: privacy,
                 reactionsAPI: reactions,
+                receiptsAPI: receipts,
                 onSend: onSendMessage
             )
             if let token = try? await KeychainManager.shared.getAuthToken() {
                 await viewModel.connect(accessToken: token)
             }
             await viewModel.reconcileReactionsOnOpen()
+            await viewModel.reconcileReceiptsOnOpen()
             let peerVisible = viewModel.messages
                 .filter { !$0.isFromCurrentUser }
                 .map(\.id)

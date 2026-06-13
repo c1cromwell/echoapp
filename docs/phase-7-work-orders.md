@@ -4557,3 +4557,193 @@ Optional enhancement: unlinkable predicate proofs (BBS+) so a holder proves "res
 **Acceptance Criteria:**
 - A verifier accepts a predicate proof without learning the source value.
 - Proofs are unlinkable across presentations.
+
+---
+
+# Echo Comply — Web Admin Portal (ADR 0005)
+
+> Added 2026-06-12 per `docs/CROSS_PRODUCT_GAP_REVIEW.md` and `docs/adr/0005-comply-web-admin-portal.md`.
+> Comply's operator surface is **web-primary** (compliance officers / GC / IT admins do desk work);
+> mobile is a read-mostly companion. The portal is a thin client over the Comply backend APIs
+> (WO-250 … WO-289) — it duplicates no compliance logic. All data scoped by `orgDID`; dashboards
+> render hashes/CIDs/aggregates only (zero-PII, T0–T7 Semgrep gate).
+>
+> **Sequencing:** WO-309 + WO-313 are the low-coupling **wedge** — they can ship in parallel with
+> messaging core, ahead of the heavier admin console (WO-310–312/314).
+
+### WO-309: Echo Comply — Web Portal Shell + Auth + SCIM
+
+**Status:** 📋 Backlog · **Depends:** ADR 0005, `openapi.yaml`
+**Blueprint:** Enterprise Compliance Messaging
+
+## Summary
+
+Stand up the repo's first web build target: the Comply admin portal shell with enterprise sign-in
+(SSO/SAML/OIDC), SCIM user provisioning, and a TypeScript API client generated from `openapi.yaml`.
+This shell is deliberately reusable foundation for a future web messaging client.
+
+## In Scope
+
+- Web app scaffold (build target, design system, routing), generated TS client from `openapi.yaml`.
+- SSO/SAML/OIDC login; SCIM provisioning endpoints/UI (wires WO-285).
+- Tenant context: all calls scoped by `orgDID`.
+
+## Out of Scope
+
+- Compliance business logic (stays in the Go backend / on-chain).
+
+**Acceptance Criteria:**
+- An org admin signs in via SSO and lands in an `orgDID`-scoped portal.
+- SCIM provisioning creates/deactivates seats; no PII leaves the zero-PII boundary.
+
+### WO-310: Echo Comply — Org / Seat / Role Admin Console
+
+**Status:** 📋 Backlog · **Depends:** WO-309, WO-250 (org model)
+**Blueprint:** Enterprise Compliance Messaging
+
+## Summary
+
+Web console for organization lifecycle, seat enforcement, and role assignment over the on-chain
+`EchoOrgRoleCredential` (owner/admin/moderator/member) plus the Phase 7 org APIs.
+
+## In Scope
+
+- Org profile, seat count / tier enforcement, member invite/remove, role assignment.
+- Reads/writes via Comply org APIs; reflects on-chain org-role credentials.
+
+## Out of Scope
+
+- Billing/payments UI (separate track).
+
+**Acceptance Criteria:**
+- Admin assigns/revokes roles; changes reflect in `EchoOrgRoleCredential` state.
+- Seat limits enforced per tier.
+
+### WO-311: Echo Comply — Retention & Litigation-Hold Configuration UI
+
+**Status:** 📋 Backlog · **Depends:** WO-309, WO-250, WO-251
+**Blueprint:** Enterprise Compliance Messaging
+
+## Summary
+
+Web UI over the retention-policy (WO-250) and litigation-hold (WO-251) backend: configure permanent /
+time-limited / litigation-hold policies, scope custodians, and view Data L1 anchor confirmations.
+
+## In Scope
+
+- Policy CRUD UI (permanent / time_limited / litigation_hold); custodian scoping; hold activation.
+- Surface Data L1 anchor status for each policy/hold.
+
+## Out of Scope
+
+- Retention enforcement (backend-only; UI never bypasses it).
+
+**Acceptance Criteria:**
+- Creating a litigation hold disables disappearing messages for custodians and anchors to Data L1.
+- Policy changes are auditable and anchor-confirmed in the UI.
+
+### WO-312: Echo Comply — eDiscovery + Matter / Ethical-Wall / Privilege Management UI
+
+**Status:** 📋 Backlog · **Depends:** WO-311, WO-251, WO-262, WO-263, WO-264
+**Blueprint:** Enterprise Compliance Messaging
+
+## Summary
+
+Web UI for eDiscovery export requests and law-firm workflows: matter creation, ethical-wall conflict
+review, and attorney-client-privilege designation/logs.
+
+## In Scope
+
+- eDiscovery export request + status + verification cover sheet (wires WO-251).
+- Matter management, ethical-wall conflict view + override (logged), privilege designation + FRCP log.
+
+## Out of Scope
+
+- Document-level work-product privilege (conversation-level first, per Phase 7 scope).
+
+**Acceptance Criteria:**
+- An export produces encrypted blobs + Merkle proofs + DE event IDs with a Data L1-anchored checksum.
+- Privileged conversations are excluded from exports by default; a FRCP-compliant privilege log generates.
+
+### WO-313: Echo Comply — Reporting / Analytics / Auditing Dashboard (web) — WEDGE
+
+**Status:** 📋 Backlog · **Depends:** WO-309
+**Blueprint:** Enterprise Compliance Messaging
+
+## Summary
+
+The "how is my business doing on Echo" surface and the low-coupling wedge that ships first. A web
+dashboard showing compliance posture and operational health: Digital-Evidence coverage rate, active
+retention-policy count, litigation-hold count, pending-export count, metagraph anchor health, segment
+reports (HIPAA ePHI access / FOIA request + deadline tracking / law-firm privilege logs), and audit
+reports exportable as PDF/JSON for court/FOIA/OCR submission.
+
+## In Scope
+
+- Dashboard widgets over `GET /comply/dashboard` + `GET /comply/audit/report` (WO-252).
+- Segment report views (HIPAA/FOIA/law-firm); PDF/JSON audit export with Data L1 references.
+
+## Out of Scope
+
+- Message-content analytics or engagement metrics. **Hashes/CIDs/aggregates only** (zero-PII).
+
+**Acceptance Criteria:**
+- Dashboard renders coverage/hold/export/anchor metrics scoped by `orgDID`, no PII.
+- An admin exports a court-ready audit report (PDF/JSON) with verifiable Data L1 anchor references.
+
+### WO-314: Echo Comply — Responsive Read-Mostly Mobile/iOS Dashboard Companion
+
+**Status:** 📋 Backlog · **Depends:** WO-313
+**Blueprint:** Enterprise Compliance Messaging
+
+## Summary
+
+A responsive read-mostly rendering of the WO-313 dashboard for small screens / iOS, so an exec can
+check compliance posture on a phone. Configuration and privileged operations stay on web.
+
+## In Scope
+
+- Responsive dashboard views (web small-screen + iOS companion); read access to posture metrics.
+
+## Out of Scope
+
+- Retention/hold/eDiscovery configuration on mobile (web-primary, per ADR 0005).
+
+**Acceptance Criteria:**
+- Posture metrics and audit-report download are usable on a phone; no config/privileged actions exposed.
+
+---
+
+# Echo Passport — Agentic Claims (ADR 0006)
+
+> Added 2026-06-12 per `docs/CROSS_PRODUCT_GAP_REVIEW.md` and `docs/adr/0006-passport-x402-agentic.md`.
+> Formalizes the Wave D agentic flow on top of x402 (wire) + AllowSpend (on-chain consent) + GNAP
+> (authorization). Supersedes the prose in WO-307. **"x401" is not adopted** — GNAP fills that role.
+
+### WO-316: Echo Passport — Agentic Claims: GNAP Grant + x402-Backed Per-Action Payment (Wave D)
+
+**Status:** 📋 Backlog · **Depends:** WO-307, WO-315 (x402 verifier), WO-299 (consent), WO-295 (disclosure)
+**Blueprint:** Decentralized Bot Framework and Automation
+
+## Summary
+
+Let an AI agent / smart glasses present a credential (SD-JWT) and initiate an **x402-backed** payment
+on the user's behalf under a **GNAP grant** that scopes what may be presented/spent. Every payment
+requires a fresh **per-action confirmation** (push to phone / glasses tap); the agent never holds keys
+or standing authority. This is the concrete form of WO-307, bound to x402 + AllowSpend.
+
+## In Scope
+
+- `pkg/agent/consent/`: GNAP capability-grant model (least-privilege, revocable).
+- Bind each payment to a single-use `AllowSpend`; x402 payment proof on completion.
+- Per-action confirmation channel; agent/glasses SDK surface for present + pay.
+
+## Out of Scope
+
+- Standing / unlimited approvals (explicitly disallowed).
+- Inventing an "x401" spec — authorization is GNAP.
+
+**Acceptance Criteria:**
+- Every agent-initiated payment requires a fresh per-action confirmation; no blanket approval exists.
+- The GNAP grant is least-privilege and revocable; a revoked grant blocks further presentation/spend.
+- Payment settles as `SpendTransaction` on Currency L1 with a valid x402 proof; no PAN/PII on the wire.

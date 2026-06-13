@@ -45,6 +45,8 @@ type V3Handlers struct {
 	Broadcasts   *broadcast_channels.ChannelService
 	RateLimiter  *infra.RateLimiter         // optional; enforces per-DID claim velocity (WO-35)
 	IdentityL1   *metagraph.MetagraphClient // optional; anchors @username -> DID on the Identity Metagraph (D1)
+	Signals      SignalPublisher            // optional; pushes live typing/receipt/reaction signals over WS (WO-10/192)
+	Notifier     OfflineNotifier            // optional; content-blind push when a signal target is offline (WO-57)
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.
@@ -84,10 +86,13 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/v3/media/upload", h.handleMediaUpload)
 	mux.HandleFunc("/v3/media/", h.handleMediaGet)
 
-	// Message receipt endpoint
+	// Message receipt + ops endpoints (receipt/status/edit/delete/pin/unpin/history)
 	mux.HandleFunc("/v3/messages/react", h.handleMessageReact)
 	mux.HandleFunc("/v3/messages/reactions", h.handleMessageReactions)
 	mux.HandleFunc("/v3/messages/", h.handleMessageReceipt)
+
+	// Conversation-scoped endpoints (pins list, retention flag)
+	mux.HandleFunc("/v3/conversations/", h.handleConversationsSubroute)
 
 	// Group endpoints
 	mux.HandleFunc("/v3/groups/create", h.handleGroupCreate)
@@ -884,10 +889,60 @@ func (h *V3Handlers) handleMessageReact(w http.ResponseWriter, r *http.Request) 
 		WriteError(w, http.StatusInternalServerError, "REACTION_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
+
+	// Server-authoritative live fan-out (WO-10): push the reaction to the
+	// counterparty over WS so it lands even if the reacting client never sends a
+	// WS signal itself. The durable store above remains the source of truth.
+	h.publishReactionSignal(r.Context(), did, req.MessageID, req.Emoji)
+
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"message_id": req.MessageID,
 		"reactions":  messaging.AggregateReactions(rows),
 	})
+}
+
+// publishReactionSignal relays a reaction (or its removal, when emoji is empty) to
+// the message's counterparty over WS. Best-effort and nil-safe; if the message is
+// unknown to the relay (e.g. not queued here) it silently does nothing.
+func (h *V3Handlers) publishReactionSignal(ctx context.Context, reactorDID, messageID, emoji string) {
+	if h.Signals == nil && h.Notifier == nil {
+		return
+	}
+	meta, err := h.DB.GetMessageMeta(ctx, messageID)
+	if err != nil {
+		return
+	}
+	// The counterparty is whichever participant isn't the reactor.
+	target := meta.RecipientDID
+	if target == reactorDID {
+		target = meta.SenderDID
+	}
+	if target == "" || target == reactorDID {
+		return
+	}
+	payload, err := json.Marshal(ReactionSignal{
+		ConversationID: meta.ConversationID,
+		MessageID:      messageID,
+		Emoji:          emoji,
+	})
+	if err != nil {
+		return
+	}
+	delivered := false
+	if h.Signals != nil {
+		delivered = h.Signals.PublishSignal(target, WSMessage{
+			Type:           "reaction",
+			From:           reactorDID,
+			To:             target,
+			ConversationID: meta.ConversationID,
+			Payload:        payload,
+		})
+	}
+	// If the peer wasn't connected, wake them with a content-blind push (WO-57).
+	// A removed reaction (empty emoji) is not worth a push.
+	if !delivered && emoji != "" && h.Notifier != nil {
+		h.Notifier.NotifyUndelivered(target, reactorDID, meta.ConversationID)
+	}
 }
 
 // handleMessageReactions returns the aggregated reactions for a message.
@@ -916,18 +971,67 @@ func (h *V3Handlers) handleMessageReactions(w http.ResponseWriter, r *http.Reque
 	})
 }
 
+// handleMessageReceipt is mounted on the "/v3/messages/" prefix and serves two
+// routes (the /react and /reactions exact patterns take precedence):
+//
+//	POST /v3/messages/{id}/receipt   body {"receiptType":"delivered"|"read"}
+//	GET  /v3/messages/{id}/status    -> durable delivery state (for reconnect sync)
+//
+// On a "read" receipt it durably records read state (WO-192) and pushes a live
+// read_receipt signal to the original sender (best-effort). The GET lets a client
+// reconcile receipts it may have missed while offline (WO-48).
 func (h *V3Handlers) handleMessageReceipt(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+	path := r.URL.Path[len("/v3/messages/"):]
+	messageID := path
+	action := ""
+	if idx := indexByte(path, '/'); idx >= 0 {
+		messageID = path[:idx]
+		action = path[idx+1:]
+	}
+	if messageID == "" {
+		WriteError(w, http.StatusBadRequest, "MISSING_MESSAGE_ID", "message id is required", r.Header.Get("X-Request-ID"))
 		return
 	}
 
-	// Path: /v3/messages/{messageId}/receipt
-	path := r.URL.Path[len("/v3/messages/"):]
-	// Extract messageId
-	messageID := path
-	if idx := indexByte(path, '/'); idx >= 0 {
-		messageID = path[:idx]
+	// M1 message-ops actions (WO-25/84/59) dispatch ahead of receipt/status.
+	switch action {
+	case "edit":
+		h.handleMessageEdit(w, r, messageID)
+		return
+	case "delete":
+		h.handleMessageDelete(w, r, messageID)
+		return
+	case "pin":
+		h.handleMessagePin(w, r, messageID, true)
+		return
+	case "unpin":
+		h.handleMessagePin(w, r, messageID, false)
+		return
+	case "history":
+		h.handleMessageEditHistory(w, r, messageID)
+		return
+	}
+
+	// GET .../status — return durable delivery state so a reconnecting client syncs.
+	if r.Method == http.MethodGet && action == "status" {
+		meta, err := h.DB.GetMessageMeta(r.Context(), messageID)
+		if err != nil {
+			WriteError(w, http.StatusNotFound, "MESSAGE_NOT_FOUND", "Message not found", r.Header.Get("X-Request-ID"))
+			return
+		}
+		WriteJSON(w, http.StatusOK, map[string]interface{}{
+			"messageId":      meta.MessageID,
+			"conversationId": meta.ConversationID,
+			"status":         meta.Status,
+			"deliveredAt":    meta.DeliveredAt,
+			"readAt":         meta.ReadAt,
+		})
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
 	}
 
 	var req struct {
@@ -938,9 +1042,22 @@ func (h *V3Handlers) handleMessageReceipt(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := h.DB.MarkDelivered(r.Context(), messageID); err != nil {
+	var err error
+	read := req.ReceiptType == "read"
+	if read {
+		err = h.DB.MarkRead(r.Context(), messageID)
+	} else {
+		req.ReceiptType = "delivered"
+		err = h.DB.MarkDelivered(r.Context(), messageID)
+	}
+	if err != nil {
 		WriteError(w, http.StatusNotFound, "MESSAGE_NOT_FOUND", "Message not found", r.Header.Get("X-Request-ID"))
 		return
+	}
+
+	// On a read receipt, nudge the original sender live (durable state above is truth).
+	if read {
+		h.publishReadReceipt(r.Context(), h.getDID(r), messageID)
 	}
 
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
@@ -948,6 +1065,353 @@ func (h *V3Handlers) handleMessageReceipt(w http.ResponseWriter, r *http.Request
 		"receiptType": req.ReceiptType,
 		"timestamp":   time.Now().UTC().Format(time.RFC3339),
 	})
+}
+
+// publishReadReceipt sends a live read_receipt signal to the message's sender so
+// their UI flips to "Read" without polling. Best-effort and nil-safe.
+func (h *V3Handlers) publishReadReceipt(ctx context.Context, readerDID, messageID string) {
+	if h.Signals == nil {
+		return
+	}
+	meta, err := h.DB.GetMessageMeta(ctx, messageID)
+	if err != nil {
+		return
+	}
+	// Notify the counterparty (the sender), not the reader themselves.
+	target := meta.SenderDID
+	if target == "" || target == readerDID {
+		return
+	}
+	payload, err := json.Marshal(ReadReceiptSignal{
+		ConversationID: meta.ConversationID,
+		MessageIDs:     []string{messageID},
+		ReadAt:         time.Now().UTC().Format(time.RFC3339),
+	})
+	if err != nil {
+		return
+	}
+	h.Signals.PublishSignal(target, WSMessage{
+		Type:           "read_receipt",
+		From:           readerDID,
+		To:             target,
+		ConversationID: meta.ConversationID,
+		Payload:        payload,
+	})
+}
+
+// --- M1 message ops: edit (WO-25), delete (WO-84), pin (WO-59) ---
+
+// messageOpRequest is the shared body for the message-ops endpoints. `Ciphertext`
+// (edit only) is opaque and JSON-encoded as base64.
+type messageOpRequest struct {
+	ConversationID string `json:"conversation_id"`
+	Ciphertext     []byte `json:"ciphertext"`
+}
+
+// conversationIDForMessage prefers an explicit conversation id, falling back to the
+// stored message metadata when available.
+func (h *V3Handlers) conversationIDForMessage(ctx context.Context, messageID, provided string) string {
+	if provided != "" {
+		return provided
+	}
+	if meta, err := h.DB.GetMessageMeta(ctx, messageID); err == nil {
+		return meta.ConversationID
+	}
+	return ""
+}
+
+// publishOpSignal fans a message-op event out to the counterparty over WS, falling
+// back to a content-blind push if they are offline. Best-effort; nil-safe.
+func (h *V3Handlers) publishOpSignal(ctx context.Context, actorDID, messageID, conversationID, opType string, payload any) {
+	if h.Signals == nil && h.Notifier == nil {
+		return
+	}
+	target := ""
+	if meta, err := h.DB.GetMessageMeta(ctx, messageID); err == nil {
+		target = meta.RecipientDID
+		if target == actorDID {
+			target = meta.SenderDID
+		}
+	}
+	if target == "" || target == actorDID {
+		return
+	}
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	delivered := false
+	if h.Signals != nil {
+		delivered = h.Signals.PublishSignal(target, WSMessage{
+			Type:           opType,
+			From:           actorDID,
+			To:             target,
+			ConversationID: conversationID,
+			Payload:        raw,
+		})
+	}
+	if !delivered && h.Notifier != nil {
+		h.Notifier.NotifyUndelivered(target, actorDID, conversationID)
+	}
+}
+
+// publishToPeer sends a conversation-level signal directly to a known peer DID
+// (used where there is no message id to resolve participants from). Best-effort.
+func (h *V3Handlers) publishToPeer(peerDID, actorDID, conversationID, opType string, payload any) {
+	if peerDID == "" || peerDID == actorDID {
+		return
+	}
+	if h.Signals == nil && h.Notifier == nil {
+		return
+	}
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	delivered := false
+	if h.Signals != nil {
+		delivered = h.Signals.PublishSignal(peerDID, WSMessage{
+			Type:           opType,
+			From:           actorDID,
+			To:             peerDID,
+			ConversationID: conversationID,
+			Payload:        raw,
+		})
+	}
+	if !delivered && h.Notifier != nil {
+		h.Notifier.NotifyUndelivered(peerDID, actorDID, conversationID)
+	}
+}
+
+// handleMessageEdit edits a message (WO-25). Per the hybrid model, an immutable
+// version is persisted only when the conversation is under retention; otherwise the
+// edit is relayed and clients hold the history. The new ciphertext is fanned out to
+// the peer (server stores no plaintext, ever).
+func (h *V3Handlers) handleMessageEdit(w http.ResponseWriter, r *http.Request, messageID string) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	did := h.getDID(r)
+	if did == "" {
+		WriteError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "authentication required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req messageOpRequest
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	convID := h.conversationIDForMessage(r.Context(), messageID, req.ConversationID)
+	retained, _ := h.DB.IsConversationRetained(r.Context(), convID)
+	version := 0
+	if retained {
+		v, err := h.DB.AppendEditVersion(r.Context(), &database.MessageEdit{
+			MessageID:      messageID,
+			ConversationID: convID,
+			EditorDID:      did,
+			Ciphertext:     req.Ciphertext,
+		})
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "EDIT_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+			return
+		}
+		version = v
+	}
+	h.publishOpSignal(r.Context(), did, messageID, convID, "edit", EditSignal{
+		ConversationID: convID,
+		MessageID:      messageID,
+		Ciphertext:     req.Ciphertext,
+		Version:        version,
+	})
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"message_id": messageID,
+		"edited":     true,
+		"retained":   retained,
+		"version":    version,
+	})
+}
+
+// handleMessageDelete records a synchronized-delete tombstone (WO-84) and fans the
+// delete out to the peer. Under retention (litigation hold) the edit history is
+// preserved for eDiscovery; otherwise it is purged with the message.
+func (h *V3Handlers) handleMessageDelete(w http.ResponseWriter, r *http.Request, messageID string) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	did := h.getDID(r)
+	if did == "" {
+		WriteError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "authentication required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req messageOpRequest
+	_ = h.readJSON(r, &req)
+	convID := h.conversationIDForMessage(r.Context(), messageID, req.ConversationID)
+	retained, _ := h.DB.IsConversationRetained(r.Context(), convID)
+	if err := h.DB.MarkMessageDeleted(r.Context(), messageID, retained); err != nil {
+		WriteError(w, http.StatusInternalServerError, "DELETE_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	h.publishOpSignal(r.Context(), did, messageID, convID, "delete", DeleteSignal{
+		ConversationID: convID,
+		MessageID:      messageID,
+	})
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"message_id": messageID,
+		"deleted":    true,
+		"retained":   retained,
+	})
+}
+
+// handleMessagePin pins or unpins a message (WO-59, max 5 per conversation) and
+// fans the change out to the peer so their pinned bar updates.
+func (h *V3Handlers) handleMessagePin(w http.ResponseWriter, r *http.Request, messageID string, pin bool) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	did := h.getDID(r)
+	if did == "" {
+		WriteError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "authentication required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req messageOpRequest
+	_ = h.readJSON(r, &req)
+	convID := h.conversationIDForMessage(r.Context(), messageID, req.ConversationID)
+	if convID == "" {
+		WriteError(w, http.StatusBadRequest, "MISSING_CONVERSATION", "conversation_id is required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var err error
+	if pin {
+		err = h.DB.PinMessage(r.Context(), convID, messageID, did)
+	} else {
+		err = h.DB.UnpinMessage(r.Context(), convID, messageID)
+	}
+	if errors.Is(err, database.ErrPinLimitReached) {
+		WriteError(w, http.StatusConflict, "PIN_LIMIT_REACHED",
+			"conversation already has the maximum number of pinned messages", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "PIN_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	h.publishOpSignal(r.Context(), did, messageID, convID, "pin", PinSignal{
+		ConversationID: convID,
+		MessageID:      messageID,
+		Pinned:         pin,
+	})
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"message_id": messageID,
+		"pinned":     pin,
+	})
+}
+
+// handleMessageEditHistory returns the immutable edit versions for a message
+// (eDiscovery; only populated for retained conversations). Ciphertext is opaque.
+func (h *V3Handlers) handleMessageEditHistory(w http.ResponseWriter, r *http.Request, messageID string) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	versions, err := h.DB.GetEditHistory(r.Context(), messageID)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "HISTORY_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	if versions == nil {
+		versions = []*database.MessageEdit{}
+	}
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"message_id": messageID,
+		"versions":   versions,
+	})
+}
+
+// handleConversationsSubroute serves conversation-scoped endpoints:
+//
+//	GET  /v3/conversations/{id}/pins        -> pinned messages
+//	POST /v3/conversations/{id}/retention   body {"retained":bool}  (Comply gate)
+func (h *V3Handlers) handleConversationsSubroute(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Path[len("/v3/conversations/"):]
+	convID := path
+	action := ""
+	if idx := indexByte(path, '/'); idx >= 0 {
+		convID = path[:idx]
+		action = path[idx+1:]
+	}
+	if convID == "" {
+		WriteError(w, http.StatusBadRequest, "MISSING_CONVERSATION", "conversation id is required", r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	switch {
+	case action == "pins" && r.Method == http.MethodGet:
+		pins, err := h.DB.GetPinnedMessages(r.Context(), convID)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "PINS_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+			return
+		}
+		if pins == nil {
+			pins = []*database.PinnedMessage{}
+		}
+		WriteJSON(w, http.StatusOK, map[string]interface{}{
+			"conversation_id": convID,
+			"pins":            pins,
+		})
+	case action == "retention" && r.Method == http.MethodPost:
+		var req struct {
+			Retained bool `json:"retained"`
+		}
+		if err := h.readJSON(r, &req); err != nil {
+			WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+			return
+		}
+		if err := h.DB.SetConversationRetention(r.Context(), convID, req.Retained); err != nil {
+			WriteError(w, http.StatusInternalServerError, "RETENTION_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+			return
+		}
+		WriteJSON(w, http.StatusOK, map[string]interface{}{
+			"conversation_id": convID,
+			"retained":        req.Retained,
+		})
+	case action == "disappearing" && r.Method == http.MethodGet:
+		ttl, err := h.DB.GetDisappearingTTL(r.Context(), convID)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "DISAPPEARING_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+			return
+		}
+		WriteJSON(w, http.StatusOK, map[string]interface{}{
+			"conversation_id": convID,
+			"ttl_seconds":     ttl,
+		})
+	case action == "disappearing" && r.Method == http.MethodPost:
+		var req struct {
+			TTLSeconds int    `json:"ttl_seconds"`
+			PeerDID    string `json:"peer_did"`
+		}
+		if err := h.readJSON(r, &req); err != nil {
+			WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+			return
+		}
+		if err := h.DB.SetDisappearingTTL(r.Context(), convID, req.TTLSeconds); err != nil {
+			WriteError(w, http.StatusInternalServerError, "DISAPPEARING_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+			return
+		}
+		// Fan the timer change to the peer so both ends apply it (peer_did optional).
+		h.publishToPeer(req.PeerDID, h.getDID(r), convID, "disappearing_config", DisappearingSignal{
+			ConversationID: convID,
+			TTLSeconds:     req.TTLSeconds,
+		})
+		WriteJSON(w, http.StatusOK, map[string]interface{}{
+			"conversation_id": convID,
+			"ttl_seconds":     req.TTLSeconds,
+		})
+	default:
+		WriteError(w, http.StatusNotFound, "NOT_FOUND", "unknown conversation route", r.Header.Get("X-Request-ID"))
+	}
 }
 
 // splitCSV splits a comma-separated string.
