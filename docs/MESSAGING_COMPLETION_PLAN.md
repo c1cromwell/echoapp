@@ -88,9 +88,15 @@ The per-message actions whose UI exists but backend doesn't.
     `MessageOpsStore` across the `DB` interface + MemoryDB + PostgresDB + migration `018_message_ops.sql`.
     6 new tests in `internal/api/message_ops_test.go` (green under `-race`); WS payloads
     `EditSignal`/`DeleteSignal`/`PinSignal`/`DisappearingSignal` in `ws.go`.
-  - ⏳ **Remaining:** iOS wiring (edit/delete/pin/disappearing actions → the new endpoints + consume
-    the new signals; `MessageActionsSheet` cases already exist) — Xcode-verified by founder; reply/forward
-    are client-side payload metadata; two-device E2E.
+  - ✅ **iOS M1 wiring done (pending Xcode build).** New `MessageOpsAPI` client
+    (`ios/.../Services/MessageOpsAPI.swift`: edit/delete/pin/unpin/disappearing) registered in
+    pbxproj + DI. `ChatDetailViewModel` now: `applyEdit` encrypts + persists via REST; `deleteMessage`,
+    `togglePin` (max 5, optimistic w/ rollback), `setDisappearing`; and consumes the new inbound
+    signals (`edit`/`delete`/`pin`/`disappearing_config`) added to `ConversationSignal` codec +
+    service. `MessagingScreens` actions call the VM. 8 new `Phase3Tests` (+ `MockMessageOpsAPIClient`);
+    all edited Swift parses clean headlessly.
+  - ⏳ **Remaining:** reply/forward are client-side payload metadata; **Xcode full build + Phase3Tests**
+    (founder gate); two-device E2E.
 
 ### M2 — Groups (key distribution + service + UI)  · **largest single gap**
 Groups are modeled but have no key distribution and no UI.

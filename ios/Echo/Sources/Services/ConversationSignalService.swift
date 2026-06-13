@@ -119,6 +119,10 @@ final class ConversationSignalService: @unchecked Sendable {
         case .readReceipt(let e): conversationId = e.conversationId
         case .reaction(let e): conversationId = e.conversationId
         case .textMessage(let e): conversationId = e.conversationId
+        case .edit(let e): conversationId = e.conversationId
+        case .delete(let e): conversationId = e.conversationId
+        case .pin(let e): conversationId = e.conversationId
+        case .disappearing(let e): conversationId = e.conversationId
         }
 
         lock.lock()
