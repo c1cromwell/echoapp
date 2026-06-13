@@ -8,6 +8,11 @@ enum ConversationSignalType {
     static let reaction = "reaction"
     /// E2E chat body relay (`internal/api/ws.go` — routed to `to` DID when set).
     static let text = "text"
+    // M1 message ops (server fans these out after a REST write).
+    static let edit = "edit"
+    static let delete = "delete"
+    static let pin = "pin"
+    static let disappearingConfig = "disappearing_config"
 }
 
 enum TypingState: String, Codable, Sendable {
@@ -68,6 +73,52 @@ struct ReactionPayload: Codable, Sendable, Equatable {
         case conversationId = "conversation_id"
         case messageId = "message_id"
         case emoji
+    }
+}
+
+struct EditPayload: Codable, Sendable, Equatable {
+    let conversationId: String
+    let messageId: String
+    let ciphertext: Data       // opaque; JSON of a TextMessagePayload
+    let version: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case conversationId = "conversation_id"
+        case messageId = "message_id"
+        case ciphertext
+        case version
+    }
+}
+
+struct DeletePayload: Codable, Sendable, Equatable {
+    let conversationId: String
+    let messageId: String
+
+    enum CodingKeys: String, CodingKey {
+        case conversationId = "conversation_id"
+        case messageId = "message_id"
+    }
+}
+
+struct PinPayload: Codable, Sendable, Equatable {
+    let conversationId: String
+    let messageId: String
+    let pinned: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case conversationId = "conversation_id"
+        case messageId = "message_id"
+        case pinned
+    }
+}
+
+struct DisappearingPayload: Codable, Sendable, Equatable {
+    let conversationId: String
+    let ttlSeconds: Int
+
+    enum CodingKeys: String, CodingKey {
+        case conversationId = "conversation_id"
+        case ttlSeconds = "ttl_seconds"
     }
 }
 
@@ -140,11 +191,42 @@ extension TextMessagePayload {
     static let encryptedPlaceholder = "🔒 Encrypted message"
 }
 
+struct EditSignalEvent: Sendable, Equatable {
+    let conversationId: String
+    let peerDID: String
+    let messageId: String
+    let ciphertext: Data
+    let version: Int?
+}
+
+struct DeleteSignalEvent: Sendable, Equatable {
+    let conversationId: String
+    let peerDID: String
+    let messageId: String
+}
+
+struct PinSignalEvent: Sendable, Equatable {
+    let conversationId: String
+    let peerDID: String
+    let messageId: String
+    let pinned: Bool
+}
+
+struct DisappearingSignalEvent: Sendable, Equatable {
+    let conversationId: String
+    let peerDID: String
+    let ttlSeconds: Int
+}
+
 enum ConversationSignalEvent: Sendable, Equatable {
     case typing(TypingSignalEvent)
     case readReceipt(ReadReceiptSignalEvent)
     case reaction(ReactionSignalEvent)
     case textMessage(TextMessageSignalEvent)
+    case edit(EditSignalEvent)
+    case delete(DeleteSignalEvent)
+    case pin(PinSignalEvent)
+    case disappearing(DisappearingSignalEvent)
 }
 
 // MARK: - Partial header for routing inbound JSON
@@ -282,6 +364,37 @@ enum ConversationSignalCodec {
                 peerDID: peerDID,
                 messageId: envelope.payload.messageId,
                 emoji: envelope.payload.emoji
+            ))
+        case ConversationSignalType.edit:
+            let envelope = try decoder.decode(WSEnvelope<EditPayload>.self, from: data)
+            return .edit(EditSignalEvent(
+                conversationId: envelope.payload.conversationId,
+                peerDID: peerDID,
+                messageId: envelope.payload.messageId,
+                ciphertext: envelope.payload.ciphertext,
+                version: envelope.payload.version
+            ))
+        case ConversationSignalType.delete:
+            let envelope = try decoder.decode(WSEnvelope<DeletePayload>.self, from: data)
+            return .delete(DeleteSignalEvent(
+                conversationId: envelope.payload.conversationId,
+                peerDID: peerDID,
+                messageId: envelope.payload.messageId
+            ))
+        case ConversationSignalType.pin:
+            let envelope = try decoder.decode(WSEnvelope<PinPayload>.self, from: data)
+            return .pin(PinSignalEvent(
+                conversationId: envelope.payload.conversationId,
+                peerDID: peerDID,
+                messageId: envelope.payload.messageId,
+                pinned: envelope.payload.pinned
+            ))
+        case ConversationSignalType.disappearingConfig:
+            let envelope = try decoder.decode(WSEnvelope<DisappearingPayload>.self, from: data)
+            return .disappearing(DisappearingSignalEvent(
+                conversationId: envelope.payload.conversationId,
+                peerDID: peerDID,
+                ttlSeconds: envelope.payload.ttlSeconds
             ))
         case ConversationSignalType.text:
             if let envelope = try? decoder.decode(WSEnvelope<TextMessagePayload>.self, from: data) {

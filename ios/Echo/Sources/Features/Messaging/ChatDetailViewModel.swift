@@ -28,7 +28,13 @@ final class ChatDetailViewModel {
     private let textCrypto: TextMessageCrypto
     private var reactionsAPI: (any ReactionsAPIClient)?
     private var receiptsAPI: (any MessageReceiptsAPIClient)?
+    private var opsAPI: (any MessageOpsAPIClient)?
     private var privacy: MessagingPrivacyPreferences = .init()
+
+    /// Pinned message ids (mirrors the server; max 5). Observed by the chat screen.
+    var pinnedMessageIDs: Set<String> = []
+    /// Disappearing-message TTL for this conversation (0 = off).
+    var disappearingTTLSeconds = 0
 
     /// Outbound send hook. Wire to `MessagingService` / `MessageRelayManager` from Xcode;
     /// defaults to a no-op so the optimistic UI works headless and in previews.
@@ -72,6 +78,7 @@ final class ChatDetailViewModel {
         privacy: MessagingPrivacyPreferences = .init(),
         reactionsAPI: (any ReactionsAPIClient)? = nil,
         receiptsAPI: (any MessageReceiptsAPIClient)? = nil,
+        opsAPI: (any MessageOpsAPIClient)? = nil,
         onSend: ((String) -> Void)? = nil
     ) {
         self.conversationId = conversationId
@@ -81,6 +88,7 @@ final class ChatDetailViewModel {
         self.privacy = privacy
         self.reactionsAPI = reactionsAPI
         self.receiptsAPI = receiptsAPI
+        self.opsAPI = opsAPI
         if let onSend { self.onSend = onSend }
 
         messages = ConversationThreadStore.load(
@@ -176,7 +184,71 @@ final class ChatDetailViewModel {
         ConversationThreadStore.replace(conversationId: conversationId, messages: messages)
         editingMessageId = nil
         inputText = ""
+
+        // Persist the edit (WO-25). The server fans the new ciphertext out to the
+        // peer; under retention it also stores an immutable version. Best-effort.
+        if let opsAPI {
+            let payload: TextMessagePayload
+            do {
+                payload = try await textCrypto.encryptPayload(plaintext: trimmed, peerDID: peerDID, messageId: messageId)
+            } catch {
+                payload = TextMessagePayload(messageId: messageId, text: trimmed, encrypted: nil)
+            }
+            if let ciphertext = try? JSONEncoder().encode(payload) {
+                _ = try? await opsAPI.editMessage(messageId: messageId, conversationId: conversationId, ciphertext: ciphertext)
+            }
+        }
         return true
+    }
+
+    // MARK: - Delete / pin / disappearing (WO-84 / WO-59)
+
+    /// Deletes a message for everyone (WO-84): removes locally and tombstones on the
+    /// server, which fans a delete out to the peer. Returns false if not found.
+    @discardableResult
+    func deleteMessage(_ messageId: String) async -> Bool {
+        guard messages.contains(where: { $0.id == messageId }) else { return false }
+        messages.removeAll { $0.id == messageId }
+        pinnedMessageIDs.remove(messageId)
+        ConversationThreadStore.replace(conversationId: conversationId, messages: messages)
+        if let opsAPI {
+            _ = try? await opsAPI.deleteMessage(messageId: messageId, conversationId: conversationId)
+        }
+        return true
+    }
+
+    /// Pins or unpins a message (WO-59, max 5). Returns the new pinned state, or nil
+    /// on failure (e.g. the conversation already has the maximum pins).
+    @discardableResult
+    func togglePin(messageId: String) async -> Bool? {
+        let willPin = !pinnedMessageIDs.contains(messageId)
+        if willPin && pinnedMessageIDs.count >= 5 {
+            errorMessage = "You can pin up to 5 messages."
+            return nil
+        }
+        // Optimistic local update.
+        if willPin { pinnedMessageIDs.insert(messageId) } else { pinnedMessageIDs.remove(messageId) }
+        guard let opsAPI else { return willPin }
+        do {
+            if willPin {
+                _ = try await opsAPI.pinMessage(messageId: messageId, conversationId: conversationId)
+            } else {
+                _ = try await opsAPI.unpinMessage(messageId: messageId, conversationId: conversationId)
+            }
+            return willPin
+        } catch {
+            // Roll back the optimistic change.
+            if willPin { pinnedMessageIDs.remove(messageId) } else { pinnedMessageIDs.insert(messageId) }
+            errorMessage = "Couldn't update pin."
+            return nil
+        }
+    }
+
+    /// Sets the conversation's disappearing-message TTL (0 = off) and syncs the peer.
+    func setDisappearing(ttlSeconds: Int) async {
+        disappearingTTLSeconds = max(0, ttlSeconds)
+        guard let opsAPI else { return }
+        _ = try? await opsAPI.setDisappearing(conversationId: conversationId, ttlSeconds: disappearingTTLSeconds, peerDID: peerDID)
     }
 
     // MARK: - Outbound send
@@ -442,7 +514,38 @@ final class ChatDetailViewModel {
             guard e.peerDID == peerDID || !e.peerDID.isEmpty else { return }
             guard !messages.contains(where: { $0.id == e.messageId }) else { return }
             Task { await appendInboundText(e) }
+        case .edit(let e):
+            guard e.conversationId == conversationId else { return }
+            Task { await applyInboundEdit(e) }
+        case .delete(let e):
+            guard e.conversationId == conversationId else { return }
+            messages.removeAll { $0.id == e.messageId }
+            pinnedMessageIDs.remove(e.messageId)
+            ConversationThreadStore.replace(conversationId: conversationId, messages: messages)
+        case .pin(let e):
+            guard e.conversationId == conversationId else { return }
+            if e.pinned { pinnedMessageIDs.insert(e.messageId) } else { pinnedMessageIDs.remove(e.messageId) }
+        case .disappearing(let e):
+            guard e.conversationId == conversationId else { return }
+            disappearingTTLSeconds = max(0, e.ttlSeconds)
         }
+    }
+
+    /// Applies a peer's edit: decrypts the new ciphertext and replaces the body.
+    private func applyInboundEdit(_ e: EditSignalEvent) async {
+        guard let wire = try? JSONDecoder().decode(TextMessagePayload.self, from: e.ciphertext) else { return }
+        let resolved = await InboundTextMessageResolver.resolveBody(
+            for: TextMessageSignalEvent(
+                conversationId: e.conversationId,
+                peerDID: e.peerDID,
+                messageId: e.messageId,
+                text: wire.text ?? TextMessagePayload.encryptedPlaceholder,
+                wirePayload: wire
+            )
+        )
+        guard let idx = messages.firstIndex(where: { $0.id == e.messageId }) else { return }
+        messages[idx].content = resolved.body
+        ConversationThreadStore.replace(conversationId: conversationId, messages: messages)
     }
 
     private func appendInboundText(_ e: TextMessageSignalEvent) async {

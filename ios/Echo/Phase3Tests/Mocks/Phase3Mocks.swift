@@ -68,3 +68,47 @@ final class MockMessageReceiptsAPIClient: MessageReceiptsAPIClient, @unchecked S
             ?? MessageStatusResponse(messageId: messageId, conversationId: "conv-1", status: "queued", deliveredAt: nil, readAt: nil)
     }
 }
+
+/// Mock message-ops client (WO-25/84/59). Records calls; `pinShouldFail` simulates
+/// a server rejection (e.g. pin limit).
+final class MockMessageOpsAPIClient: MessageOpsAPIClient, @unchecked Sendable {
+    var editCalls: [(messageId: String, conversationId: String)] = []
+    var deleteCalls: [String] = []
+    var pinCalls: [String] = []
+    var unpinCalls: [String] = []
+    var disappearingCalls: [(conversationId: String, ttl: Int)] = []
+    var pinShouldFail = false
+
+    struct OpError: Error {}
+
+    @discardableResult
+    func editMessage(messageId: String, conversationId: String, ciphertext: Data) async throws -> MessageEditResult {
+        editCalls.append((messageId, conversationId))
+        return MessageEditResult(messageId: messageId, edited: true, retained: false, version: 0)
+    }
+
+    @discardableResult
+    func deleteMessage(messageId: String, conversationId: String) async throws -> MessageDeleteResult {
+        deleteCalls.append(messageId)
+        return MessageDeleteResult(messageId: messageId, deleted: true, retained: false)
+    }
+
+    @discardableResult
+    func pinMessage(messageId: String, conversationId: String) async throws -> MessagePinResult {
+        if pinShouldFail { throw OpError() }
+        pinCalls.append(messageId)
+        return MessagePinResult(messageId: messageId, pinned: true)
+    }
+
+    @discardableResult
+    func unpinMessage(messageId: String, conversationId: String) async throws -> MessagePinResult {
+        unpinCalls.append(messageId)
+        return MessagePinResult(messageId: messageId, pinned: false)
+    }
+
+    @discardableResult
+    func setDisappearing(conversationId: String, ttlSeconds: Int, peerDID: String?) async throws -> DisappearingConfigResult {
+        disappearingCalls.append((conversationId, ttlSeconds))
+        return DisappearingConfigResult(conversationId: conversationId, ttlSeconds: ttlSeconds)
+    }
+}

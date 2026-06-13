@@ -172,4 +172,91 @@ final class ChatDetailViewModelTests: XCTestCase {
         await vm.reconcileReceiptsOnOpen()
         XCTAssertEqual(vm.messages.first(where: { $0.id == "out-1" })?.deliveryStatus, .read)
     }
+
+    // MARK: - Message ops (WO-25/84/59)
+
+    private func configureWithOps(_ ops: MockMessageOpsAPIClient) {
+        vm.configure(
+            conversationId: "conv-1",
+            peerDID: "did:key:peer",
+            currentUserDID: "did:key:me",
+            reactionsAPI: reactions,
+            opsAPI: ops
+        )
+        vm.messages = [
+            ChatDetailMessage(id: "out-1", senderDID: "did:key:me", currentUserDID: "did:key:me", content: "orig", deliveryStatus: .delivered, sentAt: Date()),
+            ChatDetailMessage(id: "in-1", senderDID: "did:key:peer", currentUserDID: "did:key:me", content: "hi"),
+        ]
+    }
+
+    func testApplyEdit_updatesLocallyAndCallsBackend() async {
+        let ops = MockMessageOpsAPIClient()
+        configureWithOps(ops)
+        let ok = await vm.applyEdit(messageId: "out-1", newText: "edited!")
+        XCTAssertTrue(ok)
+        XCTAssertEqual(vm.messages.first(where: { $0.id == "out-1" })?.content, "edited!")
+        XCTAssertEqual(ops.editCalls.first?.messageId, "out-1")
+    }
+
+    func testDeleteMessage_removesAndCallsBackend() async {
+        let ops = MockMessageOpsAPIClient()
+        configureWithOps(ops)
+        let ok = await vm.deleteMessage("in-1")
+        XCTAssertTrue(ok)
+        XCTAssertFalse(vm.messages.contains { $0.id == "in-1" })
+        XCTAssertEqual(ops.deleteCalls, ["in-1"])
+    }
+
+    func testTogglePin_pinsThenUnpins() async {
+        let ops = MockMessageOpsAPIClient()
+        configureWithOps(ops)
+        let pinned = await vm.togglePin(messageId: "in-1")
+        XCTAssertEqual(pinned, true)
+        XCTAssertTrue(vm.pinnedMessageIDs.contains("in-1"))
+        XCTAssertEqual(ops.pinCalls, ["in-1"])
+
+        let unpinned = await vm.togglePin(messageId: "in-1")
+        XCTAssertEqual(unpinned, false)
+        XCTAssertFalse(vm.pinnedMessageIDs.contains("in-1"))
+        XCTAssertEqual(ops.unpinCalls, ["in-1"])
+    }
+
+    func testTogglePin_rollsBackOnFailure() async {
+        let ops = MockMessageOpsAPIClient()
+        ops.pinShouldFail = true
+        configureWithOps(ops)
+        let result = await vm.togglePin(messageId: "in-1")
+        XCTAssertNil(result)
+        XCTAssertFalse(vm.pinnedMessageIDs.contains("in-1"), "optimistic pin must roll back on error")
+    }
+
+    func testInboundDelete_removesMessage() async {
+        let ops = MockMessageOpsAPIClient()
+        configureWithOps(ops)
+        transport.simulateIncoming("""
+        {"type":"delete","from":"did:key:peer","to":"did:key:me","conversation_id":"conv-1","payload":{"conversation_id":"conv-1","message_id":"in-1"}}
+        """)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertFalse(vm.messages.contains { $0.id == "in-1" })
+    }
+
+    func testInboundPin_updatesPinnedSet() async {
+        let ops = MockMessageOpsAPIClient()
+        configureWithOps(ops)
+        transport.simulateIncoming("""
+        {"type":"pin","from":"did:key:peer","to":"did:key:me","conversation_id":"conv-1","payload":{"conversation_id":"conv-1","message_id":"in-1","pinned":true}}
+        """)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertTrue(vm.pinnedMessageIDs.contains("in-1"))
+    }
+
+    func testInboundDisappearing_setsTTL() async {
+        let ops = MockMessageOpsAPIClient()
+        configureWithOps(ops)
+        transport.simulateIncoming("""
+        {"type":"disappearing_config","from":"did:key:peer","to":"did:key:me","conversation_id":"conv-1","payload":{"conversation_id":"conv-1","ttl_seconds":3600}}
+        """)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertEqual(vm.disappearingTTLSeconds, 3600)
+    }
 }

@@ -396,6 +396,7 @@ struct ChatView: View {
         .task {
             let reactions: ReactionsAPI? = DIContainer.shared.resolveReactionsAPI()
             let receipts: MessageReceiptsAPI? = DIContainer.shared.resolveReceiptsAPI()
+            let ops: MessageOpsAPI? = DIContainer.shared.resolveMessageOpsAPI()
             let privacy = MessagingPrivacyPreferences.merged(
                 global: PrivacySettingsStore.load(),
                 persona: PersonaPrivacySettingsStore.load()
@@ -410,6 +411,7 @@ struct ChatView: View {
                 privacy: privacy,
                 reactionsAPI: reactions,
                 receiptsAPI: receipts,
+                opsAPI: ops,
                 onSend: onSendMessage
             )
             if let token = try? await KeychainManager.shared.getAuthToken() {
@@ -580,13 +582,16 @@ struct ChatView: View {
     private func handleMessageAction(_ action: MessageAction, on message: ChatDetailMessage) {
         switch action {
         case .delete:
-            viewModel.messages.removeAll { $0.id == message.id }
-            ConversationThreadStore.replace(conversationId: conversationId, messages: viewModel.messages)
-            if pinnedMessageId == message.id {
-                #if os(iOS)
-                ConversationPinnedMessageStore.setPinnedMessageId(nil, conversationId: conversationId)
-                #endif
-                pinnedMessageId = nil
+            let deletedId = message.id
+            let wasPinned = pinnedMessageId == deletedId
+            Task { @MainActor in
+                await viewModel.deleteMessage(deletedId)
+                if wasPinned {
+                    #if os(iOS)
+                    ConversationPinnedMessageStore.setPinnedMessageId(nil, conversationId: conversationId)
+                    #endif
+                    pinnedMessageId = nil
+                }
             }
         case .copy:
             #if os(iOS)
@@ -601,13 +606,14 @@ struct ChatView: View {
             forwardPreview = message.content
             showForwardSheet = true
         case .pin:
-            #if os(iOS)
-            let isPinned = ConversationPinnedMessageStore.togglePin(
-                messageId: message.id,
-                conversationId: conversationId
-            )
-            pinnedMessageId = isPinned ? message.id : nil
-            #endif
+            let pinId = message.id
+            Task { @MainActor in
+                guard let nowPinned = await viewModel.togglePin(messageId: pinId) else { return }
+                #if os(iOS)
+                ConversationPinnedMessageStore.setPinnedMessageId(nowPinned ? pinId : nil, conversationId: conversationId)
+                #endif
+                pinnedMessageId = nowPinned ? pinId : nil
+            }
         }
     }
 
