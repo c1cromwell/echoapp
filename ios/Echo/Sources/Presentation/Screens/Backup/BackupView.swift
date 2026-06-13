@@ -48,11 +48,29 @@ public struct BackupView: View {
                 GhostBorderSection(title: "ENCRYPTED BACKUP") {
                     InfoRow(label: "Last backup", value: viewModel.lastBackupDate)
                     InfoRow(label: "Size", value: viewModel.backupSize)
-                    InfoRow(label: "Location", value: "iCloud Keychain")
+                    InfoRow(label: "Location", value: viewModel.backupLocation)
 
-                    Button("Back Up Now") { Task { await viewModel.backupNow() } }
-                        .font(.system(size: 14)).fontWeight(.bold)
-                        .foregroundStyle(Color.Echo.primaryContainer)
+                    if let status = viewModel.statusMessage {
+                        Text(status)
+                            .font(Font.Echo.labelMd)
+                            .foregroundStyle(viewModel.statusIsError ? Color.Echo.error : Color.Echo.primaryContainer)
+                    }
+
+                    Button("Back Up Now") {
+                        viewModel.phrasePromptMode = .backup
+                        viewModel.showPhrasePrompt = true
+                    }
+                    .font(.system(size: 14)).fontWeight(.bold)
+                    .foregroundStyle(Color.Echo.primaryContainer)
+                    .disabled(viewModel.isWorking)
+
+                    Button("Restore from Cloud") {
+                        viewModel.phrasePromptMode = .restoreCloud
+                        viewModel.showPhrasePrompt = true
+                    }
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.Echo.onSurface)
+                    .disabled(viewModel.isWorking)
                 }
 
                 // Auto-backup settings
@@ -98,6 +116,10 @@ public struct BackupView: View {
         .background(Color.Echo.surface)
         .overlay(alignment: .top) { SecureThreadIndicator() }
         .navigationTitle("Backup & Security")
+        .sheet(isPresented: $viewModel.showPhrasePrompt) {
+            BackupPhrasePromptSheet(viewModel: viewModel)
+        }
+        .onAppear { viewModel.refreshMetadata() }
     }
 }
 
@@ -105,16 +127,121 @@ public struct BackupView: View {
 
 @MainActor
 class BackupViewModel: ObservableObject {
+    enum PhrasePromptMode {
+        case backup
+        case restoreCloud
+    }
+
     @Published var lastBackupDate: String = "Never"
     @Published var backupSize: String = "—"
-    @Published var backupFrequency: String = "Daily"
-    @Published var includeMedia = true
+    @Published var backupLocation: String = "Local + Cloud"
+    @Published var backupFrequency: String = "Manual"
+    @Published var includeMedia = false
     @Published var wifiOnly = true
     @Published var showRecoveryPhrase = false
     @Published var showDeleteConfirmation = false
+    @Published var showPhrasePrompt = false
+    @Published var phrasePromptMode: PhrasePromptMode = .backup
+    @Published var phraseText = ""
+    @Published var isWorking = false
+    @Published var statusMessage: String?
+    @Published var statusIsError = false
 
-    func backupNow() async {
-        // TODO: Trigger encrypted backup to iCloud Keychain
+    func refreshMetadata() {
+        #if os(iOS)
+        guard let service = DIContainer.shared.resolveMessageBackup() else { return }
+        if let date = service.lastBackupDate {
+            let formatter = RelativeDateTimeFormatter()
+            lastBackupDate = formatter.localizedString(for: date, relativeTo: Date())
+            backupSize = ByteCountFormatter.string(fromByteCount: Int64(service.lastBackupByteCount), countStyle: .file)
+        } else {
+            lastBackupDate = "Never"
+            backupSize = "—"
+        }
+        #endif
+    }
+
+    func submitPhrase() async {
+        #if os(iOS)
+        let words = phraseText
+            .lowercased()
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+        guard let phrase = RecoveryPhrase(words: words) else {
+            statusMessage = "Enter all 24 recovery words."
+            statusIsError = true
+            return
+        }
+        guard let service = DIContainer.shared.resolveMessageBackup() else { return }
+
+        isWorking = true
+        statusMessage = nil
+        defer {
+            isWorking = false
+            showPhrasePrompt = false
+            phraseText = ""
+        }
+
+        do {
+            switch phrasePromptMode {
+            case .backup:
+                try await service.uploadCloudBackup(phrase: phrase)
+                try await service.createLocalBackup(phrase: phrase)
+                statusMessage = "Backup saved locally and uploaded to cloud."
+                statusIsError = false
+            case .restoreCloud:
+                let count = try await service.restoreCloudBackup(phrase: phrase)
+                statusMessage = "Restored \(count) conversations from cloud backup."
+                statusIsError = false
+            }
+            refreshMetadata()
+        } catch {
+            statusMessage = error.localizedDescription
+            statusIsError = true
+        }
+        #endif
+    }
+}
+
+// MARK: - Phrase prompt
+
+private struct BackupPhrasePromptSheet: View {
+    @ObservedObject var viewModel: BackupViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(viewModel.phrasePromptMode == .backup
+                     ? "Enter your 24-word recovery phrase to encrypt this backup."
+                     : "Enter your recovery phrase to decrypt and restore from cloud.")
+                    .font(Font.Echo.bodyMedium)
+                    .foregroundStyle(Color.Echo.outline)
+
+                TextEditor(text: $viewModel.phraseText)
+                    .font(.system(.caption, design: .monospaced))
+                    .frame(minHeight: 160)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.Echo.outline.opacity(0.3)))
+
+                if viewModel.isWorking {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                } else {
+                    Button("Continue") {
+                        Task { await viewModel.submitPhrase() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .padding()
+            .navigationTitle("Recovery Phrase")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
     }
 }
 

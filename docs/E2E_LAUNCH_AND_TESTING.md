@@ -266,8 +266,23 @@ Two signed-in clients on the same LAN backend (`make dev`). Primary device **A**
 | 4 | B: Face ID login → open **Messages** | Prior DM threads + messages appear (idempotent merge) |
 | 5 | A sends a new DM while B online | B receives live WS message; history pull does not duplicate |
 | 6 | B force-quit, A sends 2 DMs, B reopens Messages | Pull cursor unchanged for live path; WS delivers new traffic |
+| 7 | A: Devices → remove B's linked device | B stops receiving new sync pushes (`403 DEVICE_REVOKED`) |
 
 Automated helpers: `go test ./internal/api/ -run Sync`, `swift test --filter DeviceSyncTests` (Xcode).
+
+### 6.11 Encrypted backup (M3c / WO-64 + WO-CA2)
+
+Single device with DM history on LAN backend (`make dev`). User knows their 24-word recovery phrase.
+
+| Step | Action | Expected |
+|------|--------|----------|
+| 1 | Settings → **Backup & Security** → **Back Up Now** | Phrase prompt; local `.enc` + cloud upload succeed |
+| 2 | Note conversation count | N threads visible |
+| 3 | Delete app / clear local data (simulator) | Messages empty after reinstall + login |
+| 4 | **Restore from Cloud** + same phrase | N threads restored; merge is idempotent |
+| 5 | Inspect server logs / DB | Only opaque ciphertext stored (no plaintext) |
+
+Automated helpers: `go test ./internal/api/ -run Backup`, `swift test --filter BackupCryptoTests` (Xcode).
 
 ### 6.5 OIDC4VC (WO-100)
 

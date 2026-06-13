@@ -165,7 +165,12 @@ Phone-free + restore. Already sequenced in `COMPETITIVE_AUDIT_IMPLEMENTATION_PLA
   - ✅ **M3b.3 Orchestration + device-link wiring (2026-05-29).** `DeviceHistorySyncService`
     (seed/pull/revoke); primary polls after QR link and pushes wrapped bundle; linked device
     assigns sync stream id + pulls on login/Messages tab; E2E §6.10.
-  - ⏳ **M3b.4+ / M3c:** revoke on device removal UI; encrypted backup (WO-64/CA2).
+  - ✅ **M3b.4 Revoke on device removal (2026-05-29).** `DeviceManagementViewModel` maps identity
+    pubkeys by device label and calls `POST /v3/sync/revoke` when removing a linked device.
+  - ✅ **M3c Encrypted backup (2026-05-29).** `BackupCrypto` (phrase + HKDF + AES-GCM),
+    `MessageBackupService` (local `.enc` + cloud `/v3/backup/*`), `BackupView` wiring;
+    server relay via `encblob`; `Phase3Tests/BackupCryptoTests.swift`; E2E §6.11.
+  - ⏳ **M3 remaining:** Xcode two-device §6.10–6.11 sign-off; auto-backup scheduling; WO-73 deferred M6.
 
 ### M4 — Calls (voice + video, WebRTC)
 UI skeleton exists; no signaling.

@@ -231,6 +231,12 @@ func (s *Server) Start() error {
 	offlineNotifier := api.NewOfflineNotifier(notifSvc) // WO-57: content-blind push for offline recipients
 	router.WSHub.SetOfflineNotifier(offlineNotifier)    // push on undelivered direct messages
 
+	backupBlobStore := encblob.Storage(encblob.NewStubStorage())
+	if fallback, err := encblob.NewFallbackStorage(); err == nil {
+		backupBlobStore = fallback
+	}
+	messageBackupSvc := passport.NewSyncService(passport.NewMemSyncStore(), backupBlobStore)
+
 	router.V3 = &api.V3Handlers{
 		DB:           db,
 		Contacts:     contactsSvc,
@@ -241,8 +247,9 @@ func (s *Server) Start() error {
 		Broadcasts:   broadcast_channels.NewChannelService(),
 		RateLimiter:  rateLimiter,
 		IdentityL1:   router.IdentityL1,  // D1: anchor @username -> DID on registration
-		Signals:      router.WSHub,       // WO-10/192: live reaction + read-receipt fan-out over WS
-		Notifier:     offlineNotifier,    // WO-57: push reactions to offline peers
+		Signals:       router.WSHub,       // WO-10/192: live reaction + read-receipt fan-out over WS
+		Notifier:      offlineNotifier,    // WO-57: push reactions to offline peers
+		MessageBackup: messageBackupSvc,   // WO-64/CA2: encrypted history backup relay
 	}
 	router.WSHub.SetGroupMemberLister(router.V3.Groups) // M2: group text fan-out to members
 

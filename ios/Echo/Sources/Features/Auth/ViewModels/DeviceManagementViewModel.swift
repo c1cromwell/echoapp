@@ -1,5 +1,5 @@
 #if os(iOS)
-import SwiftUI
+import Foundation
 
 @MainActor
 final class DeviceManagementViewModel: ObservableObject {
@@ -10,6 +10,7 @@ final class DeviceManagementViewModel: ObservableObject {
 
     private let apiClient: AuthAPIClientProtocol
     private let tokenManager: TokenManager
+    private var publicKeyHexByDeviceId: [String: String] = [:]
 
     init(apiClient: AuthAPIClientProtocol, tokenManager: TokenManager) {
         self.apiClient = apiClient
@@ -31,6 +32,7 @@ final class DeviceManagementViewModel: ObservableObject {
             let devices = try await apiClient.listDevices(token: token)
             currentDevice = devices.first(where: \.isCurrentDevice)
             otherDevices = devices.filter { !$0.isCurrentDevice }
+            await refreshIdentityPublicKeys(for: devices)
         } catch {
             errorMessage = "Could not load devices."
         }
@@ -41,7 +43,11 @@ final class DeviceManagementViewModel: ObservableObject {
             try await apiClient.revokeDevice(
                 id: id, elevatedToken: elevatedToken
             )
+            if let hex = publicKeyHexByDeviceId[id] {
+                try? await DIContainer.shared.resolveDeviceHistorySync()?.revokeDevice(publicKeyHex: hex)
+            }
             otherDevices.removeAll { $0.id == id }
+            publicKeyHexByDeviceId.removeValue(forKey: id)
             return true
         } catch {
             errorMessage = "Could not remove device."
@@ -56,6 +62,32 @@ final class DeviceManagementViewModel: ObservableObject {
             tokenManager.clearTokens()
         } catch {
             errorMessage = "Could not log out devices."
+        }
+    }
+
+    private func refreshIdentityPublicKeys(for sessions: [DeviceSession]) async {
+        guard let did = await CurrentUserSession.currentDID(),
+              let client = DIContainer.shared.resolveAPIClient() else {
+            publicKeyHexByDeviceId = [:]
+            return
+        }
+        let link = DeviceLinkAPIClient(apiClient: client)
+        guard let identityDevices = try? await link.listRegisteredDevices(did: did) else {
+            publicKeyHexByDeviceId = [:]
+            return
+        }
+
+        var byLabel: [String: String] = [:]
+        for device in identityDevices {
+            if let label = device.deviceLabel?.lowercased(), !label.isEmpty {
+                byLabel[label] = device.publicKeyHex
+            }
+        }
+
+        publicKeyHexByDeviceId = sessions.reduce(into: [:]) { map, session in
+            if let hex = byLabel[session.friendlyName.lowercased()] {
+                map[session.id] = hex
+            }
         }
     }
 }

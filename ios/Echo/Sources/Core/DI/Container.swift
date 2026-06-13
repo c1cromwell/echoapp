@@ -170,6 +170,18 @@ final class DIContainer {
             return DeviceHistorySyncService(syncAPI: syncAPI, crypto: crypto)
         }
 
+        registerFactory(ServiceKeys.backupAPI) { [weak self] () -> LiveBackupAPIClient in
+            let client: APIClient = self?.resolve(ServiceKeys.apiClient)
+                ?? APIClient(configuration: .default)
+            return LiveBackupAPIClient(apiClient: client)
+        }
+
+        registerFactory(ServiceKeys.messageBackup) { [weak self] () -> MessageBackupService in
+            let api: LiveBackupAPIClient = self?.resolve(ServiceKeys.backupAPI)
+                ?? LiveBackupAPIClient(apiClient: APIClient(configuration: .default))
+            return MessageBackupService(backupAPI: api)
+        }
+
         // WO-221: private contact discovery (OPRF + PSI)
         registerFactory(ServiceKeys.contactDiscoveryService) { [weak self] () -> ContactDiscoveryService in
             let client: APIClient = self?.resolve(ServiceKeys.apiClient)
@@ -303,6 +315,8 @@ enum ServiceKeys {
     static let deviceSyncAPI = "networking.deviceSyncAPI"
     static let deviceSyncCrypto = "services.deviceSyncCrypto"
     static let deviceHistorySync = "services.deviceHistorySync"
+    static let backupAPI = "networking.backupAPI"
+    static let messageBackup = "services.messageBackup"
     static let contactDiscoveryService = "services.contactDiscovery"
     static let contactSocialAPI = "services.contactSocialAPI"
     static let contactDiscoveryUseCase = "usecase.contactDiscovery"
@@ -437,6 +451,10 @@ extension DIContainer {
 
     func resolveDeviceHistorySync() -> DeviceHistorySyncService? {
         resolve(ServiceKeys.deviceHistorySync)
+    }
+
+    func resolveMessageBackup() -> MessageBackupService? {
+        resolve(ServiceKeys.messageBackup)
     }
 
     /// Factory for Phase 3 chat detail (WO-192) — uses registered `ConversationSignalService`.
