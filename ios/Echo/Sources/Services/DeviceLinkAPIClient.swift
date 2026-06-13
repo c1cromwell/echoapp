@@ -29,6 +29,18 @@ struct DeviceLinkAPIClient: Sendable {
         }
     }
 
+    struct RegisteredDevice: Decodable, Sendable {
+        let did: String
+        let publicKeyHex: String
+        let deviceLabel: String?
+
+        enum CodingKeys: String, CodingKey {
+            case did
+            case publicKeyHex = "public_key_hex"
+            case deviceLabel = "device_label"
+        }
+    }
+
     func issueLinkToken() async throws -> DeviceTokenResponse {
         struct Empty: Encodable {}
         return try await apiClient.post(endpoint: DeviceLinkEndpoint.issueToken, body: Empty())
@@ -52,6 +64,12 @@ struct DeviceLinkAPIClient: Sendable {
         )
     }
 
+    /// Lists registered device keys for the controller DID (primary polls after QR link).
+    func listRegisteredDevices(did: String) async throws -> [RegisteredDevice] {
+        let encoded = did.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? did
+        return try await apiClient.get(endpoint: DeviceLinkEndpoint.listDevices(did: encoded))
+    }
+
     /// Builds `echo://link-device?token=` for QR display on the trusted device.
     static func linkQRURL(token: String) -> URL? {
         var components = URLComponents()
@@ -73,6 +91,7 @@ struct DeviceLinkAPIClient: Sendable {
 enum DeviceLinkEndpoint: APIEndpoint {
     case issueToken
     case completeLink
+    case listDevices(did: String)
 
     var path: String {
         switch self {
@@ -80,6 +99,8 @@ enum DeviceLinkEndpoint: APIEndpoint {
             return "/identity/devices/token"
         case .completeLink:
             return "/identity/devices"
+        case .listDevices(let did):
+            return "/identity/devices/\(did)"
         }
     }
 }

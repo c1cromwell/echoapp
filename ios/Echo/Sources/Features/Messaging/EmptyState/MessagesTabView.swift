@@ -113,6 +113,7 @@ struct MessagesTabView: View {
             RecoveryPromptScheduler.shared.checkAndPresentIfOverdue {
                 recoveryPromptPresented = true
             }
+            DeviceHistorySyncBootstrap.pullIfNeeded()
             if let code = appState.pendingInviteCode {
                 pendingInviteCode = code
                 appState.pendingInviteCode = nil

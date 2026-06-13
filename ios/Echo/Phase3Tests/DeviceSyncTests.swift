@@ -89,6 +89,22 @@ final class DeviceIdentityStoreTests: XCTestCase {
         XCTAssertTrue(a.hasPrefix("dev-"))
         DeviceIdentityStore.resetForTesting()
     }
+
+    func testSyncDeviceIdIsDeterministic() {
+        let hex = "04" + String(repeating: "ab", count: 32)
+        let a = DeviceIdentityStore.syncDeviceId(fromPublicKeyHex: hex)
+        let b = DeviceIdentityStore.syncDeviceId(fromPublicKeyHex: hex.uppercased())
+        XCTAssertEqual(a, b)
+        XCTAssertTrue(a.hasPrefix("dev-"))
+    }
+
+    func testAssignSyncDeviceIdPinsStream() {
+        DeviceIdentityStore.resetForTesting()
+        let hex = "04" + String(repeating: "cd", count: 32)
+        DeviceIdentityStore.assignSyncDeviceId(fromPublicKeyHex: hex)
+        XCTAssertEqual(DeviceIdentityStore.currentDeviceId(), DeviceIdentityStore.syncDeviceId(fromPublicKeyHex: hex))
+        DeviceIdentityStore.resetForTesting()
+    }
 }
 
 final class SyncCursorStoreTests: XCTestCase {

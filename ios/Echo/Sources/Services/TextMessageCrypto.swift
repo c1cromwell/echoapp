@@ -76,14 +76,17 @@ actor TextMessageCrypto {
     /// Uses the same P-256 identity key material as `echo-identity-signing` (simulator + device).
     static func loadAgreementPrivateKey() async throws -> P256.KeyAgreement.PrivateKey {
         #if targetEnvironment(simulator)
-        if let data = try? await KeychainManager.shared.retrieveData(key: "sim_privkey_echo-identity-signing"),
-           let agreement = try? P256.KeyAgreement.PrivateKey(rawRepresentation: data) {
-            return agreement
-        }
-        if let data = try? await KeychainManager.shared.retrieveData(key: "sim_privkey_echo-identity-signing"),
-           let signing = try? P256.Signing.PrivateKey(rawRepresentation: data),
-           let agreement = try? P256.KeyAgreement.PrivateKey(rawRepresentation: signing.rawRepresentation) {
-            return agreement
+        for keyId in ["echo-identity-signing", "echo-identity-signing-linked"] {
+            let storageKey = "sim_privkey_\(keyId)"
+            if let data = try? await KeychainManager.shared.retrieveData(key: storageKey),
+               let agreement = try? P256.KeyAgreement.PrivateKey(rawRepresentation: data) {
+                return agreement
+            }
+            if let data = try? await KeychainManager.shared.retrieveData(key: storageKey),
+               let signing = try? P256.Signing.PrivateKey(rawRepresentation: data),
+               let agreement = try? P256.KeyAgreement.PrivateKey(rawRepresentation: signing.rawRepresentation) {
+                return agreement
+            }
         }
         #endif
         throw TextMessageCryptoError.noLocalKey

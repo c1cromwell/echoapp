@@ -254,6 +254,21 @@ Two signed-in clients on the same LAN backend (`make dev`). Admin device **A**, 
 
 Automated helpers: `go test ./internal/api/ -run 'GroupKey|RouteGroup|WSOffline'`, `swift test --filter GroupRekeyLogicTests` (Xcode).
 
+### 6.10 Multi-device history sync (M3b / WO-CA3)
+
+Two signed-in clients on the same LAN backend (`make dev`). Primary device **A** (existing account + DM history), new device **B** (linked via QR).
+
+| Step | Action | Expected |
+|------|--------|----------|
+| 1 | A: Settings → Devices → **Link new device** → QR shown | Token issued; polling starts |
+| 2 | B: Login → **Link this device** → scan QR (or paste token) | Registration succeeds; sync stream id pinned from B's pubkey |
+| 3 | Within ~10s on A | Status: “Message history sent to …” (or retry via Messages) |
+| 4 | B: Face ID login → open **Messages** | Prior DM threads + messages appear (idempotent merge) |
+| 5 | A sends a new DM while B online | B receives live WS message; history pull does not duplicate |
+| 6 | B force-quit, A sends 2 DMs, B reopens Messages | Pull cursor unchanged for live path; WS delivers new traffic |
+
+Automated helpers: `go test ./internal/api/ -run Sync`, `swift test --filter DeviceSyncTests` (Xcode).
+
 ### 6.5 OIDC4VC (WO-100)
 
 `OIDC4VC_ENABLED=true` → enrollment → wallet → `echo-enroll://` callback.

@@ -24,6 +24,7 @@
 		M3B003SYNC00000000000003 /* HistorySyncBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F003SYNC00000000000003 /* HistorySyncBundle.swift */; };
 		M3B004SYNC00000000000004 /* DeviceSyncCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F004SYNC00000000000004 /* DeviceSyncCrypto.swift */; };
 		M3B005SYNC00000000000005 /* SyncCursorStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F005SYNC00000000000005 /* SyncCursorStore.swift */; };
+		M3B006SYNC00000000000006 /* DeviceHistorySyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F006SYNC00000000000006 /* DeviceHistorySyncService.swift */; };
 		44EEF7274CAF966992DC6C16 /* MessageReceiptsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */; };
 		0115B291F78020BAFF4D4534 /* Sources/Features/Contacts/ScannedIdentityParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36EA8623AE0B5A2F4FBCD41D /* Sources/Features/Contacts/ScannedIdentityParser.swift */; };
 		02A5447CFA298C4CFBCC838C /* AuthCoordinatorVM.swift in Sources */ = {isa = PBXBuildFile; fileRef = D61E569198EEF3B0893C66CA /* AuthCoordinatorVM.swift */; };
@@ -279,6 +280,7 @@
 		M3F003SYNC00000000000003 /* HistorySyncBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistorySyncBundle.swift; sourceTree = "<group>"; };
 		M3F004SYNC00000000000004 /* DeviceSyncCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceSyncCrypto.swift; sourceTree = "<group>"; };
 		M3F005SYNC00000000000005 /* SyncCursorStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncCursorStore.swift; sourceTree = "<group>"; };
+		M3F006SYNC00000000000006 /* DeviceHistorySyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceHistorySyncService.swift; sourceTree = "<group>"; };
 		891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageReceiptsAPI.swift; sourceTree = "<group>"; };
 		009F1BD1BB134BC9F328319B /* EnrollmentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentModels.swift; sourceTree = "<group>"; };
 		0174AD057928239478B42111 /* GovernanceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GovernanceModels.swift; sourceTree = "<group>"; };
@@ -659,6 +661,7 @@
 				M3F003SYNC00000000000003 /* HistorySyncBundle.swift */,
 				M3F004SYNC00000000000004 /* DeviceSyncCrypto.swift */,
 				M3F005SYNC00000000000005 /* SyncCursorStore.swift */,
+				M3F006SYNC00000000000006 /* DeviceHistorySyncService.swift */,
 				891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */,
 				W0E001012345678901234009 /* ContactSocialAPIClient.swift */,
 				F1A2B3C40123456789000B3 /* DeviceLinkAPIClient.swift */,
@@ -1422,6 +1425,7 @@
 				M3B003SYNC00000000000003 /* HistorySyncBundle.swift in Sources */,
 				M3B004SYNC00000000000004 /* DeviceSyncCrypto.swift in Sources */,
 				M3B005SYNC00000000000005 /* SyncCursorStore.swift in Sources */,
+				M3B006SYNC00000000000006 /* DeviceHistorySyncService.swift in Sources */,
 				44EEF7274CAF966992DC6C16 /* MessageReceiptsAPI.swift in Sources */,
 				1411B71227274A6D2B383C77 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift in Sources */,
 				438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */,

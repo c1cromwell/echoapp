@@ -513,6 +513,7 @@ public struct GlacialLoginScreen: View {
             SecureEnclaveManager.shared.recordBiometricSuccess()
             // Call both legacy and new callbacks
             onPasskeyLogin()
+            DeviceHistorySyncBootstrap.pullIfNeeded()
             onSuccess()
         } catch {
             isUnlocking = false
@@ -540,6 +541,7 @@ public struct GlacialLoginScreen: View {
             )
             SecureEnclaveManager.shared.recordBiometricSuccess()
             onPasskeyLogin()
+            DeviceHistorySyncBootstrap.pullIfNeeded()
             onSuccess()
         } catch {
             unlockError = "Passcode verification failed."

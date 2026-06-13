@@ -162,7 +162,10 @@ Phone-free + restore. Already sequenced in `COMPETITIVE_AUDIT_IMPLEMENTATION_PLA
   - ✅ **M3b.2 Bundle + crypto (2026-05-29).** `HistorySyncBundle` + builder/merger;
     `DeviceSyncCrypto` (P-256 ECDH wrap/unwrap); `ConversationThreadStore` export/merge helpers;
     `Phase3Tests/DeviceSyncTests.swift`.
-  - ⏳ **M3b.3+:** `DeviceHistorySyncService` seed/pull orchestration; wire device-link flow; E2E §6.10.
+  - ✅ **M3b.3 Orchestration + device-link wiring (2026-05-29).** `DeviceHistorySyncService`
+    (seed/pull/revoke); primary polls after QR link and pushes wrapped bundle; linked device
+    assigns sync stream id + pulls on login/Messages tab; E2E §6.10.
+  - ⏳ **M3b.4+ / M3c:** revoke on device removal UI; encrypted backup (WO-64/CA2).
 
 ### M4 — Calls (voice + video, WebRTC)
 UI skeleton exists; no signaling.

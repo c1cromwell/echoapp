@@ -162,6 +162,14 @@ final class DIContainer {
             return DeviceSyncCrypto(encryption: encryption)
         }
 
+        registerFactory(ServiceKeys.deviceHistorySync) { [weak self] () -> DeviceHistorySyncService in
+            let syncAPI: LiveDeviceSyncAPIClient = self?.resolve(ServiceKeys.deviceSyncAPI)
+                ?? LiveDeviceSyncAPIClient(apiClient: APIClient(configuration: .default))
+            let crypto: DeviceSyncCrypto = self?.resolve(ServiceKeys.deviceSyncCrypto)
+                ?? DeviceSyncCrypto()
+            return DeviceHistorySyncService(syncAPI: syncAPI, crypto: crypto)
+        }
+
         // WO-221: private contact discovery (OPRF + PSI)
         registerFactory(ServiceKeys.contactDiscoveryService) { [weak self] () -> ContactDiscoveryService in
             let client: APIClient = self?.resolve(ServiceKeys.apiClient)
@@ -294,6 +302,7 @@ enum ServiceKeys {
     static let groupKeyDistribution = "services.groupKeyDistribution"
     static let deviceSyncAPI = "networking.deviceSyncAPI"
     static let deviceSyncCrypto = "services.deviceSyncCrypto"
+    static let deviceHistorySync = "services.deviceHistorySync"
     static let contactDiscoveryService = "services.contactDiscovery"
     static let contactSocialAPI = "services.contactSocialAPI"
     static let contactDiscoveryUseCase = "usecase.contactDiscovery"
@@ -424,6 +433,10 @@ extension DIContainer {
 
     func resolveDeviceSyncCrypto() -> DeviceSyncCrypto? {
         resolve(ServiceKeys.deviceSyncCrypto)
+    }
+
+    func resolveDeviceHistorySync() -> DeviceHistorySyncService? {
+        resolve(ServiceKeys.deviceHistorySync)
     }
 
     /// Factory for Phase 3 chat detail (WO-192) — uses registered `ConversationSignalService`.

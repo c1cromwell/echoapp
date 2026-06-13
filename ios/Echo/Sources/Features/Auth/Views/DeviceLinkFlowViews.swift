@@ -9,6 +9,9 @@ struct LinkNewDeviceQRView: View {
     @State private var expiresIn = 300
     @State private var errorMessage: String?
     @State private var isLoading = true
+    @State private var syncStatus: String?
+    @State private var knownPublicKeys: Set<String> = []
+    @State private var pollTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -27,11 +30,19 @@ struct LinkNewDeviceQRView: View {
 
                     Text("Scan with your new iPhone or iPad")
                         .font(.headline)
-                    Text("Expires in \(expiresIn / 60) minutes. Message history stays on this device.")
+                    Text("Expires in \(expiresIn / 60) minutes. Message history syncs after the new device links.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
+
+                    if let syncStatus {
+                        Text(syncStatus)
+                            .font(.footnote)
+                            .foregroundStyle(.green)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
                 } else {
                     ContentUnavailableView(
                         "Couldn't create link",
@@ -48,6 +59,7 @@ struct LinkNewDeviceQRView: View {
                 }
             }
             .task { await loadToken() }
+            .onDisappear { pollTask?.cancel() }
         }
     }
 
@@ -67,8 +79,37 @@ struct LinkNewDeviceQRView: View {
                 return
             }
             qrImage = QRCodeGenerator.image(from: url.absoluteString)
+            await startPollingForLinkedDevice(link: link)
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func startPollingForLinkedDevice(link: DeviceLinkAPIClient) async {
+        guard let did = await CurrentUserSession.currentDID(),
+              let sync = DIContainer.shared.resolveDeviceHistorySync() else { return }
+
+        if let devices = try? await link.listRegisteredDevices(did: did) {
+            knownPublicKeys = Set(devices.map { $0.publicKeyHex.lowercased() })
+        }
+
+        pollTask?.cancel()
+        pollTask = Task {
+            for _ in 0..<100 {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                if Task.isCancelled { return }
+                guard let devices = try? await link.listRegisteredDevices(did: did) else { continue }
+                let fresh = devices.filter { !knownPublicKeys.contains($0.publicKeyHex.lowercased()) }
+                for device in fresh {
+                    do {
+                        try await sync.seedHistoryToDevice(publicKeyHex: device.publicKeyHex)
+                        knownPublicKeys.insert(device.publicKeyHex.lowercased())
+                        syncStatus = "Message history sent to \(device.deviceLabel ?? "new device")."
+                    } catch {
+                        syncStatus = "New device linked. Open Messages to finish history sync."
+                    }
+                }
+            }
         }
     }
 }
@@ -92,7 +133,7 @@ struct LinkDeviceScanView: View {
                         .foregroundStyle(.green)
                     Text("Device linked")
                         .font(.headline)
-                    Text("Sign in with Face ID on this device. Your message history stays on your old device.")
+                    Text("Sign in with Face ID on this device. Your message history will download after unlock.")
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal)
@@ -162,6 +203,7 @@ struct LinkDeviceScanView: View {
             let pubBase64 = try await SecureEnclaveManager.shared
                 .generateBiometricProtectedKey(id: "echo-identity-signing-linked")
             let hex = try DeviceLinkAPIClient.publicKeyHex(fromBase64PublicKey: pubBase64)
+            DeviceIdentityStore.assignSyncDeviceId(fromPublicKeyHex: hex)
             let client = DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
             _ = try await DeviceLinkAPIClient(apiClient: client).completeLink(
                 token: token,
