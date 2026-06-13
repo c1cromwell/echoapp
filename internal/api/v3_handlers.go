@@ -94,6 +94,12 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	// Conversation-scoped endpoints (pins list, retention flag)
 	mux.HandleFunc("/v3/conversations/", h.handleConversationsSubroute)
 
+	// Device history sync (WO-CA3) — content-blind per-device streams
+	mux.HandleFunc("/v3/sync/push", h.handleSyncPush)
+	mux.HandleFunc("/v3/sync/pull", h.handleSyncPull)
+	mux.HandleFunc("/v3/sync/head", h.handleSyncHead)
+	mux.HandleFunc("/v3/sync/revoke", h.handleSyncRevoke)
+
 	// Group endpoints
 	mux.HandleFunc("/v3/groups/key/distribute", h.handleGroupKeyDistribute)
 	mux.HandleFunc("/v3/groups/create", h.handleGroupCreate)

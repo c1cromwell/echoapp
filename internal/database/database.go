@@ -256,6 +256,7 @@ type DB interface {
 	ReactionStore
 	ContactDiscoveryStore
 	MessageOpsStore
+	DeviceSyncStore
 }
 
 // ReactionRow is a single emoji reaction by one reactor on one message.
@@ -334,6 +335,11 @@ type MemoryDB struct {
 	pins         map[string][]*PinnedMessage // conversationID → pinned messages (max 5)
 	retained     map[string]bool            // conversationID → retention/litigation-hold flag
 	disappearing map[string]int             // conversationID → disappearing TTL seconds (0 = off)
+
+	// M3 device sync (WO-CA3): per-device addressed ciphertext streams, content-blind.
+	syncStreams map[string]map[string][]*SyncEntry // controllerDID → targetDeviceID → ordered entries
+	syncSeq     map[string]map[string]int64        // controllerDID → targetDeviceID → last seq
+	syncRevoked map[string]map[string]bool         // controllerDID → targetDeviceID → revoked
 }
 
 func NewMemoryDB() *MemoryDB {
@@ -362,6 +368,9 @@ func NewMemoryDB() *MemoryDB {
 		pins:               make(map[string][]*PinnedMessage),
 		retained:           make(map[string]bool),
 		disappearing:       make(map[string]int),
+		syncStreams:        make(map[string]map[string][]*SyncEntry),
+		syncSeq:            make(map[string]map[string]int64),
+		syncRevoked:        make(map[string]map[string]bool),
 	}
 }
 

@@ -140,6 +140,23 @@ Phone-free + restore. Already sequenced in `COMPETITIVE_AUDIT_IMPLEMENTATION_PLA
 - **Gate:** add iPad after iPhone → full history appears after unlock; revoke device stops new sync;
   fresh-install restore from cloud backup + 24 words; server operators cannot decrypt any blob.
 - **Est:** 8–14 wks (CA3 is the long pole). **Depends:** M0; benefits from M2 for group history.
+- **Decisions (2026-06-13):** first slice = WO-CA3 history-sync **server foundation**; sync model =
+  **per-device addressed streams** (revoke closes/purges the stream; pairwise-ECDH-wrapped ciphertext).
+  Device-link foundation (WO-288/273: `/identity/devices*`, on-chain `DeviceKeyRecord`, iOS
+  `DeviceLinkAPIClient`) already exists.
+- **Progress (2026-06-13) — M3a server foundation done + tested:**
+  - ✅ **Content-blind `DeviceSyncStore` (WO-CA3).** Per-`(controllerDID, targetDeviceID)` append-only
+    streams with monotonic seq; `AppendSyncEntry`/`PullSyncEntries`/`SyncHead`/`RevokeDeviceStream`
+    across the `DB` interface + MemoryDB + PostgresDB + migration `019_device_sync.sql`. Server stores
+    opaque ciphertext only.
+  - ✅ **Endpoints** (`internal/api/sync_handlers.go`, controller-DID scoped from the access token):
+    `POST /v3/sync/push`, `GET /v3/sync/pull?device_id=&after=&limit=`, `GET /v3/sync/head`,
+    `POST /v3/sync/revoke`. Revoke closes + purges the stream and rejects further push/pull (403).
+  - ✅ 5 tests (`internal/api/sync_handlers_test.go`): cursor paging, per-device isolation,
+    cross-account scoping, revoke-stops-sync, head. Green under `-race`.
+  - ⏳ **Remaining (M3b/M3c):** iOS client (primary seeds history to a newly-linked device; new device
+    pulls + decrypts on unlock; device-key wrapping); encrypted backup (WO-64/CA2) reusing
+    `pkg/storage/encblob`; WO-73 search-index sync deferred to M6.
 
 ### M4 — Calls (voice + video, WebRTC)
 UI skeleton exists; no signaling.
