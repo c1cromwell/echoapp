@@ -238,6 +238,22 @@ Two signed-in clients, same `dm:` thread.
 
 Spec: [`PHASE3_IOS_UI_SPEC.md`](PHASE3_IOS_UI_SPEC.md).
 
+### 6.9 Group messaging (M2 / WO-207)
+
+Two signed-in clients on the same LAN backend (`make dev`). Admin device **A**, member device **B** (optional third **C** for remove/rekey).
+
+| Step | Action | Expected |
+|------|--------|----------|
+| 1 | A: Messages → New Message → **New Group** → name + pick B | Group thread opens |
+| 2 | Wait ~5s on B | B receives `group_key` signal; can send (no “waiting for key”) |
+| 3 | A sends group message | B decrypts and shows plaintext |
+| 4 | B replies | A decrypts inbound message |
+| 5 | A: group info (person.3) → **Remove** B (or C) | `requires_rekey`; remaining members get new key version |
+| 6 | Removed device sends (or old key decrypt) | Cannot decrypt **new** messages after rekey |
+| 7 | B offline (force-quit), A sends 2 messages, B reconnects | Queued group ciphertext delivered on WS reconnect |
+
+Automated helpers: `go test ./internal/api/ -run 'GroupKey|RouteGroup|WSOffline'`, `swift test --filter GroupRekeyLogicTests` (Xcode).
+
 ### 6.5 OIDC4VC (WO-100)
 
 `OIDC4VC_ENABLED=true` → enrollment → wallet → `echo-enroll://` callback.

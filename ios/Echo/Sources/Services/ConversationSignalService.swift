@@ -5,6 +5,7 @@ final class ConversationSignalService: @unchecked Sendable {
     private let transport: ConversationSignalTransport
     private let lock = NSLock()
     private var handlersByConversation: [String: @Sendable (ConversationSignalEvent) -> Void] = [:]
+    private var onGroupKeyReceived: (@Sendable (GroupKeySignalEvent) -> Void)?
     /// Updates inbox preview when a text arrives and no chat handler is registered.
     private var onInboundTextMessage: (@Sendable (TextMessageSignalEvent) -> Void)?
     private var isConnected = false
@@ -25,6 +26,12 @@ final class ConversationSignalService: @unchecked Sendable {
     func setInboundTextHandler(_ handler: (@Sendable (TextMessageSignalEvent) -> Void)?) {
         lock.lock()
         onInboundTextMessage = handler
+        lock.unlock()
+    }
+
+    func setGroupKeyHandler(_ handler: (@Sendable (GroupKeySignalEvent) -> Void)?) {
+        lock.lock()
+        onGroupKeyReceived = handler
         lock.unlock()
     }
 
@@ -90,6 +97,17 @@ final class ConversationSignalService: @unchecked Sendable {
         try await transport.send(text: text)
     }
 
+    func sendGroupTextMessage(
+        conversationId: String,
+        payload: TextMessagePayload
+    ) async throws {
+        let wire = try ConversationSignalCodec.encodeGroupTextMessage(
+            conversationId: conversationId,
+            payload: payload
+        )
+        try await transport.send(text: wire)
+    }
+
     func sendTextMessage(
         conversationId: String,
         peerDID: String,
@@ -105,6 +123,14 @@ final class ConversationSignalService: @unchecked Sendable {
 
     func handleIncoming(text: String) {
         guard let event = try? ConversationSignalCodec.decodeEvent(from: text) else { return }
+
+        if case .groupKey(let keyEvent) = event {
+            lock.lock()
+            let handler = onGroupKeyReceived
+            lock.unlock()
+            handler?(keyEvent)
+            return
+        }
 
         if case .textMessage(let textEvent) = event {
             lock.lock()
@@ -123,6 +149,7 @@ final class ConversationSignalService: @unchecked Sendable {
         case .delete(let e): conversationId = e.conversationId
         case .pin(let e): conversationId = e.conversationId
         case .disappearing(let e): conversationId = e.conversationId
+        case .groupKey: return
         }
 
         lock.lock()

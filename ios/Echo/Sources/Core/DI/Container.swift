@@ -121,6 +121,35 @@ final class DIContainer {
             return MessageOpsAPI(apiClient: client)
         }
 
+        registerFactory(ServiceKeys.groupKeyManager) { [weak self] () -> GroupKeyManager in
+            let encryption: KinnamiEncryption = self?.resolve(ServiceKeys.kinnamiEncryption)
+                ?? KinnamiEncryption()
+            return GroupKeyManager(encryption: encryption)
+        }
+
+        registerFactory(ServiceKeys.groupsAPI) { [weak self] () -> LiveGroupsAPIClient in
+            let client: APIClient = self?.resolve(ServiceKeys.apiClient)
+                ?? APIClient(configuration: .default)
+            return LiveGroupsAPIClient(apiClient: client)
+        }
+
+        registerFactory(ServiceKeys.groupKeyDistribution) { [weak self] () -> GroupKeyDistributionService in
+            let keys: GroupKeyManager = self?.resolve(ServiceKeys.groupKeyManager)
+                ?? GroupKeyManager(encryption: KinnamiEncryption())
+            let groups: LiveGroupsAPIClient = self?.resolve(ServiceKeys.groupsAPI)
+                ?? LiveGroupsAPIClient(apiClient: APIClient(configuration: .default))
+            let encryption: KinnamiEncryption = self?.resolve(ServiceKeys.kinnamiEncryption)
+                ?? KinnamiEncryption()
+            let enclave: SecureEnclaveManager = self?.resolve(ServiceKeys.secureEnclave)
+                ?? SecureEnclaveManager.shared
+            return GroupKeyDistributionService(
+                keyManager: keys,
+                groupsAPI: groups,
+                encryption: encryption,
+                secureEnclave: enclave
+            )
+        }
+
         // WO-221: private contact discovery (OPRF + PSI)
         registerFactory(ServiceKeys.contactDiscoveryService) { [weak self] () -> ContactDiscoveryService in
             let client: APIClient = self?.resolve(ServiceKeys.apiClient)
@@ -248,6 +277,9 @@ enum ServiceKeys {
     static let reactionsAPI = "networking.reactionsAPI"
     static let receiptsAPI = "networking.receiptsAPI"
     static let messageOpsAPI = "networking.messageOpsAPI"
+    static let groupKeyManager = "relay.groupKeyManager"
+    static let groupsAPI = "networking.groupsAPI"
+    static let groupKeyDistribution = "services.groupKeyDistribution"
     static let contactDiscoveryService = "services.contactDiscovery"
     static let contactSocialAPI = "services.contactSocialAPI"
     static let contactDiscoveryUseCase = "usecase.contactDiscovery"
@@ -358,6 +390,18 @@ extension DIContainer {
 
     func resolveQRContactExchangeUseCase() -> QRContactExchangeUseCase? {
         resolve(ServiceKeys.qrContactExchangeUseCase)
+    }
+
+    func resolveGroupKeyManager() -> GroupKeyManager? {
+        resolve(ServiceKeys.groupKeyManager)
+    }
+
+    func resolveGroupsAPI() -> LiveGroupsAPIClient? {
+        resolve(ServiceKeys.groupsAPI)
+    }
+
+    func resolveGroupKeyDistribution() -> GroupKeyDistributionService? {
+        resolve(ServiceKeys.groupKeyDistribution)
     }
 
     /// Factory for Phase 3 chat detail (WO-192) — uses registered `ConversationSignalService`.

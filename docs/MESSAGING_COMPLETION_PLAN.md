@@ -108,6 +108,26 @@ Groups are modeled but have no key distribution and no UI.
 - **Gate:** create group → all members decrypt; remove member → rekey, removed device cannot decrypt
   new messages; group fan-out delivers offline members on reconnect.
 - **Est:** 5–8 wks. **Depends:** M0 (relay/signals). Highest risk — staff first after M0.
+- **Progress (2026-05-29) — M2 started (backend + iOS scaffolding, pending Xcode E2E):**
+  - ✅ **Group key distribute REST + WS.** `POST /v3/groups/key/distribute` fans opaque per-member
+    `group_key` signals via `SignalPublisher` (`internal/api/group_key_handlers.go`); `GroupKeySignal`
+    in `ws.go`. Member add/remove return `requires_rekey: true`. Tests in
+    `internal/api/group_key_handlers_test.go`.
+  - ✅ **Group text fan-out.** WS `type:text` with `conversation_id: group:{id}` and empty `to` routes
+    to all group members (`routeGroupText` in `ws.go`); `GroupService.GroupMemberDIDs` wired in `main.go`.
+    Tests in `internal/api/ws_group_fanout_test.go`.
+  - ✅ **iOS key distribution.** `GroupKeyManager.distributeGroupKey` / `rotateAndDistribute`;
+    `GroupKeyDistributionService`; `GroupsAPIClient`; `group_key` codec in `ConversationSignal.swift`.
+  - ✅ **iOS group UI (minimal).** `GroupCreateView` + member picker, `GroupChatView`, navigation from
+    `MessagesTabView` / `ChatDestinationView`; DI in `Container.swift`; pbxproj entries.
+  - ✅ **Group ciphertext on wire.** `TextMessagePayload.group_ciphertext` + `sendGroupTextMessage`;
+    `GroupChatViewModel` encrypt/decrypt round-trip.
+  - ✅ **GroupDetailView + rekey.** Member list, add/remove (admin); `rekeyForMembers` on
+    `requires_rekey`; `GroupDetailSheet` from group chat toolbar.
+  - ✅ **Offline WS replay.** Hub `wsOfflineQueue` enqueues undelivered group text + directed signals;
+    `flushOffline` on reconnect. Tests in `ws_offline_queue_test.go`.
+  - ✅ **E2E checklist.** `docs/E2E_LAUNCH_AND_TESTING.md` §6.9 (two-device manual gate).
+  - ⏳ **Remaining:** Xcode full build + two-device §6.9 sign-off on real devices/simulators.
 
 ### M3 — Multi-device + history sync + backup  · **Signal parity**
 Phone-free + restore. Already sequenced in `COMPETITIVE_AUDIT_IMPLEMENTATION_PLAN.md` Wave 1.

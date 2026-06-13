@@ -95,6 +95,7 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/v3/conversations/", h.handleConversationsSubroute)
 
 	// Group endpoints
+	mux.HandleFunc("/v3/groups/key/distribute", h.handleGroupKeyDistribute)
 	mux.HandleFunc("/v3/groups/create", h.handleGroupCreate)
 	mux.HandleFunc("/v3/groups/members/add", h.handleGroupAddMember)
 	mux.HandleFunc("/v3/groups/members/remove", h.handleGroupRemoveMember)
@@ -1509,7 +1510,10 @@ func (h *V3Handlers) handleGroupAddMember(w http.ResponseWriter, r *http.Request
 		WriteError(w, http.StatusBadRequest, "MEMBER_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
-	WriteJSON(w, http.StatusCreated, member)
+	WriteJSON(w, http.StatusCreated, map[string]interface{}{
+		"member":         member,
+		"requires_rekey": true,
+	})
 }
 
 func (h *V3Handlers) handleGroupRemoveMember(w http.ResponseWriter, r *http.Request) {
@@ -1533,7 +1537,10 @@ func (h *V3Handlers) handleGroupRemoveMember(w http.ResponseWriter, r *http.Requ
 		WriteError(w, http.StatusNotFound, "MEMBER_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
-	WriteJSON(w, http.StatusOK, map[string]string{"status": "removed"})
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"status":         "removed",
+		"requires_rekey": true,
+	})
 }
 
 func (h *V3Handlers) handleGroupMembers(w http.ResponseWriter, r *http.Request) {

@@ -265,6 +265,34 @@ func (gs *GroupService) GetGroupMembers(groupID string) ([]*GroupMember, error) 
 	return members, nil
 }
 
+// GroupMemberDIDs returns active member DIDs for WS group text fan-out (M2).
+func (gs *GroupService) GroupMemberDIDs(groupID string) ([]string, error) {
+	members, err := gs.GetGroupMembers(groupID)
+	if err != nil {
+		return nil, err
+	}
+	dids := make([]string, 0, len(members))
+	for _, m := range members {
+		if m.IsBanned {
+			continue
+		}
+		dids = append(dids, m.MemberID)
+	}
+	return dids, nil
+}
+
+// IsGroupMember reports whether memberID belongs to groupID.
+func (gs *GroupService) IsGroupMember(groupID, memberID string) (bool, error) {
+	_, err := gs.GetMember(groupID, memberID)
+	if err == ErrMemberNotFound {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // HasPermission checks if a member has a specific permission
 func (gs *GroupService) HasPermission(groupID, memberID string, permission Permission) (bool, error) {
 	member, err := gs.GetMember(groupID, memberID)

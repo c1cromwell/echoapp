@@ -244,6 +244,7 @@ func (s *Server) Start() error {
 		Signals:      router.WSHub,       // WO-10/192: live reaction + read-receipt fan-out over WS
 		Notifier:     offlineNotifier,    // WO-57: push reactions to offline peers
 	}
+	router.WSHub.SetGroupMemberLister(router.V3.Groups) // M2: group text fan-out to members
 
 	// WO-53: Start audit log publisher background goroutine.
 	// Uses FallbackIPFSStorage (Pinata→Storj) when env vars are set;

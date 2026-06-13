@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,6 +35,7 @@ var ephemeralSignalTypes = map[string]bool{
 	"typing":       true, // payload: TypingSignal
 	"read_receipt": true, // payload: ReadReceiptSignal
 	"reaction":     true, // payload: ReactionSignal (live update; durable truth is the reactions API)
+	"group_key":    true, // payload: GroupKeySignal (E2E key package; content-blind opaque blob)
 }
 
 // TypingSignal is the payload of a Type:"typing" WS message (ephemeral).
@@ -90,12 +92,28 @@ type DisappearingSignal struct {
 	TTLSeconds     int    `json:"ttl_seconds"`
 }
 
+// GroupKeySignal is the payload of a Type:"group_key" WS message — an admin
+// distributes a per-member encrypted AES-256 group key package (WO-207 / M2).
+// EncryptedKey is opaque ciphertext; the relay never decrypts it.
+type GroupKeySignal struct {
+	GroupID       string `json:"group_id"`
+	Version       int    `json:"version"`
+	EncryptedKey  []byte `json:"encrypted_key"`
+	DistributedBy string `json:"distributed_by"`
+}
+
 // Client represents a single WebSocket connection.
 type Client struct {
 	hub    *Hub
 	conn   *websocket.Conn
 	userID string
 	send   chan []byte
+}
+
+// GroupMemberLister resolves group membership for content-blind group text fan-out (M2).
+type GroupMemberLister interface {
+	GroupMemberDIDs(groupID string) ([]string, error)
+	IsGroupMember(groupID, memberID string) (bool, error)
 }
 
 // OfflineNotifier is invoked when a directed message cannot be delivered live
@@ -108,21 +126,24 @@ type OfflineNotifier interface {
 
 // Hub manages all active WebSocket connections and routes messages.
 type Hub struct {
-	mu         sync.RWMutex
-	clients    map[string]*Client // userID -> client
-	broadcast  chan []byte
-	register   chan *Client
-	unregister chan *Client
-	notifier   OfflineNotifier // optional; push for offline recipients (WO-57)
+	mu            sync.RWMutex
+	clients       map[string]*Client // userID -> client
+	broadcast     chan []byte
+	register      chan *Client
+	unregister    chan *Client
+	notifier      OfflineNotifier   // optional; push for offline recipients (WO-57)
+	groupMembers  GroupMemberLister // optional; fan-out group text to members (M2)
+	offlineQueue  *wsOfflineQueue   // directed WS blobs for offline recipients (M2)
 }
 
 // NewHub creates a new WebSocket hub.
 func NewHub() *Hub {
 	return &Hub{
-		clients:    make(map[string]*Client),
-		broadcast:  make(chan []byte, 256),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
+		clients:      make(map[string]*Client),
+		broadcast:    make(chan []byte, 256),
+		register:     make(chan *Client),
+		unregister:   make(chan *Client),
+		offlineQueue: newWSOfflineQueue(),
 	}
 }
 
@@ -134,6 +155,7 @@ func (h *Hub) Run() {
 			h.mu.Lock()
 			h.clients[client.userID] = client
 			h.mu.Unlock()
+			go h.flushOffline(client)
 
 		case client := <-h.unregister:
 			h.mu.Lock()
@@ -183,7 +205,39 @@ func (h *Hub) PublishSignal(to string, msg WSMessage) bool {
 	if err != nil {
 		return false
 	}
-	return h.SendToUser(to, data)
+	if h.deliverOrQueue(msg.To, data, msg.From, msg.ConversationID) {
+		return true
+	}
+	return false
+}
+
+// deliverOrQueue sends live or enqueues for reconnect replay (M2 offline group + signals).
+func (h *Hub) deliverOrQueue(recipient string, data []byte, senderID, conversationID string) bool {
+	if h.SendToUser(recipient, data) {
+		return true
+	}
+	if h.offlineQueue != nil {
+		h.offlineQueue.Enqueue(recipient, data, wsOfflineRetention)
+	}
+	h.notifyUndelivered(recipient, senderID, conversationID)
+	return false
+}
+
+// flushOffline replays queued directed WS payloads when a client reconnects.
+func (h *Hub) flushOffline(c *Client) {
+	if h.offlineQueue == nil {
+		return
+	}
+	for _, data := range h.offlineQueue.DequeueAll(c.userID) {
+		select {
+		case c.send <- data:
+		default:
+			if h.offlineQueue != nil {
+				h.offlineQueue.Enqueue(c.userID, data, wsOfflineRetention)
+			}
+			return
+		}
+	}
 }
 
 // SendToUser delivers a message to a specific user if connected.
@@ -209,6 +263,13 @@ func (h *Hub) SetOfflineNotifier(n OfflineNotifier) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.notifier = n
+}
+
+// SetGroupMemberLister configures group membership lookup for group text fan-out (M2).
+func (h *Hub) SetGroupMemberLister(l GroupMemberLister) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.groupMembers = l
 }
 
 // notifyUndelivered fires a content-blind push asynchronously if a notifier is set.
@@ -369,13 +430,55 @@ func (c *Client) routeInbound(msg WSMessage) {
 		return
 	}
 
+	// Group ciphertext fan-out: conversation_id "group:{id}" with no `to` routes to all members.
+	if msg.Type == "text" && strings.HasPrefix(msg.ConversationID, "group:") && msg.To == "" {
+		c.routeGroupText(msg)
+		return
+	}
+
 	if msg.To != "" {
-		// Directed message: deliver live, or push so the offline device wakes (WO-57).
-		if !c.hub.SendToUser(msg.To, outBytes) {
-			c.hub.notifyUndelivered(msg.To, c.userID, msg.ConversationID)
-		}
+		// Directed message: deliver live, queue for reconnect, or push (WO-57).
+		c.hub.deliverOrQueue(msg.To, outBytes, c.userID, msg.ConversationID)
 	} else {
 		c.hub.broadcast <- outBytes
+	}
+}
+
+// routeGroupText delivers an opaque group text blob to every group member except the sender.
+func (c *Client) routeGroupText(msg WSMessage) {
+	groupID := strings.TrimPrefix(msg.ConversationID, "group:")
+	if groupID == "" {
+		return
+	}
+
+	c.hub.mu.RLock()
+	lister := c.hub.groupMembers
+	c.hub.mu.RUnlock()
+	if lister == nil {
+		return
+	}
+
+	ok, err := lister.IsGroupMember(groupID, c.userID)
+	if err != nil || !ok {
+		return
+	}
+
+	members, err := lister.GroupMemberDIDs(groupID)
+	if err != nil {
+		return
+	}
+
+	for _, member := range members {
+		if member == "" || member == c.userID {
+			continue
+		}
+		delivered := msg
+		delivered.To = member
+		perMember, err := json.Marshal(delivered)
+		if err != nil {
+			continue
+		}
+		c.hub.deliverOrQueue(member, perMember, c.userID, msg.ConversationID)
 	}
 }
 

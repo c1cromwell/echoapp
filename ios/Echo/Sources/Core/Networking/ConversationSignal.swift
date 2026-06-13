@@ -13,6 +13,7 @@ enum ConversationSignalType {
     static let delete = "delete"
     static let pin = "pin"
     static let disappearingConfig = "disappearing_config"
+    static let groupKey = "group_key"
 }
 
 enum TypingState: String, Codable, Sendable {
@@ -122,22 +123,50 @@ struct DisappearingPayload: Codable, Sendable, Equatable {
     }
 }
 
-/// Chat payload for relay `type: text` — plaintext (legacy) or Kinnami-encrypted envelope.
+/// Per-member sealed group AES key package (opaque on the wire).
+struct GroupKeyPayload: Codable, Sendable, Equatable {
+    let groupId: String
+    let version: Int
+    let encryptedKey: Data
+    let distributedBy: String
+
+    enum CodingKeys: String, CodingKey {
+        case groupId = "group_id"
+        case version
+        case encryptedKey = "encrypted_key"
+        case distributedBy = "distributed_by"
+    }
+}
+
+/// Chat payload for relay `type: text` — plaintext (legacy), Kinnami 1:1 envelope, or group AES-GCM blob.
 struct TextMessagePayload: Codable, Sendable, Equatable {
     let messageId: String
     let text: String?
     let encrypted: EncryptedMessageWithPublicKey?
+    /// AES-256-GCM ciphertext sealed with the group symmetric key (M2).
+    let groupCiphertext: Data?
+    let groupKeyVersion: Int?
 
     enum CodingKeys: String, CodingKey {
         case messageId = "message_id"
         case text
         case encrypted
+        case groupCiphertext = "group_ciphertext"
+        case groupKeyVersion = "group_key_version"
     }
 
-    init(messageId: String, text: String? = nil, encrypted: EncryptedMessageWithPublicKey? = nil) {
+    init(
+        messageId: String,
+        text: String? = nil,
+        encrypted: EncryptedMessageWithPublicKey? = nil,
+        groupCiphertext: Data? = nil,
+        groupKeyVersion: Int? = nil
+    ) {
         self.messageId = messageId
         self.text = text
         self.encrypted = encrypted
+        self.groupCiphertext = groupCiphertext
+        self.groupKeyVersion = groupKeyVersion
     }
 }
 
@@ -189,6 +218,7 @@ struct TextMessageSignalEvent: Sendable, Equatable {
 
 extension TextMessagePayload {
     static let encryptedPlaceholder = "🔒 Encrypted message"
+    static let groupEncryptedPlaceholder = "🔒 Encrypted group message"
 }
 
 struct EditSignalEvent: Sendable, Equatable {
@@ -218,6 +248,13 @@ struct DisappearingSignalEvent: Sendable, Equatable {
     let ttlSeconds: Int
 }
 
+struct GroupKeySignalEvent: Sendable, Equatable {
+    let groupId: String
+    let version: Int
+    let encryptedKey: Data
+    let distributedBy: String
+}
+
 enum ConversationSignalEvent: Sendable, Equatable {
     case typing(TypingSignalEvent)
     case readReceipt(ReadReceiptSignalEvent)
@@ -227,6 +264,7 @@ enum ConversationSignalEvent: Sendable, Equatable {
     case delete(DeleteSignalEvent)
     case pin(PinSignalEvent)
     case disappearing(DisappearingSignalEvent)
+    case groupKey(GroupKeySignalEvent)
 }
 
 // MARK: - Partial header for routing inbound JSON
@@ -291,6 +329,25 @@ enum ConversationSignalCodec {
             throw ConversationSignalError.encodingFailed
         }
         return text
+    }
+
+    static func encodeGroupTextMessage(
+        conversationId: String,
+        payload: TextMessagePayload
+    ) throws -> String {
+        let envelope = WSEnvelope(
+            type: ConversationSignalType.text,
+            to: "",
+            from: nil,
+            conversationId: conversationId,
+            payload: payload,
+            timestamp: isoTimestamp()
+        )
+        let data = try encoder.encode(envelope)
+        guard let json = String(data: data, encoding: .utf8) else {
+            throw ConversationSignalError.encodingFailed
+        }
+        return json
     }
 
     static func encodeTextMessage(
@@ -396,6 +453,14 @@ enum ConversationSignalCodec {
                 peerDID: peerDID,
                 ttlSeconds: envelope.payload.ttlSeconds
             ))
+        case ConversationSignalType.groupKey:
+            let envelope = try decoder.decode(WSEnvelope<GroupKeyPayload>.self, from: data)
+            return .groupKey(GroupKeySignalEvent(
+                groupId: envelope.payload.groupId,
+                version: envelope.payload.version,
+                encryptedKey: envelope.payload.encryptedKey,
+                distributedBy: envelope.payload.distributedBy
+            ))
         case ConversationSignalType.text:
             if let envelope = try? decoder.decode(WSEnvelope<TextMessagePayload>.self, from: data) {
                 let convId = envelope.conversationId ?? ""
@@ -404,6 +469,8 @@ enum ConversationSignalCodec {
                 let preview: String
                 if let plain = envelope.payload.text, !plain.isEmpty {
                     preview = plain
+                } else if envelope.payload.groupCiphertext != nil {
+                    preview = TextMessagePayload.groupEncryptedPlaceholder
                 } else if envelope.payload.encrypted != nil {
                     preview = TextMessagePayload.encryptedPlaceholder
                 } else {

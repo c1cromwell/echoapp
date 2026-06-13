@@ -74,7 +74,7 @@ actor TextMessageCrypto {
     }
 
     /// Uses the same P-256 identity key material as `echo-identity-signing` (simulator + device).
-    private static func loadAgreementPrivateKey() async throws -> P256.KeyAgreement.PrivateKey {
+    static func loadAgreementPrivateKey() async throws -> P256.KeyAgreement.PrivateKey {
         #if targetEnvironment(simulator)
         if let data = try? await KeychainManager.shared.retrieveData(key: "sim_privkey_echo-identity-signing"),
            let agreement = try? P256.KeyAgreement.PrivateKey(rawRepresentation: data) {

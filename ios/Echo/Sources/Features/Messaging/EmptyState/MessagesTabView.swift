@@ -151,29 +151,19 @@ struct MessagesTabView: View {
             )
         }
         .sheet(isPresented: $showCreateGroup) {
-            NavigationStack {
-                VStack(spacing: 14) {
-                    Image(systemName: "person.3.fill")
-                        .font(.system(size: 40))
-                        .foregroundColor(.echoInk40)
-                    Text("Create a group")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.echoInk)
-                    Text("Name your group and add trusted contacts. Group conversations arrive with the social-graph phase.")
-                        .font(.system(size: 14))
-                        .foregroundColor(.echoInk55)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(Spacing.xl.rawValue)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.echoPaper)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Done") { showCreateGroup = false }
-                    }
+            GroupCreateSheet { groupId, name in
+                let conversation = StoredConversation(
+                    id: "group:\(groupId)",
+                    contactName: name,
+                    peerDID: groupId,
+                    personaId: appState.activePersona.id
+                )
+                ConversationStore.shared.upsert(conversation)
+                chatPath.append(conversation)
+                if !UserDefaults.standard.bool(forKey: "echo.hasSentFirstMessage") {
+                    UserDefaults.standard.set(true, forKey: "echo.hasSentFirstMessage")
                 }
             }
-            .presentationDetents([.medium])
         }
         .onReceive(
             NotificationCenter.default.publisher(for: .echoPendingInvite)

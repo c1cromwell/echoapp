@@ -65,6 +65,72 @@ actor GroupKeyManager {
 
     // MARK: - Key Distribution
 
+    /// Target member for per-recipient key sealing (P-256 key-agreement public key).
+    struct MemberTarget: Sendable {
+        let did: String
+        let keyAgreementPublicKey: Data
+    }
+
+    /// Opaque encrypted key package for one member (Kinnami 1:1 envelope JSON).
+    struct KeyPackage: Sendable, Codable, Equatable {
+        let recipientDID: String
+        let encryptedKey: Data
+    }
+
+    /// Encrypt the group symmetric key for each member using X25519/P-256 key agreement.
+    func distributeGroupKey(
+        groupId: String,
+        keyInfo: GroupKeyInfo,
+        members: [MemberTarget],
+        encryption: KinnamiEncryption
+    ) async throws -> [KeyPackage] {
+        let keyMaterial = keyInfo.key.withUnsafeBytes { Data($0) }
+        let plaintext = keyMaterial.base64EncodedString()
+        var packages: [KeyPackage] = []
+        for member in members {
+            let enc = try await encryption.encryptWithKeyAgreement(
+                plaintext: plaintext,
+                recipientPublicKeyData: member.keyAgreementPublicKey
+            )
+            let data = try JSONEncoder().encode(enc)
+            packages.append(KeyPackage(recipientDID: member.did, encryptedKey: data))
+        }
+        return packages
+    }
+
+    /// Admin path: generate a new key version and seal for all members.
+    func rotateAndDistribute(
+        groupId: String,
+        members: [MemberTarget],
+        encryption: KinnamiEncryption
+    ) async throws -> (GroupKeyInfo, [KeyPackage]) {
+        let info = generateGroupKey(groupId: groupId)
+        let packages = try await distributeGroupKey(
+            groupId: groupId,
+            keyInfo: info,
+            members: members,
+            encryption: encryption
+        )
+        return (info, packages)
+    }
+
+    /// Decrypt a received key package with our P-256 key-agreement private key.
+    func decryptKeyPackage(
+        _ encryptedPackage: Data,
+        ourPrivateKey: P256.KeyAgreement.PrivateKey,
+        encryption: KinnamiEncryption
+    ) async throws -> Data {
+        let envelope = try JSONDecoder().decode(EncryptedMessageWithPublicKey.self, from: encryptedPackage)
+        let keyB64 = try await encryption.decryptWithKeyAgreement(
+            encryptedMessage: envelope,
+            ourPrivateKey: ourPrivateKey
+        )
+        guard let keyData = Data(base64Encoded: keyB64), keyData.count == 32 else {
+            throw GroupKeyError.decryptionFailed
+        }
+        return keyData
+    }
+
     /// Store a received group key (member receives via relay after admin distributes)
     func storeReceivedKey(groupId: String, version: Int, keyData: Data) {
         let key = SymmetricKey(data: keyData)
