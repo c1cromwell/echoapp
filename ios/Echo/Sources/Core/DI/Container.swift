@@ -150,6 +150,18 @@ final class DIContainer {
             )
         }
 
+        registerFactory(ServiceKeys.deviceSyncAPI) { [weak self] () -> LiveDeviceSyncAPIClient in
+            let client: APIClient = self?.resolve(ServiceKeys.apiClient)
+                ?? APIClient(configuration: .default)
+            return LiveDeviceSyncAPIClient(apiClient: client)
+        }
+
+        registerFactory(ServiceKeys.deviceSyncCrypto) { [weak self] () -> DeviceSyncCrypto in
+            let encryption: KinnamiEncryption = self?.resolve(ServiceKeys.kinnamiEncryption)
+                ?? KinnamiEncryption()
+            return DeviceSyncCrypto(encryption: encryption)
+        }
+
         // WO-221: private contact discovery (OPRF + PSI)
         registerFactory(ServiceKeys.contactDiscoveryService) { [weak self] () -> ContactDiscoveryService in
             let client: APIClient = self?.resolve(ServiceKeys.apiClient)
@@ -280,6 +292,8 @@ enum ServiceKeys {
     static let groupKeyManager = "relay.groupKeyManager"
     static let groupsAPI = "networking.groupsAPI"
     static let groupKeyDistribution = "services.groupKeyDistribution"
+    static let deviceSyncAPI = "networking.deviceSyncAPI"
+    static let deviceSyncCrypto = "services.deviceSyncCrypto"
     static let contactDiscoveryService = "services.contactDiscovery"
     static let contactSocialAPI = "services.contactSocialAPI"
     static let contactDiscoveryUseCase = "usecase.contactDiscovery"
@@ -402,6 +416,14 @@ extension DIContainer {
 
     func resolveGroupKeyDistribution() -> GroupKeyDistributionService? {
         resolve(ServiceKeys.groupKeyDistribution)
+    }
+
+    func resolveDeviceSyncAPI() -> LiveDeviceSyncAPIClient? {
+        resolve(ServiceKeys.deviceSyncAPI)
+    }
+
+    func resolveDeviceSyncCrypto() -> DeviceSyncCrypto? {
+        resolve(ServiceKeys.deviceSyncCrypto)
     }
 
     /// Factory for Phase 3 chat detail (WO-192) — uses registered `ConversationSignalService`.

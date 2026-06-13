@@ -157,6 +157,12 @@ Phone-free + restore. Already sequenced in `COMPETITIVE_AUDIT_IMPLEMENTATION_PLA
   - ⏳ **Remaining (M3b/M3c):** iOS client (primary seeds history to a newly-linked device; new device
     pulls + decrypts on unlock; device-key wrapping); encrypted backup (WO-64/CA2) reusing
     `pkg/storage/encblob`; WO-73 search-index sync deferred to M6.
+  - ✅ **M3b.1 API client + device id (2026-05-29).** `DeviceSyncAPIClient` (`/v3/sync/*`),
+    `DeviceIdentityStore` (keychain `dev-*` id), `SyncCursorStore`; DI wired.
+  - ✅ **M3b.2 Bundle + crypto (2026-05-29).** `HistorySyncBundle` + builder/merger;
+    `DeviceSyncCrypto` (P-256 ECDH wrap/unwrap); `ConversationThreadStore` export/merge helpers;
+    `Phase3Tests/DeviceSyncTests.swift`.
+  - ⏳ **M3b.3+:** `DeviceHistorySyncService` seed/pull orchestration; wire device-link flow; E2E §6.10.
 
 ### M4 — Calls (voice + video, WebRTC)
 UI skeleton exists; no signaling.

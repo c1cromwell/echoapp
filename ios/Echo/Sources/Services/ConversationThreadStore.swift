@@ -105,5 +105,31 @@ enum ConversationThreadStore {
         guard let data = try? JSONEncoder().encode(messages) else { return }
         UserDefaults.standard.set(data, forKey: keyPrefix + conversationId)
     }
+
+    // MARK: - M3 history sync export (WO-CA3)
+
+    /// Conversation ids that have persisted thread rows.
+    static func allStoredConversationIds() -> [String] {
+        let prefix = keyPrefix
+        return UserDefaults.standard.dictionaryRepresentation().keys
+            .filter { $0.hasPrefix(prefix) }
+            .map { String($0.dropFirst(prefix.count)) }
+            .sorted()
+    }
+
+    static func exportMessages(conversationId: String) -> [StoredThreadMessage] {
+        loadStored(conversationId: conversationId)
+    }
+
+    /// Idempotent merge: skip message ids already present locally.
+    static func mergeMessages(conversationId: String, incoming: [StoredThreadMessage]) {
+        guard !conversationId.isEmpty, !incoming.isEmpty else { return }
+        var stored = loadStored(conversationId: conversationId)
+        let existing = Set(stored.map(\.id))
+        for msg in incoming where !existing.contains(msg.id) {
+            stored.append(msg)
+        }
+        persist(conversationId: conversationId, messages: stored)
+    }
 }
 #endif
