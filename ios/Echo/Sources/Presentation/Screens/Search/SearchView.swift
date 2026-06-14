@@ -157,7 +157,16 @@ class SearchViewModel: ObservableObject {
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 300_000_000)
             guard !Task.isCancelled else { return }
-            let hits = await KeywordSearchEngine.shared.search(query: q, filter: filter)
+            var options = SearchQueryOptions()
+            options.conversationId = filterChat
+            options.since = filterDateRange?.lowerBound
+            options.until = filterDateRange?.upperBound
+            options.includeArchived = activeFilter == .all && filterChat != nil
+            let hits = await KeywordSearchEngine.shared.search(
+                query: q,
+                filter: activeFilter,
+                options: options
+            )
             guard !Task.isCancelled else { return }
             results = hits.map { hit in
                 SearchResult(

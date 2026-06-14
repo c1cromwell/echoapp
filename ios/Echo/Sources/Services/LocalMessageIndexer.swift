@@ -40,6 +40,12 @@ actor LocalMessageIndexer {
         return snapshot
     }
 
+    func importSnapshot(_ imported: SearchIndexSnapshot) async {
+        snapshot = imported
+        loaded = true
+        try? await store.save(snapshot)
+    }
+
     /// Bootstrap index from all persisted thread rows (idempotent).
     func rebuildFromLocalThreads() async {
         snapshot = SearchIndexSnapshot()

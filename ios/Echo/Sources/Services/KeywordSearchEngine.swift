@@ -1,6 +1,13 @@
 #if os(iOS)
 import Foundation
 
+struct SearchQueryOptions: Sendable, Equatable {
+    var conversationId: String?
+    var since: Date?
+    var until: Date?
+    var includeArchived: Bool = false
+}
+
 struct SearchHit: Sendable, Equatable, Identifiable {
     var id: String { messageId }
     let messageId: String
@@ -18,7 +25,7 @@ actor KeywordSearchEngine {
 
     private let indexer = LocalMessageIndexer.shared
 
-    func search(query: String, filter: SearchFilter = .all) async -> [SearchHit] {
+    func search(query: String, filter: SearchFilter = .all, options: SearchQueryOptions = .init()) async -> [SearchHit] {
         let terms = MessageSearchTokenizer.parseQuery(query)
         guard !terms.isEmpty else { return [] }
         let snapshot = await indexer.currentSnapshot()
@@ -31,6 +38,12 @@ actor KeywordSearchEngine {
             for posting in postings {
                 guard let doc = snapshot.documents[posting.messageId] else { continue }
                 if !matchesFilter(doc.contentType, filter: filter) { continue }
+                if let conv = options.conversationId, doc.conversationId != conv { continue }
+                if let start = options.since, doc.timestamp < start.timeIntervalSince1970 { continue }
+                if let end = options.until, doc.timestamp > end.timeIntervalSince1970 { continue }
+                if !options.includeArchived && ConversationArchiveStore.isArchived(conversationId: doc.conversationId) {
+                    continue
+                }
                 let tf = 1.0 + Double(snapshot.postings[term]?.filter { $0.messageId == posting.messageId }.count ?? 1)
                 let recency = recencyBoost(timestamp: posting.timestamp)
                 let weight = tf * idf * recency * (1.0 / Double(idx + 1))

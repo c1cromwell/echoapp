@@ -6,6 +6,7 @@ enum DeviceSyncEntryType {
     static let history = "history"
     static let message = "message"
     static let tombstone = "tombstone"
+    static let searchIndex = "search_index"
 }
 
 struct SyncPushRequest: Codable, Sendable {

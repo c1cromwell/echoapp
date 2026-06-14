@@ -256,6 +256,7 @@ type DB interface {
 	ReactionStore
 	ContactDiscoveryStore
 	MessageOpsStore
+	ConversationArchiveStore
 	DeviceSyncStore
 }
 
@@ -335,6 +336,7 @@ type MemoryDB struct {
 	pins         map[string][]*PinnedMessage // conversationID → pinned messages (max 5)
 	retained     map[string]bool            // conversationID → retention/litigation-hold flag
 	disappearing map[string]int             // conversationID → disappearing TTL seconds (0 = off)
+	archived     map[string]bool            // conversationID → archived (WO-198)
 
 	// M3 device sync (WO-CA3): per-device addressed ciphertext streams, content-blind.
 	syncStreams map[string]map[string][]*SyncEntry // controllerDID → targetDeviceID → ordered entries
@@ -368,6 +370,7 @@ func NewMemoryDB() *MemoryDB {
 		pins:               make(map[string][]*PinnedMessage),
 		retained:           make(map[string]bool),
 		disappearing:       make(map[string]int),
+		archived:           make(map[string]bool),
 		syncStreams:        make(map[string]map[string][]*SyncEntry),
 		syncSeq:            make(map[string]map[string]int64),
 		syncRevoked:        make(map[string]map[string]bool),

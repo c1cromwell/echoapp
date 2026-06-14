@@ -401,6 +401,9 @@ struct ChatView: View {
             )
             ActiveChatRegistry.openConversationId = conversationId
             ConversationStore.shared.clearUnread(conversationId: conversationId)
+            #if os(iOS)
+            ScreenshotAlertService.shared.setActiveChat(conversationId: conversationId, peerDID: peerDID)
+            #endif
             viewModel.configure(
                 conversationId: conversationId,
                 peerDID: peerDID,
@@ -437,6 +440,9 @@ struct ChatView: View {
             if ActiveChatRegistry.openConversationId == conversationId {
                 ActiveChatRegistry.openConversationId = nil
             }
+            #if os(iOS)
+            ScreenshotAlertService.shared.setActiveChat(conversationId: nil, peerDID: nil)
+            #endif
             Task { await viewModel.disconnect() }
         }
         .onTapGesture {

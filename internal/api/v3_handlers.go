@@ -1408,6 +1408,32 @@ func (h *V3Handlers) handleConversationsSubroute(w http.ResponseWriter, r *http.
 			"conversation_id": convID,
 			"pins":            pins,
 		})
+	case action == "archive" && r.Method == http.MethodGet:
+		archived, err := h.DB.IsConversationArchived(r.Context(), convID)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "ARCHIVE_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+			return
+		}
+		WriteJSON(w, http.StatusOK, map[string]interface{}{
+			"conversation_id": convID,
+			"archived":        archived,
+		})
+	case action == "archive" && r.Method == http.MethodPost:
+		var req struct {
+			Archived bool `json:"archived"`
+		}
+		if err := h.readJSON(r, &req); err != nil {
+			WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+			return
+		}
+		if err := h.DB.SetConversationArchived(r.Context(), convID, req.Archived); err != nil {
+			WriteError(w, http.StatusInternalServerError, "ARCHIVE_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+			return
+		}
+		WriteJSON(w, http.StatusOK, map[string]interface{}{
+			"conversation_id": convID,
+			"archived":        req.Archived,
+		})
 	case action == "retention" && r.Method == http.MethodPost:
 		var req struct {
 			Retained bool `json:"retained"`

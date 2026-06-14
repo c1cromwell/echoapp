@@ -249,6 +249,10 @@
 		M6B003SRCH0000000000003 /* LocalMessageIndexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F003SRCH0000000000003 /* LocalMessageIndexer.swift */; };
 		M6B004SRCH0000000000004 /* KeywordSearchEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F004SRCH0000000000004 /* KeywordSearchEngine.swift */; };
 		M6B005SRCH0000000000005 /* SearchHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F005SRCH0000000000005 /* SearchHistoryStore.swift */; };
+		M6B006SRCH0000000000006 /* ConversationArchiveStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F006SRCH0000000000006 /* ConversationArchiveStore.swift */; };
+		M6B007SRCH0000000000007 /* ConversationArchiveAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F007SRCH0000000000007 /* ConversationArchiveAPIClient.swift */; };
+		M6B008SRCH0000000000008 /* ScreenshotAlertService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F008SRCH0000000000008 /* ScreenshotAlertService.swift */; };
+		M6B009SRCH0000000000009 /* SearchIndexSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F009SRCH0000000000009 /* SearchIndexSyncService.swift */; };
 		P3B001012345678901234002 /* PinnedConversationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234001 /* PinnedConversationsStore.swift */; };
 		P3B001012345678901234004 /* ContactTrustIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234003 /* ContactTrustIndex.swift */; };
 		P3B001012345678901234006 /* PersonaSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234005 /* PersonaSessionStore.swift */; };
@@ -530,6 +534,10 @@
 		M6F003SRCH0000000000003 /* LocalMessageIndexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMessageIndexer.swift; sourceTree = "<group>"; };
 		M6F004SRCH0000000000004 /* KeywordSearchEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeywordSearchEngine.swift; sourceTree = "<group>"; };
 		M6F005SRCH0000000000005 /* SearchHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchHistoryStore.swift; sourceTree = "<group>"; };
+		M6F006SRCH0000000000006 /* ConversationArchiveStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationArchiveStore.swift; sourceTree = "<group>"; };
+		M6F007SRCH0000000000007 /* ConversationArchiveAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationArchiveAPIClient.swift; sourceTree = "<group>"; };
+		M6F008SRCH0000000000008 /* ScreenshotAlertService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotAlertService.swift; sourceTree = "<group>"; };
+		M6F009SRCH0000000000009 /* SearchIndexSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchIndexSyncService.swift; sourceTree = "<group>"; };
 		P3B001012345678901234001 /* PinnedConversationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinnedConversationsStore.swift; sourceTree = "<group>"; };
 		P3B001012345678901234003 /* ContactTrustIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactTrustIndex.swift; sourceTree = "<group>"; };
 		P3B001012345678901234005 /* PersonaSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaSessionStore.swift; sourceTree = "<group>"; };
@@ -723,6 +731,10 @@
 				M6F003SRCH0000000000003 /* LocalMessageIndexer.swift */,
 				M6F004SRCH0000000000004 /* KeywordSearchEngine.swift */,
 				M6F005SRCH0000000000005 /* SearchHistoryStore.swift */,
+				M6F006SRCH0000000000006 /* ConversationArchiveStore.swift */,
+				M6F007SRCH0000000000007 /* ConversationArchiveAPIClient.swift */,
+				M6F008SRCH0000000000008 /* ScreenshotAlertService.swift */,
+				M6F009SRCH0000000000009 /* SearchIndexSyncService.swift */,
 				891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */,
 				W0E001012345678901234009 /* ContactSocialAPIClient.swift */,
 				F1A2B3C40123456789000B3 /* DeviceLinkAPIClient.swift */,
@@ -1514,6 +1526,10 @@
 				M6B003SRCH0000000000003 /* LocalMessageIndexer.swift in Sources */,
 				M6B004SRCH0000000000004 /* KeywordSearchEngine.swift in Sources */,
 				M6B005SRCH0000000000005 /* SearchHistoryStore.swift in Sources */,
+				M6B006SRCH0000000000006 /* ConversationArchiveStore.swift in Sources */,
+				M6B007SRCH0000000000007 /* ConversationArchiveAPIClient.swift in Sources */,
+				M6B008SRCH0000000000008 /* ScreenshotAlertService.swift in Sources */,
+				M6B009SRCH0000000000009 /* SearchIndexSyncService.swift in Sources */,
 				44EEF7274CAF966992DC6C16 /* MessageReceiptsAPI.swift in Sources */,
 				1411B71227274A6D2B383C77 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift in Sources */,
 				438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */,

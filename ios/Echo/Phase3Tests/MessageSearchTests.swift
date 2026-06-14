@@ -29,5 +29,29 @@ final class MessageSearchTests: XCTestCase {
         XCTAssertFalse(hits.isEmpty)
         XCTAssertEqual(hits.first?.messageId, "msg-1")
     }
+
+    func testKeywordSearch_excludesArchivedByDefault() async {
+        ConversationArchiveStore.setArchived(true, conversationId: "conv-archived")
+        await LocalMessageIndexer.shared.indexMessage(
+            conversationId: "conv-archived",
+            messageId: "msg-arch",
+            senderDID: "did:key:alice",
+            body: "secret archived keyword",
+            sentAt: Date(),
+            contentType: "text"
+        )
+        await LocalMessageIndexer.shared.indexMessage(
+            conversationId: "conv-active",
+            messageId: "msg-active",
+            senderDID: "did:key:alice",
+            body: "secret archived keyword",
+            sentAt: Date(),
+            contentType: "text"
+        )
+        let hits = await KeywordSearchEngine.shared.search(query: "archived keyword")
+        XCTAssertEqual(hits.count, 1)
+        XCTAssertEqual(hits.first?.conversationId, "conv-active")
+        ConversationArchiveStore.setArchived(false, conversationId: "conv-archived")
+    }
 }
 #endif

@@ -333,6 +333,20 @@ Single device with DM history in local thread store.
 
 Automated helpers: `swift test --filter MessageSearchTests` (Xcode).
 
+### 6.15 Archive, screenshot alerts, index sync (M6b / WO-198 + WO-73)
+
+Two signed-in clients on LAN backend where noted.
+
+| Step | Action | Expected |
+|------|--------|----------|
+| 1 | Archive a conversation (API or future swipe) | `POST /v3/conversations/{id}/archive` persists flag; thread leaves main Chats list |
+| 2 | Open **Archived** from Chats footer link | Archived thread listed; unarchive restores to Chats |
+| 3 | Search unique keyword in archived thread | Hit excluded from default search |
+| 4 | Device A linked to B → send DMs → trigger index push | B pull applies `search_index` sync entry; B search finds A's keywords |
+| 5 | Enable screenshot notifications → B opens chat → A takes screenshot | B receives ephemeral `screenshot_alert` WS event (no server plaintext) |
+
+Automated helpers: `go test ./internal/api/ -run 'Archive|Poll|Screenshot'`, `go test ./internal/database/ -run Archive`, `swift test --filter MessageSearchTests`.
+
 ### 6.5 OIDC4VC (WO-100)
 
 `OIDC4VC_ENABLED=true` → enrollment → wallet → `echo-enroll://` callback.

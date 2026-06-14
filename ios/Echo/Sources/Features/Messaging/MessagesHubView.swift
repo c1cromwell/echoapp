@@ -7,7 +7,7 @@ import SwiftUI
 /// folder icon (biometric-gated).
 struct MessagesHubView: View {
     enum Segment: String, Identifiable {
-        case chats, groups, channels, hidden
+        case chats, groups, channels, hidden, archived
         var id: String { rawValue }
         var title: String {
             switch self {
@@ -15,6 +15,7 @@ struct MessagesHubView: View {
             case .groups: return "Groups"
             case .channels: return "Channels"
             case .hidden: return "Hidden"
+            case .archived: return "Archived"
             }
         }
         static let standard: [Segment] = [.chats, .groups, .channels]
@@ -64,6 +65,7 @@ struct MessagesHubView: View {
                         case .groups:   groupsContent
                         case .channels: placeholder(icon: "dot.radiowaves.left.and.right", text: "Broadcast channels are coming after groups.")
                         case .hidden:   hiddenContent
+                        case .archived: archivedContent
                         }
                     }
                 }
@@ -120,11 +122,20 @@ struct MessagesHubView: View {
     }
 
     private var filtered: [StoredConversation] {
-        let unpinned = conversations.filter { !pinnedStore.isPinned($0.id) }
+        let archived = ConversationArchiveStore.archivedIds()
+        let unpinned = conversations.filter { !pinnedStore.isPinned($0.id) && !archived.contains($0.id) }
         return unpinned.filter { conv in
-            searchText.isEmpty || conv.contactName.localizedCaseInsensitiveContains(searchText)
+            let matchesSearch = searchText.isEmpty
+                || conv.contactName.localizedCaseInsensitiveContains(searchText)
+                || conv.lastMessage.localizedCaseInsensitiveContains(searchText)
+            return matchesSearch
         }
         .sorted { ($0.unreadCount > 0) && ($1.unreadCount == 0) }
+    }
+
+    private var archivedConversations: [StoredConversation] {
+        let archived = ConversationArchiveStore.archivedIds()
+        return conversations.filter { archived.contains($0.id) }
     }
 
     private var header: some View {
@@ -263,6 +274,22 @@ struct MessagesHubView: View {
             ForEach(filtered) { conv in
                 conversationRow(conv)
                 Divider().background(Color.echoHair).padding(.horizontal, 18)
+            }
+            if !archivedConversations.isEmpty {
+                Button {
+                    withAnimation { segment = .archived }
+                } label: {
+                    HStack {
+                        Image(systemName: "archivebox")
+                        Text("Archived (\(archivedConversations.count))")
+                        Spacer()
+                    }
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.echoInk55)
+                    .padding(.horizontal, Spacing.lg.rawValue)
+                    .padding(.vertical, 12)
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -473,6 +500,18 @@ struct MessagesHubView: View {
             placeholder(icon: "eye.slash", text: "No hidden chats yet.\nUse chat settings to hide a conversation, or tap \"New hidden chat\" above.")
         } else {
             ForEach(hiddenConversations) { conv in
+                conversationRow(conv)
+                Divider().background(Color.echoHair).padding(.horizontal, 18)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var archivedContent: some View {
+        if archivedConversations.isEmpty {
+            placeholder(icon: "archivebox", text: "No archived conversations.")
+        } else {
+            ForEach(archivedConversations) { conv in
                 conversationRow(conv)
                 Divider().background(Color.echoHair).padding(.horizontal, 18)
             }

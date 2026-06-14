@@ -114,6 +114,7 @@ struct MessagesTabView: View {
                 recoveryPromptPresented = true
             }
             DeviceHistorySyncBootstrap.pullIfNeeded()
+            SearchIndexSyncBootstrap.pullIfNeeded()
             BackupScheduler.runIfDue()
             if let code = appState.pendingInviteCode {
                 pendingInviteCode = code
@@ -260,6 +261,10 @@ struct MessagesTabView: View {
         }
 
         try? await service.connect(accessToken: token)
+        #if os(iOS)
+        ScreenshotAlertService.shared.configure(signalService: service)
+        ScreenshotAlertService.shared.startMonitoring()
+        #endif
     }
 }
 

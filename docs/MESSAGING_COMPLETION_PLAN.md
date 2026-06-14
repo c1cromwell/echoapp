@@ -226,8 +226,12 @@ Designed, unbuilt → M6a foundation in progress.
   - ✅ **iOS:** `EncryptedIndexStore`, `LocalMessageIndexer`, `MessageSearchTokenizer`,
     `KeywordSearchEngine` (AND + fuzzy + recency rank), `SearchHistoryStore`; hooks on
     `ConversationThreadStore`; `SearchView`/`SearchViewModel` wired; `Phase3Tests/MessageSearchTests.swift`.
-  - ⏳ **M6 remaining:** WO-73 cross-device index sync; archive/folders (WO-198/54); polls (WO-23);
-    screenshot WS event; advanced filters UI; conversation-list search; Xcode §6.14 sign-off.
+  - ✅ **M6b foundation (2026-05-29):** archive API (`/v3/conversations/{id}/archive`) + local
+    `ConversationArchiveStore`; WO-73 `SearchIndexSyncService` (`search_index` device sync);
+    ephemeral WS `poll` + `screenshot_alert`; `ScreenshotAlertService`; archived segment in
+    `MessagesHubView`; search date/chat filters; tests in Go + `MessageSearchTests`.
+  - ⏳ **M6 remaining:** poll create/vote UI; archive swipe actions; conversation-list search polish;
+    two-device WO-73 + screenshot E2E; Xcode §6.14–6.15 sign-off.
 
 ### M7 — Privacy-preserving on-device AI  · **differentiator, last**
 - **WOs:** WO-CA1 (private AI), precursors WO-2.5/2.6 (on-device translation + thread summaries).

@@ -36,8 +36,10 @@ type WSControlMessage struct {
 var ephemeralSignalTypes = map[string]bool{
 	"typing":       true, // payload: TypingSignal
 	"read_receipt": true, // payload: ReadReceiptSignal
-	"reaction":     true, // payload: ReactionSignal (live update; durable truth is the reactions API)
+	"reaction":       true, // payload: ReactionSignal (live update; durable truth is the reactions API)
 	"group_key":    true, // payload: GroupKeySignal (E2E key package; content-blind opaque blob)
+	"poll":           true, // payload: PollSignal (live poll update; WO-23)
+	"screenshot_alert": true, // payload: ScreenshotAlertSignal (M6)
 }
 
 // TypingSignal is the payload of a Type:"typing" WS message (ephemeral).
@@ -96,12 +98,27 @@ type DisappearingSignal struct {
 
 // GroupKeySignal is the payload of a Type:"group_key" WS message — an admin
 // distributes a per-member encrypted AES-256 group key package (WO-207 / M2).
-// EncryptedKey is opaque ciphertext; the relay never decrypts it.
 type GroupKeySignal struct {
 	GroupID       string `json:"group_id"`
 	Version       int    `json:"version"`
 	EncryptedKey  []byte `json:"encrypted_key"`
 	DistributedBy string `json:"distributed_by"`
+}
+
+// PollSignal is the payload of a Type:"poll" WS message (WO-23 / M6).
+// Options and votes are opaque client-encrypted blobs; relay routes only.
+type PollSignal struct {
+	ConversationID string `json:"conversation_id"`
+	PollID         string `json:"poll_id"`
+	Action         string `json:"action"` // create|vote|close
+	OptionID       string `json:"option_id,omitempty"`
+	Ciphertext     []byte `json:"ciphertext,omitempty"`
+}
+
+// ScreenshotAlertSignal notifies the peer that a screenshot may have been taken (M6).
+type ScreenshotAlertSignal struct {
+	ConversationID string `json:"conversation_id"`
+	AlertedAt      string `json:"alerted_at"`
 }
 
 // CallSignal is the payload of Type:"call_signal" WS messages (M4 / WO-5).

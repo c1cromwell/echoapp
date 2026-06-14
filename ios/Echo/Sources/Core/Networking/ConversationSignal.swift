@@ -14,6 +14,8 @@ enum ConversationSignalType {
     static let pin = "pin"
     static let disappearingConfig = "disappearing_config"
     static let groupKey = "group_key"
+    static let poll = "poll"
+    static let screenshotAlert = "screenshot_alert"
 }
 
 enum TypingState: String, Codable, Sendable {
@@ -123,7 +125,6 @@ struct DisappearingPayload: Codable, Sendable, Equatable {
     }
 }
 
-/// Per-member sealed group AES key package (opaque on the wire).
 struct GroupKeyPayload: Codable, Sendable, Equatable {
     let groupId: String
     let version: Int
@@ -135,6 +136,32 @@ struct GroupKeyPayload: Codable, Sendable, Equatable {
         case version
         case encryptedKey = "encrypted_key"
         case distributedBy = "distributed_by"
+    }
+}
+
+struct PollPayload: Codable, Sendable, Equatable {
+    let conversationId: String
+    let pollId: String
+    let action: String
+    let optionId: String?
+    let ciphertext: Data?
+
+    enum CodingKeys: String, CodingKey {
+        case conversationId = "conversation_id"
+        case pollId = "poll_id"
+        case action
+        case optionId = "option_id"
+        case ciphertext
+    }
+}
+
+struct ScreenshotAlertPayload: Codable, Sendable, Equatable {
+    let conversationId: String
+    let alertedAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case conversationId = "conversation_id"
+        case alertedAt = "alerted_at"
     }
 }
 
@@ -298,6 +325,21 @@ struct GroupKeySignalEvent: Sendable, Equatable {
     let distributedBy: String
 }
 
+struct PollSignalEvent: Sendable, Equatable {
+    let conversationId: String
+    let peerDID: String
+    let pollId: String
+    let action: String
+    let optionId: String?
+    let ciphertext: Data?
+}
+
+struct ScreenshotAlertSignalEvent: Sendable, Equatable {
+    let conversationId: String
+    let peerDID: String
+    let alertedAt: String
+}
+
 enum ConversationSignalEvent: Sendable, Equatable {
     case typing(TypingSignalEvent)
     case readReceipt(ReadReceiptSignalEvent)
@@ -308,6 +350,8 @@ enum ConversationSignalEvent: Sendable, Equatable {
     case pin(PinSignalEvent)
     case disappearing(DisappearingSignalEvent)
     case groupKey(GroupKeySignalEvent)
+    case poll(PollSignalEvent)
+    case screenshotAlert(ScreenshotAlertSignalEvent)
 }
 
 // MARK: - Partial header for routing inbound JSON
@@ -365,6 +409,45 @@ enum ConversationSignalCodec {
             from: nil,
             conversationId: conversationId,
             payload: ReadReceiptPayload(conversationId: conversationId, messageIds: messageIds, readAt: readAt),
+            timestamp: isoTimestamp()
+        )
+        let data = try encoder.encode(envelope)
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw ConversationSignalError.encodingFailed
+        }
+        return text
+    }
+
+    static func encodePoll(
+        to peerDID: String,
+        conversationId: String,
+        payload: PollPayload
+    ) throws -> String {
+        let envelope = WSEnvelope(
+            type: ConversationSignalType.poll,
+            to: peerDID,
+            from: nil,
+            conversationId: conversationId,
+            payload: payload,
+            timestamp: isoTimestamp()
+        )
+        let data = try encoder.encode(envelope)
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw ConversationSignalError.encodingFailed
+        }
+        return text
+    }
+
+    static func encodeScreenshotAlert(to peerDID: String, conversationId: String) throws -> String {
+        let envelope = WSEnvelope(
+            type: ConversationSignalType.screenshotAlert,
+            to: peerDID,
+            from: nil,
+            conversationId: conversationId,
+            payload: ScreenshotAlertPayload(
+                conversationId: conversationId,
+                alertedAt: isoTimestamp()
+            ),
             timestamp: isoTimestamp()
         )
         let data = try encoder.encode(envelope)
@@ -503,6 +586,23 @@ enum ConversationSignalCodec {
                 version: envelope.payload.version,
                 encryptedKey: envelope.payload.encryptedKey,
                 distributedBy: envelope.payload.distributedBy
+            ))
+        case ConversationSignalType.poll:
+            let envelope = try decoder.decode(WSEnvelope<PollPayload>.self, from: data)
+            return .poll(PollSignalEvent(
+                conversationId: envelope.payload.conversationId,
+                peerDID: peerDID,
+                pollId: envelope.payload.pollId,
+                action: envelope.payload.action,
+                optionId: envelope.payload.optionId,
+                ciphertext: envelope.payload.ciphertext
+            ))
+        case ConversationSignalType.screenshotAlert:
+            let envelope = try decoder.decode(WSEnvelope<ScreenshotAlertPayload>.self, from: data)
+            return .screenshotAlert(ScreenshotAlertSignalEvent(
+                conversationId: envelope.payload.conversationId,
+                peerDID: peerDID,
+                alertedAt: envelope.payload.alertedAt
             ))
         case ConversationSignalType.text:
             if let envelope = try? decoder.decode(WSEnvelope<TextMessagePayload>.self, from: data) {

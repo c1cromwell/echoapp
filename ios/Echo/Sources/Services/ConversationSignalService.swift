@@ -108,6 +108,15 @@ final class ConversationSignalService: @unchecked Sendable {
         try await transport.send(text: text)
     }
 
+    func sendPoll(conversationId: String, peerDID: String, payload: PollPayload) async throws {
+        let text = try ConversationSignalCodec.encodePoll(
+            to: peerDID,
+            conversationId: conversationId,
+            payload: payload
+        )
+        try await transport.send(text: text)
+    }
+
     func sendGroupTextMessage(
         conversationId: String,
         payload: TextMessagePayload
@@ -170,6 +179,8 @@ final class ConversationSignalService: @unchecked Sendable {
         case .delete(let e): conversationId = e.conversationId
         case .pin(let e): conversationId = e.conversationId
         case .disappearing(let e): conversationId = e.conversationId
+        case .poll(let e): conversationId = e.conversationId
+        case .screenshotAlert(let e): conversationId = e.conversationId
         case .groupKey: return
         }
 

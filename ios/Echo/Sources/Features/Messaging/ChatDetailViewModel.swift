@@ -9,6 +9,7 @@ final class ChatDetailViewModel {
     // MARK: - Published UI state
 
     var peerIsTyping = false
+    var peerScreenshotNotice = false
     var peerDisplayName = ""
     var messages: [ChatDetailMessage] = []
     var inputText = ""
@@ -47,6 +48,7 @@ final class ChatDetailViewModel {
     private var typingDebounceTask: Task<Void, Never>?
     private var typingIdleTask: Task<Void, Never>?
     private var peerTypingClearTask: Task<Void, Never>?
+    private var screenshotNoticeClearTask: Task<Void, Never>?
     private var sentReadReceiptIDs = Set<String>()
     private var userReactionByMessage: [String: String] = [:]
 
@@ -616,6 +618,12 @@ final class ChatDetailViewModel {
         case .disappearing(let e):
             guard e.conversationId == conversationId else { return }
             disappearingTTLSeconds = max(0, e.ttlSeconds)
+        case .screenshotAlert(let e):
+            guard e.conversationId == conversationId else { return }
+            peerScreenshotNotice = true
+            scheduleScreenshotNoticeClear()
+        case .poll:
+            break // Poll UI deferred to M6c; codec + relay wired in M6b.
         case .groupKey:
             break
         }
@@ -665,6 +673,15 @@ final class ChatDetailViewModel {
             try? await Task.sleep(nanoseconds: UInt64(TypingIndicatorLogic.peerTypingSafetyTimeout * 1_000_000_000))
             guard !Task.isCancelled else { return }
             self?.peerIsTyping = false
+        }
+    }
+
+    private func scheduleScreenshotNoticeClear() {
+        screenshotNoticeClearTask?.cancel()
+        screenshotNoticeClearTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 8_000_000_000)
+            guard !Task.isCancelled else { return }
+            self?.peerScreenshotNotice = false
         }
     }
 }
