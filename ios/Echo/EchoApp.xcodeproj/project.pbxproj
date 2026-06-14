@@ -244,6 +244,11 @@
 		M5B002MEDIA000000000002 /* MediaMessageCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F002MEDIA000000000002 /* MediaMessageCrypto.swift */; };
 		M5B003MEDIA000000000003 /* MediaMessageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F003MEDIA000000000003 /* MediaMessageService.swift */; };
 		M5B004MEDIA000000000004 /* VoiceNoteRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F004MEDIA000000000004 /* VoiceNoteRecorder.swift */; };
+		M6B001SRCH0000000000001 /* MessageSearchTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F001SRCH0000000000001 /* MessageSearchTokenizer.swift */; };
+		M6B002SRCH0000000000002 /* EncryptedIndexStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F002SRCH0000000000002 /* EncryptedIndexStore.swift */; };
+		M6B003SRCH0000000000003 /* LocalMessageIndexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F003SRCH0000000000003 /* LocalMessageIndexer.swift */; };
+		M6B004SRCH0000000000004 /* KeywordSearchEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F004SRCH0000000000004 /* KeywordSearchEngine.swift */; };
+		M6B005SRCH0000000000005 /* SearchHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F005SRCH0000000000005 /* SearchHistoryStore.swift */; };
 		P3B001012345678901234002 /* PinnedConversationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234001 /* PinnedConversationsStore.swift */; };
 		P3B001012345678901234004 /* ContactTrustIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234003 /* ContactTrustIndex.swift */; };
 		P3B001012345678901234006 /* PersonaSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234005 /* PersonaSessionStore.swift */; };
@@ -520,6 +525,11 @@
 		M5F002MEDIA000000000002 /* MediaMessageCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaMessageCrypto.swift; sourceTree = "<group>"; };
 		M5F003MEDIA000000000003 /* MediaMessageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaMessageService.swift; sourceTree = "<group>"; };
 		M5F004MEDIA000000000004 /* VoiceNoteRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRecorder.swift; sourceTree = "<group>"; };
+		M6F001SRCH0000000000001 /* MessageSearchTokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageSearchTokenizer.swift; sourceTree = "<group>"; };
+		M6F002SRCH0000000000002 /* EncryptedIndexStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncryptedIndexStore.swift; sourceTree = "<group>"; };
+		M6F003SRCH0000000000003 /* LocalMessageIndexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMessageIndexer.swift; sourceTree = "<group>"; };
+		M6F004SRCH0000000000004 /* KeywordSearchEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeywordSearchEngine.swift; sourceTree = "<group>"; };
+		M6F005SRCH0000000000005 /* SearchHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchHistoryStore.swift; sourceTree = "<group>"; };
 		P3B001012345678901234001 /* PinnedConversationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinnedConversationsStore.swift; sourceTree = "<group>"; };
 		P3B001012345678901234003 /* ContactTrustIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactTrustIndex.swift; sourceTree = "<group>"; };
 		P3B001012345678901234005 /* PersonaSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaSessionStore.swift; sourceTree = "<group>"; };
@@ -708,6 +718,11 @@
 				M5F001MEDIA000000000001 /* MediaAPIClient.swift */,
 				M5F002MEDIA000000000002 /* MediaMessageCrypto.swift */,
 				M5F003MEDIA000000000003 /* MediaMessageService.swift */,
+				M6F001SRCH0000000000001 /* MessageSearchTokenizer.swift */,
+				M6F002SRCH0000000000002 /* EncryptedIndexStore.swift */,
+				M6F003SRCH0000000000003 /* LocalMessageIndexer.swift */,
+				M6F004SRCH0000000000004 /* KeywordSearchEngine.swift */,
+				M6F005SRCH0000000000005 /* SearchHistoryStore.swift */,
 				891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */,
 				W0E001012345678901234009 /* ContactSocialAPIClient.swift */,
 				F1A2B3C40123456789000B3 /* DeviceLinkAPIClient.swift */,
@@ -1494,6 +1509,11 @@
 				M5B002MEDIA000000000002 /* MediaMessageCrypto.swift in Sources */,
 				M5B003MEDIA000000000003 /* MediaMessageService.swift in Sources */,
 				M5B004MEDIA000000000004 /* VoiceNoteRecorder.swift in Sources */,
+				M6B001SRCH0000000000001 /* MessageSearchTokenizer.swift in Sources */,
+				M6B002SRCH0000000000002 /* EncryptedIndexStore.swift in Sources */,
+				M6B003SRCH0000000000003 /* LocalMessageIndexer.swift in Sources */,
+				M6B004SRCH0000000000004 /* KeywordSearchEngine.swift in Sources */,
+				M6B005SRCH0000000000005 /* SearchHistoryStore.swift in Sources */,
 				44EEF7274CAF966992DC6C16 /* MessageReceiptsAPI.swift in Sources */,
 				1411B71227274A6D2B383C77 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift in Sources */,
 				438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */,

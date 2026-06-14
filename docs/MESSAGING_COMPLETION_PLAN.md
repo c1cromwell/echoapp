@@ -214,7 +214,7 @@ Encryption service exists; transport pipeline foundation in progress.
     fetch on iOS, Opus codec, waveform playback, Xcode §6.13 sign-off.
 
 ### M6 — Search & advanced messaging
-Designed, unbuilt.
+Designed, unbuilt → M6a foundation in progress.
 - **WOs:** WO-3 (local encrypted index), WO-16 (keyword search), WO-29 (advanced filters),
   WO-197 (conversation search), WO-198/54 (archive + folders), WO-23 (polls), screenshot alerts.
 - **Work:** device-local encrypted inverted index + tokenizer (HKDF-derived index key); fuzzy/boolean
@@ -222,6 +222,12 @@ Designed, unbuilt.
 - **Gate:** search returns ranked local results with no plaintext index on server; cross-device index
   sync (via M3/WO-73); poll create/vote/close E2E.
 - **Est:** 5–8 wks. **Depends:** M0 (data), M3/WO-73 (index sync).
+- **Progress (2026-05-29) — M6a foundation:**
+  - ✅ **iOS:** `EncryptedIndexStore`, `LocalMessageIndexer`, `MessageSearchTokenizer`,
+    `KeywordSearchEngine` (AND + fuzzy + recency rank), `SearchHistoryStore`; hooks on
+    `ConversationThreadStore`; `SearchView`/`SearchViewModel` wired; `Phase3Tests/MessageSearchTests.swift`.
+  - ⏳ **M6 remaining:** WO-73 cross-device index sync; archive/folders (WO-198/54); polls (WO-23);
+    screenshot WS event; advanced filters UI; conversation-list search; Xcode §6.14 sign-off.
 
 ### M7 — Privacy-preserving on-device AI  · **differentiator, last**
 - **WOs:** WO-CA1 (private AI), precursors WO-2.5/2.6 (on-device translation + thread summaries).

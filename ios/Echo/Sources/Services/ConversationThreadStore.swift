@@ -78,6 +78,7 @@ enum ConversationThreadStore {
         guard !stored.contains(where: { $0.id == message.id }) else { return }
         stored.append(StoredThreadMessage(from: message))
         persist(conversationId: conversationId, messages: stored)
+        notifySearchIndex(conversationId: conversationId, message: stored.last!)
     }
 
     static func updateDeliveryStatus(
@@ -106,6 +107,18 @@ enum ConversationThreadStore {
         UserDefaults.standard.set(data, forKey: keyPrefix + conversationId)
     }
 
+    private static func notifySearchIndex(conversationId: String, message: StoredThreadMessage) {
+        Task {
+            await LocalMessageIndexer.shared.indexMessage(
+                conversationId: conversationId,
+                messageId: message.id,
+                senderDID: message.senderDID,
+                body: message.content,
+                sentAt: StoredThreadMessage.parseSentAt(message.sentAtISO)
+            )
+        }
+    }
+
     // MARK: - M3 history sync export (WO-CA3)
 
     /// Conversation ids that have persisted thread rows.
@@ -128,6 +141,7 @@ enum ConversationThreadStore {
         let existing = Set(stored.map(\.id))
         for msg in incoming where !existing.contains(msg.id) {
             stored.append(msg)
+            notifySearchIndex(conversationId: conversationId, message: msg)
         }
         persist(conversationId: conversationId, messages: stored)
     }

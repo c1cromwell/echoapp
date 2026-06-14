@@ -1,0 +1,33 @@
+import XCTest
+@testable import Echo
+
+#if os(iOS)
+final class MessageSearchTests: XCTestCase {
+    func testTokenizer_splitsWords() {
+        let tokens = MessageSearchTokenizer.tokenize("Hello World testing")
+        XCTAssertTrue(tokens.contains("hello"))
+        XCTAssertTrue(tokens.contains("world"))
+        XCTAssertTrue(tokens.contains("testing"))
+    }
+
+    func testParseQuery_phrase() {
+        let terms = MessageSearchTokenizer.parseQuery("\"exact phrase\" hello")
+        XCTAssertEqual(terms, ["exact phrase", "hello"])
+    }
+
+    func testKeywordSearch_findsMatch() async {
+        await LocalMessageIndexer.shared.rebuildFromLocalThreads()
+        await LocalMessageIndexer.shared.indexMessage(
+            conversationId: "conv-search",
+            messageId: "msg-1",
+            senderDID: "did:key:alice",
+            body: "meet me at the lighthouse tonight",
+            sentAt: Date(),
+            contentType: "text"
+        )
+        let hits = await KeywordSearchEngine.shared.search(query: "lighthouse")
+        XCTAssertFalse(hits.isEmpty)
+        XCTAssertEqual(hits.first?.messageId, "msg-1")
+    }
+}
+#endif

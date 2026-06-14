@@ -83,6 +83,8 @@ public struct SearchView: View {
         }
         .background(Color.Echo.surface)
         .onAppear { isSearchFocused = true }
+        .onChange(of: viewModel.query) { _, _ in viewModel.performSearch() }
+        .onChange(of: viewModel.activeFilter) { _, _ in viewModel.performSearch() }
     }
 }
 
@@ -130,8 +132,50 @@ class SearchViewModel: ObservableObject {
     @Published var filterChat: String?
     @Published var showAdvancedFilters = false
 
+    private var searchTask: Task<Void, Never>?
+
+    init() {
+        recentSearches = SearchHistoryStore.load()
+        Task { await LocalMessageIndexer.shared.rebuildFromLocalThreads() }
+    }
+
     func clearRecentSearches() {
         recentSearches.removeAll()
+        SearchHistoryStore.clear()
+    }
+
+    func performSearch() {
+        searchTask?.cancel()
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard q.count >= 2 else {
+            results = []
+            isSearching = false
+            return
+        }
+        isSearching = true
+        let filter = activeFilter
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+            let hits = await KeywordSearchEngine.shared.search(query: q, filter: filter)
+            guard !Task.isCancelled else { return }
+            results = hits.map { hit in
+                SearchResult(
+                    id: hit.messageId,
+                    conversationId: hit.conversationId,
+                    contactName: ContactThreadHelper.truncatedDID(hit.senderDID),
+                    contactAvatar: nil,
+                    matchedText: hit.matchedText,
+                    timestamp: hit.timestamp,
+                    messageType: hit.contentType,
+                    attachmentName: nil,
+                    attachmentSize: nil
+                )
+            }
+            isSearching = false
+            SearchHistoryStore.append(q)
+            recentSearches = SearchHistoryStore.load()
+        }
     }
 }
 

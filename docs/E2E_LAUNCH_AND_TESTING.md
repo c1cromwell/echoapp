@@ -319,6 +319,20 @@ Two signed-in clients on LAN backend (`make dev`). Trust tier ≥2 required for 
 
 Automated helpers: `go test ./internal/api/ -run 'Media|Overflow'`, `swift test --filter MediaMessageWireTests` (Xcode).
 
+### 6.14 Message search (M6a / WO-3 + WO-16 + WO-197)
+
+Single device with DM history in local thread store.
+
+| Step | Action | Expected |
+|------|--------|----------|
+| 1 | Send several unique-keyword DMs in a thread | Index updates within ~5s of each message |
+| 2 | Open **Search** (Messages hub) → query unique keyword | Ranked hit with context snippet |
+| 3 | Filter **Voice** / **Photos** after media messages | Filter narrows results by content type |
+| 4 | Inspect Application Support | `search_index/index.enc` exists (encrypted blob, no plaintext) |
+| 5 | Recent searches | Query appears in history; Clear removes list |
+
+Automated helpers: `swift test --filter MessageSearchTests` (Xcode).
+
 ### 6.5 OIDC4VC (WO-100)
 
 `OIDC4VC_ENABLED=true` → enrollment → wallet → `echo-enroll://` callback.
