@@ -7,10 +7,13 @@ import SwiftUI
 
 public struct SearchView: View {
     @StateObject private var viewModel = SearchViewModel()
+    private let initialQuery: String?
     @FocusState private var isSearchFocused: Bool
     @Environment(\.dismiss) private var dismiss
 
-    public init() {}
+    public init(initialQuery: String? = nil) {
+        self.initialQuery = initialQuery
+    }
 
     public var body: some View {
         VStack(spacing: 0) {
@@ -107,7 +110,13 @@ public struct SearchView: View {
             }
         }
         .background(Color.Echo.surface)
-        .onAppear { isSearchFocused = true }
+        .onAppear {
+            isSearchFocused = true
+            if let initialQuery, !initialQuery.isEmpty, viewModel.query.isEmpty {
+                viewModel.query = initialQuery
+                viewModel.performSearch()
+            }
+        }
         .onChange(of: viewModel.query) { _, _ in viewModel.performSearch() }
         .onChange(of: viewModel.activeFilter) { _, _ in viewModel.performSearch() }
         .onChange(of: viewModel.filterChat) { _, _ in viewModel.performSearch() }
@@ -279,6 +288,23 @@ struct SearchAdvancedFiltersPanel: View {
             viewModel.filterDateRange = startDate...endDate
         } else {
             viewModel.filterDateRange = nil
+        }
+    }
+}
+
+/// Sheet wrapper for hub → full message search (WO-197).
+struct MessageSearchSheet: View {
+    let initialQuery: String
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            SearchView(initialQuery: initialQuery)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Done") { dismiss() }
+                    }
+                }
         }
     }
 }

@@ -19,6 +19,15 @@ final class DeviceHistorySyncService {
         self.conversationStore = conversationStore
     }
 
+    /// Primary device: export local history + search index to a newly linked device.
+    func seedAllToDevice(publicKeyHex: String) async throws {
+        try await seedHistoryToDevice(publicKeyHex: publicKeyHex)
+        guard let syncAPI = DIContainer.shared.resolveDeviceSyncAPI(),
+              let crypto = DIContainer.shared.resolveDeviceSyncCrypto() else { return }
+        let indexSync = SearchIndexSyncService(syncAPI: syncAPI, crypto: crypto)
+        try? await indexSync.pushIndexToDevice(publicKeyHex: publicKeyHex)
+    }
+
     /// Primary device: export local history, ECDH-wrap to target pubkey, push to its sync stream.
     func seedHistoryToDevice(publicKeyHex: String) async throws {
         let trimmed = publicKeyHex.trimmingCharacters(in: .whitespacesAndNewlines)

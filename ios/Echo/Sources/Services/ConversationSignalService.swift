@@ -143,6 +143,11 @@ final class ConversationSignalService: @unchecked Sendable {
 
     func handleIncoming(text: String) {
         #if os(iOS)
+        if OverflowManifestHandler.tryHandle(text: text, reprocess: { [weak self] replay in
+            self?.handleIncoming(text: replay)
+        }) {
+            return
+        }
         if let callEvent = try? CallSignalCodec.decode(from: text) {
             lock.lock()
             let handler = onCallSignal

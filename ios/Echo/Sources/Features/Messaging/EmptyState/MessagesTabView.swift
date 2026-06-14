@@ -18,6 +18,8 @@ struct MessagesTabView: View {
     @State private var showBiometricGate = false
     @State private var composeHiddenPresented = false
     @State private var showCreateGroup = false
+    @State private var showMessageSearch = false
+    @State private var messageSearchSeed = ""
 
     private var personaFilteredConversations: [StoredConversation] {
         conversationStore.conversations.filter {
@@ -71,6 +73,10 @@ struct MessagesTabView: View {
                                     ConversationArchiveStore.setArchived(archived, conversationId: conversationId)
                                 }
                             }
+                        },
+                        onOpenMessageSearch: { query in
+                            messageSearchSeed = query
+                            showMessageSearch = true
                         }
                     )
                 }
@@ -106,6 +112,9 @@ struct MessagesTabView: View {
                     onCancel: { enrollmentSheetPresented = false }
                 )
             )
+        }
+        .sheet(isPresented: $showMessageSearch) {
+            MessageSearchSheet(initialQuery: messageSearchSeed)
         }
         .sheet(isPresented: $recoveryPromptPresented) {
             recoveryExportSheet

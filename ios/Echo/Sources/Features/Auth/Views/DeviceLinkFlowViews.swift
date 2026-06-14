@@ -102,9 +102,9 @@ struct LinkNewDeviceQRView: View {
                 let fresh = devices.filter { !knownPublicKeys.contains($0.publicKeyHex.lowercased()) }
                 for device in fresh {
                     do {
-                        try await sync.seedHistoryToDevice(publicKeyHex: device.publicKeyHex)
+                        try await sync.seedAllToDevice(publicKeyHex: device.publicKeyHex)
                         knownPublicKeys.insert(device.publicKeyHex.lowercased())
-                        syncStatus = "Message history sent to \(device.deviceLabel ?? "new device")."
+                        syncStatus = "History and search index sent to \(device.deviceLabel ?? "new device")."
                     } catch {
                         syncStatus = "New device linked. Open Messages to finish history sync."
                     }

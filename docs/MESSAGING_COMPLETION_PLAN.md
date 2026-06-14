@@ -210,8 +210,9 @@ Encryption service exists; transport pipeline foundation in progress.
   - ✅ **iOS:** `MediaAPIClient`, `MediaMessageCrypto`, `MediaMessageService`, `MediaAttachmentRef`
     in `TextMessagePayload`; `ChatDetailViewModel.sendMedia` / `sendVoiceNote`; `VoiceNoteRecorder`
     (AAC); DI + `Phase3Tests/MediaMessageWireTests.swift`.
-  - ⏳ **M5 remaining:** PhotosPicker/attachment UI, thumbnails, group media path, overflow manifest
-    fetch on iOS, Opus codec, waveform playback, Xcode §6.13 sign-off.
+  - ⏳ **M5 remaining:** thumbnails, group media polish, Opus codec, waveform playback; Xcode §6.13 sign-off.
+  - ✅ **M5c overflow fetch (2026-05-29):** `GET /v3/relay/overflow/{uri}` + iOS `OverflowManifestHandler`
+    replays encblob payloads on reconnect manifest.
 
 ### M6 — Search & advanced messaging
 Designed, unbuilt → M6a foundation in progress.
@@ -232,6 +233,8 @@ Designed, unbuilt → M6a foundation in progress.
     `MessagesHubView`; search date/chat filters; tests in Go + `MessageSearchTests`.
   - ✅ **M6c UI (2026-05-29):** `PollService` + `CreatePollSheet`/`PollBubbleView`; archive toggle in
     `ChatSettingsSheet` + hub context menu; advanced search filters panel; screenshot notice banner.
+  - ✅ **M6d sync + hub search (2026-05-29):** `seedAllToDevice` pushes WO-73 search index on QR link;
+    hub "Search messages" opens `SearchView` sheet.
   - ⏳ **M6 sign-off:** two-device poll vote + WO-73 index sync + screenshot E2E; Xcode §6.14–6.15.
 
 ### M7 — Privacy-preserving on-device AI  · **differentiator, last**

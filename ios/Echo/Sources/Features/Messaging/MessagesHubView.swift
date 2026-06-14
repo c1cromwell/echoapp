@@ -37,6 +37,7 @@ struct MessagesHubView: View {
     let onSwitchPersona: (PersonaSummary) -> Void
     let onSelectHiddenPersona: (PersonaSummary) -> Void
     let onToggleArchive: (String, Bool) -> Void
+    let onOpenMessageSearch: (String) -> Void
 
     @Bindable private var pinnedStore = PinnedConversationsStore.shared
     @State private var searchText = ""
@@ -57,6 +58,25 @@ struct MessagesHubView: View {
                 secureBar
                 Color.clear.frame(height: 12)
                 if showSearch { searchField }
+                if showSearch && searchText.trimmingCharacters(in: .whitespacesAndNewlines).count >= 2 {
+                    Button {
+                        onOpenMessageSearch(searchText.trimmingCharacters(in: .whitespacesAndNewlines))
+                        withAnimation { showSearch = false }
+                        searchText = ""
+                        searchFocused = false
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "text.magnifyingglass")
+                            Text("Search messages for \"\(searchText)\"")
+                            Spacer()
+                        }
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.echoSignal)
+                        .padding(.horizontal, Spacing.lg.rawValue)
+                        .padding(.bottom, 6)
+                    }
+                    .buttonStyle(.plain)
+                }
                 segmentBar
 
                 ScrollView {
@@ -575,7 +595,8 @@ struct MessagesHubView_Previews: PreviewProvider {
             onLockHidden: {},
             onSwitchPersona: { _ in },
             onSelectHiddenPersona: { _ in },
-            onToggleArchive: { _, _ in }
+            onToggleArchive: { _, _ in },
+            onOpenMessageSearch: { _ in }
         )
     }
 }

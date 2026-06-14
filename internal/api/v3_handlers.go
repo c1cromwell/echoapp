@@ -33,6 +33,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/services/rewards"
 	"github.com/thechadcromwell/echoapp/pkg/didkey"
 	"github.com/thechadcromwell/echoapp/pkg/passport"
+	"github.com/thechadcromwell/echoapp/pkg/storage/encblob"
 )
 
 // V3Handlers holds all service dependencies for v3 API routes.
@@ -49,6 +50,7 @@ type V3Handlers struct {
 	Signals      SignalPublisher            // optional; pushes live typing/receipt/reaction signals over WS (WO-10/192)
 	Notifier     OfflineNotifier            // optional; content-blind push when a signal target is offline (WO-57)
 	MessageBackup *passport.SyncService     // optional; WO-64/CA2 client-encrypted history backup relay
+	OverflowStorage encblob.Storage         // optional; WO-237 overflow blob retrieval
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.
@@ -105,6 +107,9 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	// Encrypted message backup (WO-64 / WO-CA2) — phrase-encrypted blob relay
 	mux.HandleFunc("/v3/backup/push", h.handleBackupPush)
 	mux.HandleFunc("/v3/backup/pull", h.handleBackupPull)
+
+	// Offline queue overflow blobs (WO-237 / M5)
+	mux.HandleFunc("/v3/relay/overflow/", h.handleOverflowBlob)
 
 	// WebRTC call signaling (M4)
 	mux.HandleFunc("/v3/calls/ice-servers", h.handleCallsICEServers)

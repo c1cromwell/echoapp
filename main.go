@@ -250,6 +250,7 @@ func (s *Server) Start() error {
 		Signals:       router.WSHub,       // WO-10/192: live reaction + read-receipt fan-out over WS
 		Notifier:      offlineNotifier,    // WO-57: push reactions to offline peers
 		MessageBackup: messageBackupSvc,   // WO-64/CA2: encrypted history backup relay
+		OverflowStorage: backupBlobStore,  // WO-237: overflow blob fetch for reconnect manifest
 	}
 	router.WSHub.SetGroupMemberLister(router.V3.Groups) // M2: group text fan-out to members
 	router.WSHub.SetOfflineOverflowStorage(backupBlobStore) // WO-237: queue overflow to encblob
