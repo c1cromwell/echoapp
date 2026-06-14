@@ -57,11 +57,26 @@ final class DeviceManagementViewModel: ObservableObject {
 
     func logoutAllDevices() async {
         do {
+            await revokeAllRemoteSyncStreams()
             let token = try await tokenManager.getValidAccessToken()
             try await apiClient.logout(token: token, allDevices: true)
             tokenManager.clearTokens()
+            BackupSessionKeyStore.clear()
         } catch {
             errorMessage = "Could not log out devices."
+        }
+    }
+
+    private func revokeAllRemoteSyncStreams() async {
+        guard let did = await CurrentUserSession.currentDID(),
+              let client = DIContainer.shared.resolveAPIClient(),
+              let sync = DIContainer.shared.resolveDeviceHistorySync() else { return }
+        let link = DeviceLinkAPIClient(apiClient: client)
+        guard let devices = try? await link.listRegisteredDevices(did: did) else { return }
+        let currentLabel = currentDevice?.friendlyName.lowercased()
+        for device in devices {
+            if let label = device.deviceLabel?.lowercased(), label == currentLabel { continue }
+            try? await sync.revokeDevice(publicKeyHex: device.publicKeyHex)
         }
     }
 

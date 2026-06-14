@@ -62,6 +62,31 @@ final class MessageBackupService {
         return try applyEncryptedArchive(data, phrase: phrase)
     }
 
+    func isBackupDue(interval: TimeInterval) -> Bool {
+        guard interval > 0 else { return false }
+        guard let last = lastBackupDate else { return true }
+        return Date().timeIntervalSince(last) >= interval
+    }
+
+    func uploadCloudBackupWithStoredKey() async throws {
+        let archive = try buildEncryptedArchiveWithStoredKey()
+        _ = try await backupAPI.push(ciphertext: archive)
+        recordBackupMetadata(byteCount: archive.count)
+        try archive.write(to: localBackupURL, options: .atomic)
+    }
+
+    @discardableResult
+    func createLocalBackupWithStoredKey() async throws -> URL {
+        let archive = try buildEncryptedArchiveWithStoredKey()
+        try archive.write(to: localBackupURL, options: .atomic)
+        recordBackupMetadata(byteCount: archive.count)
+        return localBackupURL
+    }
+
+    var hasLocalBackup: Bool {
+        FileManager.default.fileExists(atPath: localBackupURL.path)
+    }
+
     private func buildEncryptedArchive(phrase: RecoveryPhrase) throws -> Data {
         let bundle = HistorySyncBundleBuilder.build(from: conversationStore)
         return try BackupCrypto.encrypt(bundle: bundle, phrase: phrase)
@@ -72,6 +97,12 @@ final class MessageBackupService {
         let bundle = try BackupCrypto.decrypt(archiveData: data, phrase: phrase)
         HistorySyncBundleMerger.apply(bundle, to: conversationStore)
         return bundle.conversations.count
+    }
+
+    private func buildEncryptedArchiveWithStoredKey() throws -> Data {
+        let key = try BackupSessionKeyStore.loadSymmetricKey()
+        let bundle = HistorySyncBundleBuilder.build(from: conversationStore)
+        return try BackupCrypto.encrypt(bundle: bundle, key: key)
     }
 
     private func recordBackupMetadata(byteCount: Int) {

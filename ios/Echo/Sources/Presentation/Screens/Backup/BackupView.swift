@@ -71,13 +71,40 @@ public struct BackupView: View {
                     .font(.system(size: 14))
                     .foregroundStyle(Color.Echo.onSurface)
                     .disabled(viewModel.isWorking)
+
+                    Button("Restore from Local File") {
+                        viewModel.phrasePromptMode = .restoreLocal
+                        viewModel.showPhrasePrompt = true
+                    }
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.Echo.onSurface)
+                    .disabled(viewModel.isWorking || !viewModel.hasLocalBackup)
                 }
 
                 // Auto-backup settings
                 GhostBorderSection(title: "AUTO-BACKUP") {
-                    SettingsRow(icon: "clock", label: "Frequency", value: viewModel.backupFrequency)
+                    Toggle("Enable automatic backup", isOn: $viewModel.autoBackupEnabled)
+                        .font(Font.Echo.bodyMedium)
+                        .onChange(of: viewModel.autoBackupEnabled) { _, on in
+                            viewModel.persistAutoBackupSettings(enabled: on)
+                        }
+
+                    Picker("Frequency", selection: $viewModel.selectedFrequency) {
+                        ForEach(BackupScheduler.Frequency.allCases, id: \.self) { freq in
+                            Text(freq.displayName).tag(freq)
+                        }
+                    }
+                    .onChange(of: viewModel.selectedFrequency) { _, value in
+                        viewModel.persistFrequency(value)
+                    }
+
+                    Toggle("Wi‑Fi only", isOn: $viewModel.wifiOnly)
+                        .font(Font.Echo.bodyMedium)
+                        .onChange(of: viewModel.wifiOnly) { _, value in
+                            BackupScheduler.wifiOnly = value
+                        }
+
                     SettingsRow(icon: "photo", label: "Include Media", value: viewModel.includeMedia ? "Yes" : "No")
-                    SettingsRow(icon: "wifi", label: "WiFi Only", value: viewModel.wifiOnly ? "Yes" : "No")
                 }
 
                 // Export options
@@ -130,14 +157,17 @@ class BackupViewModel: ObservableObject {
     enum PhrasePromptMode {
         case backup
         case restoreCloud
+        case restoreLocal
     }
 
     @Published var lastBackupDate: String = "Never"
     @Published var backupSize: String = "—"
     @Published var backupLocation: String = "Local + Cloud"
-    @Published var backupFrequency: String = "Manual"
     @Published var includeMedia = false
     @Published var wifiOnly = true
+    @Published var autoBackupEnabled = false
+    @Published var selectedFrequency: BackupScheduler.Frequency = .manual
+    @Published var hasLocalBackup = false
     @Published var showRecoveryPhrase = false
     @Published var showDeleteConfirmation = false
     @Published var showPhrasePrompt = false
@@ -150,6 +180,10 @@ class BackupViewModel: ObservableObject {
     func refreshMetadata() {
         #if os(iOS)
         guard let service = DIContainer.shared.resolveMessageBackup() else { return }
+        hasLocalBackup = service.hasLocalBackup
+        autoBackupEnabled = BackupScheduler.autoBackupEnabled
+        selectedFrequency = BackupScheduler.frequency
+        wifiOnly = BackupScheduler.wifiOnly
         if let date = service.lastBackupDate {
             let formatter = RelativeDateTimeFormatter()
             lastBackupDate = formatter.localizedString(for: date, relativeTo: Date())
@@ -159,6 +193,14 @@ class BackupViewModel: ObservableObject {
             backupSize = "—"
         }
         #endif
+    }
+
+    func persistFrequency(_ frequency: BackupScheduler.Frequency) {
+        BackupScheduler.frequency = frequency
+    }
+
+    func persistAutoBackupSettings(enabled: Bool) {
+        BackupScheduler.autoBackupEnabled = enabled
     }
 
     func submitPhrase() async {
@@ -187,11 +229,18 @@ class BackupViewModel: ObservableObject {
             case .backup:
                 try await service.uploadCloudBackup(phrase: phrase)
                 try await service.createLocalBackup(phrase: phrase)
+                if BackupScheduler.autoBackupEnabled {
+                    try BackupSessionKeyStore.save(from: phrase)
+                }
                 statusMessage = "Backup saved locally and uploaded to cloud."
                 statusIsError = false
             case .restoreCloud:
                 let count = try await service.restoreCloudBackup(phrase: phrase)
                 statusMessage = "Restored \(count) conversations from cloud backup."
+                statusIsError = false
+            case .restoreLocal:
+                let count = try await service.restoreLocalBackup(phrase: phrase)
+                statusMessage = "Restored \(count) conversations from local backup."
                 statusIsError = false
             }
             refreshMetadata()
@@ -214,7 +263,9 @@ private struct BackupPhrasePromptSheet: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text(viewModel.phrasePromptMode == .backup
                      ? "Enter your 24-word recovery phrase to encrypt this backup."
-                     : "Enter your recovery phrase to decrypt and restore from cloud.")
+                     : viewModel.phrasePromptMode == .restoreCloud
+                        ? "Enter your recovery phrase to decrypt and restore from cloud."
+                        : "Enter your recovery phrase to restore from the local backup file.")
                     .font(Font.Echo.bodyMedium)
                     .foregroundStyle(Color.Echo.outline)
 
