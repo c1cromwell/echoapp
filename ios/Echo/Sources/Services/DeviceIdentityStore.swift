@@ -16,26 +16,26 @@ enum DeviceIdentityStore {
     }
 
     /// Pins the sync stream id for this install from the linked device's public key.
-    static func assignSyncDeviceId(fromPublicKeyHex hex: String) {
+    static func assignSyncDeviceId(fromPublicKeyHex hex: String) async {
         let id = syncDeviceId(fromPublicKeyHex: hex)
-        try? KeychainManager.shared.store(value: id, key: keychainKey)
+        try? await KeychainManager.shared.store(value: id, key: keychainKey)
     }
 
     /// Returns a durable device id, creating and persisting one on first access.
-    static func currentDeviceId() -> String {
-        if let existing = try? KeychainManager.shared.retrieve(key: keychainKey),
+    static func currentDeviceId() async -> String {
+        if let existing = try? await KeychainManager.shared.retrieve(key: keychainKey),
            !existing.isEmpty {
             return existing
         }
         let id = "dev-\(UUID().uuidString.lowercased())"
-        try? KeychainManager.shared.store(value: id, key: keychainKey)
+        try? await KeychainManager.shared.store(value: id, key: keychainKey)
         return id
     }
 
     #if DEBUG
     /// Test-only reset.
-    static func resetForTesting() {
-        try? KeychainManager.shared.delete(key: keychainKey)
+    static func resetForTesting() async {
+        try? await KeychainManager.shared.delete(key: keychainKey)
     }
     #endif
 }

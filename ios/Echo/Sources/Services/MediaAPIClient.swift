@@ -28,9 +28,26 @@ struct MediaUploadResponse: Decodable, Sendable {
     }
 }
 
+struct OverflowManifest: Decodable, Sendable {
+    let fileId: String
+    let totalChunks: Int
+    let chunkSizeBytes: Int
+    let contentType: String
+    let createdAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case fileId = "file_id"
+        case totalChunks = "total_chunks"
+        case chunkSizeBytes = "chunk_size_bytes"
+        case contentType = "content_type"
+        case createdAt = "created_at"
+    }
+}
+
 enum MediaEndpoint: APIEndpoint {
     case upload
     case chunk(fileId: String, index: Int)
+    case overflowManifest(fileId: String)
 
     var path: String {
         switch self {
@@ -38,6 +55,8 @@ enum MediaEndpoint: APIEndpoint {
             return "/v3/media/upload"
         case .chunk(let fileId, let index):
             return "/v3/media/\(fileId)/chunks/\(index)"
+        case .overflowManifest(let fileId):
+            return "/v3/media/\(fileId)/manifest"
         }
     }
 }
@@ -45,6 +64,8 @@ enum MediaEndpoint: APIEndpoint {
 protocol MediaAPIClient: Sendable {
     func uploadEncrypted(data: Data, mimeType: String, trustTier: Int) async throws -> MediaUploadResponse
     func downloadChunks(fileId: String, chunkCount: Int) async throws -> Data
+    func fetchOverflowManifest(fileId: String) async throws -> OverflowManifest
+    func downloadWithManifest(fileId: String) async throws -> Data
 }
 
 actor LiveMediaAPIClient: MediaAPIClient {
@@ -74,6 +95,15 @@ actor LiveMediaAPIClient: MediaAPIClient {
             combined.append(chunk)
         }
         return combined
+    }
+
+    func fetchOverflowManifest(fileId: String) async throws -> OverflowManifest {
+        try await apiClient.get(endpoint: MediaEndpoint.overflowManifest(fileId: fileId))
+    }
+
+    func downloadWithManifest(fileId: String) async throws -> Data {
+        let manifest = try await fetchOverflowManifest(fileId: fileId)
+        return try await downloadChunks(fileId: fileId, chunkCount: manifest.totalChunks)
     }
 }
 #endif

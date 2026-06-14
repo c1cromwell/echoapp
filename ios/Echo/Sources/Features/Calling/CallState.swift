@@ -25,6 +25,16 @@ enum TrustTier: String, Codable, CaseIterable {
 
     var displayName: String { rawValue.capitalized }
 
+    static func from(tierInt: Int) -> TrustTier {
+        switch tierInt {
+        case 0: return .newcomer
+        case 1: return .basic
+        case 2: return .verified
+        case 3: return .trusted
+        default: return tierInt >= 4 ? .elite : .newcomer
+        }
+    }
+
     var color: String {
         switch self {
         case .newcomer: return "#6E7881"

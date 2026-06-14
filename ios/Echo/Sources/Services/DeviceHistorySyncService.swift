@@ -39,7 +39,7 @@ final class DeviceHistorySyncService {
     /// Linked device: pull pending ciphertext entries, unwrap, merge into local stores.
     @discardableResult
     func pullAndApplyPendingHistory() async throws -> Int {
-        let deviceId = DeviceIdentityStore.currentDeviceId()
+        let deviceId = await DeviceIdentityStore.currentDeviceId()
         var cursor = SyncCursorStore.load(deviceId: deviceId)
         var appliedBundles = 0
 

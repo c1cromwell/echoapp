@@ -159,7 +159,8 @@ class CallViewModel: ObservableObject {
     private func loadContactInfo() async {
         if !contactName.isEmpty { return }
         contactName = ContactThreadHelper.truncatedDID(peerDID)
-        contactTrustTier = ContactTrustIndex.shared.tier(conversationId: "", peerDID: peerDID)
+        let tier = ContactTrustIndex.shared.tier(conversationId: "", peerDID: peerDID)
+        contactTrustTier = TrustTier.from(tierInt: tier)
     }
 
     private func startDurationTimer() {

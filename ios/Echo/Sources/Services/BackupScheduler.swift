@@ -52,10 +52,10 @@ enum BackupScheduler {
         Task { @MainActor in
             guard autoBackupEnabled,
                   frequency != .manual,
-                  BackupSessionKeyStore.hasStoredKey(),
+                  await BackupSessionKeyStore.hasStoredKey(),
                   let service = DIContainer.shared.resolveMessageBackup(),
                   service.isBackupDue(interval: frequency.interval ?? 0) else { return }
-            if wifiOnly, !NetworkReachability.isOnWiFi { return }
+            if wifiOnly, !NetworkReachability.isOnWiFi() { return }
             do {
                 try await service.uploadCloudBackupWithStoredKey()
                 try await service.createLocalBackupWithStoredKey()

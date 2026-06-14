@@ -203,7 +203,7 @@ struct LinkDeviceScanView: View {
             let pubBase64 = try await SecureEnclaveManager.shared
                 .generateBiometricProtectedKey(id: "echo-identity-signing-linked")
             let hex = try DeviceLinkAPIClient.publicKeyHex(fromBase64PublicKey: pubBase64)
-            DeviceIdentityStore.assignSyncDeviceId(fromPublicKeyHex: hex)
+            await DeviceIdentityStore.assignSyncDeviceId(fromPublicKeyHex: hex)
             let client = DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
             _ = try await DeviceLinkAPIClient(apiClient: client).completeLink(
                 token: token,

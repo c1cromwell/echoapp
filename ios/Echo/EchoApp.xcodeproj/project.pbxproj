@@ -7,39 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		558379EC406748B933383F58 /* MessageOpsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEC6E1333EB7EE114D4A244 /* MessageOpsAPI.swift */; };
-		G2B001M2GROUPS00000000001 /* GroupsAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F001M2GROUPS00000000001 /* GroupsAPIClient.swift */; };
-		G2B002M2GROUPS00000000002 /* GroupKeyDistributionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F002M2GROUPS00000000002 /* GroupKeyDistributionService.swift */; };
-		G2B003M2GROUPS00000000003 /* GroupMemberResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F003M2GROUPS00000000003 /* GroupMemberResolver.swift */; };
-		G2B004M2GROUPS00000000004 /* GroupCreateViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F004M2GROUPS00000000004 /* GroupCreateViewModel.swift */; };
-		G2B005M2GROUPS00000000005 /* GroupCreateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F005M2GROUPS00000000005 /* GroupCreateView.swift */; };
-		G2B006M2GROUPS00000000006 /* GroupCreateSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F006M2GROUPS00000000006 /* GroupCreateSheet.swift */; };
-		G2B007M2GROUPS00000000007 /* GroupChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F007M2GROUPS00000000007 /* GroupChatViewModel.swift */; };
-		G2B008M2GROUPS00000000008 /* GroupChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F008M2GROUPS00000000008 /* GroupChatView.swift */; };
-		G2B009M2GROUPS00000000009 /* GroupDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F009M2GROUPS00000000009 /* GroupDetailViewModel.swift */; };
-		G2B010M2GROUPS00000000010 /* GroupDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F010M2GROUPS00000000010 /* GroupDetailView.swift */; };
-		G2B011M2GROUPS00000000011 /* GroupDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F011M2GROUPS00000000011 /* GroupDetailSheet.swift */; };
-		M3B001SYNC00000000000001 /* DeviceIdentityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F001SYNC00000000000001 /* DeviceIdentityStore.swift */; };
-		M3B002SYNC00000000000002 /* DeviceSyncAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F002SYNC00000000000002 /* DeviceSyncAPIClient.swift */; };
-		M3B003SYNC00000000000003 /* HistorySyncBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F003SYNC00000000000003 /* HistorySyncBundle.swift */; };
-		M3B004SYNC00000000000004 /* DeviceSyncCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F004SYNC00000000000004 /* DeviceSyncCrypto.swift */; };
-		M3B005SYNC00000000000005 /* SyncCursorStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F005SYNC00000000000005 /* SyncCursorStore.swift */; };
-		M3B006SYNC00000000000006 /* DeviceHistorySyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F006SYNC00000000000006 /* DeviceHistorySyncService.swift */; };
-		M3C001BACKUP00000000001 /* BackupCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F007BACKUP00000000001 /* BackupCrypto.swift */; };
-		M3C002BACKUP00000000002 /* BackupAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F008BACKUP00000000002 /* BackupAPIClient.swift */; };
-		M3C003BACKUP00000000003 /* MessageBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F009BACKUP00000000003 /* MessageBackupService.swift */; };
-		M3C004BACKUP00000000004 /* BackupScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F010BACKUP00000000004 /* BackupScheduler.swift */; };
-		M3C005BACKUP00000000005 /* BackupSessionKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F011BACKUP00000000005 /* BackupSessionKeyStore.swift */; };
-		M4B001CALL00000000000001 /* CallSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F001CALL00000000000001 /* CallSignal.swift */; };
-		M4B002CALL00000000000002 /* CallHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F002CALL00000000000002 /* CallHistoryStore.swift */; };
-		M4B003CALL00000000000003 /* WebRTCCallSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F003CALL00000000000003 /* WebRTCCallSession.swift */; };
-		M4B004CALL00000000000004 /* CallICEAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F004CALL00000000000004 /* CallICEAPIClient.swift */; };
-		M4B005CALL00000000000005 /* CallSignalingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F005CALL00000000000005 /* CallSignalingService.swift */; };
-		M5B001MEDIA000000000001 /* MediaAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F001MEDIA000000000001 /* MediaAPIClient.swift */; };
-		M5B002MEDIA000000000002 /* MediaMessageCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F002MEDIA000000000002 /* MediaMessageCrypto.swift */; };
-		M5B003MEDIA000000000003 /* MediaMessageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F003MEDIA000000000003 /* MediaMessageService.swift */; };
-		M5B004MEDIA000000000004 /* VoiceNoteRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F004MEDIA000000000004 /* VoiceNoteRecorder.swift */; };
-		44EEF7274CAF966992DC6C16 /* MessageReceiptsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */; };
 		0115B291F78020BAFF4D4534 /* Sources/Features/Contacts/ScannedIdentityParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36EA8623AE0B5A2F4FBCD41D /* Sources/Features/Contacts/ScannedIdentityParser.swift */; };
 		02A5447CFA298C4CFBCC838C /* AuthCoordinatorVM.swift in Sources */ = {isa = PBXBuildFile; fileRef = D61E569198EEF3B0893C66CA /* AuthCoordinatorVM.swift */; };
 		02F0409451F267CF1AF1E7D2 /* MessagesEmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C0560F8802692A2CD9FBAD /* MessagesEmptyStateView.swift */; };
@@ -54,7 +21,6 @@
 		0B4FE7EA463245E7B6531EEA /* Sources/Features/Onboarding/VIP/VIPStandardIDVView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E6EA147E2FF4D5F80E78EB1 /* Sources/Features/Onboarding/VIP/VIPStandardIDVView.swift */; };
 		0FE66933DF0640D2D48559B4 /* DigitalEvidenceBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBA2A027C3B24A1107626C0 /* DigitalEvidenceBridge.swift */; };
 		0FFEB52AED61050CC4EBD41A /* EnrollmentTailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A0240156C862C9CBA4FA0A /* EnrollmentTailView.swift */; };
-		C3D4E5F60718293A4B5C6D7E /* CredentialEnrollmentTailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C6D /* CredentialEnrollmentTailService.swift */; };
 		113D1831CE8D691664096254 /* TrustTierBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D5AF14FB3F52481E6067ED /* TrustTierBadge.swift */; };
 		1411B71227274A6D2B383C77 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98C229FC30EE9C6760D7C826 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift */; };
 		141B61A5C244A38E6CD1888D /* QRIdentityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A3969657C8BE94FC969D441 /* QRIdentityView.swift */; };
@@ -88,10 +54,15 @@
 		3D2F15A42FD305E70020765D /* MessagesHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2F15A32FD305E70020765D /* MessagesHubView.swift */; };
 		3D737E97D9F6CBA1C1C0C7C2 /* WalletCredentialEnrollmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB3F2272967F4E123A1DE17B /* WalletCredentialEnrollmentView.swift */; };
 		3D9852EE2FD2515C00058340 /* NewContactSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D9852ED2FD2515C00058340 /* NewContactSheet.swift */; };
+		3D99E72F2FDE61DB0094416C /* WaveformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D99E72E2FDE61DB0094416C /* WaveformView.swift */; };
+		3D99E7312FDE61EB0094416C /* AudioPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D99E7302FDE61EB0094416C /* AudioPlayerView.swift */; };
+		3D99E7332FDE62110094416C /* MediaBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D99E7322FDE62110094416C /* MediaBubbleView.swift */; };
+		3D99E7352FDE622D0094416C /* AttachmentPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D99E7342FDE622D0094416C /* AttachmentPickerView.swift */; };
 		3DDB230C2FC734B3008D0406 /* ConversationSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DDB230A2FC734B3008D0406 /* ConversationSignal.swift */; };
 		3DDB230D2FC734B3008D0406 /* ConversationSignalTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DDB230B2FC734B3008D0406 /* ConversationSignalTransport.swift */; };
 		438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BAE98848BA987C5A80A8C29 /* Sources/Features/Contacts/QRContactAddCoordinator.swift */; };
 		44A76F73C2FA0EC4B2B302B3 /* EnrollmentMethodPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32B0820603CA96AB12C6B0F2 /* EnrollmentMethodPickerView.swift */; };
+		44EEF7274CAF966992DC6C16 /* MessageReceiptsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */; };
 		457E55D39C01E078446C0C0D /* TrustIntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DEC5EEF55471C6F8870E9C /* TrustIntroView.swift */; };
 		487536588FB9795F1DB3CCA6 /* GlacialNavigationBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C5694423C1E75B960F7FABD /* GlacialNavigationBar.swift */; };
 		4D0DF60FB9BDCAA78C9DE51D /* PhoneEntryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3045E40F5ADA487DA975697B /* PhoneEntryViewModel.swift */; };
@@ -104,6 +75,7 @@
 		54941CC2787A54B6C3F2C753 /* KeychainProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C953E1F71859558CE13ACE0 /* KeychainProtocols.swift */; };
 		55655F2761EA8CB28D17EAF1 /* ContactDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F36BE0D7C763283B1DD09A78 /* ContactDetailView.swift */; };
 		557B71B5A3114C07B26A4271 /* Sources/Features/Onboarding/Passkey/PasskeySetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF95E2FD9EF042F3A0993098 /* Sources/Features/Onboarding/Passkey/PasskeySetupView.swift */; };
+		558379EC406748B933383F58 /* MessageOpsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEC6E1333EB7EE114D4A244 /* MessageOpsAPI.swift */; };
 		56D0E635761A7C573A86AB7F /* MessagingScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88F7F96C356F9D51AC000DAD /* MessagingScreens.swift */; };
 		5802DC68FD2AD94BF4559B69 /* SecureEnclaveManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42A1185BD0CD5B9A60D72585 /* SecureEnclaveManager.swift */; };
 		586028F5A719EB34EEE8C08D /* EchoTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46E4E0EE1C40DB8D0B214710 /* EchoTextField.swift */; };
@@ -184,6 +156,7 @@
 		BFEA7EAD0D93D48A883B414B /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3611A4DB2DD50E20ACB4AB02 /* MainTabView.swift */; };
 		C0729FD92FEA98E967F7C966 /* CallState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81B28C5CAE4896371D46E4AD /* CallState.swift */; };
 		C1EB0C374AD56790B5FE8064 /* Rewards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8338FAD6819C1B7C9702729C /* Rewards.swift */; };
+		C3D4E5F60718293A4B5C6D7E /* CredentialEnrollmentTailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C6D /* CredentialEnrollmentTailService.swift */; };
 		C6D8F4344B7978E226BA8A35 /* Sources/Features/Settings/PrivacySettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BEDF0FDB113BA7F8CA28856 /* Sources/Features/Settings/PrivacySettingsStore.swift */; };
 		C81FC50C954569586D9D8861 /* MessageRelayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6C50EE36EACB42038AC550F /* MessageRelayManager.swift */; };
 		C8E06DA033CD6C5CB2F0DFF9 /* NotificationCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08AB58ED1AF62C1DA3CC0D1D /* NotificationCenterView.swift */; };
@@ -240,6 +213,37 @@
 		F87F0FFF3BDDDE670F5300DE /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 300AF0FDC279A0A6FCD7F651 /* KeychainManager.swift */; };
 		F995E8FAF2297AA73B9133FB /* DeliveryStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78A096DCD53AAA92D864E318 /* DeliveryStatus.swift */; };
 		FA8D3A76C5A6FA0B68E2B99F /* PasskeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F4610B4C101F03754584AB5 /* PasskeyManager.swift */; };
+		G2B001M2GROUPS00000000001 /* GroupsAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F001M2GROUPS00000000001 /* GroupsAPIClient.swift */; };
+		G2B002M2GROUPS00000000002 /* GroupKeyDistributionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F002M2GROUPS00000000002 /* GroupKeyDistributionService.swift */; };
+		G2B003M2GROUPS00000000003 /* GroupMemberResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F003M2GROUPS00000000003 /* GroupMemberResolver.swift */; };
+		G2B004M2GROUPS00000000004 /* GroupCreateViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F004M2GROUPS00000000004 /* GroupCreateViewModel.swift */; };
+		G2B005M2GROUPS00000000005 /* GroupCreateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F005M2GROUPS00000000005 /* GroupCreateView.swift */; };
+		G2B006M2GROUPS00000000006 /* GroupCreateSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F006M2GROUPS00000000006 /* GroupCreateSheet.swift */; };
+		G2B007M2GROUPS00000000007 /* GroupChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F007M2GROUPS00000000007 /* GroupChatViewModel.swift */; };
+		G2B008M2GROUPS00000000008 /* GroupChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F008M2GROUPS00000000008 /* GroupChatView.swift */; };
+		G2B009M2GROUPS00000000009 /* GroupDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F009M2GROUPS00000000009 /* GroupDetailViewModel.swift */; };
+		G2B010M2GROUPS00000000010 /* GroupDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F010M2GROUPS00000000010 /* GroupDetailView.swift */; };
+		G2B011M2GROUPS00000000011 /* GroupDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F011M2GROUPS00000000011 /* GroupDetailSheet.swift */; };
+		M3B001SYNC00000000000001 /* DeviceIdentityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F001SYNC00000000000001 /* DeviceIdentityStore.swift */; };
+		M3B002SYNC00000000000002 /* DeviceSyncAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F002SYNC00000000000002 /* DeviceSyncAPIClient.swift */; };
+		M3B003SYNC00000000000003 /* HistorySyncBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F003SYNC00000000000003 /* HistorySyncBundle.swift */; };
+		M3B004SYNC00000000000004 /* DeviceSyncCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F004SYNC00000000000004 /* DeviceSyncCrypto.swift */; };
+		M3B005SYNC00000000000005 /* SyncCursorStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F005SYNC00000000000005 /* SyncCursorStore.swift */; };
+		M3B006SYNC00000000000006 /* DeviceHistorySyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F006SYNC00000000000006 /* DeviceHistorySyncService.swift */; };
+		M3C001BACKUP00000000001 /* BackupCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F007BACKUP00000000001 /* BackupCrypto.swift */; };
+		M3C002BACKUP00000000002 /* BackupAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F008BACKUP00000000002 /* BackupAPIClient.swift */; };
+		M3C003BACKUP00000000003 /* MessageBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F009BACKUP00000000003 /* MessageBackupService.swift */; };
+		M3C004BACKUP00000000004 /* BackupScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F010BACKUP00000000004 /* BackupScheduler.swift */; };
+		M3C005BACKUP00000000005 /* BackupSessionKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F011BACKUP00000000005 /* BackupSessionKeyStore.swift */; };
+		M4B001CALL00000000000001 /* CallSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F001CALL00000000000001 /* CallSignal.swift */; };
+		M4B002CALL00000000000002 /* CallHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F002CALL00000000000002 /* CallHistoryStore.swift */; };
+		M4B003CALL00000000000003 /* WebRTCCallSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F003CALL00000000000003 /* WebRTCCallSession.swift */; };
+		M4B004CALL00000000000004 /* CallICEAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F004CALL00000000000004 /* CallICEAPIClient.swift */; };
+		M4B005CALL00000000000005 /* CallSignalingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F005CALL00000000000005 /* CallSignalingService.swift */; };
+		M5B001MEDIA000000000001 /* MediaAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F001MEDIA000000000001 /* MediaAPIClient.swift */; };
+		M5B002MEDIA000000000002 /* MediaMessageCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F002MEDIA000000000002 /* MediaMessageCrypto.swift */; };
+		M5B003MEDIA000000000003 /* MediaMessageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F003MEDIA000000000003 /* MediaMessageService.swift */; };
+		M5B004MEDIA000000000004 /* VoiceNoteRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F004MEDIA000000000004 /* VoiceNoteRecorder.swift */; };
 		P3B001012345678901234002 /* PinnedConversationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234001 /* PinnedConversationsStore.swift */; };
 		P3B001012345678901234004 /* ContactTrustIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234003 /* ContactTrustIndex.swift */; };
 		P3B001012345678901234006 /* PersonaSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234005 /* PersonaSessionStore.swift */; };
@@ -277,45 +281,11 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		9FEC6E1333EB7EE114D4A244 /* MessageOpsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageOpsAPI.swift; sourceTree = "<group>"; };
-		G2F001M2GROUPS00000000001 /* GroupsAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupsAPIClient.swift; sourceTree = "<group>"; };
-		G2F002M2GROUPS00000000002 /* GroupKeyDistributionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupKeyDistributionService.swift; sourceTree = "<group>"; };
-		G2F003M2GROUPS00000000003 /* GroupMemberResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupMemberResolver.swift; sourceTree = "<group>"; };
-		G2F004M2GROUPS00000000004 /* GroupCreateViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupCreateViewModel.swift; sourceTree = "<group>"; };
-		G2F005M2GROUPS00000000005 /* GroupCreateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupCreateView.swift; sourceTree = "<group>"; };
-		G2F006M2GROUPS00000000006 /* GroupCreateSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupCreateSheet.swift; sourceTree = "<group>"; };
-		G2F007M2GROUPS00000000007 /* GroupChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupChatViewModel.swift; sourceTree = "<group>"; };
-		G2F008M2GROUPS00000000008 /* GroupChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupChatView.swift; sourceTree = "<group>"; };
-		G2F009M2GROUPS00000000009 /* GroupDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupDetailViewModel.swift; sourceTree = "<group>"; };
-		G2F010M2GROUPS00000000010 /* GroupDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupDetailView.swift; sourceTree = "<group>"; };
-		G2F011M2GROUPS00000000011 /* GroupDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupDetailSheet.swift; sourceTree = "<group>"; };
-		M3F001SYNC00000000000001 /* DeviceIdentityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIdentityStore.swift; sourceTree = "<group>"; };
-		M3F002SYNC00000000000002 /* DeviceSyncAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceSyncAPIClient.swift; sourceTree = "<group>"; };
-		M3F003SYNC00000000000003 /* HistorySyncBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistorySyncBundle.swift; sourceTree = "<group>"; };
-		M3F004SYNC00000000000004 /* DeviceSyncCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceSyncCrypto.swift; sourceTree = "<group>"; };
-		M3F005SYNC00000000000005 /* SyncCursorStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncCursorStore.swift; sourceTree = "<group>"; };
-		M3F006SYNC00000000000006 /* DeviceHistorySyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceHistorySyncService.swift; sourceTree = "<group>"; };
-		M3F007BACKUP00000000001 /* BackupCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCrypto.swift; sourceTree = "<group>"; };
-		M3F008BACKUP00000000002 /* BackupAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupAPIClient.swift; sourceTree = "<group>"; };
-		M3F009BACKUP00000000003 /* MessageBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageBackupService.swift; sourceTree = "<group>"; };
-		M3F010BACKUP00000000004 /* BackupScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupScheduler.swift; sourceTree = "<group>"; };
-		M3F011BACKUP00000000005 /* BackupSessionKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupSessionKeyStore.swift; sourceTree = "<group>"; };
-		M4F001CALL00000000000001 /* CallSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallSignal.swift; sourceTree = "<group>"; };
-		M4F002CALL00000000000002 /* CallHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallHistoryStore.swift; sourceTree = "<group>"; };
-		M4F003CALL00000000000003 /* WebRTCCallSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCCallSession.swift; sourceTree = "<group>"; };
-		M4F004CALL00000000000004 /* CallICEAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallICEAPIClient.swift; sourceTree = "<group>"; };
-		M4F005CALL00000000000005 /* CallSignalingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallSignalingService.swift; sourceTree = "<group>"; };
-		M5F001MEDIA000000000001 /* MediaAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAPIClient.swift; sourceTree = "<group>"; };
-		M5F002MEDIA000000000002 /* MediaMessageCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaMessageCrypto.swift; sourceTree = "<group>"; };
-		M5F003MEDIA000000000003 /* MediaMessageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaMessageService.swift; sourceTree = "<group>"; };
-		M5F004MEDIA000000000004 /* VoiceNoteRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRecorder.swift; sourceTree = "<group>"; };
-		891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageReceiptsAPI.swift; sourceTree = "<group>"; };
 		009F1BD1BB134BC9F328319B /* EnrollmentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentModels.swift; sourceTree = "<group>"; };
 		0174AD057928239478B42111 /* GovernanceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GovernanceModels.swift; sourceTree = "<group>"; };
 		01B611B57B284D0999ADD396 /* Sources/DesignSystem/FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/DesignSystem/FlowLayout.swift; sourceTree = "<group>"; };
 		045F0D37A2347418E665A94B /* GovernanceWeightView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GovernanceWeightView.swift; sourceTree = "<group>"; };
 		05A0240156C862C9CBA4FA0A /* EnrollmentTailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentTailView.swift; sourceTree = "<group>"; };
-		B2C3D4E5F60718293A4B5C6D /* CredentialEnrollmentTailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialEnrollmentTailService.swift; sourceTree = "<group>"; };
 		0628452B4B7E0BC97FCF5484 /* BiometricAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthManager.swift; sourceTree = "<group>"; };
 		07EB4AC07F9F7A037F2CAFE3 /* AnchoringTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnchoringTracker.swift; sourceTree = "<group>"; };
 		08AB58ED1AF62C1DA3CC0D1D /* NotificationCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCenterView.swift; sourceTree = "<group>"; };
@@ -356,6 +326,10 @@
 		3D2F15A12FD2E52C0020765D /* EchoWelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoWelcomeView.swift; sourceTree = "<group>"; };
 		3D2F15A32FD305E70020765D /* MessagesHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesHubView.swift; sourceTree = "<group>"; };
 		3D9852ED2FD2515C00058340 /* NewContactSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewContactSheet.swift; sourceTree = "<group>"; };
+		3D99E72E2FDE61DB0094416C /* WaveformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformView.swift; sourceTree = "<group>"; };
+		3D99E7302FDE61EB0094416C /* AudioPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerView.swift; sourceTree = "<group>"; };
+		3D99E7322FDE62110094416C /* MediaBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaBubbleView.swift; sourceTree = "<group>"; };
+		3D99E7342FDE622D0094416C /* AttachmentPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentPickerView.swift; sourceTree = "<group>"; };
 		3DDB230A2FC734B3008D0406 /* ConversationSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationSignal.swift; sourceTree = "<group>"; };
 		3DDB230B2FC734B3008D0406 /* ConversationSignalTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationSignalTransport.swift; sourceTree = "<group>"; };
 		4023A7E250044C538B50953F /* Sources/Features/Auth/Views/SMSOTPSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Auth/Views/SMSOTPSetupView.swift; sourceTree = "<group>"; };
@@ -412,6 +386,7 @@
 		8338FAD6819C1B7C9702729C /* Rewards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rewards.swift; sourceTree = "<group>"; };
 		84C2E10C8C6F42118EFD6384 /* Sources/Features/Onboarding/FirstRun/EchoWelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/FirstRun/EchoWelcomeView.swift; sourceTree = "<group>"; };
 		88F7F96C356F9D51AC000DAD /* MessagingScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagingScreens.swift; sourceTree = "<group>"; };
+		891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageReceiptsAPI.swift; sourceTree = "<group>"; };
 		89A140FEA358ADEB8071AEA4 /* RecoveryPhrase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPhrase.swift; sourceTree = "<group>"; };
 		8B2D9B3E64D0D0827FBE804A /* Sources/Services/TextMessageCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/TextMessageCrypto.swift; sourceTree = "<group>"; };
 		8BEDF0FDB113BA7F8CA28856 /* Sources/Features/Settings/PrivacySettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Settings/PrivacySettingsStore.swift; sourceTree = "<group>"; };
@@ -423,6 +398,7 @@
 		9B651E3B2334AC002FD93084 /* AuthError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthError.swift; sourceTree = "<group>"; };
 		9DBA2A027C3B24A1107626C0 /* DigitalEvidenceBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DigitalEvidenceBridge.swift; sourceTree = "<group>"; };
 		9DE9B01FC700C282006EC335 /* BiometricIntegrityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricIntegrityService.swift; sourceTree = "<group>"; };
+		9FEC6E1333EB7EE114D4A244 /* MessageOpsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageOpsAPI.swift; sourceTree = "<group>"; };
 		A1B2C3D401234567890ABC01 /* SessionSignOut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSignOut.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A4B5D /* Contacts/ContactUseCases.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Contacts/ContactUseCases.swift; sourceTree = "<group>"; };
 		A36E448A4DBA558B75312595 /* EchoColorPalette+FirstRun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EchoColorPalette+FirstRun.swift"; sourceTree = "<group>"; };
@@ -436,6 +412,7 @@
 		AF95E2FD9EF042F3A0993098 /* Sources/Features/Onboarding/Passkey/PasskeySetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/Passkey/PasskeySetupView.swift; sourceTree = "<group>"; };
 		B13231BDE25B42DA8B76CC27 /* Sources/Features/Onboarding/Recovery/RecoverySetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/Recovery/RecoverySetupView.swift; sourceTree = "<group>"; };
 		B1B896BB33EE967785204A57 /* Sources/Features/Messaging/MessageActionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Messaging/MessageActionsSheet.swift; sourceTree = "<group>"; };
+		B2C3D4E5F60718293A4B5C6D /* CredentialEnrollmentTailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialEnrollmentTailService.swift; sourceTree = "<group>"; };
 		B31DF746EA37F28B135A3115 /* ListItems.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListItems.swift; sourceTree = "<group>"; };
 		B413CC6D71E17DF5DD1CAAC2 /* GhostBorderCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostBorderCard.swift; sourceTree = "<group>"; };
 		B4355EBE0B63DBAAA28BF761 /* Shadows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shadows.swift; sourceTree = "<group>"; };
@@ -512,6 +489,37 @@
 		FE74762315295D6ADAAB0325 /* WalletTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletTypes.swift; sourceTree = "<group>"; };
 		FF63CD1AB50EF7D840F6A9E1 /* CallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallView.swift; sourceTree = "<group>"; };
 		FF7FB602A9668C3DB15C779D /* TrustBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustBadge.swift; sourceTree = "<group>"; };
+		G2F001M2GROUPS00000000001 /* GroupsAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupsAPIClient.swift; sourceTree = "<group>"; };
+		G2F002M2GROUPS00000000002 /* GroupKeyDistributionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupKeyDistributionService.swift; sourceTree = "<group>"; };
+		G2F003M2GROUPS00000000003 /* GroupMemberResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupMemberResolver.swift; sourceTree = "<group>"; };
+		G2F004M2GROUPS00000000004 /* GroupCreateViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupCreateViewModel.swift; sourceTree = "<group>"; };
+		G2F005M2GROUPS00000000005 /* GroupCreateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupCreateView.swift; sourceTree = "<group>"; };
+		G2F006M2GROUPS00000000006 /* GroupCreateSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupCreateSheet.swift; sourceTree = "<group>"; };
+		G2F007M2GROUPS00000000007 /* GroupChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupChatViewModel.swift; sourceTree = "<group>"; };
+		G2F008M2GROUPS00000000008 /* GroupChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupChatView.swift; sourceTree = "<group>"; };
+		G2F009M2GROUPS00000000009 /* GroupDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupDetailViewModel.swift; sourceTree = "<group>"; };
+		G2F010M2GROUPS00000000010 /* GroupDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupDetailView.swift; sourceTree = "<group>"; };
+		G2F011M2GROUPS00000000011 /* GroupDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupDetailSheet.swift; sourceTree = "<group>"; };
+		M3F001SYNC00000000000001 /* DeviceIdentityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIdentityStore.swift; sourceTree = "<group>"; };
+		M3F002SYNC00000000000002 /* DeviceSyncAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceSyncAPIClient.swift; sourceTree = "<group>"; };
+		M3F003SYNC00000000000003 /* HistorySyncBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistorySyncBundle.swift; sourceTree = "<group>"; };
+		M3F004SYNC00000000000004 /* DeviceSyncCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceSyncCrypto.swift; sourceTree = "<group>"; };
+		M3F005SYNC00000000000005 /* SyncCursorStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncCursorStore.swift; sourceTree = "<group>"; };
+		M3F006SYNC00000000000006 /* DeviceHistorySyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceHistorySyncService.swift; sourceTree = "<group>"; };
+		M3F007BACKUP00000000001 /* BackupCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCrypto.swift; sourceTree = "<group>"; };
+		M3F008BACKUP00000000002 /* BackupAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupAPIClient.swift; sourceTree = "<group>"; };
+		M3F009BACKUP00000000003 /* MessageBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageBackupService.swift; sourceTree = "<group>"; };
+		M3F010BACKUP00000000004 /* BackupScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupScheduler.swift; sourceTree = "<group>"; };
+		M3F011BACKUP00000000005 /* BackupSessionKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupSessionKeyStore.swift; sourceTree = "<group>"; };
+		M4F001CALL00000000000001 /* CallSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallSignal.swift; sourceTree = "<group>"; };
+		M4F002CALL00000000000002 /* CallHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallHistoryStore.swift; sourceTree = "<group>"; };
+		M4F003CALL00000000000003 /* WebRTCCallSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCCallSession.swift; sourceTree = "<group>"; };
+		M4F004CALL00000000000004 /* CallICEAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallICEAPIClient.swift; sourceTree = "<group>"; };
+		M4F005CALL00000000000005 /* CallSignalingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallSignalingService.swift; sourceTree = "<group>"; };
+		M5F001MEDIA000000000001 /* MediaAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAPIClient.swift; sourceTree = "<group>"; };
+		M5F002MEDIA000000000002 /* MediaMessageCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaMessageCrypto.swift; sourceTree = "<group>"; };
+		M5F003MEDIA000000000003 /* MediaMessageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaMessageService.swift; sourceTree = "<group>"; };
+		M5F004MEDIA000000000004 /* VoiceNoteRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRecorder.swift; sourceTree = "<group>"; };
 		P3B001012345678901234001 /* PinnedConversationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinnedConversationsStore.swift; sourceTree = "<group>"; };
 		P3B001012345678901234003 /* ContactTrustIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactTrustIndex.swift; sourceTree = "<group>"; };
 		P3B001012345678901234005 /* PersonaSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaSessionStore.swift; sourceTree = "<group>"; };
@@ -878,21 +886,6 @@
 				3D2F15A32FD305E70020765D /* MessagesHubView.swift */,
 			);
 			path = Messaging;
-			sourceTree = "<group>";
-		};
-		G2G001M2GROUPS00000000000 /* Groups */ = {
-			isa = PBXGroup;
-			children = (
-				G2F004M2GROUPS00000000004 /* GroupCreateViewModel.swift */,
-				G2F005M2GROUPS00000000005 /* GroupCreateView.swift */,
-				G2F006M2GROUPS00000000006 /* GroupCreateSheet.swift */,
-				G2F007M2GROUPS00000000007 /* GroupChatViewModel.swift */,
-				G2F008M2GROUPS00000000008 /* GroupChatView.swift */,
-				G2F009M2GROUPS00000000009 /* GroupDetailViewModel.swift */,
-				G2F010M2GROUPS00000000010 /* GroupDetailView.swift */,
-				G2F011M2GROUPS00000000011 /* GroupDetailSheet.swift */,
-			);
-			path = Groups;
 			sourceTree = "<group>";
 		};
 		5E4CDFB2391F0B722E046A6D /* UseCases */ = {
@@ -1282,6 +1275,10 @@
 				B6E66ADB3CBEEEEC8F23CA8F /* PinnedSection.swift */,
 				FF7FB602A9668C3DB15C779D /* TrustBadge.swift */,
 				DF624401C05323ECB4F3DA03 /* TrustScoreView.swift */,
+				3D99E72E2FDE61DB0094416C /* WaveformView.swift */,
+				3D99E7302FDE61EB0094416C /* AudioPlayerView.swift */,
+				3D99E7322FDE62110094416C /* MediaBubbleView.swift */,
+				3D99E7342FDE622D0094416C /* AttachmentPickerView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1371,6 +1368,21 @@
 				89A140FEA358ADEB8071AEA4 /* RecoveryPhrase.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		G2G001M2GROUPS00000000000 /* Groups */ = {
+			isa = PBXGroup;
+			children = (
+				G2F004M2GROUPS00000000004 /* GroupCreateViewModel.swift */,
+				G2F005M2GROUPS00000000005 /* GroupCreateView.swift */,
+				G2F006M2GROUPS00000000006 /* GroupCreateSheet.swift */,
+				G2F007M2GROUPS00000000007 /* GroupChatViewModel.swift */,
+				G2F008M2GROUPS00000000008 /* GroupChatView.swift */,
+				G2F009M2GROUPS00000000009 /* GroupDetailViewModel.swift */,
+				G2F010M2GROUPS00000000010 /* GroupDetailView.swift */,
+				G2F011M2GROUPS00000000011 /* GroupDetailSheet.swift */,
+			);
+			path = Groups;
 			sourceTree = "<group>";
 		};
 		TF001A2B3C4D5E6F7890005 /* Identity */ = {
@@ -1491,6 +1503,7 @@
 				5AF3B8087411248D3FABABC8 /* Sources/Services/IdentityResolveClient.swift in Sources */,
 				5295CB3BDF92E366A9B9B3A8 /* Sources/Features/Messaging/ConversationID.swift in Sources */,
 				5BE9E0B99708F64D2C597A18 /* Sources/Features/Trust/TrustDashboardView.swift in Sources */,
+				3D99E7332FDE62110094416C /* MediaBubbleView.swift in Sources */,
 				BEF419257F11F7742E880917 /* Sources/Features/Personas/PersonaSwitcher.swift in Sources */,
 				6DB1239556C04B79646C9953 /* Sources/Features/Messaging/MessagesHubView.swift in Sources */,
 				805C2AEED804262CA646C317 /* Sources/Features/Messaging/ChatSettingsSheet.swift in Sources */,
@@ -1505,6 +1518,7 @@
 				A1B2C3D401234567890ABC02 /* SessionSignOut.swift in Sources */,
 				F2F596C925B9154A7632E2C1 /* AppleWalletMDLBridge.swift in Sources */,
 				9ADF6348876A119C3368695A /* AuthAPIClient.swift in Sources */,
+				3D99E72F2FDE61DB0094416C /* WaveformView.swift in Sources */,
 				02A5447CFA298C4CFBCC838C /* AuthCoordinatorVM.swift in Sources */,
 				3DDB230C2FC734B3008D0406 /* ConversationSignal.swift in Sources */,
 				3DDB230D2FC734B3008D0406 /* ConversationSignalTransport.swift in Sources */,
@@ -1532,6 +1546,7 @@
 				A716324DCA20209322F5C113 /* Coordinators.swift in Sources */,
 				F995E8FAF2297AA73B9133FB /* DeliveryStatus.swift in Sources */,
 				06AB894815F7B43BD801E199 /* DeviceFingerprintService.swift in Sources */,
+				3D99E7352FDE622D0094416C /* AttachmentPickerView.swift in Sources */,
 				A4B886E99F5241AC8BAD6ABB /* DeviceManagementView.swift in Sources */,
 				93BFA1978B41BFA95536D9D7 /* DeviceManagementViewModel.swift in Sources */,
 				0FE66933DF0640D2D48559B4 /* DigitalEvidenceBridge.swift in Sources */,
@@ -1550,6 +1565,7 @@
 				586028F5A719EB34EEE8C08D /* EchoTextField.swift in Sources */,
 				3CE3DDA326CF1AE787EF1EA7 /* Endpoints.swift in Sources */,
 				3D2F15A22FD2E52C0020765D /* EchoWelcomeView.swift in Sources */,
+				3D99E7312FDE61EB0094416C /* AudioPlayerView.swift in Sources */,
 				A36686A3CDC4F794588D5DE5 /* EnrollmentAPIClient.swift in Sources */,
 				3566ABF7C390638A0A34888E /* EnrollmentComponents.swift in Sources */,
 				E3AAD5ACF260E4D8B7F3317D /* EnrollmentCoordinator.swift in Sources */,

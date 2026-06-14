@@ -616,6 +616,8 @@ final class ChatDetailViewModel {
         case .disappearing(let e):
             guard e.conversationId == conversationId else { return }
             disappearingTTLSeconds = max(0, e.ttlSeconds)
+        case .groupKey:
+            break
         }
     }
 
@@ -680,6 +682,7 @@ struct ChatDetailMessage: Identifiable, Equatable {
     var replyToMessageId: String?
     var replyPreview: String?
     var sentAt: Date?
+    var mediaRef: MediaAttachmentRef?
 
     init(
         id: String,
@@ -692,7 +695,8 @@ struct ChatDetailMessage: Identifiable, Equatable {
         isRead: Bool = false,
         replyToMessageId: String? = nil,
         replyPreview: String? = nil,
-        sentAt: Date? = nil
+        sentAt: Date? = nil,
+        mediaRef: MediaAttachmentRef? = nil
     ) {
         self.id = id
         self.senderDID = senderDID
@@ -705,5 +709,6 @@ struct ChatDetailMessage: Identifiable, Equatable {
         self.replyToMessageId = replyToMessageId
         self.replyPreview = replyPreview
         self.sentAt = sentAt
+        self.mediaRef = mediaRef
     }
 }

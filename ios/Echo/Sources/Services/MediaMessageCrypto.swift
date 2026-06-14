@@ -18,11 +18,15 @@ actor MediaMessageCrypto {
     func encryptFile(_ plaintext: Data, peerDID: String) async throws -> Data {
         let hex = try await cachedPeerKeyHex(peerDID: peerDID)
         let pub = try TextMessageCrypto.dataFromPublicKeyHex(hex)
-        return try syncCrypto.wrap(plaintext: plaintext, recipientPublicKey: pub)
+        return try await syncCrypto.wrap(plaintext: plaintext, recipientPublicKey: pub)
     }
 
     func decryptFile(_ ciphertext: Data) async throws -> Data {
         try await syncCrypto.unwrapWithLocalKey(ciphertext: ciphertext)
+    }
+
+    func encryptFileSymmetric(_ plaintext: Data) async throws -> Data {
+        try await syncCrypto.wrapSymmetric(plaintext: plaintext)
     }
 
     private func cachedPeerKeyHex(peerDID: String) async throws -> String {

@@ -230,7 +230,7 @@ class BackupViewModel: ObservableObject {
                 try await service.uploadCloudBackup(phrase: phrase)
                 try await service.createLocalBackup(phrase: phrase)
                 if BackupScheduler.autoBackupEnabled {
-                    try BackupSessionKeyStore.save(from: phrase)
+                    try await BackupSessionKeyStore.save(from: phrase)
                 }
                 statusMessage = "Backup saved locally and uploaded to cloud."
                 statusIsError = false

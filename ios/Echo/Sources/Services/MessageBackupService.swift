@@ -69,7 +69,7 @@ final class MessageBackupService {
     }
 
     func uploadCloudBackupWithStoredKey() async throws {
-        let archive = try buildEncryptedArchiveWithStoredKey()
+        let archive = try await buildEncryptedArchiveWithStoredKey()
         _ = try await backupAPI.push(ciphertext: archive)
         recordBackupMetadata(byteCount: archive.count)
         try archive.write(to: localBackupURL, options: .atomic)
@@ -77,7 +77,7 @@ final class MessageBackupService {
 
     @discardableResult
     func createLocalBackupWithStoredKey() async throws -> URL {
-        let archive = try buildEncryptedArchiveWithStoredKey()
+        let archive = try await buildEncryptedArchiveWithStoredKey()
         try archive.write(to: localBackupURL, options: .atomic)
         recordBackupMetadata(byteCount: archive.count)
         return localBackupURL
@@ -99,8 +99,8 @@ final class MessageBackupService {
         return bundle.conversations.count
     }
 
-    private func buildEncryptedArchiveWithStoredKey() throws -> Data {
-        let key = try BackupSessionKeyStore.loadSymmetricKey()
+    private func buildEncryptedArchiveWithStoredKey() async throws -> Data {
+        let key = try await BackupSessionKeyStore.loadSymmetricKey()
         let bundle = HistorySyncBundleBuilder.build(from: conversationStore)
         return try BackupCrypto.encrypt(bundle: bundle, key: key)
     }

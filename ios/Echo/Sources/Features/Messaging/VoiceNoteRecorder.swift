@@ -7,6 +7,7 @@ import Foundation
 final class VoiceNoteRecorder: NSObject, ObservableObject {
     @Published private(set) var isRecording = false
     @Published private(set) var elapsed: TimeInterval = 0
+    @Published private(set) var waveformSamples: [CGFloat] = []
 
     private var recorder: AVAudioRecorder?
     private var timer: Timer?
@@ -36,10 +37,15 @@ final class VoiceNoteRecorder: NSObject, ObservableObject {
         self.outputURL = url
         isRecording = true
         elapsed = 0
+        waveformSamples = []
         timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self, self.isRecording else { return }
                 self.elapsed += 0.25
+                self.recorder?.updateMeters()
+                let power = self.recorder?.averagePower(forChannel: 0) ?? -160
+                let normalized = CGFloat(max(0, min(1, (power + 50) / 50)))
+                self.waveformSamples.append(normalized)
                 if self.elapsed >= self.maxDuration {
                     _ = try? self.stopRecording()
                 }

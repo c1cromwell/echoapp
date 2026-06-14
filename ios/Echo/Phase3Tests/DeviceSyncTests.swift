@@ -81,13 +81,13 @@ final class HistorySyncBundleTests: XCTestCase {
 }
 
 final class DeviceIdentityStoreTests: XCTestCase {
-    func testDeviceIdIsStable() {
-        DeviceIdentityStore.resetForTesting()
-        let a = DeviceIdentityStore.currentDeviceId()
-        let b = DeviceIdentityStore.currentDeviceId()
+    func testDeviceIdIsStable() async {
+        await DeviceIdentityStore.resetForTesting()
+        let a = await DeviceIdentityStore.currentDeviceId()
+        let b = await DeviceIdentityStore.currentDeviceId()
         XCTAssertEqual(a, b)
         XCTAssertTrue(a.hasPrefix("dev-"))
-        DeviceIdentityStore.resetForTesting()
+        await DeviceIdentityStore.resetForTesting()
     }
 
     func testSyncDeviceIdIsDeterministic() {
@@ -98,12 +98,13 @@ final class DeviceIdentityStoreTests: XCTestCase {
         XCTAssertTrue(a.hasPrefix("dev-"))
     }
 
-    func testAssignSyncDeviceIdPinsStream() {
-        DeviceIdentityStore.resetForTesting()
+    func testAssignSyncDeviceIdPinsStream() async {
+        await DeviceIdentityStore.resetForTesting()
         let hex = "04" + String(repeating: "cd", count: 32)
-        DeviceIdentityStore.assignSyncDeviceId(fromPublicKeyHex: hex)
-        XCTAssertEqual(DeviceIdentityStore.currentDeviceId(), DeviceIdentityStore.syncDeviceId(fromPublicKeyHex: hex))
-        DeviceIdentityStore.resetForTesting()
+        await DeviceIdentityStore.assignSyncDeviceId(fromPublicKeyHex: hex)
+        let currentId = await DeviceIdentityStore.currentDeviceId()
+        XCTAssertEqual(currentId, DeviceIdentityStore.syncDeviceId(fromPublicKeyHex: hex))
+        await DeviceIdentityStore.resetForTesting()
     }
 }
 

@@ -61,7 +61,7 @@ final class DeviceManagementViewModel: ObservableObject {
             let token = try await tokenManager.getValidAccessToken()
             try await apiClient.logout(token: token, allDevices: true)
             tokenManager.clearTokens()
-            BackupSessionKeyStore.clear()
+            await BackupSessionKeyStore.clear()
         } catch {
             errorMessage = "Could not log out devices."
         }

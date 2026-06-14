@@ -58,6 +58,28 @@ actor MediaMessageService {
         )
     }
 
+    func uploadGroupMedia(
+        data: Data,
+        mimeType: String,
+        mediaKind: MediaKind,
+        trustTier: Int = 3
+    ) async throws -> MediaAttachmentRef {
+        let encryptedFile = try await mediaCrypto.encryptFileSymmetric(data)
+        let upload = try await mediaAPI.uploadEncrypted(
+            data: encryptedFile,
+            mimeType: mimeType,
+            trustTier: trustTier
+        )
+        return MediaAttachmentRef(
+            fileId: upload.fileId,
+            mimeType: mimeType,
+            mediaKind: mediaKind.rawValue,
+            byteSize: data.count,
+            chunkCount: upload.chunkCount,
+            caption: nil
+        )
+    }
+
     func downloadAndDecrypt(ref: MediaAttachmentRef, peerDID: String) async throws -> Data {
         let encrypted = try await mediaAPI.downloadChunks(fileId: ref.fileId, chunkCount: ref.chunkCount)
         return try await mediaCrypto.decryptFile(encrypted)

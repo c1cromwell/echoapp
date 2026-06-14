@@ -140,6 +140,8 @@ struct ChatView: View {
     @State private var pinnedMessageId: String?
     @State private var showForwardSheet = false
     @State private var forwardPreview = ""
+    @State private var showAttachmentPicker = false
+    @StateObject private var voiceRecorder = VoiceNoteRecorder()
 
     let contactName: String
     let conversationId: String
@@ -225,17 +227,7 @@ struct ChatView: View {
                                         .clipShape(RoundedRectangle(cornerRadius: 8))
                                         .frame(maxWidth: 280, alignment: message.isFromCurrentUser ? .trailing : .leading)
                                 }
-                                MessageBubble(
-                                    message: message.content,
-                                    isSent: message.isFromCurrentUser,
-                                    status: mapDeliveryStatus(
-                                        viewModel.displayedDeliveryStatus(message.deliveryStatus)
-                                    ),
-                                    deliveryStatus: message.isFromCurrentUser
-                                        ? viewModel.displayedDeliveryStatus(message.deliveryStatus)
-                                        : nil,
-                                    timestamp: message.timestamp
-                                )
+                                messageBubbleContent(for: message)
                                 .onAppear {
                                     if !message.isFromCurrentUser {
                                         Task {
@@ -625,48 +617,149 @@ struct ChatView: View {
 
     /// Phase A chat composer (`docs/design-previews/phaseA-chat.html` + `previews.css` `.composer`).
     private var chatComposerBar: some View {
-        HStack(spacing: Spacing.md.rawValue) {
-            Button(action: {}) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundStyle(Color.echoSignal)
+        VStack(spacing: 0) {
+            if voiceRecorder.isRecording {
+                voiceRecordingBar
             }
-            .accessibilityLabel("Add attachment")
 
-            TextField("Message…", text: $messageText)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 9)
-                .background(Color.echoPaper)
-                .clipShape(Capsule())
-                .overlay(Capsule().strokeBorder(Color.echoHair, lineWidth: 1))
-                .onChange(of: messageText) { _, newValue in
-                    viewModel.onInputChanged(newValue)
-                }
-
-            Button {
-                let text = messageText
-                messageText = ""
-                Task {
-                    if let editId = viewModel.editingMessageId {
-                        _ = await viewModel.applyEdit(messageId: editId, newText: text)
-                    } else {
-                        await viewModel.sendMessage(text)
+            if showAttachmentPicker {
+                AttachmentPickerView(
+                    isPresented: $showAttachmentPicker,
+                    onImageSelected: { data, mime in
+                        Task { await viewModel.sendMedia(data: data, mimeType: mime, mediaKind: .image) }
+                    },
+                    onVideoSelected: { data, mime in
+                        Task { await viewModel.sendMedia(data: data, mimeType: mime, mediaKind: .video) }
+                    },
+                    onFileSelected: { data, mime in
+                        Task { await viewModel.sendMedia(data: data, mimeType: mime, mediaKind: .file) }
+                    },
+                    onVoiceNoteTapped: {
+                        try? voiceRecorder.startRecording()
                     }
-                }
-            } label: {
-                Image(systemName: "paperplane.fill")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(canSend ? Color.echoSignal : Color.echoInk40)
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            .disabled(!canSend)
-            .accessibilityLabel("Send message")
+
+            HStack(spacing: Spacing.md.rawValue) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showAttachmentPicker.toggle()
+                    }
+                } label: {
+                    Image(systemName: showAttachmentPicker ? "xmark.circle.fill" : "plus.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(Color.echoSignal)
+                }
+                .accessibilityLabel("Add attachment")
+
+                TextField("Message…", text: $messageText)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(Color.echoPaper)
+                    .clipShape(Capsule())
+                    .overlay(Capsule().strokeBorder(Color.echoHair, lineWidth: 1))
+                    .onChange(of: messageText) { _, newValue in
+                        viewModel.onInputChanged(newValue)
+                    }
+
+                Button {
+                    let text = messageText
+                    messageText = ""
+                    Task {
+                        if let editId = viewModel.editingMessageId {
+                            _ = await viewModel.applyEdit(messageId: editId, newText: text)
+                        } else {
+                            await viewModel.sendMessage(text)
+                        }
+                    }
+                } label: {
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(canSend ? Color.echoSignal : Color.echoInk40)
+                }
+                .disabled(!canSend)
+                .accessibilityLabel("Send message")
+            }
+            .padding(.horizontal, Spacing.md.rawValue)
+            .padding(.vertical, 12)
         }
-        .padding(.horizontal, Spacing.md.rawValue)
-        .padding(.vertical, 12)
         .overlay(alignment: .top) {
             Rectangle()
                 .fill(Color.echoHair)
                 .frame(height: 1)
+        }
+    }
+
+    private var voiceRecordingBar: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(Color.red)
+                .frame(width: 10, height: 10)
+
+            WaveformView(
+                samples: voiceRecorder.waveformSamples,
+                progress: 1.0,
+                accentColor: .echoSignal
+            )
+            .frame(height: 28)
+
+            Text(voiceRecorderElapsed)
+                .font(.system(size: 14, weight: .medium).monospacedDigit())
+                .foregroundStyle(Color.echoInk)
+
+            Spacer()
+
+            Button {
+                voiceRecorder.cancelRecording()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundStyle(Color.echoInk40)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                Task { await viewModel.sendVoiceNote(from: voiceRecorder) }
+            } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 28))
+                    .foregroundStyle(Color.echoSignal)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, Spacing.md.rawValue)
+        .padding(.vertical, 10)
+        .background(Color.echoPaperDim)
+    }
+
+    private var voiceRecorderElapsed: String {
+        let total = Int(voiceRecorder.elapsed)
+        let minutes = total / 60
+        let seconds = total % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+
+    @ViewBuilder
+    private func messageBubbleContent(for message: ChatDetailMessage) -> some View {
+        let peerStatus: DeliveryStatus? = message.isFromCurrentUser
+            ? viewModel.displayedDeliveryStatus(message.deliveryStatus)
+            : nil
+        if let mediaRef = message.mediaRef {
+            MediaBubbleView(
+                mediaRef: mediaRef,
+                isSent: message.isFromCurrentUser,
+                timestamp: message.timestamp,
+                deliveryStatus: peerStatus
+            )
+        } else {
+            MessageBubble(
+                message: message.content,
+                isSent: message.isFromCurrentUser,
+                status: mapDeliveryStatus(viewModel.displayedDeliveryStatus(message.deliveryStatus)),
+                deliveryStatus: peerStatus,
+                timestamp: message.timestamp
+            )
         }
     }
 

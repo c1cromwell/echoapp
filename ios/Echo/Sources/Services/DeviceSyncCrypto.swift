@@ -11,12 +11,12 @@ actor DeviceSyncCrypto {
     }
 
     /// Seal a history bundle for the target device's P-256 key-agreement public key.
-    func wrap(plaintext: Data, recipientPublicKey: Data) throws -> Data {
+    func wrap(plaintext: Data, recipientPublicKey: Data) async throws -> Data {
         guard !plaintext.isEmpty else { throw DeviceSyncCryptoError.emptyPlaintext }
         let pub = try Self.normalizedAgreementPublicKey(recipientPublicKey)
         let plaintextString = String(data: plaintext, encoding: .utf8)
             ?? plaintext.base64EncodedString()
-        let envelope = try encryption.encryptWithKeyAgreement(
+        let envelope = try await encryption.encryptWithKeyAgreement(
             plaintext: plaintextString,
             recipientPublicKeyData: pub
         )
@@ -24,10 +24,10 @@ actor DeviceSyncCrypto {
     }
 
     /// Open a sync entry with this device's P-256 key-agreement private key.
-    func unwrap(ciphertext: Data, ourPrivateKey: P256.KeyAgreement.PrivateKey) throws -> Data {
+    func unwrap(ciphertext: Data, ourPrivateKey: P256.KeyAgreement.PrivateKey) async throws -> Data {
         guard !ciphertext.isEmpty else { throw DeviceSyncCryptoError.emptyCiphertext }
         let envelope = try JSONDecoder().decode(EncryptedMessageWithPublicKey.self, from: ciphertext)
-        let plain = try encryption.decryptWithKeyAgreement(
+        let plain = try await encryption.decryptWithKeyAgreement(
             encryptedMessage: envelope,
             ourPrivateKey: ourPrivateKey
         )
@@ -43,13 +43,22 @@ actor DeviceSyncCrypto {
     /// Convenience: load local agreement key and unwrap.
     func unwrapWithLocalKey(ciphertext: Data) async throws -> Data {
         let privateKey = try await TextMessageCrypto.loadAgreementPrivateKey()
-        return try unwrap(ciphertext: ciphertext, ourPrivateKey: privateKey)
+        return try await unwrap(ciphertext: ciphertext, ourPrivateKey: privateKey)
+    }
+
+    func wrapSymmetric(plaintext: Data) async throws -> Data {
+        guard !plaintext.isEmpty else { throw DeviceSyncCryptoError.emptyPlaintext }
+        let key = SymmetricKey(size: .bits256)
+        let nonce = AES.GCM.Nonce()
+        let sealed = try AES.GCM.seal(plaintext, using: key, nonce: nonce)
+        guard let combined = sealed.combined else { throw DeviceSyncCryptoError.emptyPlaintext }
+        return combined
     }
 
     /// Round-trip helper for tests: wrap to a key, unwrap with its private key.
-    func roundTrip(plaintext: Data, recipientPublicKey: Data, recipientPrivateKey: P256.KeyAgreement.PrivateKey) throws -> Data {
-        let wrapped = try wrap(plaintext: plaintext, recipientPublicKey: recipientPublicKey)
-        return try unwrap(ciphertext: wrapped, ourPrivateKey: recipientPrivateKey)
+    func roundTrip(plaintext: Data, recipientPublicKey: Data, recipientPrivateKey: P256.KeyAgreement.PrivateKey) async throws -> Data {
+        let wrapped = try await wrap(plaintext: plaintext, recipientPublicKey: recipientPublicKey)
+        return try await unwrap(ciphertext: wrapped, ourPrivateKey: recipientPrivateKey)
     }
 
     private static func normalizedAgreementPublicKey(_ data: Data) throws -> Data {

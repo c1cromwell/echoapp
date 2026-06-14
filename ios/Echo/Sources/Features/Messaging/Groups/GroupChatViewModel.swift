@@ -100,6 +100,50 @@ final class GroupChatViewModel {
         }
     }
 
+    func sendGroupMedia(data: Data, mimeType: String, mediaKind: MediaKind) async {
+        guard !data.isEmpty else { return }
+        guard await keyManager.hasKey(groupId: groupId) else {
+            errorMessage = "Waiting for group encryption key…"
+            return
+        }
+
+        let messageId = UUID().uuidString
+        let placeholder = TextMessagePayload.mediaPlaceholder(for: MediaAttachmentRef(
+            fileId: "pending", mimeType: mimeType, mediaKind: mediaKind.rawValue,
+            byteSize: data.count, chunkCount: 0, caption: nil
+        ))
+        let optimistic = GroupMessage(
+            id: messageId, senderDID: currentUserDID, text: placeholder, isOutgoing: true
+        )
+        messages.append(optimistic)
+
+        do {
+            guard let mediaService = DIContainer.shared.resolveMediaMessage() else {
+                throw ECHOError.messageSendFailed
+            }
+            let ref = try await mediaService.uploadGroupMedia(
+                data: data, mimeType: mimeType, mediaKind: mediaKind
+            )
+            let wire = MediaMessageWire(messageId: messageId, media: ref, caption: nil)
+            let plaintext = try JSONEncoder().encode(wire)
+            let ciphertext = try await keyManager.encryptForGroup(plaintext: plaintext, groupId: groupId)
+            let keyVersion = await keyManager.latestKeyVersion(groupId: groupId)
+            let payload = TextMessagePayload(
+                messageId: messageId,
+                groupCiphertext: ciphertext,
+                groupKeyVersion: keyVersion,
+                media: ref
+            )
+            try await signalService.sendGroupTextMessage(
+                conversationId: conversationId,
+                payload: payload
+            )
+        } catch {
+            errorMessage = error.localizedDescription
+            messages.removeAll { $0.id == messageId }
+        }
+    }
+
     private func handleSignal(_ event: ConversationSignalEvent) async {
         guard case .textMessage(let textEvent) = event else { return }
         guard textEvent.conversationId == conversationId else { return }
