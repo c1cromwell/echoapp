@@ -58,8 +58,8 @@ actor SearchIndexSyncService {
 enum SearchIndexSyncBootstrap {
     static func pullIfNeeded() {
         Task {
-            guard let syncAPI = DIContainer.shared.resolveDeviceSyncAPI(),
-                  let crypto = DIContainer.shared.resolveDeviceSyncCrypto() else { return }
+            guard let syncAPI = await DIContainer.shared.resolveDeviceSyncAPI(),
+                  let crypto = await DIContainer.shared.resolveDeviceSyncCrypto() else { return }
             let service = SearchIndexSyncService(syncAPI: syncAPI, crypto: crypto)
             _ = try? await service.pullAndApplySearchIndex()
         }

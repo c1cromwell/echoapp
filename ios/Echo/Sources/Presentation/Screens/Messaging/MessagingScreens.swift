@@ -141,6 +141,7 @@ struct ChatView: View {
     @State private var showForwardSheet = false
     @State private var forwardPreview = ""
     @State private var showAttachmentPicker = false
+    @State private var showCreatePoll = false
     @StateObject private var voiceRecorder = VoiceNoteRecorder()
 
     let contactName: String
@@ -187,6 +188,19 @@ struct ChatView: View {
                 chatNavigationBar
 
                 SecureThreadIndicator()
+
+                if viewModel.peerScreenshotNotice {
+                    HStack(spacing: 8) {
+                        Image(systemName: "camera.viewfinder")
+                        Text("\(contactName) may have taken a screenshot")
+                            .font(.system(size: 13, weight: .medium))
+                        Spacer()
+                    }
+                    .foregroundColor(.echoAlert)
+                    .padding(.horizontal, Spacing.lg.rawValue)
+                    .padding(.vertical, 8)
+                    .background(Color.echoAlert.opacity(0.08))
+                }
 
                 ScrollViewReader { proxy in
                     if let pinned = pinnedMessage(for: pinnedMessageId) {
@@ -353,14 +367,33 @@ struct ChatView: View {
             ChatSettingsSheet(
                 contactName: contactName,
                 preferences: ConversationPreferencesStore.shared.preferences(for: conversationId),
+                isArchived: ConversationArchiveStore.isArchived(conversationId: conversationId),
                 onChange: { [viewModel] newPrefs in
                     let oldPrefs = ConversationPreferencesStore.shared.preferences(for: conversationId)
                     ConversationPreferencesStore.shared.save(newPrefs, for: conversationId)
                     if newPrefs.disappearing != oldPrefs.disappearing {
                         Task { await viewModel.setDisappearing(ttlSeconds: newPrefs.disappearing.seconds) }
                     }
+                },
+                onArchiveChange: { archived in
+                    Task {
+                        let client = DIContainer.shared.resolveAPIClient().map {
+                            LiveConversationArchiveAPIClient(apiClient: $0)
+                        }
+                        if let client {
+                            try? await client.setArchived(archived, conversationId: conversationId)
+                        } else {
+                            ConversationArchiveStore.setArchived(archived, conversationId: conversationId)
+                        }
+                    }
                 }
             )
+            .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showCreatePoll) {
+            CreatePollSheet { question, options in
+                Task { await viewModel.createPoll(question: question, optionTexts: options) }
+            }
             .presentationDetents([.medium, .large])
         }
         .sheet(item: Binding(
@@ -642,6 +675,10 @@ struct ChatView: View {
                     },
                     onVoiceNoteTapped: {
                         try? voiceRecorder.startRecording()
+                    },
+                    onPollTapped: {
+                        showAttachmentPicker = false
+                        showCreatePoll = true
                     }
                 )
                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -751,7 +788,19 @@ struct ChatView: View {
         let peerStatus: DeliveryStatus? = message.isFromCurrentUser
             ? viewModel.displayedDeliveryStatus(message.deliveryStatus)
             : nil
-        if let mediaRef = message.mediaRef {
+        if let pollId = message.pollId, let poll = viewModel.polls[pollId] {
+            PollBubbleView(
+                poll: poll,
+                currentUserDID: currentUserDID,
+                isSent: message.isFromCurrentUser,
+                onVote: { optionId in
+                    Task { await viewModel.votePoll(pollId: pollId, optionId: optionId) }
+                },
+                onClose: {
+                    Task { await viewModel.closePoll(pollId: pollId) }
+                }
+            )
+        } else if let mediaRef = message.mediaRef {
             MediaBubbleView(
                 mediaRef: mediaRef,
                 isSent: message.isFromCurrentUser,

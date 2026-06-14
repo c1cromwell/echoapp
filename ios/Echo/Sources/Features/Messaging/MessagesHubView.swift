@@ -36,6 +36,7 @@ struct MessagesHubView: View {
     let onLockHidden: () -> Void
     let onSwitchPersona: (PersonaSummary) -> Void
     let onSelectHiddenPersona: (PersonaSummary) -> Void
+    let onToggleArchive: (String, Bool) -> Void
 
     @Bindable private var pinnedStore = PinnedConversationsStore.shared
     @State private var searchText = ""
@@ -378,6 +379,7 @@ struct MessagesHubView: View {
     @ViewBuilder
     private func conversationRow(_ conv: StoredConversation) -> some View {
         let tier = trustTier(conv.id)
+        let isArchived = ConversationArchiveStore.isArchived(conversationId: conv.id)
         let initials = conv.contactName.split(separator: " ").prefix(2).map { String($0.first ?? " ") }.joined()
         Button { onSelectConversation(conv.id) } label: {
             HStack(spacing: 12) {
@@ -455,6 +457,19 @@ struct MessagesHubView: View {
                 onSelectConversation(conv.id)
             } label: {
                 Label("Open chat", systemImage: "bubble.left")
+            }
+            if segment == .archived || isArchived {
+                Button {
+                    onToggleArchive(conv.id, false)
+                } label: {
+                    Label("Unarchive", systemImage: "tray.and.arrow.up")
+                }
+            } else {
+                Button {
+                    onToggleArchive(conv.id, true)
+                } label: {
+                    Label("Archive", systemImage: "archivebox")
+                }
             }
         }
     }
@@ -559,7 +574,8 @@ struct MessagesHubView_Previews: PreviewProvider {
             onOpenHidden: {},
             onLockHidden: {},
             onSwitchPersona: { _ in },
-            onSelectHiddenPersona: { _ in }
+            onSelectHiddenPersona: { _ in },
+            onToggleArchive: { _, _ in }
         )
     }
 }

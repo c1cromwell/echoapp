@@ -8,6 +8,7 @@ struct AttachmentPickerView: View {
     var onVideoSelected: (Data, String) -> Void
     var onFileSelected: (Data, String) -> Void
     var onVoiceNoteTapped: () -> Void
+    var onPollTapped: (() -> Void)?
 
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showPhotoPicker = false
@@ -25,6 +26,12 @@ struct AttachmentPickerView: View {
                 }
                 attachmentButton(icon: "doc.fill", label: "File") {
                     showFilePicker = true
+                }
+                if let onPollTapped {
+                    attachmentButton(icon: "chart.bar", label: "Poll") {
+                        isPresented = false
+                        onPollTapped()
+                    }
                 }
             }
             .padding(.vertical, 16)

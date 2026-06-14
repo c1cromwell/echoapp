@@ -344,8 +344,10 @@ Two signed-in clients on LAN backend where noted.
 | 3 | Search unique keyword in archived thread | Hit excluded from default search |
 | 4 | Device A linked to B → send DMs → trigger index push | B pull applies `search_index` sync entry; B search finds A's keywords |
 | 5 | Enable screenshot notifications → B opens chat → A takes screenshot | B receives ephemeral `screenshot_alert` WS event (no server plaintext) |
+| 6 | A: attachment tray → **Poll** → create 2-option poll | B sees poll bubble; vote updates counts on both clients |
+| 7 | Chat settings → Archive → hub **Archived** link | Thread hidden from Chats; unarchive restores |
 
-Automated helpers: `go test ./internal/api/ -run 'Archive|Poll|Screenshot'`, `go test ./internal/database/ -run Archive`, `swift test --filter MessageSearchTests`.
+Automated helpers: `go test ./internal/api/ -run 'Archive|Poll|Screenshot'`, `go test ./internal/database/ -run Archive`, `swift test --filter 'MessageSearchTests|PollServiceTests'` (Xcode).
 
 ### 6.5 OIDC4VC (WO-100)
 

@@ -230,8 +230,9 @@ Designed, unbuilt → M6a foundation in progress.
     `ConversationArchiveStore`; WO-73 `SearchIndexSyncService` (`search_index` device sync);
     ephemeral WS `poll` + `screenshot_alert`; `ScreenshotAlertService`; archived segment in
     `MessagesHubView`; search date/chat filters; tests in Go + `MessageSearchTests`.
-  - ⏳ **M6 remaining:** poll create/vote UI; archive swipe actions; conversation-list search polish;
-    two-device WO-73 + screenshot E2E; Xcode §6.14–6.15 sign-off.
+  - ✅ **M6c UI (2026-05-29):** `PollService` + `CreatePollSheet`/`PollBubbleView`; archive toggle in
+    `ChatSettingsSheet` + hub context menu; advanced search filters panel; screenshot notice banner.
+  - ⏳ **M6 sign-off:** two-device poll vote + WO-73 index sync + screenshot E2E; Xcode §6.14–6.15.
 
 ### M7 — Privacy-preserving on-device AI  · **differentiator, last**
 - **WOs:** WO-CA1 (private AI), precursors WO-2.5/2.6 (on-device translation + thread summaries).

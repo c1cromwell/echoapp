@@ -50,8 +50,8 @@ actor LocalMessageIndexer {
     func rebuildFromLocalThreads() async {
         snapshot = SearchIndexSnapshot()
         loaded = true
-        for conversationId in ConversationThreadStore.allStoredConversationIds() {
-            for msg in ConversationThreadStore.exportMessages(conversationId: conversationId) {
+        for conversationId in await ConversationThreadStore.allStoredConversationIds() {
+            for msg in await ConversationThreadStore.exportMessages(conversationId: conversationId) {
                 indexMessageLocked(
                     conversationId: conversationId,
                     messageId: msg.id,

@@ -5,21 +5,27 @@ import SwiftUI
 public struct ChatSettingsSheet: View {
     let contactName: String
     @State private var prefs: ConversationPreferences
+    @State private var isArchived: Bool
 
     let onChange: (ConversationPreferences) -> Void
+    let onArchiveChange: (Bool) -> Void
     let onVerify: () -> Void
     let onBlock: () -> Void
 
     public init(
         contactName: String,
         preferences: ConversationPreferences,
+        isArchived: Bool = false,
         onChange: @escaping (ConversationPreferences) -> Void,
+        onArchiveChange: @escaping (Bool) -> Void = { _ in },
         onVerify: @escaping () -> Void = {},
         onBlock: @escaping () -> Void = {}
     ) {
         self.contactName = contactName
         self._prefs = State(initialValue: preferences)
+        self._isArchived = State(initialValue: isArchived)
         self.onChange = onChange
+        self.onArchiveChange = onArchiveChange
         self.onVerify = onVerify
         self.onBlock = onBlock
     }
@@ -75,6 +81,16 @@ public struct ChatSettingsSheet: View {
                 Toggle("", isOn: Binding(
                     get: { prefs.isHidden },
                     set: { prefs.isHidden = $0; onChange(prefs) }
+                ))
+                .labelsHidden()
+                .tint(.echoSignal)
+            }
+
+            // Archive conversation (WO-198)
+            row(icon: "archivebox", title: "Archive conversation") {
+                Toggle("", isOn: Binding(
+                    get: { isArchived },
+                    set: { isArchived = $0; onArchiveChange($0) }
                 ))
                 .labelsHidden()
                 .tint(.echoSignal)

@@ -58,6 +58,7 @@
 		3D99E7312FDE61EB0094416C /* AudioPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D99E7302FDE61EB0094416C /* AudioPlayerView.swift */; };
 		3D99E7332FDE62110094416C /* MediaBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D99E7322FDE62110094416C /* MediaBubbleView.swift */; };
 		3D99E7352FDE622D0094416C /* AttachmentPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D99E7342FDE622D0094416C /* AttachmentPickerView.swift */; };
+		3D99E73B2FDEBD550094416C /* ChatPollViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D99E73A2FDEBD550094416C /* ChatPollViews.swift */; };
 		3DDB230C2FC734B3008D0406 /* ConversationSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DDB230A2FC734B3008D0406 /* ConversationSignal.swift */; };
 		3DDB230D2FC734B3008D0406 /* ConversationSignalTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DDB230B2FC734B3008D0406 /* ConversationSignalTransport.swift */; };
 		438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BAE98848BA987C5A80A8C29 /* Sources/Features/Contacts/QRContactAddCoordinator.swift */; };
@@ -253,6 +254,7 @@
 		M6B007SRCH0000000000007 /* ConversationArchiveAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F007SRCH0000000000007 /* ConversationArchiveAPIClient.swift */; };
 		M6B008SRCH0000000000008 /* ScreenshotAlertService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F008SRCH0000000000008 /* ScreenshotAlertService.swift */; };
 		M6B009SRCH0000000000009 /* SearchIndexSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F009SRCH0000000000009 /* SearchIndexSyncService.swift */; };
+		M6B010SRCH0000000000010 /* PollService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F010SRCH0000000000010 /* PollService.swift */; };
 		P3B001012345678901234002 /* PinnedConversationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234001 /* PinnedConversationsStore.swift */; };
 		P3B001012345678901234004 /* ContactTrustIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234003 /* ContactTrustIndex.swift */; };
 		P3B001012345678901234006 /* PersonaSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234005 /* PersonaSessionStore.swift */; };
@@ -339,6 +341,7 @@
 		3D99E7302FDE61EB0094416C /* AudioPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerView.swift; sourceTree = "<group>"; };
 		3D99E7322FDE62110094416C /* MediaBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaBubbleView.swift; sourceTree = "<group>"; };
 		3D99E7342FDE622D0094416C /* AttachmentPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentPickerView.swift; sourceTree = "<group>"; };
+		3D99E73A2FDEBD550094416C /* ChatPollViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatPollViews.swift; sourceTree = "<group>"; };
 		3DDB230A2FC734B3008D0406 /* ConversationSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationSignal.swift; sourceTree = "<group>"; };
 		3DDB230B2FC734B3008D0406 /* ConversationSignalTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationSignalTransport.swift; sourceTree = "<group>"; };
 		4023A7E250044C538B50953F /* Sources/Features/Auth/Views/SMSOTPSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Auth/Views/SMSOTPSetupView.swift; sourceTree = "<group>"; };
@@ -538,6 +541,7 @@
 		M6F007SRCH0000000000007 /* ConversationArchiveAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationArchiveAPIClient.swift; sourceTree = "<group>"; };
 		M6F008SRCH0000000000008 /* ScreenshotAlertService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotAlertService.swift; sourceTree = "<group>"; };
 		M6F009SRCH0000000000009 /* SearchIndexSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchIndexSyncService.swift; sourceTree = "<group>"; };
+		M6F010SRCH0000000000010 /* PollService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollService.swift; sourceTree = "<group>"; };
 		P3B001012345678901234001 /* PinnedConversationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinnedConversationsStore.swift; sourceTree = "<group>"; };
 		P3B001012345678901234003 /* ContactTrustIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactTrustIndex.swift; sourceTree = "<group>"; };
 		P3B001012345678901234005 /* PersonaSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaSessionStore.swift; sourceTree = "<group>"; };
@@ -735,6 +739,7 @@
 				M6F007SRCH0000000000007 /* ConversationArchiveAPIClient.swift */,
 				M6F008SRCH0000000000008 /* ScreenshotAlertService.swift */,
 				M6F009SRCH0000000000009 /* SearchIndexSyncService.swift */,
+				M6F010SRCH0000000000010 /* PollService.swift */,
 				891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */,
 				W0E001012345678901234009 /* ContactSocialAPIClient.swift */,
 				F1A2B3C40123456789000B3 /* DeviceLinkAPIClient.swift */,
@@ -911,6 +916,7 @@
 				W0E001012345678901234017 /* TypingIndicatorView.swift */,
 				M5F004MEDIA000000000004 /* VoiceNoteRecorder.swift */,
 				3D2F15A32FD305E70020765D /* MessagesHubView.swift */,
+				3D99E73A2FDEBD550094416C /* ChatPollViews.swift */,
 			);
 			path = Messaging;
 			sourceTree = "<group>";
@@ -1530,6 +1536,7 @@
 				M6B007SRCH0000000000007 /* ConversationArchiveAPIClient.swift in Sources */,
 				M6B008SRCH0000000000008 /* ScreenshotAlertService.swift in Sources */,
 				M6B009SRCH0000000000009 /* SearchIndexSyncService.swift in Sources */,
+				M6B010SRCH0000000000010 /* PollService.swift in Sources */,
 				44EEF7274CAF966992DC6C16 /* MessageReceiptsAPI.swift in Sources */,
 				1411B71227274A6D2B383C77 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift in Sources */,
 				438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */,
@@ -1647,6 +1654,7 @@
 				56D0E635761A7C573A86AB7F /* MessagingScreens.swift in Sources */,
 				22957349C6FBEF6054655DA6 /* MessagingService.swift in Sources */,
 				60AB7E0A3659BDF91AD37AAB /* Models.swift in Sources */,
+				3D99E73B2FDEBD550094416C /* ChatPollViews.swift in Sources */,
 				BD3E0D15292BC658991156FA /* NewModels.swift in Sources */,
 				C8E06DA033CD6C5CB2F0DFF9 /* NotificationCenterView.swift in Sources */,
 				7E73BEE5A61E78308AFBCE38 /* OTPInputView.swift in Sources */,

@@ -60,7 +60,18 @@ struct MessagesTabView: View {
                         onOpenHidden: { showBiometricGate = true },
                         onLockHidden: { hiddenUnlocked = false },
                         onSwitchPersona: { appState.switchPersona($0) },
-                        onSelectHiddenPersona: { _ in showBiometricGate = true }
+                        onSelectHiddenPersona: { _ in showBiometricGate = true },
+                        onToggleArchive: { conversationId, archived in
+                            Task {
+                                if let client = DIContainer.shared.resolveAPIClient().map({
+                                    LiveConversationArchiveAPIClient(apiClient: $0)
+                                }) {
+                                    try? await client.setArchived(archived, conversationId: conversationId)
+                                } else {
+                                    ConversationArchiveStore.setArchived(archived, conversationId: conversationId)
+                                }
+                            }
+                        }
                     )
                 }
             }

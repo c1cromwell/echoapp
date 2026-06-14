@@ -55,10 +55,35 @@ public struct SearchView: View {
                             action: { viewModel.activeFilter = filter }
                         )
                     }
+                    FilterChip(
+                        label: "Filters",
+                        isSelected: viewModel.showAdvancedFilters,
+                        action: { viewModel.showAdvancedFilters.toggle() }
+                    )
                 }
                 .padding(.horizontal, 16)
             }
             .padding(.vertical, 8)
+
+            if viewModel.showAdvancedFilters {
+                SearchAdvancedFiltersPanel(viewModel: viewModel)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 8)
+            }
+
+            if let chatId = viewModel.filterChat,
+               let name = viewModel.filteredConversationName {
+                HStack {
+                    Text("In: \(name)")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Color.Echo.outline)
+                    Spacer()
+                    Button("Clear") { viewModel.clearChatFilter() }
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 4)
+            }
 
             // Results / Recent searches
             ScrollView {
@@ -85,6 +110,8 @@ public struct SearchView: View {
         .onAppear { isSearchFocused = true }
         .onChange(of: viewModel.query) { _, _ in viewModel.performSearch() }
         .onChange(of: viewModel.activeFilter) { _, _ in viewModel.performSearch() }
+        .onChange(of: viewModel.filterChat) { _, _ in viewModel.performSearch() }
+        .onChange(of: viewModel.filterDateRange) { _, _ in viewModel.performSearch() }
     }
 }
 
@@ -134,6 +161,11 @@ class SearchViewModel: ObservableObject {
 
     private var searchTask: Task<Void, Never>?
 
+    var filteredConversationName: String? {
+        guard let chatId = filterChat else { return nil }
+        return ConversationStore.shared.conversations.first(where: { $0.id == chatId })?.contactName
+    }
+
     init() {
         recentSearches = SearchHistoryStore.load()
         Task { await LocalMessageIndexer.shared.rebuildFromLocalThreads() }
@@ -142,6 +174,10 @@ class SearchViewModel: ObservableObject {
     func clearRecentSearches() {
         recentSearches.removeAll()
         SearchHistoryStore.clear()
+    }
+
+    func clearChatFilter() {
+        filterChat = nil
     }
 
     func performSearch() {
@@ -172,7 +208,7 @@ class SearchViewModel: ObservableObject {
                 SearchResult(
                     id: hit.messageId,
                     conversationId: hit.conversationId,
-                    contactName: ContactThreadHelper.truncatedDID(hit.senderDID),
+                    contactName: conversationName(for: hit.conversationId, senderDID: hit.senderDID),
                     contactAvatar: nil,
                     matchedText: hit.matchedText,
                     timestamp: hit.timestamp,
@@ -184,6 +220,65 @@ class SearchViewModel: ObservableObject {
             isSearching = false
             SearchHistoryStore.append(q)
             recentSearches = SearchHistoryStore.load()
+        }
+    }
+
+    private func conversationName(for conversationId: String, senderDID: String) -> String {
+        if let conv = ConversationStore.shared.conversations.first(where: { $0.id == conversationId }) {
+            return conv.contactName
+        }
+        return ContactThreadHelper.truncatedDID(senderDID)
+    }
+}
+
+// MARK: - Advanced filters
+
+struct SearchAdvancedFiltersPanel: View {
+    @ObservedObject var viewModel: SearchViewModel
+    @State private var startDate = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+    @State private var endDate = Date()
+    @State private var useDateRange = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Conversation")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.Echo.outline)
+            Picker("Chat", selection: Binding(
+                get: { viewModel.filterChat ?? "" },
+                set: { viewModel.filterChat = $0.isEmpty ? nil : $0 }
+            )) {
+                Text("All chats").tag("")
+                ForEach(ConversationStore.shared.conversations) { conv in
+                    Text(conv.contactName).tag(conv.id)
+                }
+            }
+            .pickerStyle(.menu)
+
+            Toggle("Limit to date range", isOn: $useDateRange)
+                .font(.system(size: 13))
+            if useDateRange {
+                DatePicker("From", selection: $startDate, displayedComponents: .date)
+                DatePicker("To", selection: $endDate, displayedComponents: .date)
+                    .onChange(of: startDate) { _, _ in applyDateRange(useDateRange) }
+                    .onChange(of: endDate) { _, _ in applyDateRange(useDateRange) }
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.Echo.surfaceContainerLow)
+        )
+        .onChange(of: useDateRange) { _, enabled in
+            applyDateRange(enabled)
+        }
+    }
+
+    private func applyDateRange(_ enabled: Bool) {
+        if enabled {
+            viewModel.filterDateRange = startDate...endDate
+        } else {
+            viewModel.filterDateRange = nil
         }
     }
 }

@@ -12,6 +12,7 @@ final class ChatDetailViewModel {
     var peerScreenshotNotice = false
     var peerDisplayName = ""
     var messages: [ChatDetailMessage] = []
+    var polls: [String: ChatPoll] = [:]
     var inputText = ""
     var errorMessage: String?
     var replyingTo: ChatDetailMessage?
@@ -27,6 +28,7 @@ final class ChatDetailViewModel {
 
     private let signalService: ConversationSignalService
     private let textCrypto: TextMessageCrypto
+    private let pollService = PollService.shared
     private var mediaService: MediaMessageService?
     private var reactionsAPI: (any ReactionsAPIClient)?
     private var receiptsAPI: (any MessageReceiptsAPIClient)?
@@ -105,6 +107,7 @@ final class ChatDetailViewModel {
             conversationId: conversationId,
             currentUserDID: currentUserDID
         )
+        polls = pollService.loadPolls(conversationId: conversationId)
 
         signalService.setConversationHandler(conversationId: conversationId) { [weak self] event in
             Task { @MainActor in
@@ -259,6 +262,88 @@ final class ChatDetailViewModel {
         disappearingTTLSeconds = max(0, ttlSeconds)
         guard let opsAPI else { return }
         _ = try? await opsAPI.setDisappearing(conversationId: conversationId, ttlSeconds: disappearingTTLSeconds, peerDID: peerDID)
+    }
+
+    // MARK: - Polls (WO-23 / M6c)
+
+    func createPoll(question: String, optionTexts: [String]) async {
+        let trimmedQ = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        let options = optionTexts.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        guard trimmedQ.count >= 2, options.count >= 2 else {
+            errorMessage = PollServiceError.invalidPoll.localizedDescription
+            return
+        }
+        do {
+            let result = try await pollService.buildCreatePayload(
+                conversationId: conversationId,
+                peerDID: peerDID,
+                creatorDID: currentUserDID,
+                question: trimmedQ,
+                optionTexts: options
+            )
+            polls[result.poll.id] = result.poll
+            let message = ChatDetailMessage(
+                id: result.poll.id,
+                senderDID: currentUserDID,
+                currentUserDID: currentUserDID,
+                content: trimmedQ,
+                timestamp: "Now",
+                deliveryStatus: .sent,
+                sentAt: Date(),
+                pollId: result.poll.id
+            )
+            messages.append(message)
+            ConversationThreadStore.appendIfNew(conversationId: conversationId, message: message)
+            ConversationStore.shared.appendMessagePreview(conversationId: conversationId, preview: "📊 Poll: \(trimmedQ)")
+            try await signalService.sendPoll(
+                conversationId: conversationId,
+                peerDID: peerDID,
+                payload: result.payload
+            )
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func votePoll(pollId: String, optionId: String) async {
+        guard polls[pollId] != nil, polls[pollId]?.isClosed == false else { return }
+        do {
+            let payload = try await pollService.buildVotePayload(
+                conversationId: conversationId,
+                peerDID: peerDID,
+                pollId: pollId,
+                optionId: optionId,
+                voterDID: currentUserDID
+            )
+            polls[pollId] = pollService.loadPolls(conversationId: conversationId)[pollId]
+            try await signalService.sendPoll(
+                conversationId: conversationId,
+                peerDID: peerDID,
+                payload: payload
+            )
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func closePoll(pollId: String) async {
+        guard let poll = polls[pollId], poll.creatorDID == currentUserDID, !poll.isClosed else { return }
+        do {
+            let payload = try await pollService.buildClosePayload(
+                conversationId: conversationId,
+                peerDID: peerDID,
+                pollId: pollId,
+                actorDID: currentUserDID
+            )
+            polls[pollId] = pollService.loadPolls(conversationId: conversationId)[pollId]
+            try await signalService.sendPoll(
+                conversationId: conversationId,
+                peerDID: peerDID,
+                payload: payload
+            )
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     // MARK: - Outbound send
@@ -622,8 +707,9 @@ final class ChatDetailViewModel {
             guard e.conversationId == conversationId else { return }
             peerScreenshotNotice = true
             scheduleScreenshotNoticeClear()
-        case .poll:
-            break // Poll UI deferred to M6c; codec + relay wired in M6b.
+        case .poll(let e):
+            guard e.conversationId == conversationId else { return }
+            Task { await applyInboundPoll(e) }
         case .groupKey:
             break
         }
@@ -644,6 +730,25 @@ final class ChatDetailViewModel {
         guard let idx = messages.firstIndex(where: { $0.id == e.messageId }) else { return }
         messages[idx].content = resolved.body
         ConversationThreadStore.replace(conversationId: conversationId, messages: messages)
+    }
+
+    private func applyInboundPoll(_ e: PollSignalEvent) async {
+        guard let poll = try? await pollService.applyInbound(event: e, localDID: currentUserDID) else { return }
+        polls[poll.id] = poll
+        guard e.action == "create", !messages.contains(where: { $0.id == poll.id }) else { return }
+        let inbound = ChatDetailMessage(
+            id: poll.id,
+            senderDID: e.peerDID,
+            currentUserDID: currentUserDID,
+            content: poll.question,
+            timestamp: "Now",
+            deliveryStatus: .delivered,
+            sentAt: Date(),
+            pollId: poll.id
+        )
+        messages.append(inbound)
+        ConversationThreadStore.appendIfNew(conversationId: conversationId, message: inbound)
+        ConversationStore.shared.appendMessagePreview(conversationId: conversationId, preview: "📊 Poll: \(poll.question)")
     }
 
     private func appendInboundText(_ e: TextMessageSignalEvent) async {
@@ -700,6 +805,7 @@ struct ChatDetailMessage: Identifiable, Equatable {
     var replyPreview: String?
     var sentAt: Date?
     var mediaRef: MediaAttachmentRef?
+    var pollId: String?
 
     init(
         id: String,
@@ -713,7 +819,8 @@ struct ChatDetailMessage: Identifiable, Equatable {
         replyToMessageId: String? = nil,
         replyPreview: String? = nil,
         sentAt: Date? = nil,
-        mediaRef: MediaAttachmentRef? = nil
+        mediaRef: MediaAttachmentRef? = nil,
+        pollId: String? = nil
     ) {
         self.id = id
         self.senderDID = senderDID
@@ -727,5 +834,6 @@ struct ChatDetailMessage: Identifiable, Equatable {
         self.replyPreview = replyPreview
         self.sentAt = sentAt
         self.mediaRef = mediaRef
+        self.pollId = pollId
     }
 }
