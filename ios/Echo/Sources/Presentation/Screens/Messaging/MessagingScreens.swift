@@ -142,6 +142,7 @@ struct ChatView: View {
     @State private var forwardPreview = ""
     @State private var showAttachmentPicker = false
     @State private var showCreatePoll = false
+    @State private var smartReplies: [SmartReplySuggestion] = []
     @StateObject private var voiceRecorder = VoiceNoteRecorder()
 
     let contactName: String
@@ -358,6 +359,10 @@ struct ChatView: View {
                         messageText = ""
                     })
                 }
+                SmartReplyBar(suggestions: smartReplies) { suggestion in
+                    messageText = suggestion
+                    Task { await viewModel.sendMessage(suggestion) }
+                }
                 chatComposerBar
             }
             .background(Color.echoPaperDim)
@@ -461,6 +466,10 @@ struct ChatView: View {
             #if os(iOS)
             pinnedMessageId = ConversationPinnedMessageStore.pinnedMessageId(conversationId: conversationId)
             #endif
+            await refreshSmartReplies()
+        }
+        .onChange(of: viewModel.messages.count) { _, _ in
+            Task { await refreshSmartReplies() }
         }
         .sheet(isPresented: $showForwardSheet) {
             ForwardMessageSheet(
@@ -609,6 +618,11 @@ struct ChatView: View {
             let head = names.prefix(2).joined(separator: ", ")
             groupsInCommonText = count > 2 ? "\(head) +\(count - 2) more" : head
         }
+    }
+
+    private func refreshSmartReplies() async {
+        let bodies = viewModel.messages.suffix(12).map(\.content)
+        smartReplies = await OnDeviceAIService.shared.smartReplies(from: Array(bodies))
     }
 
     private func pinnedMessage(for id: String?) -> ChatDetailMessage? {

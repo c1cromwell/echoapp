@@ -28,6 +28,23 @@ func TestCallsICEServers(t *testing.T) {
 	}
 }
 
+func TestCallsICEServers_IncludesTURNWhenConfigured(t *testing.T) {
+	t.Setenv("ECHO_TURN_URL", "turn:turn.example.com:3478")
+	t.Setenv("ECHO_TURN_USERNAME", "echo")
+	t.Setenv("ECHO_TURN_CREDENTIAL", "secret")
+	mux := http.NewServeMux()
+	(&V3Handlers{}).RegisterV3Routes(mux)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v3/calls/ice-servers", nil))
+	var resp struct {
+		ICEServers []map[string]any `json:"ice_servers"`
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &resp)
+	if len(resp.ICEServers) < 3 {
+		t.Fatalf("expected STUN + TURN servers, got %d", len(resp.ICEServers))
+	}
+}
+
 func TestCallSignalRoutesToPeer(t *testing.T) {
 	hub := NewHub()
 	alice := &Client{hub: hub, userID: "did:alice", send: make(chan []byte, 2)}

@@ -290,32 +290,35 @@ Automated helpers: `go test ./internal/api/ -run Backup`, `swift test --filter B
 | 7 | Background app overnight / trigger foreground | Auto-backup runs when due (wifi-only respected) |
 | 8 | **Restore from Local** (same device) | Threads restored from Documents backup without cloud |
 
-### 6.12 Call signaling (M4a / WO-196 foundation)
+### 6.12 Call signaling (M4a–b / WO-196 foundation)
 
-Two signed-in clients on the same LAN backend (`make dev`). Real media (WebRTC) is stubbed — this gate
-validates WS offer/answer/ICE routing and call UI/history.
+Two signed-in clients on the same LAN backend (`make dev`). Real media (WebRTC.framework) is still stubbed —
+this gate validates WS offer/answer/ICE routing, CallKit presentation, and call UI/history.
 
 | Step | Action | Expected |
 |------|--------|----------|
-| 1 | A: open contact B → **Voice call** | `CallView` presents; A sends `call_signal` offer |
-| 2 | B online | B receives offer via WS; incoming UI or auto-answer path fires |
-| 3 | B accepts (or A receives answer) | Answer `call_signal` delivered; stub session marks active |
+| 1 | A: open contact B → **Voice call** | `CallView` + CallKit outgoing UI; A sends JSON SDP offer via `call_signal` |
+| 2 | B online | B receives offer via WS; CallKit incoming UI or auto-answer path fires |
+| 3 | B accepts (or A receives answer) | Answer SDP + trickle ICE candidates delivered; stub session marks active |
 | 4 | Either party hangs up | `hangup` signal sent; both return to contact detail |
 | 5 | Decline path | B rejects → A sees "Declined"; history records missed |
 | 6 | Settings / call history (when surfaced) | `CallHistoryStore` entry for peer + duration/missed |
 
-Automated helpers: `go test ./internal/api/ -run 'Call|ICE'`, `swift test --filter CallSignalCodecTests` (Xcode).
+Optional: set `ECHO_TURN_URL` (+ username/credential) on backend → `GET /v3/calls/ice-servers` includes TURN.
 
-### 6.13 Media messages (M5a / WO-194 + media relay)
+Automated helpers: `go test ./internal/api/ -run 'Call|ICE'`, `swift test --filter 'CallSignalCodecTests|WebRTCSessionDescriptionTests'` (Xcode).
+
+### 6.13 Media messages (M5a–b / WO-194 + media relay)
 
 Two signed-in clients on LAN backend (`make dev`). Trust tier ≥2 required for media upload.
 
 | Step | Action | Expected |
 |------|--------|----------|
-| 1 | A: send photo attachment in 1:1 DM | Optimistic UI; encrypted upload to `/v3/media/upload`; WS text carries `file_id` ref |
+| 1 | A: send photo attachment in 1:1 DM | Optimistic UI; encrypted upload; thumbnail cached locally; WS text carries `file_id` ref |
 | 2 | B online | Inbound preview shows photo/voice placeholder; decrypt + chunk download succeeds |
-| 3 | A: record voice note (hold mic) | AAC upload; B sees voice-note preview |
-| 4 | Large offline queue (>1000) dev test | Overflow pinned to encblob; reconnect yields `overflow_manifest` |
+| 3 | A: record voice note (hold mic) | AAC upload; waveform samples in bubble; B sees voice-note preview |
+| 4 | A: send photo in **group** chat | Group attachment picker; `MediaBubbleView` renders for all members |
+| 5 | Large offline queue (>1000) dev test | Overflow pinned to encblob; reconnect yields `overflow_manifest` |
 
 Automated helpers: `go test ./internal/api/ -run 'Media|Overflow'`, `swift test --filter MediaMessageWireTests` (Xcode).
 
@@ -348,6 +351,19 @@ Two signed-in clients on LAN backend where noted.
 | 7 | Chat settings → Archive → hub **Archived** link | Thread hidden from Chats; unarchive restores |
 
 Automated helpers: `go test ./internal/api/ -run 'Archive|Poll|Screenshot'`, `go test ./internal/database/ -run Archive`, `swift test --filter 'MessageSearchTests|PollServiceTests'` (Xcode).
+
+### 6.16 On-device AI (M7a / WO-CA1 foundation)
+
+Single device with DM history. All processing stays on-device; no server plaintext.
+
+| Step | Action | Expected |
+|------|--------|----------|
+| 1 | Open DM with recent messages | `SmartReplyBar` shows 2–3 chip suggestions above composer |
+| 2 | Tap a chip | Composer fills with suggestion text (user can edit before send) |
+| 3 | Disable smart replies in consent store (dev) | Bar hidden; no suggestions generated |
+| 4 | Thread with 3+ messages + summaries enabled | `OnDeviceAIService.summarizeThread` returns short summary (NaturalLanguage) |
+
+Automated helpers: `swift test --filter 'OnDeviceAIServiceTests|WebRTCSessionDescriptionTests'` (Xcode).
 
 ### 6.5 OIDC4VC (WO-100)
 

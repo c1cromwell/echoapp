@@ -191,8 +191,11 @@ UI skeleton exists; signaling foundation landed (real WebRTC + CallKit still pen
     `WebRTCCallSession` stub, `CallHistoryStore` (WO-196), `CallViewModel` rewired;
     `ConversationSignalService` decodes `call_signal`; `ContactDetailView` voice/video sheets;
     `Phase3Tests/CallSignalCodecTests.swift`; E2E §6.12.
-  - ⏳ **M4 remaining:** WebRTC.framework peer connection, CallKit, TURN credentials, group calls,
+  - ⏳ **M4 remaining:** WebRTC.framework peer connection, real TURN credentials in prod, group calls,
     missed-call push specialization; Xcode §6.12 sign-off.
+  - ✅ **M4b foundation (2026-05-29):** structured JSON SDP + trickle ICE over `call_signal`;
+    `WebRTCSessionDescription`, `CallKitCoordinator`; `WebRTCCallSession` ICE config + stub candidates;
+    optional TURN via `ECHO_TURN_*` env on `GET /v3/calls/ice-servers`; `Phase3Tests/M4M5M7Tests.swift`.
 
 ### M5 — Media & files (relay pipeline + voice notes)
 Encryption service exists; transport pipeline foundation in progress.
@@ -210,7 +213,9 @@ Encryption service exists; transport pipeline foundation in progress.
   - ✅ **iOS:** `MediaAPIClient`, `MediaMessageCrypto`, `MediaMessageService`, `MediaAttachmentRef`
     in `TextMessagePayload`; `ChatDetailViewModel.sendMedia` / `sendVoiceNote`; `VoiceNoteRecorder`
     (AAC); DI + `Phase3Tests/MediaMessageWireTests.swift`.
-  - ⏳ **M5 remaining:** thumbnails, group media polish, Opus codec, waveform playback; Xcode §6.13 sign-off.
+  - ⏳ **M5 remaining:** Opus codec, full waveform playback polish; Xcode §6.13 sign-off.
+  - ✅ **M5b polish (2026-05-29):** `MediaThumbnailCache` + upload-time thumbnails; `WaveformExtractor`
+    for voice-note bubbles; group chat attachment picker + `MediaBubbleView` + inbound media decrypt.
   - ✅ **M5c overflow fetch (2026-05-29):** `GET /v3/relay/overflow/{uri}` + iOS `OverflowManifestHandler`
     replays encblob payloads on reconnect manifest.
 
@@ -244,6 +249,11 @@ Designed, unbuilt → M6a foundation in progress.
 - **Gate:** summarize/translate/suggest fully on-device by default; zero default cloud plaintext;
   opt-in rate tracked; any server-assist gated behind ZK/confidential-compute.
 - **Est:** 12+ wks after a bot-framework MVP. **Depends:** M0–M6 stable.
+- **Progress (2026-05-29) — M7a foundation:**
+  - ✅ **iOS:** `OnDeviceAIService` (heuristic smart replies + `NaturalLanguage` thread summaries);
+    `PrivacyAIConsentStore`; `SmartReplyBar` wired in `MessagingScreens`; translation passthrough stub;
+    `Phase3Tests/M4M5M7Tests.swift`.
+  - ⏳ **M7 remaining:** Apple Translation API wiring, Core ML models, settings UI, audit log; Xcode §6.16 sign-off.
 
 ---
 

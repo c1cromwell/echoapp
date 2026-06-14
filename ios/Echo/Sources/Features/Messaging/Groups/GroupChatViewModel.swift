@@ -9,6 +9,7 @@ final class GroupChatViewModel {
         let senderDID: String
         let text: String
         let isOutgoing: Bool
+        var mediaRef: MediaAttachmentRef?
     }
 
     let groupId: String
@@ -113,7 +114,7 @@ final class GroupChatViewModel {
             byteSize: data.count, chunkCount: 0, caption: nil
         ))
         let optimistic = GroupMessage(
-            id: messageId, senderDID: currentUserDID, text: placeholder, isOutgoing: true
+            id: messageId, senderDID: currentUserDID, text: placeholder, isOutgoing: true, mediaRef: nil
         )
         messages.append(optimistic)
 
@@ -124,6 +125,15 @@ final class GroupChatViewModel {
             let ref = try await mediaService.uploadGroupMedia(
                 data: data, mimeType: mimeType, mediaKind: mediaKind
             )
+            if let idx = messages.firstIndex(where: { $0.id == messageId }) {
+                messages[idx] = GroupMessage(
+                    id: messageId,
+                    senderDID: currentUserDID,
+                    text: TextMessagePayload.mediaPlaceholder(for: ref),
+                    isOutgoing: true,
+                    mediaRef: ref
+                )
+            }
             let wire = MediaMessageWire(messageId: messageId, media: ref, caption: nil)
             let plaintext = try JSONEncoder().encode(wire)
             let ciphertext = try await keyManager.encryptForGroup(plaintext: plaintext, groupId: groupId)
@@ -150,6 +160,7 @@ final class GroupChatViewModel {
         guard textEvent.peerDID != currentUserDID else { return }
 
         let body: String
+        var mediaRef: MediaAttachmentRef?
         if let wire = textEvent.wirePayload,
            let ciphertext = wire.groupCiphertext,
            let version = wire.groupKeyVersion {
@@ -159,10 +170,18 @@ final class GroupChatViewModel {
                     groupId: groupId,
                     keyVersion: version
                 )
-                body = String(data: plain, encoding: .utf8) ?? textEvent.text
+                if let parsed = MediaMessageService.parseWire(from: String(data: plain, encoding: .utf8) ?? "") {
+                    body = parsed.caption ?? TextMessagePayload.mediaPlaceholder(for: parsed.media)
+                    mediaRef = parsed.media
+                } else {
+                    body = String(data: plain, encoding: .utf8) ?? textEvent.text
+                }
             } catch {
                 body = textEvent.text
             }
+        } else if let wire = textEvent.wirePayload, let media = wire.media {
+            body = TextMessagePayload.mediaPlaceholder(for: media)
+            mediaRef = media
         } else {
             body = textEvent.text
         }
@@ -172,7 +191,8 @@ final class GroupChatViewModel {
             id: textEvent.messageId,
             senderDID: textEvent.peerDID,
             text: body,
-            isOutgoing: false
+            isOutgoing: false,
+            mediaRef: mediaRef
         ))
     }
 }

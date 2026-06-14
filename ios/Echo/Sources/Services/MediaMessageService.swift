@@ -36,6 +36,9 @@ actor MediaMessageService {
             mimeType: mimeType,
             trustTier: trustTier
         )
+        if mediaKind == .image || mediaKind == .video {
+            _ = MediaThumbnailCache.thumbnail(for: upload.fileId, from: data)
+        }
         let ref = MediaAttachmentRef(
             fileId: upload.fileId,
             mimeType: mimeType,
@@ -70,6 +73,9 @@ actor MediaMessageService {
             mimeType: mimeType,
             trustTier: trustTier
         )
+        if mediaKind == .image || mediaKind == .video {
+            _ = MediaThumbnailCache.thumbnail(for: upload.fileId, from: data)
+        }
         return MediaAttachmentRef(
             fileId: upload.fileId,
             mimeType: mimeType,

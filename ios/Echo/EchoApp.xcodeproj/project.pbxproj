@@ -241,10 +241,14 @@
 		M4B003CALL00000000000003 /* WebRTCCallSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F003CALL00000000000003 /* WebRTCCallSession.swift */; };
 		M4B004CALL00000000000004 /* CallICEAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F004CALL00000000000004 /* CallICEAPIClient.swift */; };
 		M4B005CALL00000000000005 /* CallSignalingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F005CALL00000000000005 /* CallSignalingService.swift */; };
+		M4B006CALL00000000000006 /* WebRTCSessionDescription.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F006CALL00000000000006 /* WebRTCSessionDescription.swift */; };
+		M4B007CALL00000000000007 /* CallKitCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F007CALL00000000000007 /* CallKitCoordinator.swift */; };
 		M5B001MEDIA000000000001 /* MediaAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F001MEDIA000000000001 /* MediaAPIClient.swift */; };
 		M5B002MEDIA000000000002 /* MediaMessageCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F002MEDIA000000000002 /* MediaMessageCrypto.swift */; };
 		M5B003MEDIA000000000003 /* MediaMessageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F003MEDIA000000000003 /* MediaMessageService.swift */; };
 		M5B004MEDIA000000000004 /* VoiceNoteRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F004MEDIA000000000004 /* VoiceNoteRecorder.swift */; };
+		M5B005MEDIA000000000005 /* MediaThumbnailCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F005MEDIA000000000005 /* MediaThumbnailCache.swift */; };
+		M5B006MEDIA000000000006 /* WaveformExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F006MEDIA000000000006 /* WaveformExtractor.swift */; };
 		M6B001SRCH0000000000001 /* MessageSearchTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F001SRCH0000000000001 /* MessageSearchTokenizer.swift */; };
 		M6B002SRCH0000000000002 /* EncryptedIndexStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F002SRCH0000000000002 /* EncryptedIndexStore.swift */; };
 		M6B003SRCH0000000000003 /* LocalMessageIndexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F003SRCH0000000000003 /* LocalMessageIndexer.swift */; };
@@ -256,6 +260,9 @@
 		M6B009SRCH0000000000009 /* SearchIndexSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F009SRCH0000000000009 /* SearchIndexSyncService.swift */; };
 		M6B010SRCH0000000000010 /* PollService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F010SRCH0000000000010 /* PollService.swift */; };
 		M6B012SRCH0000000000012 /* OverflowManifestHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F012SRCH0000000000012 /* OverflowManifestHandler.swift */; };
+		M7B001AI00000000000001 /* OnDeviceAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F001AI00000000000001 /* OnDeviceAIService.swift */; };
+		M7B002AI00000000000002 /* PrivacyAIConsentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F002AI00000000000002 /* PrivacyAIConsentStore.swift */; };
+		M7B003AI00000000000003 /* SmartReplyBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F003AI00000000000003 /* SmartReplyBar.swift */; };
 		P3B001012345678901234002 /* PinnedConversationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234001 /* PinnedConversationsStore.swift */; };
 		P3B001012345678901234004 /* ContactTrustIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234003 /* ContactTrustIndex.swift */; };
 		P3B001012345678901234006 /* PersonaSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234005 /* PersonaSessionStore.swift */; };
@@ -529,10 +536,14 @@
 		M4F003CALL00000000000003 /* WebRTCCallSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCCallSession.swift; sourceTree = "<group>"; };
 		M4F004CALL00000000000004 /* CallICEAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallICEAPIClient.swift; sourceTree = "<group>"; };
 		M4F005CALL00000000000005 /* CallSignalingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallSignalingService.swift; sourceTree = "<group>"; };
+		M4F006CALL00000000000006 /* WebRTCSessionDescription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCSessionDescription.swift; sourceTree = "<group>"; };
+		M4F007CALL00000000000007 /* CallKitCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallKitCoordinator.swift; sourceTree = "<group>"; };
 		M5F001MEDIA000000000001 /* MediaAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAPIClient.swift; sourceTree = "<group>"; };
 		M5F002MEDIA000000000002 /* MediaMessageCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaMessageCrypto.swift; sourceTree = "<group>"; };
 		M5F003MEDIA000000000003 /* MediaMessageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaMessageService.swift; sourceTree = "<group>"; };
 		M5F004MEDIA000000000004 /* VoiceNoteRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRecorder.swift; sourceTree = "<group>"; };
+		M5F005MEDIA000000000005 /* MediaThumbnailCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaThumbnailCache.swift; sourceTree = "<group>"; };
+		M5F006MEDIA000000000006 /* WaveformExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformExtractor.swift; sourceTree = "<group>"; };
 		M6F001SRCH0000000000001 /* MessageSearchTokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageSearchTokenizer.swift; sourceTree = "<group>"; };
 		M6F002SRCH0000000000002 /* EncryptedIndexStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncryptedIndexStore.swift; sourceTree = "<group>"; };
 		M6F003SRCH0000000000003 /* LocalMessageIndexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMessageIndexer.swift; sourceTree = "<group>"; };
@@ -544,6 +555,9 @@
 		M6F009SRCH0000000000009 /* SearchIndexSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchIndexSyncService.swift; sourceTree = "<group>"; };
 		M6F010SRCH0000000000010 /* PollService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollService.swift; sourceTree = "<group>"; };
 		M6F012SRCH0000000000012 /* OverflowManifestHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverflowManifestHandler.swift; sourceTree = "<group>"; };
+		M7F001AI00000000000001 /* OnDeviceAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnDeviceAIService.swift; sourceTree = "<group>"; };
+		M7F002AI00000000000002 /* PrivacyAIConsentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyAIConsentStore.swift; sourceTree = "<group>"; };
+		M7F003AI00000000000003 /* SmartReplyBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartReplyBar.swift; sourceTree = "<group>"; };
 		P3B001012345678901234001 /* PinnedConversationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinnedConversationsStore.swift; sourceTree = "<group>"; };
 		P3B001012345678901234003 /* ContactTrustIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactTrustIndex.swift; sourceTree = "<group>"; };
 		P3B001012345678901234005 /* PersonaSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaSessionStore.swift; sourceTree = "<group>"; };
@@ -732,6 +746,8 @@
 				M5F001MEDIA000000000001 /* MediaAPIClient.swift */,
 				M5F002MEDIA000000000002 /* MediaMessageCrypto.swift */,
 				M5F003MEDIA000000000003 /* MediaMessageService.swift */,
+				M5F005MEDIA000000000005 /* MediaThumbnailCache.swift */,
+				M5F006MEDIA000000000006 /* WaveformExtractor.swift */,
 				M6F001SRCH0000000000001 /* MessageSearchTokenizer.swift */,
 				M6F002SRCH0000000000002 /* EncryptedIndexStore.swift */,
 				M6F003SRCH0000000000003 /* LocalMessageIndexer.swift */,
@@ -743,6 +759,8 @@
 				M6F009SRCH0000000000009 /* SearchIndexSyncService.swift */,
 				M6F010SRCH0000000000010 /* PollService.swift */,
 				M6F012SRCH0000000000012 /* OverflowManifestHandler.swift */,
+				M7F001AI00000000000001 /* OnDeviceAIService.swift */,
+				M7F002AI00000000000002 /* PrivacyAIConsentStore.swift */,
 				891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */,
 				W0E001012345678901234009 /* ContactSocialAPIClient.swift */,
 				F1A2B3C40123456789000B3 /* DeviceLinkAPIClient.swift */,
@@ -920,6 +938,7 @@
 				M5F004MEDIA000000000004 /* VoiceNoteRecorder.swift */,
 				3D2F15A32FD305E70020765D /* MessagesHubView.swift */,
 				3D99E73A2FDEBD550094416C /* ChatPollViews.swift */,
+				M7F003AI00000000000003 /* SmartReplyBar.swift */,
 			);
 			path = Messaging;
 			sourceTree = "<group>";
@@ -1251,6 +1270,8 @@
 				M4F001CALL00000000000001 /* CallSignal.swift */,
 				M4F002CALL00000000000002 /* CallHistoryStore.swift */,
 				M4F003CALL00000000000003 /* WebRTCCallSession.swift */,
+				M4F006CALL00000000000006 /* WebRTCSessionDescription.swift */,
+				M4F007CALL00000000000007 /* CallKitCoordinator.swift */,
 				FF63CD1AB50EF7D840F6A9E1 /* CallView.swift */,
 				335CBE1170EA2977BE45071D /* CallViewModel.swift */,
 			);
@@ -1524,12 +1545,16 @@
 				M4B001CALL00000000000001 /* CallSignal.swift in Sources */,
 				M4B002CALL00000000000002 /* CallHistoryStore.swift in Sources */,
 				M4B003CALL00000000000003 /* WebRTCCallSession.swift in Sources */,
+				M4B006CALL00000000000006 /* WebRTCSessionDescription.swift in Sources */,
+				M4B007CALL00000000000007 /* CallKitCoordinator.swift in Sources */,
 				M4B004CALL00000000000004 /* CallICEAPIClient.swift in Sources */,
 				M4B005CALL00000000000005 /* CallSignalingService.swift in Sources */,
 				M5B001MEDIA000000000001 /* MediaAPIClient.swift in Sources */,
 				M5B002MEDIA000000000002 /* MediaMessageCrypto.swift in Sources */,
 				M5B003MEDIA000000000003 /* MediaMessageService.swift in Sources */,
 				M5B004MEDIA000000000004 /* VoiceNoteRecorder.swift in Sources */,
+				M5B005MEDIA000000000005 /* MediaThumbnailCache.swift in Sources */,
+				M5B006MEDIA000000000006 /* WaveformExtractor.swift in Sources */,
 				M6B001SRCH0000000000001 /* MessageSearchTokenizer.swift in Sources */,
 				M6B002SRCH0000000000002 /* EncryptedIndexStore.swift in Sources */,
 				M6B003SRCH0000000000003 /* LocalMessageIndexer.swift in Sources */,
@@ -1541,6 +1566,9 @@
 				M6B009SRCH0000000000009 /* SearchIndexSyncService.swift in Sources */,
 				M6B010SRCH0000000000010 /* PollService.swift in Sources */,
 				M6B012SRCH0000000000012 /* OverflowManifestHandler.swift in Sources */,
+				M7B001AI00000000000001 /* OnDeviceAIService.swift in Sources */,
+				M7B002AI00000000000002 /* PrivacyAIConsentStore.swift in Sources */,
+				M7B003AI00000000000003 /* SmartReplyBar.swift in Sources */,
 				44EEF7274CAF966992DC6C16 /* MessageReceiptsAPI.swift in Sources */,
 				1411B71227274A6D2B383C77 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift in Sources */,
 				438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */,

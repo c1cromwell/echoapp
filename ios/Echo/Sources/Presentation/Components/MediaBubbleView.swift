@@ -57,7 +57,14 @@ struct MediaBubbleView: View {
 
     @ViewBuilder
     private var imageContent: some View {
-        if let imageData, let uiImage = UIImage(data: imageData) {
+        if let cached = MediaThumbnailCache.load(fileId: mediaRef.fileId),
+           imageData == nil {
+            Image(uiImage: cached)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(maxWidth: 260, maxHeight: 300)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+        } else if let imageData, let uiImage = UIImage(data: imageData) {
             Image(uiImage: uiImage)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
@@ -163,8 +170,10 @@ struct MediaBubbleView: View {
             switch mediaKind {
             case .image, .video:
                 imageData = data
+                _ = MediaThumbnailCache.thumbnail(for: ref.fileId, from: data)
             case .audio:
                 audioData = data
+                waveformSamples = WaveformExtractor.samples(from: data)
             case .file:
                 break
             }

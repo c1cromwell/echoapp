@@ -2,9 +2,10 @@ package api
 
 import (
 	"net/http"
+	"os"
 )
 
-// ICE server config for WebRTC (M4). Returns public STUN; TURN credentials are client-held.
+// ICE server config for WebRTC (M4). Returns public STUN; optional TURN via env (M4b).
 //
 //	GET /v3/calls/ice-servers
 func (h *V3Handlers) handleCallsICEServers(w http.ResponseWriter, r *http.Request) {
@@ -12,10 +13,21 @@ func (h *V3Handlers) handleCallsICEServers(w http.ResponseWriter, r *http.Reques
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
 		return
 	}
+	servers := []map[string]interface{}{
+		{"urls": []string{"stun:stun.l.google.com:19302"}},
+		{"urls": []string{"stun:stun1.l.google.com:19302"}},
+	}
+	if turnURL := os.Getenv("ECHO_TURN_URL"); turnURL != "" {
+		entry := map[string]interface{}{"urls": []string{turnURL}}
+		if user := os.Getenv("ECHO_TURN_USERNAME"); user != "" {
+			entry["username"] = user
+		}
+		if cred := os.Getenv("ECHO_TURN_CREDENTIAL"); cred != "" {
+			entry["credential"] = cred
+		}
+		servers = append(servers, entry)
+	}
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"ice_servers": []map[string]interface{}{
-			{"urls": []string{"stun:stun.l.google.com:19302"}},
-			{"urls": []string{"stun:stun1.l.google.com:19302"}},
-		},
+		"ice_servers": servers,
 	})
 }

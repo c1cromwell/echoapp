@@ -29,6 +29,7 @@ class CallViewModel: ObservableObject {
     private var durationTimer: Timer?
     private let session = WebRTCCallSession()
     private var signaling: CallSignalingService?
+    private var callKitUUID: UUID?
     private var localDID: String = ""
     private var startedAt = Date()
 
@@ -48,8 +49,23 @@ class CallViewModel: ObservableObject {
         await configureSignaling()
 
         do {
-            _ = try await signaling?.fetchICEServers()
+            let iceServers = try await signaling?.fetchICEServers() ?? []
+            session.configure(iceServers: iceServers) { [weak self] candidate in
+                Task { @MainActor in
+                    guard let self else { return }
+                    try? await self.signaling?.sendIce(
+                        callId: self.callId,
+                        to: self.peerDID,
+                        candidate: candidate
+                    )
+                }
+            }
             if isOutgoing {
+                callKitUUID = CallKitCoordinator.shared.reportOutgoingCall(
+                    peerName: contactName.isEmpty ? peerDID : contactName,
+                    hasVideo: callType == .video,
+                    onEnd: { [weak self] in self?.endCall() }
+                )
                 let sdp = try await session.createOffer(callType: callType)
                 try await signaling?.sendOffer(
                     callId: callId,
@@ -72,6 +88,7 @@ class CallViewModel: ObservableObject {
         durationTimer?.invalidate()
         durationTimer = nil
         session.hangup()
+        CallKitCoordinator.shared.endCall()
         state = .ended
         stateLabel = "Call Ended"
         recordCall(missed: false)
@@ -140,6 +157,7 @@ class CallViewModel: ObservableObject {
     private func markActive() async {
         state = .active
         stateLabel = "00:00"
+        CallKitCoordinator.shared.reportConnected()
         startDurationTimer()
     }
 
