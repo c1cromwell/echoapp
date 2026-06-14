@@ -197,6 +197,22 @@ public struct ContactDetailView: View {
             }
         }
         .task { await viewModel.loadContact() }
+        #if os(iOS)
+        .fullScreenCover(isPresented: $viewModel.showVoiceCall) {
+            CallView(
+                peerDID: viewModel.contactId,
+                callType: .voice,
+                contactName: viewModel.contact.name
+            )
+        }
+        .fullScreenCover(isPresented: $viewModel.showVideoCall) {
+            CallView(
+                peerDID: viewModel.contactId,
+                callType: .video,
+                contactName: viewModel.contact.name
+            )
+        }
+        #endif
         .alert("Block contact?", isPresented: $viewModel.showBlockConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Block", role: .destructive) {

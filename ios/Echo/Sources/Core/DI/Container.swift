@@ -182,6 +182,17 @@ final class DIContainer {
             return MessageBackupService(backupAPI: api)
         }
 
+        registerFactory(ServiceKeys.callSignaling) { [weak self] () -> CallSignalingService in
+            let signal: ConversationSignalService = self?.resolve(ServiceKeys.conversationSignalService)
+                ?? ConversationSignalService(apiBaseURL: EchoAPIBaseURL.resolved)
+            let client: APIClient = self?.resolve(ServiceKeys.apiClient)
+                ?? APIClient(configuration: .default)
+            return CallSignalingService(
+                signalService: signal,
+                iceAPI: CallICEAPIClient(apiClient: client)
+            )
+        }
+
         // WO-221: private contact discovery (OPRF + PSI)
         registerFactory(ServiceKeys.contactDiscoveryService) { [weak self] () -> ContactDiscoveryService in
             let client: APIClient = self?.resolve(ServiceKeys.apiClient)
@@ -317,6 +328,7 @@ enum ServiceKeys {
     static let deviceHistorySync = "services.deviceHistorySync"
     static let backupAPI = "networking.backupAPI"
     static let messageBackup = "services.messageBackup"
+    static let callSignaling = "services.callSignaling"
     static let contactDiscoveryService = "services.contactDiscovery"
     static let contactSocialAPI = "services.contactSocialAPI"
     static let contactDiscoveryUseCase = "usecase.contactDiscovery"
@@ -455,6 +467,10 @@ extension DIContainer {
 
     func resolveMessageBackup() -> MessageBackupService? {
         resolve(ServiceKeys.messageBackup)
+    }
+
+    func resolveCallSignaling() -> CallSignalingService? {
+        resolve(ServiceKeys.callSignaling)
     }
 
     /// Factory for Phase 3 chat detail (WO-192) — uses registered `ConversationSignalService`.

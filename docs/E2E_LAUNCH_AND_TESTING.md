@@ -284,6 +284,28 @@ Single device with DM history on LAN backend (`make dev`). User knows their 24-w
 
 Automated helpers: `go test ./internal/api/ -run Backup`, `swift test --filter BackupCryptoTests` (Xcode).
 
+| Step | Action | Expected |
+|------|--------|----------|
+| 6 | Enable **Auto-backup** (daily) + phrase once | Keychain session key saved; no prompt on next due run |
+| 7 | Background app overnight / trigger foreground | Auto-backup runs when due (wifi-only respected) |
+| 8 | **Restore from Local** (same device) | Threads restored from Documents backup without cloud |
+
+### 6.12 Call signaling (M4a / WO-196 foundation)
+
+Two signed-in clients on the same LAN backend (`make dev`). Real media (WebRTC) is stubbed — this gate
+validates WS offer/answer/ICE routing and call UI/history.
+
+| Step | Action | Expected |
+|------|--------|----------|
+| 1 | A: open contact B → **Voice call** | `CallView` presents; A sends `call_signal` offer |
+| 2 | B online | B receives offer via WS; incoming UI or auto-answer path fires |
+| 3 | B accepts (or A receives answer) | Answer `call_signal` delivered; stub session marks active |
+| 4 | Either party hangs up | `hangup` signal sent; both return to contact detail |
+| 5 | Decline path | B rejects → A sees "Declined"; history records missed |
+| 6 | Settings / call history (when surfaced) | `CallHistoryStore` entry for peer + duration/missed |
+
+Automated helpers: `go test ./internal/api/ -run 'Call|ICE'`, `swift test --filter CallSignalCodecTests` (Xcode).
+
 ### 6.5 OIDC4VC (WO-100)
 
 `OIDC4VC_ENABLED=true` → enrollment → wallet → `echo-enroll://` callback.

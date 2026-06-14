@@ -9,9 +9,12 @@ struct CallView: View {
     @StateObject private var viewModel: CallViewModel
     @Environment(\.dismiss) private var dismiss
 
-    init(contactId: String, callType: CallType) {
+    init(peerDID: String, callType: CallType, contactName: String = "", isOutgoing: Bool = true) {
         _viewModel = StateObject(wrappedValue: CallViewModel(
-            contactId: contactId, callType: callType
+            peerDID: peerDID,
+            callType: callType,
+            contactName: contactName,
+            isOutgoing: isOutgoing
         ))
     }
 

@@ -106,6 +106,9 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/v3/backup/push", h.handleBackupPush)
 	mux.HandleFunc("/v3/backup/pull", h.handleBackupPull)
 
+	// WebRTC call signaling (M4)
+	mux.HandleFunc("/v3/calls/ice-servers", h.handleCallsICEServers)
+
 	// Group endpoints
 	mux.HandleFunc("/v3/groups/key/distribute", h.handleGroupKeyDistribute)
 	mux.HandleFunc("/v3/groups/create", h.handleGroupCreate)

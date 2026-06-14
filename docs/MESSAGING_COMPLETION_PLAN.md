@@ -170,10 +170,13 @@ Phone-free + restore. Already sequenced in `COMPETITIVE_AUDIT_IMPLEMENTATION_PLA
   - ✅ **M3c Encrypted backup (2026-05-29).** `BackupCrypto` (phrase + HKDF + AES-GCM),
     `MessageBackupService` (local `.enc` + cloud `/v3/backup/*`), `BackupView` wiring;
     server relay via `encblob`; `Phase3Tests/BackupCryptoTests.swift`; E2E §6.11.
-  - ⏳ **M3 remaining:** Xcode two-device §6.10–6.11 sign-off; auto-backup scheduling; WO-73 deferred M6.
+  - ✅ **M3 finish (2026-05-29).** `BackupScheduler` (daily/weekly/manual, wifi-only, foreground);
+    `BackupSessionKeyStore` (keychain session key after opt-in); local restore + auto-backup in
+    `BackupView`; `revokeAllRemoteSyncStreams()` on logout-all; `MessagesTabView` runs scheduler.
+  - ⏳ **M3 sign-off only:** Xcode two-device §6.10–6.11; WO-73 search-index sync deferred M6.
 
 ### M4 — Calls (voice + video, WebRTC)
-UI skeleton exists; no signaling.
+UI skeleton exists; signaling foundation landed (real WebRTC + CallKit still pending).
 - **WOs:** WO-196 (call history + notifications) + WebRTC signaling (new).
 - **Work:** call signaling over the WebSocket hub (`internal/api/ws.go`): offer/answer/ICE; TURN/STUN
   config; iOS `CallViewModel`/`CallState` real peer-connection wiring (`react-native-webrtc` /
@@ -181,6 +184,15 @@ UI skeleton exists; no signaling.
 - **Gate:** 1:1 voice + video connect on real devices across NAT; call history + missed-call badges;
   E2EE media (DTLS-SRTP) verified.
 - **Est:** 5–8 wks. **Depends:** M0. Independent of M2/M3 — parallelizable with separate staffing.
+- **Progress (2026-05-29) — M4a foundation:**
+  - ✅ **Backend:** `call_signal` WS routing via `deliverOrQueue`; `GET /v3/calls/ice-servers`;
+    `ws_call_signal_test.go` + ICE handler tests.
+  - ✅ **iOS:** `CallSignal`/`CallSignalCodec`, `CallSignalingService`, `CallICEAPIClient`,
+    `WebRTCCallSession` stub, `CallHistoryStore` (WO-196), `CallViewModel` rewired;
+    `ConversationSignalService` decodes `call_signal`; `ContactDetailView` voice/video sheets;
+    `Phase3Tests/CallSignalCodecTests.swift`; E2E §6.12.
+  - ⏳ **M4 remaining:** WebRTC.framework peer connection, CallKit, TURN credentials, group calls,
+    missed-call push specialization; Xcode §6.12 sign-off.
 
 ### M5 — Media & files (relay pipeline + voice notes)
 Encryption service exists; no transport pipeline.

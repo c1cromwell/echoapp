@@ -102,6 +102,16 @@ type GroupKeySignal struct {
 	DistributedBy string `json:"distributed_by"`
 }
 
+// CallSignal is the payload of Type:"call_signal" WS messages (M4 / WO-5).
+// SDP and ICE payloads are opaque to the relay (content-blind).
+type CallSignal struct {
+	CallID   string          `json:"call_id"`
+	Action   string          `json:"action"` // offer|answer|ice|hangup|reject|ring
+	CallType string          `json:"call_type,omitempty"`
+	SDP      string          `json:"sdp,omitempty"`
+	Ice      json.RawMessage `json:"ice_candidate,omitempty"`
+}
+
 // Client represents a single WebSocket connection.
 type Client struct {
 	hub    *Hub
@@ -416,6 +426,9 @@ func (c *Client) readPump() {
 // Other messages preserve the existing behavior: direct when `to` is set, else
 // broadcast.
 func (c *Client) routeInbound(msg WSMessage) {
+	if msg.From == "" {
+		msg.From = c.userID
+	}
 	outBytes, err := json.Marshal(msg)
 	if err != nil {
 		return
@@ -427,6 +440,15 @@ func (c *Client) routeInbound(msg WSMessage) {
 			return
 		}
 		c.hub.SendToUser(msg.To, outBytes)
+		return
+	}
+
+	// WebRTC call signaling (M4): directed only; queue offline + content-blind push.
+	if msg.Type == "call_signal" {
+		if msg.To == "" || msg.To == c.userID {
+			return
+		}
+		c.hub.deliverOrQueue(msg.To, outBytes, c.userID, msg.ConversationID)
 		return
 	}
 

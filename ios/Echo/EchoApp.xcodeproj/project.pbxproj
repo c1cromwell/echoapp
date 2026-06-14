@@ -28,6 +28,13 @@
 		M3C001BACKUP00000000001 /* BackupCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F007BACKUP00000000001 /* BackupCrypto.swift */; };
 		M3C002BACKUP00000000002 /* BackupAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F008BACKUP00000000002 /* BackupAPIClient.swift */; };
 		M3C003BACKUP00000000003 /* MessageBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F009BACKUP00000000003 /* MessageBackupService.swift */; };
+		M3C004BACKUP00000000004 /* BackupScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F010BACKUP00000000004 /* BackupScheduler.swift */; };
+		M3C005BACKUP00000000005 /* BackupSessionKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F011BACKUP00000000005 /* BackupSessionKeyStore.swift */; };
+		M4B001CALL00000000000001 /* CallSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F001CALL00000000000001 /* CallSignal.swift */; };
+		M4B002CALL00000000000002 /* CallHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F002CALL00000000000002 /* CallHistoryStore.swift */; };
+		M4B003CALL00000000000003 /* WebRTCCallSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F003CALL00000000000003 /* WebRTCCallSession.swift */; };
+		M4B004CALL00000000000004 /* CallICEAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F004CALL00000000000004 /* CallICEAPIClient.swift */; };
+		M4B005CALL00000000000005 /* CallSignalingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F005CALL00000000000005 /* CallSignalingService.swift */; };
 		44EEF7274CAF966992DC6C16 /* MessageReceiptsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */; };
 		0115B291F78020BAFF4D4534 /* Sources/Features/Contacts/ScannedIdentityParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36EA8623AE0B5A2F4FBCD41D /* Sources/Features/Contacts/ScannedIdentityParser.swift */; };
 		02A5447CFA298C4CFBCC838C /* AuthCoordinatorVM.swift in Sources */ = {isa = PBXBuildFile; fileRef = D61E569198EEF3B0893C66CA /* AuthCoordinatorVM.swift */; };
@@ -287,6 +294,13 @@
 		M3F007BACKUP00000000001 /* BackupCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCrypto.swift; sourceTree = "<group>"; };
 		M3F008BACKUP00000000002 /* BackupAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupAPIClient.swift; sourceTree = "<group>"; };
 		M3F009BACKUP00000000003 /* MessageBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageBackupService.swift; sourceTree = "<group>"; };
+		M3F010BACKUP00000000004 /* BackupScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupScheduler.swift; sourceTree = "<group>"; };
+		M3F011BACKUP00000000005 /* BackupSessionKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupSessionKeyStore.swift; sourceTree = "<group>"; };
+		M4F001CALL00000000000001 /* CallSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallSignal.swift; sourceTree = "<group>"; };
+		M4F002CALL00000000000002 /* CallHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallHistoryStore.swift; sourceTree = "<group>"; };
+		M4F003CALL00000000000003 /* WebRTCCallSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCCallSession.swift; sourceTree = "<group>"; };
+		M4F004CALL00000000000004 /* CallICEAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallICEAPIClient.swift; sourceTree = "<group>"; };
+		M4F005CALL00000000000005 /* CallSignalingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallSignalingService.swift; sourceTree = "<group>"; };
 		891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageReceiptsAPI.swift; sourceTree = "<group>"; };
 		009F1BD1BB134BC9F328319B /* EnrollmentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentModels.swift; sourceTree = "<group>"; };
 		0174AD057928239478B42111 /* GovernanceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GovernanceModels.swift; sourceTree = "<group>"; };
@@ -671,6 +685,10 @@
 				M3F007BACKUP00000000001 /* BackupCrypto.swift */,
 				M3F008BACKUP00000000002 /* BackupAPIClient.swift */,
 				M3F009BACKUP00000000003 /* MessageBackupService.swift */,
+				M3F010BACKUP00000000004 /* BackupScheduler.swift */,
+				M3F011BACKUP00000000005 /* BackupSessionKeyStore.swift */,
+				M4F004CALL00000000000004 /* CallICEAPIClient.swift */,
+				M4F005CALL00000000000005 /* CallSignalingService.swift */,
 				891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */,
 				W0E001012345678901234009 /* ContactSocialAPIClient.swift */,
 				F1A2B3C40123456789000B3 /* DeviceLinkAPIClient.swift */,
@@ -1189,6 +1207,9 @@
 			isa = PBXGroup;
 			children = (
 				81B28C5CAE4896371D46E4AD /* CallState.swift */,
+				M4F001CALL00000000000001 /* CallSignal.swift */,
+				M4F002CALL00000000000002 /* CallHistoryStore.swift */,
+				M4F003CALL00000000000003 /* WebRTCCallSession.swift */,
 				FF63CD1AB50EF7D840F6A9E1 /* CallView.swift */,
 				335CBE1170EA2977BE45071D /* CallViewModel.swift */,
 			);
@@ -1438,6 +1459,13 @@
 				M3C001BACKUP00000000001 /* BackupCrypto.swift in Sources */,
 				M3C002BACKUP00000000002 /* BackupAPIClient.swift in Sources */,
 				M3C003BACKUP00000000003 /* MessageBackupService.swift in Sources */,
+				M3C004BACKUP00000000004 /* BackupScheduler.swift in Sources */,
+				M3C005BACKUP00000000005 /* BackupSessionKeyStore.swift in Sources */,
+				M4B001CALL00000000000001 /* CallSignal.swift in Sources */,
+				M4B002CALL00000000000002 /* CallHistoryStore.swift in Sources */,
+				M4B003CALL00000000000003 /* WebRTCCallSession.swift in Sources */,
+				M4B004CALL00000000000004 /* CallICEAPIClient.swift in Sources */,
+				M4B005CALL00000000000005 /* CallSignalingService.swift in Sources */,
 				44EEF7274CAF966992DC6C16 /* MessageReceiptsAPI.swift in Sources */,
 				1411B71227274A6D2B383C77 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift in Sources */,
 				438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */,

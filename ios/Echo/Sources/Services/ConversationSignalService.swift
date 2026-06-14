@@ -8,6 +8,7 @@ final class ConversationSignalService: @unchecked Sendable {
     private var onGroupKeyReceived: (@Sendable (GroupKeySignalEvent) -> Void)?
     /// Updates inbox preview when a text arrives and no chat handler is registered.
     private var onInboundTextMessage: (@Sendable (TextMessageSignalEvent) -> Void)?
+    private var onCallSignal: (@Sendable (CallSignalEvent) -> Void)?
     private var isConnected = false
 
     init(transport: ConversationSignalTransport) {
@@ -33,6 +34,16 @@ final class ConversationSignalService: @unchecked Sendable {
         lock.lock()
         onGroupKeyReceived = handler
         lock.unlock()
+    }
+
+    func setCallSignalHandler(_ handler: (@Sendable (CallSignalEvent) -> Void)?) {
+        lock.lock()
+        onCallSignal = handler
+        lock.unlock()
+    }
+
+    func sendRaw(wire: String) async throws {
+        try await transport.send(text: wire)
     }
 
     func setConversationHandler(
@@ -122,6 +133,16 @@ final class ConversationSignalService: @unchecked Sendable {
     }
 
     func handleIncoming(text: String) {
+        #if os(iOS)
+        if let callEvent = try? CallSignalCodec.decode(from: text) {
+            lock.lock()
+            let handler = onCallSignal
+            lock.unlock()
+            handler?(callEvent)
+            return
+        }
+        #endif
+
         guard let event = try? ConversationSignalCodec.decodeEvent(from: text) else { return }
 
         if case .groupKey(let keyEvent) = event {
