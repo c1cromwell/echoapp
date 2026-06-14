@@ -14,13 +14,13 @@ func TestWSOfflineQueue_EnqueueAndDequeue(t *testing.T) {
 	q.Enqueue("did:key:bob", []byte(`{"type":"text2"}`), wsOfflineRetention)
 
 	got := q.DequeueAll("did:key:bob")
-	if len(got) != 2 {
-		t.Fatalf("dequeued %d, want 2", len(got))
+	if len(got.Blobs) != 2 {
+		t.Fatalf("dequeued %d blobs, want 2", len(got.Blobs))
 	}
-	if string(got[0]) != `{"type":"text"}` {
-		t.Fatalf("first = %s", got[0])
+	if string(got.Blobs[0]) != `{"type":"text"}` {
+		t.Fatalf("first = %s", got.Blobs[0])
 	}
-	if len(q.DequeueAll("did:key:bob")) != 0 {
+	if len(q.DequeueAll("did:key:bob").Blobs) != 0 {
 		t.Fatal("queue should be empty after dequeue")
 	}
 }
@@ -61,7 +61,7 @@ func TestRouteGroupText_QueuesWhenOffline(t *testing.T) {
 	})
 
 	queued := h.offlineQueue.DequeueAll("did:key:bob")
-	if len(queued) != 1 {
-		t.Fatalf("queued %d messages for offline bob, want 1", len(queued))
+	if len(queued.Blobs) != 1 {
+		t.Fatalf("queued %d messages for offline bob, want 1", len(queued.Blobs))
 	}
 }

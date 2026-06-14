@@ -138,7 +138,7 @@ struct GroupKeyPayload: Codable, Sendable, Equatable {
     }
 }
 
-/// Chat payload for relay `type: text` — plaintext (legacy), Kinnami 1:1 envelope, or group AES-GCM blob.
+    /// Chat payload for relay `type: text` — plaintext (legacy), Kinnami 1:1 envelope, or group AES-GCM blob.
 struct TextMessagePayload: Codable, Sendable, Equatable {
     let messageId: String
     let text: String?
@@ -146,6 +146,8 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
     /// AES-256-GCM ciphertext sealed with the group symmetric key (M2).
     let groupCiphertext: Data?
     let groupKeyVersion: Int?
+    /// Client-encrypted media relay reference (M5). Cleartext only in legacy/dev paths.
+    let media: MediaAttachmentRef?
 
     enum CodingKeys: String, CodingKey {
         case messageId = "message_id"
@@ -153,6 +155,7 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
         case encrypted
         case groupCiphertext = "group_ciphertext"
         case groupKeyVersion = "group_key_version"
+        case media
     }
 
     init(
@@ -160,14 +163,42 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
         text: String? = nil,
         encrypted: EncryptedMessageWithPublicKey? = nil,
         groupCiphertext: Data? = nil,
-        groupKeyVersion: Int? = nil
+        groupKeyVersion: Int? = nil,
+        media: MediaAttachmentRef? = nil
     ) {
         self.messageId = messageId
         self.text = text
         self.encrypted = encrypted
         self.groupCiphertext = groupCiphertext
         self.groupKeyVersion = groupKeyVersion
+        self.media = media
     }
+}
+
+/// Opaque media blob reference carried inside encrypted chat payloads (M5).
+struct MediaAttachmentRef: Codable, Sendable, Equatable {
+    let fileId: String
+    let mimeType: String
+    let mediaKind: String
+    let byteSize: Int
+    let chunkCount: Int
+    let caption: String?
+
+    enum CodingKeys: String, CodingKey {
+        case fileId = "file_id"
+        case mimeType = "mime_type"
+        case mediaKind = "media_kind"
+        case byteSize = "byte_size"
+        case chunkCount = "chunk_count"
+        case caption
+    }
+}
+
+enum MediaKind: String, Sendable {
+    case image
+    case video
+    case audio
+    case file
 }
 
 // MARK: - Inbound events (decoded from envelope)
@@ -219,6 +250,18 @@ struct TextMessageSignalEvent: Sendable, Equatable {
 extension TextMessagePayload {
     static let encryptedPlaceholder = "🔒 Encrypted message"
     static let groupEncryptedPlaceholder = "🔒 Encrypted group message"
+
+    static func mediaPlaceholder(for ref: MediaAttachmentRef) -> String {
+        if let caption = ref.caption?.trimmingCharacters(in: .whitespacesAndNewlines), !caption.isEmpty {
+            return caption
+        }
+        switch ref.mediaKind {
+        case MediaKind.audio.rawValue: return "🎤 Voice note"
+        case MediaKind.image.rawValue: return "📷 Photo"
+        case MediaKind.video.rawValue: return "🎬 Video"
+        default: return "📎 Attachment"
+        }
+    }
 }
 
 struct EditSignalEvent: Sendable, Equatable {
@@ -469,6 +512,8 @@ enum ConversationSignalCodec {
                 let preview: String
                 if let plain = envelope.payload.text, !plain.isEmpty {
                     preview = plain
+                } else if let media = envelope.payload.media {
+                    preview = TextMessagePayload.mediaPlaceholder(for: media)
                 } else if envelope.payload.groupCiphertext != nil {
                     preview = TextMessagePayload.groupEncryptedPlaceholder
                 } else if envelope.payload.encrypted != nil {

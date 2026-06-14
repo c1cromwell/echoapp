@@ -238,6 +238,34 @@ func (s *Service) GetChunks(ctx context.Context, fileID string) ([]*database.Med
 	return s.db.GetChunks(ctx, fileID)
 }
 
+// RetrieveChunk returns encrypted chunk bytes for download (M5).
+func (s *Service) RetrieveChunk(ctx context.Context, fileID string, index int) ([]byte, error) {
+	if index < 0 {
+		return nil, ErrFileNotFound
+	}
+	if _, err := s.db.GetMediaFile(ctx, fileID); err != nil {
+		return nil, ErrFileNotFound
+	}
+	chunks, err := s.db.GetChunks(ctx, fileID)
+	if err != nil {
+		return nil, err
+	}
+	var target *database.MediaChunk
+	for _, c := range chunks {
+		if c.Index == index {
+			target = c
+			break
+		}
+	}
+	if target == nil {
+		return nil, ErrFileNotFound
+	}
+	if s.storage == nil {
+		return nil, ErrFileNotFound
+	}
+	return s.storage.Retrieve(ctx, target.ChunkID)
+}
+
 // SubmitForScan submits a file for virus/content scanning.
 func (s *Service) SubmitForScan(ctx context.Context, fileID string) error {
 	_, err := s.db.GetMediaFile(ctx, fileID)

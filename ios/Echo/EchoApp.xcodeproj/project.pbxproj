@@ -35,6 +35,10 @@
 		M4B003CALL00000000000003 /* WebRTCCallSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F003CALL00000000000003 /* WebRTCCallSession.swift */; };
 		M4B004CALL00000000000004 /* CallICEAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F004CALL00000000000004 /* CallICEAPIClient.swift */; };
 		M4B005CALL00000000000005 /* CallSignalingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F005CALL00000000000005 /* CallSignalingService.swift */; };
+		M5B001MEDIA000000000001 /* MediaAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F001MEDIA000000000001 /* MediaAPIClient.swift */; };
+		M5B002MEDIA000000000002 /* MediaMessageCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F002MEDIA000000000002 /* MediaMessageCrypto.swift */; };
+		M5B003MEDIA000000000003 /* MediaMessageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F003MEDIA000000000003 /* MediaMessageService.swift */; };
+		M5B004MEDIA000000000004 /* VoiceNoteRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F004MEDIA000000000004 /* VoiceNoteRecorder.swift */; };
 		44EEF7274CAF966992DC6C16 /* MessageReceiptsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */; };
 		0115B291F78020BAFF4D4534 /* Sources/Features/Contacts/ScannedIdentityParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36EA8623AE0B5A2F4FBCD41D /* Sources/Features/Contacts/ScannedIdentityParser.swift */; };
 		02A5447CFA298C4CFBCC838C /* AuthCoordinatorVM.swift in Sources */ = {isa = PBXBuildFile; fileRef = D61E569198EEF3B0893C66CA /* AuthCoordinatorVM.swift */; };
@@ -301,6 +305,10 @@
 		M4F003CALL00000000000003 /* WebRTCCallSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCCallSession.swift; sourceTree = "<group>"; };
 		M4F004CALL00000000000004 /* CallICEAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallICEAPIClient.swift; sourceTree = "<group>"; };
 		M4F005CALL00000000000005 /* CallSignalingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallSignalingService.swift; sourceTree = "<group>"; };
+		M5F001MEDIA000000000001 /* MediaAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAPIClient.swift; sourceTree = "<group>"; };
+		M5F002MEDIA000000000002 /* MediaMessageCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaMessageCrypto.swift; sourceTree = "<group>"; };
+		M5F003MEDIA000000000003 /* MediaMessageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaMessageService.swift; sourceTree = "<group>"; };
+		M5F004MEDIA000000000004 /* VoiceNoteRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRecorder.swift; sourceTree = "<group>"; };
 		891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageReceiptsAPI.swift; sourceTree = "<group>"; };
 		009F1BD1BB134BC9F328319B /* EnrollmentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentModels.swift; sourceTree = "<group>"; };
 		0174AD057928239478B42111 /* GovernanceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GovernanceModels.swift; sourceTree = "<group>"; };
@@ -689,6 +697,9 @@
 				M3F011BACKUP00000000005 /* BackupSessionKeyStore.swift */,
 				M4F004CALL00000000000004 /* CallICEAPIClient.swift */,
 				M4F005CALL00000000000005 /* CallSignalingService.swift */,
+				M5F001MEDIA000000000001 /* MediaAPIClient.swift */,
+				M5F002MEDIA000000000002 /* MediaMessageCrypto.swift */,
+				M5F003MEDIA000000000003 /* MediaMessageService.swift */,
 				891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */,
 				W0E001012345678901234009 /* ContactSocialAPIClient.swift */,
 				F1A2B3C40123456789000B3 /* DeviceLinkAPIClient.swift */,
@@ -863,6 +874,7 @@
 				W0E00101234567890123401B /* ReactionPickerView.swift */,
 				D288A005234567890123415 /* ReactionReactorDetailSheet.swift */,
 				W0E001012345678901234017 /* TypingIndicatorView.swift */,
+				M5F004MEDIA000000000004 /* VoiceNoteRecorder.swift */,
 				3D2F15A32FD305E70020765D /* MessagesHubView.swift */,
 			);
 			path = Messaging;
@@ -1466,6 +1478,10 @@
 				M4B003CALL00000000000003 /* WebRTCCallSession.swift in Sources */,
 				M4B004CALL00000000000004 /* CallICEAPIClient.swift in Sources */,
 				M4B005CALL00000000000005 /* CallSignalingService.swift in Sources */,
+				M5B001MEDIA000000000001 /* MediaAPIClient.swift in Sources */,
+				M5B002MEDIA000000000002 /* MediaMessageCrypto.swift in Sources */,
+				M5B003MEDIA000000000003 /* MediaMessageService.swift in Sources */,
+				M5B004MEDIA000000000004 /* VoiceNoteRecorder.swift in Sources */,
 				44EEF7274CAF966992DC6C16 /* MessageReceiptsAPI.swift in Sources */,
 				1411B71227274A6D2B383C77 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift in Sources */,
 				438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */,

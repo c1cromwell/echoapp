@@ -193,6 +193,20 @@ final class DIContainer {
             )
         }
 
+        registerFactory(ServiceKeys.mediaMessage) { [weak self] () -> MediaMessageService in
+            let client: APIClient = self?.resolve(ServiceKeys.apiClient)
+                ?? APIClient(configuration: .default)
+            let signal: ConversationSignalService = self?.resolve(ServiceKeys.conversationSignalService)
+                ?? ConversationSignalService(apiBaseURL: EchoAPIBaseURL.resolved)
+            let resolve = IdentityResolveClient(apiClient: client)
+            return MediaMessageService(
+                mediaAPI: LiveMediaAPIClient(apiClient: client),
+                mediaCrypto: MediaMessageCrypto(identityResolve: resolve),
+                textCrypto: TextMessageCrypto(identityResolve: resolve),
+                signalService: signal
+            )
+        }
+
         // WO-221: private contact discovery (OPRF + PSI)
         registerFactory(ServiceKeys.contactDiscoveryService) { [weak self] () -> ContactDiscoveryService in
             let client: APIClient = self?.resolve(ServiceKeys.apiClient)
@@ -329,6 +343,7 @@ enum ServiceKeys {
     static let backupAPI = "networking.backupAPI"
     static let messageBackup = "services.messageBackup"
     static let callSignaling = "services.callSignaling"
+    static let mediaMessage = "services.mediaMessage"
     static let contactDiscoveryService = "services.contactDiscovery"
     static let contactSocialAPI = "services.contactSocialAPI"
     static let contactDiscoveryUseCase = "usecase.contactDiscovery"
@@ -473,6 +488,10 @@ extension DIContainer {
         resolve(ServiceKeys.callSignaling)
     }
 
+    func resolveMediaMessage() -> MediaMessageService? {
+        resolve(ServiceKeys.mediaMessage)
+    }
+
     /// Factory for Phase 3 chat detail (WO-192) — uses registered `ConversationSignalService`.
     func makeChatDetailViewModel() -> ChatDetailViewModel {
         let service: ConversationSignalService = resolve(ServiceKeys.conversationSignalService)
@@ -480,7 +499,10 @@ extension DIContainer {
                 apiBaseURL: WebSocketURLBuilder.apiBaseURLFromEnvironment()
                     ?? APIConfiguration.default.baseURL
             )
-        return ChatDetailViewModel(signalService: service)
+        return ChatDetailViewModel(
+            signalService: service,
+            mediaService: resolveMediaMessage()
+        )
     }
 }
 #endif

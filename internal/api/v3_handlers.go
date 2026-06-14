@@ -621,18 +621,25 @@ func (h *V3Handlers) handleMediaUpload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *V3Handlers) handleMediaGet(w http.ResponseWriter, r *http.Request) {
-	// Extract fileId from path: /v3/media/{fileId} or /v3/media/{fileId}/chunks or /v3/media/{fileId}/scan
-	path := r.URL.Path[len("/v3/media/"):]
-
+	// /v3/media/{fileId} | /chunks | /chunks/{index} | /scan
+	path := strings.TrimPrefix(r.URL.Path, "/v3/media/")
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	if len(parts) == 0 || parts[0] == "" {
+		WriteError(w, http.StatusNotFound, "FILE_NOT_FOUND", "missing file id", r.Header.Get("X-Request-ID"))
+		return
+	}
+	fileID := parts[0]
 	switch {
-	case len(path) > 7 && path[len(path)-7:] == "/chunks":
-		fileID := path[:len(path)-7]
+	case len(parts) == 1:
+		h.handleMediaDownload(w, r, fileID)
+	case len(parts) == 2 && parts[1] == "chunks":
 		h.handleMediaChunks(w, r, fileID)
-	case len(path) > 5 && path[len(path)-5:] == "/scan":
-		fileID := path[:len(path)-5]
+	case len(parts) == 3 && parts[1] == "chunks":
+		h.handleMediaChunkData(w, r, fileID, parts[2])
+	case len(parts) == 2 && parts[1] == "scan":
 		h.handleMediaScan(w, r, fileID)
 	default:
-		h.handleMediaDownload(w, r, path)
+		WriteError(w, http.StatusNotFound, "FILE_NOT_FOUND", "unknown media path", r.Header.Get("X-Request-ID"))
 	}
 }
 
@@ -668,6 +675,30 @@ func (h *V3Handlers) handleMediaChunks(w http.ResponseWriter, r *http.Request, f
 		"chunks": chunks,
 		"count":  len(chunks),
 	})
+}
+
+func (h *V3Handlers) handleMediaChunkData(w http.ResponseWriter, r *http.Request, fileID, indexStr string) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Media == nil {
+		WriteError(w, http.StatusServiceUnavailable, "MEDIA_UNAVAILABLE", "Media service not configured", r.Header.Get("X-Request-ID"))
+		return
+	}
+	index, err := strconv.Atoi(indexStr)
+	if err != nil || index < 0 {
+		WriteError(w, http.StatusBadRequest, "INVALID_INDEX", "chunk index must be non-negative integer", r.Header.Get("X-Request-ID"))
+		return
+	}
+	data, err := h.Media.RetrieveChunk(r.Context(), fileID, index)
+	if err != nil {
+		WriteError(w, http.StatusNotFound, "CHUNK_NOT_FOUND", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
 }
 
 func (h *V3Handlers) handleMediaScan(w http.ResponseWriter, r *http.Request, fileID string) {

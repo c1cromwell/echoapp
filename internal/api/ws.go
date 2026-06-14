@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	"github.com/thechadcromwell/echoapp/pkg/storage/encblob"
 )
 
 // WSMessage represents a message sent over WebSocket.
@@ -238,7 +240,8 @@ func (h *Hub) flushOffline(c *Client) {
 	if h.offlineQueue == nil {
 		return
 	}
-	for _, data := range h.offlineQueue.DequeueAll(c.userID) {
+	drain := h.offlineQueue.DequeueAll(c.userID)
+	for _, data := range drain.Blobs {
 		select {
 		case c.send <- data:
 		default:
@@ -246,6 +249,26 @@ func (h *Hub) flushOffline(c *Client) {
 				h.offlineQueue.Enqueue(c.userID, data, wsOfflineRetention)
 			}
 			return
+		}
+	}
+	if len(drain.OverflowURIs) > 0 {
+		payload, err := json.Marshal(map[string]interface{}{
+			"storage_uris": drain.OverflowURIs,
+		})
+		if err != nil {
+			return
+		}
+		manifest, err := json.Marshal(WSMessage{
+			Type:      "overflow_manifest",
+			Timestamp: time.Now().UTC().Format(time.RFC3339),
+			Payload:   payload,
+		})
+		if err != nil {
+			return
+		}
+		select {
+		case c.send <- manifest:
+		default:
 		}
 	}
 }
@@ -280,6 +303,13 @@ func (h *Hub) SetGroupMemberLister(l GroupMemberLister) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.groupMembers = l
+}
+
+// SetOfflineOverflowStorage configures encblob overflow for WO-237 queue depth > 1000.
+func (h *Hub) SetOfflineOverflowStorage(s encblob.Storage) {
+	if h.offlineQueue != nil {
+		h.offlineQueue.SetOverflowStorage(s)
+	}
 }
 
 // notifyUndelivered fires a content-blind push asynchronously if a notifier is set.

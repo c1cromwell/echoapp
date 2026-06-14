@@ -26,6 +26,7 @@ final class ChatDetailViewModel {
 
     private let signalService: ConversationSignalService
     private let textCrypto: TextMessageCrypto
+    private var mediaService: MediaMessageService?
     private var reactionsAPI: (any ReactionsAPIClient)?
     private var receiptsAPI: (any MessageReceiptsAPIClient)?
     private var opsAPI: (any MessageOpsAPIClient)?
@@ -49,8 +50,13 @@ final class ChatDetailViewModel {
     private var sentReadReceiptIDs = Set<String>()
     private var userReactionByMessage: [String: String] = [:]
 
-    init(signalService: ConversationSignalService, textCrypto: TextMessageCrypto? = nil) {
+    init(
+        signalService: ConversationSignalService,
+        textCrypto: TextMessageCrypto? = nil,
+        mediaService: MediaMessageService? = nil
+    ) {
         self.signalService = signalService
+        self.mediaService = mediaService
         if let textCrypto {
             self.textCrypto = textCrypto
         } else {
@@ -79,6 +85,7 @@ final class ChatDetailViewModel {
         reactionsAPI: (any ReactionsAPIClient)? = nil,
         receiptsAPI: (any MessageReceiptsAPIClient)? = nil,
         opsAPI: (any MessageOpsAPIClient)? = nil,
+        mediaService: MediaMessageService? = nil,
         onSend: ((String) -> Void)? = nil
     ) {
         self.conversationId = conversationId
@@ -89,6 +96,7 @@ final class ChatDetailViewModel {
         self.reactionsAPI = reactionsAPI
         self.receiptsAPI = receiptsAPI
         self.opsAPI = opsAPI
+        if let mediaService { self.mediaService = mediaService }
         if let onSend { self.onSend = onSend }
 
         messages = ConversationThreadStore.load(
@@ -314,6 +322,86 @@ final class ChatDetailViewModel {
         cancelComposerMode()
         await onSendTapped()
         return message.id
+    }
+
+    /// Send encrypted media (image/video/file/voice) via relay + `/v3/media` (M5).
+    @discardableResult
+    func sendMedia(
+        data: Data,
+        mimeType: String,
+        mediaKind: MediaKind,
+        caption: String = ""
+    ) async -> String? {
+        guard !data.isEmpty else { return nil }
+        let trimmedCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        let preview = trimmedCaption.isEmpty
+            ? TextMessagePayload.mediaPlaceholder(for: MediaAttachmentRef(
+                fileId: "pending",
+                mimeType: mimeType,
+                mediaKind: mediaKind.rawValue,
+                byteSize: data.count,
+                chunkCount: 0,
+                caption: nil
+            ))
+            : trimmedCaption
+
+        let message = ChatDetailMessage(
+            id: UUID().uuidString,
+            senderDID: currentUserDID,
+            currentUserDID: currentUserDID,
+            content: preview,
+            timestamp: "Now",
+            deliveryStatus: .sending,
+            sentAt: Date()
+        )
+        messages.append(message)
+        ConversationThreadStore.appendIfNew(conversationId: conversationId, message: message)
+
+        guard let mediaService else {
+            errorMessage = "Media service not configured."
+            if let idx = messages.firstIndex(where: { $0.id == message.id }) {
+                messages[idx].deliveryStatus = .failed
+                syncThreadMessage(messages[idx])
+            }
+            return nil
+        }
+
+        do {
+            try await mediaService.sendMedia(
+                data: data,
+                mimeType: mimeType,
+                mediaKind: mediaKind,
+                caption: trimmedCaption.isEmpty ? nil : trimmedCaption,
+                messageId: message.id,
+                peerDID: peerDID,
+                conversationId: conversationId
+            )
+            if let idx = messages.firstIndex(where: { $0.id == message.id }) {
+                messages[idx].deliveryStatus = .sent
+                syncThreadMessage(messages[idx])
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+            if let idx = messages.firstIndex(where: { $0.id == message.id }) {
+                messages[idx].deliveryStatus = .failed
+                syncThreadMessage(messages[idx])
+            }
+        }
+
+        await onSendTapped()
+        return message.id
+    }
+
+    /// Convenience: record and send a voice note (WO-194 foundation).
+    @discardableResult
+    func sendVoiceNote(from recorder: VoiceNoteRecorder, caption: String = "") async -> String? {
+        guard let data = try? recorder.stopRecording() else { return nil }
+        return await sendMedia(
+            data: data,
+            mimeType: "audio/mp4",
+            mediaKind: .audio,
+            caption: caption
+        )
     }
 
     private func peerDisplayNameForReply(_ message: ChatDetailMessage) -> String {

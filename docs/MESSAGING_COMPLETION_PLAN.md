@@ -195,7 +195,7 @@ UI skeleton exists; signaling foundation landed (real WebRTC + CallKit still pen
     missed-call push specialization; Xcode §6.12 sign-off.
 
 ### M5 — Media & files (relay pipeline + voice notes)
-Encryption service exists; no transport pipeline.
+Encryption service exists; transport pipeline foundation in progress.
 - **WOs:** WO-237 (offline-queue IPFS overflow), WO-194 (voice notes), media message type.
 - **Work:** encrypted media upload/download via relay + IPFS/Storj overflow for large blobs
   (reuse `pkg/storage/encblob/` from Passport); image/video/file message types + thumbnails;
@@ -203,6 +203,15 @@ Encryption service exists; no transport pipeline.
 - **Gate:** send/receive image, video, file, and voice note 1:1 and in a group; large file overflows
   to IPFS; media is client-encrypted (server stores ciphertext + CID only).
 - **Est:** 4–6 wks. **Depends:** M2 (for group media), M3 (encblob sync overlap).
+- **Progress (2026-05-29) — M5a foundation:**
+  - ✅ **Backend:** `GET /v3/media/{id}/chunks/{index}` chunk download; `RetrieveChunk` in media service;
+    WO-237 overflow queue pins to `encblob` at depth ≥1000 + `overflow_manifest` on reconnect;
+    `media_handlers_test.go`.
+  - ✅ **iOS:** `MediaAPIClient`, `MediaMessageCrypto`, `MediaMessageService`, `MediaAttachmentRef`
+    in `TextMessagePayload`; `ChatDetailViewModel.sendMedia` / `sendVoiceNote`; `VoiceNoteRecorder`
+    (AAC); DI + `Phase3Tests/MediaMessageWireTests.swift`.
+  - ⏳ **M5 remaining:** PhotosPicker/attachment UI, thumbnails, group media path, overflow manifest
+    fetch on iOS, Opus codec, waveform playback, Xcode §6.13 sign-off.
 
 ### M6 — Search & advanced messaging
 Designed, unbuilt.

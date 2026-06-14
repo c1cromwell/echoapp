@@ -14,10 +14,16 @@ enum InboundTextMessageResolver {
             let client = await DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
             let crypto = TextMessageCrypto(identityResolve: IdentityResolveClient(apiClient: client))
             if let decrypted = try? await crypto.decryptPayload(wire) {
-                body = decrypted
+                if let mediaWire = MediaMessageService.parseWire(from: decrypted) {
+                    body = TextMessagePayload.mediaPlaceholder(for: mediaWire.media)
+                } else {
+                    body = decrypted
+                }
             } else {
                 body = TextMessagePayload.encryptedPlaceholder
             }
+        } else if let media = event.wirePayload?.media {
+            body = TextMessagePayload.mediaPlaceholder(for: media)
         }
         let preview = body == TextMessagePayload.encryptedPlaceholder ? "Encrypted message" : body
         return ResolvedBody(body: body, preview: preview)

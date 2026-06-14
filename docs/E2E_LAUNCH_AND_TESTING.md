@@ -306,6 +306,19 @@ validates WS offer/answer/ICE routing and call UI/history.
 
 Automated helpers: `go test ./internal/api/ -run 'Call|ICE'`, `swift test --filter CallSignalCodecTests` (Xcode).
 
+### 6.13 Media messages (M5a / WO-194 + media relay)
+
+Two signed-in clients on LAN backend (`make dev`). Trust tier ≥2 required for media upload.
+
+| Step | Action | Expected |
+|------|--------|----------|
+| 1 | A: send photo attachment in 1:1 DM | Optimistic UI; encrypted upload to `/v3/media/upload`; WS text carries `file_id` ref |
+| 2 | B online | Inbound preview shows photo/voice placeholder; decrypt + chunk download succeeds |
+| 3 | A: record voice note (hold mic) | AAC upload; B sees voice-note preview |
+| 4 | Large offline queue (>1000) dev test | Overflow pinned to encblob; reconnect yields `overflow_manifest` |
+
+Automated helpers: `go test ./internal/api/ -run 'Media|Overflow'`, `swift test --filter MediaMessageWireTests` (Xcode).
+
 ### 6.5 OIDC4VC (WO-100)
 
 `OIDC4VC_ENABLED=true` → enrollment → wallet → `echo-enroll://` callback.

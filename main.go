@@ -252,6 +252,7 @@ func (s *Server) Start() error {
 		MessageBackup: messageBackupSvc,   // WO-64/CA2: encrypted history backup relay
 	}
 	router.WSHub.SetGroupMemberLister(router.V3.Groups) // M2: group text fan-out to members
+	router.WSHub.SetOfflineOverflowStorage(backupBlobStore) // WO-237: queue overflow to encblob
 
 	// WO-53: Start audit log publisher background goroutine.
 	// Uses FallbackIPFSStorage (Pinata→Storj) when env vars are set;
