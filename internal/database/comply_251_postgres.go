@@ -148,6 +148,32 @@ func (p *PostgresDB) CountActiveLitigationMatters(ctx context.Context, orgDID st
 	return n, err
 }
 
+func (p *PostgresDB) ListLitigationMatters(ctx context.Context, orgDID string, activeOnly bool) ([]*LitigationMatter, error) {
+	q := `
+		SELECT matter_id, org_did, COALESCE(scope_label,''), status, custodian_count,
+		       activated_at, activated_by_did, released_at, COALESCE(released_by_did,''), COALESCE(data_l1_ref,'')
+		FROM comply_litigation_matters WHERE org_did = $1`
+	if activeOnly {
+		q += ` AND status = 'active'`
+	}
+	q += ` ORDER BY activated_at DESC`
+	rows, err := p.pool.Query(ctx, q, orgDID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*LitigationMatter
+	for rows.Next() {
+		var m LitigationMatter
+		if err := rows.Scan(&m.MatterID, &m.OrgDID, &m.ScopeLabel, &m.Status, &m.CustodianCount,
+			&m.ActivatedAt, &m.ActivatedByDID, &m.ReleasedAt, &m.ReleasedByDID, &m.DataL1Ref); err != nil {
+			return nil, err
+		}
+		out = append(out, &m)
+	}
+	return out, rows.Err()
+}
+
 func (p *PostgresDB) CreateEDiscoveryExport(ctx context.Context, e *EDiscoveryExport) error {
 	_, err := p.pool.Exec(ctx, `
 		INSERT INTO comply_ediscovery_exports

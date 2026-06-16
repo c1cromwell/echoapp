@@ -98,6 +98,7 @@ type ComplyExtendedStore interface {
 	UpdateLitigationMatter(ctx context.Context, m *LitigationMatter) error
 	AddLitigationCustodian(ctx context.Context, b *LitigationCustodianBinding) error
 	ListLitigationCustodians(ctx context.Context, matterID string) ([]*LitigationCustodianBinding, error)
+	ListLitigationMatters(ctx context.Context, orgDID string, activeOnly bool) ([]*LitigationMatter, error)
 	CountActiveLitigationMatters(ctx context.Context, orgDID string) (int, error)
 	CreateEDiscoveryExport(ctx context.Context, e *EDiscoveryExport) error
 	GetEDiscoveryExport(ctx context.Context, exportID string) (*EDiscoveryExport, error)

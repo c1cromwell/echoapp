@@ -3149,6 +3149,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/comply/org/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Organization tier and seat limits (WO-310) */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Organization DID tenant scope */
+                    "X-Org-DID": components["parameters"]["OrgDID"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Org profile */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ComplyOrgProfile"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/comply/litigation/hold": {
         parameters: {
             query?: never;
@@ -3156,7 +3195,34 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List litigation matters / holds */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "active" | "all";
+                };
+                header: {
+                    /** @description Organization DID tenant scope */
+                    "X-Org-DID": components["parameters"]["OrgDID"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Matter list */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            matters?: components["schemas"]["ComplyLitigationMatter"][];
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
         /** Activate litigation hold (WO-251) */
         post: {
@@ -3613,7 +3679,15 @@ export interface components {
             policyType?: "permanent" | "time_limited" | "litigation_hold";
             conversationId?: string;
             scopeLabel?: string;
+            dataL1Ref?: string;
             active?: boolean;
+        };
+        ComplyOrgProfile: {
+            orgDid?: string;
+            tier?: string;
+            seats?: number;
+            /** Format: date-time */
+            updatedAt?: string;
         };
         ComplyRetentionPolicyCreate: {
             /** @enum {string} */

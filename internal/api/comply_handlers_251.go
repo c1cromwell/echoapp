@@ -36,10 +36,28 @@ func (h *ComplyHandlers) handleComplyAuditReport(w http.ResponseWriter, r *http.
 }
 
 func (h *ComplyHandlers) handleComplyLitigationHoldRoot(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
-		return
+	switch r.Method {
+	case http.MethodGet:
+		orgDID, ok := h.authorizeComplyRead(r)
+		if !ok || h.Comply == nil {
+			WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Comply authorization required", r.Header.Get("X-Request-ID"))
+			return
+		}
+		activeOnly := r.URL.Query().Get("status") != "all"
+		matters, err := h.Comply.ListLitigationHolds(r.Context(), orgDID, activeOnly)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "LIST_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+			return
+		}
+		WriteJSON(w, http.StatusOK, map[string]interface{}{"matters": matters})
+	case http.MethodPost:
+		h.createLitigationHold(w, r)
+	default:
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "GET or POST only", r.Header.Get("X-Request-ID"))
 	}
+}
+
+func (h *ComplyHandlers) createLitigationHold(w http.ResponseWriter, r *http.Request) {
 	orgDID, ok := h.authorizeComply(r)
 	if !ok || h.Comply == nil {
 		WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Comply authorization required", r.Header.Get("X-Request-ID"))
@@ -75,11 +93,6 @@ func (h *ComplyHandlers) handleComplyLitigationHoldRoot(w http.ResponseWriter, r
 }
 
 func (h *ComplyHandlers) handleComplyLitigationHoldSub(w http.ResponseWriter, r *http.Request) {
-	orgDID, ok := h.authorizeComply(r)
-	if !ok || h.Comply == nil {
-		WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Comply authorization required", r.Header.Get("X-Request-ID"))
-		return
-	}
 	path := strings.TrimPrefix(r.URL.Path, "/comply/litigation/hold/")
 	parts := strings.Split(strings.Trim(path, "/"), "/")
 	if len(parts) == 0 || parts[0] == "" {
@@ -87,7 +100,13 @@ func (h *ComplyHandlers) handleComplyLitigationHoldSub(w http.ResponseWriter, r 
 		return
 	}
 	matterID := parts[0]
+
 	if len(parts) == 2 && parts[1] == "release" && r.Method == http.MethodPut {
+		orgDID, ok := h.authorizeComply(r)
+		if !ok || h.Comply == nil {
+			WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Comply authorization required", r.Header.Get("X-Request-ID"))
+			return
+		}
 		actor := orgDID
 		matter, err := h.Comply.ReleaseLitigationHold(r.Context(), orgDID, matterID, actor)
 		if err != nil {
@@ -98,6 +117,11 @@ func (h *ComplyHandlers) handleComplyLitigationHoldSub(w http.ResponseWriter, r 
 		return
 	}
 	if r.Method == http.MethodGet && len(parts) == 1 {
+		orgDID, ok := h.authorizeComplyRead(r)
+		if !ok || h.Comply == nil {
+			WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Comply authorization required", r.Header.Get("X-Request-ID"))
+			return
+		}
 		matter, err := h.Comply.GetLitigationHold(r.Context(), orgDID, matterID)
 		if err != nil {
 			WriteError(w, http.StatusNotFound, "NOT_FOUND", err.Error(), r.Header.Get("X-Request-ID"))

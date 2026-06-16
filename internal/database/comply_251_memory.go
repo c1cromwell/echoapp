@@ -137,6 +137,23 @@ func (m *MemoryDB) CountActiveLitigationMatters(_ context.Context, orgDID string
 	return n, nil
 }
 
+func (m *MemoryDB) ListLitigationMatters(_ context.Context, orgDID string, activeOnly bool) ([]*LitigationMatter, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	var out []*LitigationMatter
+	for _, mat := range m.complyMatters {
+		if mat.OrgDID != orgDID {
+			continue
+		}
+		if activeOnly && mat.Status != MatterActive {
+			continue
+		}
+		copy := *mat
+		out = append(out, &copy)
+	}
+	return out, nil
+}
+
 func (m *MemoryDB) CreateEDiscoveryExport(_ context.Context, e *EDiscoveryExport) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

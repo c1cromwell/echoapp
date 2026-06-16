@@ -1910,7 +1910,48 @@ paths:
               schema:
                 $ref: "#/components/schemas/ComplyRetentionPolicy"
 
+  /comply/org/profile:
+    get:
+      tags: [Comply]
+      summary: Organization tier and seat limits (WO-310)
+      security:
+        - ComplyServiceAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgDID"
+      responses:
+        "200":
+          description: Org profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplyOrgProfile"
+
   /comply/litigation/hold:
+    get:
+      tags: [Comply]
+      summary: List litigation matters / holds
+      security:
+        - ComplyServiceAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgDID"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, all]
+            default: active
+      responses:
+        "200":
+          description: Matter list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matters:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ComplyLitigationMatter"
     post:
       tags: [Comply]
       summary: Activate litigation hold (WO-251)
@@ -2573,8 +2614,23 @@ components:
           type: string
         scopeLabel:
           type: string
+        dataL1Ref:
+          type: string
         active:
           type: boolean
+
+    ComplyOrgProfile:
+      type: object
+      properties:
+        orgDid:
+          type: string
+        tier:
+          type: string
+        seats:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
 
     ComplyRetentionPolicyCreate:
       type: object

@@ -10,6 +10,7 @@ export type RetentionPolicy = components["schemas"]["ComplyRetentionPolicy"];
 export type LitigationMatter = components["schemas"]["ComplyLitigationMatter"];
 export type EDiscoveryExport = components["schemas"]["ComplyEDiscoveryExport"];
 export type AuditReport = components["schemas"]["ComplyAuditReport"];
+export type ComplyOrgProfile = components["schemas"]["ComplyOrgProfile"];
 export type RetentionPolicyCreate = components["schemas"]["ComplyRetentionPolicyCreate"];
 export type LitigationHoldRequest = components["schemas"]["ComplyLitigationHoldRequest"];
 export type EDiscoveryExportRequest = components["schemas"]["ComplyEDiscoveryExportRequest"];
@@ -40,6 +41,21 @@ async function complyFetch<T>(
 
 export function getComplyDashboard(orgDID: string) {
   return complyFetch<ComplyDashboardSummary>("/comply/dashboard", orgDID);
+}
+
+export function getOrgProfile(orgDID: string) {
+  return complyFetch<ComplyOrgProfile>("/comply/org/profile", orgDID);
+}
+
+export function listLitigationHolds(orgDID: string, status: "active" | "all" = "active") {
+  const q = status === "all" ? "?status=all" : "";
+  return complyFetch<{ matters: LitigationMatter[] }>(`/comply/litigation/hold${q}`, orgDID);
+}
+
+export function releaseLitigationHold(orgDID: string, matterId: string) {
+  return complyFetch<LitigationMatter>(`/comply/litigation/hold/${matterId}/release`, orgDID, {
+    method: "PUT",
+  });
 }
 
 export function listRetentionPolicies(orgDID: string) {
