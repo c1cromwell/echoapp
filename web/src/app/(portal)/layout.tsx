@@ -1,18 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getOrgMemberships } from "@/lib/auth/org";
+import { getActiveOrg, getOrgMemberships } from "@/lib/auth/org";
+import { OrgSwitcher } from "@/components/portal/OrgSwitcher";
 
 const NAV = [
-  { href: "/dashboard", label: "Dashboard", wo: "WO-313" },
-  { href: "/organization", label: "Organization", wo: "WO-310" },
-  { href: "/retention", label: "Retention & Holds", wo: "WO-311" },
-  { href: "/ediscovery", label: "eDiscovery & Matters", wo: "WO-312" },
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/organization", label: "Organization" },
+  { href: "/retention", label: "Retention & Holds" },
+  { href: "/ediscovery", label: "eDiscovery & Matters" },
 ];
 
-/**
- * Authenticated portal shell. Every page below is org-scoped: if the operator has
- * no org membership we send them back to login (no orphan sessions).
- */
 export default async function PortalLayout({
   children,
 }: {
@@ -21,28 +18,12 @@ export default async function PortalLayout({
   const memberships = await getOrgMemberships();
   if (memberships.length === 0) redirect("/login");
 
-  const active = memberships[0];
+  const active = (await getActiveOrg()) ?? memberships[0];
 
   return (
     <div className="flex min-h-screen">
       <aside className="w-64 shrink-0 border-r border-glacial-border bg-glacial-surface p-4">
-        <div className="mb-6">
-          <p className="text-sm font-semibold text-white">Echo Comply</p>
-          {/* Org switcher (WO-310 expands this into a real selector) */}
-          <select
-            defaultValue={active.orgDID}
-            className="mt-2 w-full rounded-lg border border-glacial-border bg-glacial-bg px-2 py-1 text-xs text-glacial-muted"
-          >
-            {memberships.map((m) => (
-              <option key={m.orgDID} value={m.orgDID}>
-                {m.orgName}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1 truncate text-[10px] text-glacial-muted" title={active.orgDID}>
-            {active.orgDID}
-          </p>
-        </div>
+        <OrgSwitcher memberships={memberships} activeOrgDID={active.orgDID} />
 
         <nav className="space-y-1">
           {NAV.map((item) => (
@@ -55,10 +36,6 @@ export default async function PortalLayout({
             </Link>
           ))}
         </nav>
-
-        <p className="mt-8 text-[10px] text-glacial-muted">
-          Role: {active.role}
-        </p>
       </aside>
 
       <main className="flex-1 p-8">{children}</main>

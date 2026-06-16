@@ -77,7 +77,11 @@ export default async function DashboardPage() {
           <dl className="mt-4 grid grid-cols-2 gap-3 text-xs text-glacial-muted">
             <div>
               <dt>Report generated</dt>
-              <dd className="text-white">{new Date(audit.generatedAt).toLocaleString()}</dd>
+              <dd className="text-white">
+                {audit.generatedAt
+                  ? new Date(audit.generatedAt).toLocaleString()
+                  : "—"}
+              </dd>
             </div>
             <div>
               <dt>Events in range</dt>

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getActiveOrgDIDFromCookie } from "@/lib/auth/active-org";
 
 export type PortalRole = "owner" | "admin" | "compliance_officer" | "auditor" | "viewer";
 
@@ -27,7 +28,8 @@ export async function getOrgMemberships(): Promise<OrgMembership[]> {
   const { data, error } = await supabase
     .from("org_members")
     .select("org_did, role, organizations(name)")
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .eq("active", true);
 
   if (error || !data) return [];
 
@@ -39,10 +41,14 @@ export async function getOrgMemberships(): Promise<OrgMembership[]> {
   }));
 }
 
-/** Returns the active membership for a given orgDID, or the first membership if none specified. */
+/** Returns the active membership (cookie) or the first membership. */
 export async function getActiveOrg(orgDID?: string): Promise<OrgMembership | null> {
   const memberships = await getOrgMemberships();
   if (memberships.length === 0) return null;
-  if (orgDID) return memberships.find((m) => m.orgDID === orgDID) ?? null;
+  const cookieOrg = orgDID ?? (await getActiveOrgDIDFromCookie());
+  if (cookieOrg) {
+    const hit = memberships.find((m) => m.orgDID === cookieOrg);
+    if (hit) return hit;
+  }
   return memberships[0];
 }

@@ -50,6 +50,8 @@ tags:
     description: Group management and key distribution
   - name: Passport
     description: Echo Passport holder credential refs, sync, and selective presentation (WO-293–295)
+  - name: Comply
+    description: ECHO Comply retention, litigation hold, eDiscovery, and audit (WO-250–252). Served on COMPLY_API_BASE_URL (default :8011); portal uses service token + X-Org-DID.
   - name: WebSocket
     description: Real-time messaging and presence channels
 
@@ -1170,9 +1172,6 @@ paths:
         "503":
           description: Status store not configured (no Postgres)
 
-        "503":
-          description: Status store not configured (no Postgres)
-
   /passport/credentials:
     get:
       tags: [Passport]
@@ -1813,6 +1812,167 @@ paths:
         "200":
           description: Keys distributed
 
+  # ──────────────────────── COMPLY (WO-250–252) ────────────────────────
+  # Base URL: COMPLY_API_BASE_URL (e.g. http://localhost:8011). Auth: portal service
+  # token + mandatory X-Org-DID header. Zero-PII: aggregates and hash refs only.
+
+  /comply/dashboard:
+    get:
+      tags: [Comply]
+      summary: Compliance posture dashboard (WO-252 / WO-313)
+      description: Zero-PII aggregate metrics scoped by X-Org-DID.
+      security:
+        - ComplyServiceAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgDID"
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplyDashboardSummary"
+
+  /comply/audit/report:
+    get:
+      tags: [Comply]
+      summary: Compliance audit report (JSON or PDF)
+      security:
+        - ComplyServiceAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgDID"
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, pdf]
+            default: json
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Audit report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplyAuditReport"
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /comply/retention/policy:
+    get:
+      tags: [Comply]
+      summary: List retention policies
+      security:
+        - ComplyServiceAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgDID"
+      responses:
+        "200":
+          description: Policy list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  policies:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ComplyRetentionPolicy"
+    post:
+      tags: [Comply]
+      summary: Create retention policy
+      security:
+        - ComplyServiceAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgDID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ComplyRetentionPolicyCreate"
+      responses:
+        "201":
+          description: Created policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplyRetentionPolicy"
+
+  /comply/litigation/hold:
+    post:
+      tags: [Comply]
+      summary: Activate litigation hold (WO-251)
+      security:
+        - ComplyServiceAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgDID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ComplyLitigationHoldRequest"
+      responses:
+        "201":
+          description: Hold activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplyLitigationMatter"
+
+  /comply/ediscovery/export:
+    get:
+      tags: [Comply]
+      summary: List eDiscovery exports
+      security:
+        - ComplyServiceAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgDID"
+      responses:
+        "200":
+          description: Export jobs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exports:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ComplyEDiscoveryExport"
+    post:
+      tags: [Comply]
+      summary: Request eDiscovery export
+      security:
+        - ComplyServiceAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgDID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ComplyEDiscoveryExportRequest"
+      responses:
+        "202":
+          description: Export accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplyEDiscoveryExport"
+
 # ──────────────────────── COMPONENTS ────────────────────────
 components:
   securitySchemes:
@@ -1821,8 +1981,19 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: Access token from /auth/verify
+    ComplyServiceAuth:
+      type: http
+      scheme: bearer
+      description: Portal service token (COMPLY_API_SERVICE_TOKEN) for server-side Comply calls
 
   parameters:
+    OrgDID:
+      name: X-Org-DID
+      in: header
+      required: true
+      schema:
+        type: string
+      description: Organization DID tenant scope
     conversationId:
       name: conversationId
       in: path
@@ -2349,6 +2520,135 @@ components:
           type: string
           enum: [owner, admin, member]
         joinedAt:
+          type: string
+          format: date-time
+
+    ComplyDashboardSummary:
+      type: object
+      description: Zero-PII compliance posture aggregates (WO-252)
+      properties:
+        deCoverageRate:
+          type: string
+          example: "42%"
+        activeRetentionPolicies:
+          type: integer
+        litigationHolds:
+          type: integer
+        pendingExports:
+          type: integer
+        anchorHealth:
+          type: string
+          enum: [healthy, degraded, down]
+
+    ComplyAuditReport:
+      type: object
+      properties:
+        orgDid:
+          type: string
+        generatedAt:
+          type: string
+          format: date-time
+        activeRetentionPolicies:
+          type: integer
+        activeLitigationHolds:
+          type: integer
+        pendingExports:
+          type: integer
+        anchorHealth:
+          type: string
+        verificationNotice:
+          type: string
+
+    ComplyRetentionPolicy:
+      type: object
+      properties:
+        id:
+          type: string
+        orgDid:
+          type: string
+        policyType:
+          type: string
+          enum: [permanent, time_limited, litigation_hold]
+        conversationId:
+          type: string
+        scopeLabel:
+          type: string
+        active:
+          type: boolean
+
+    ComplyRetentionPolicyCreate:
+      type: object
+      required: [policy_type]
+      properties:
+        policy_type:
+          type: string
+          enum: [permanent, time_limited, litigation_hold]
+        conversation_id:
+          type: string
+        scope_label:
+          type: string
+
+    ComplyLitigationHoldRequest:
+      type: object
+      required: [matterId, custodianDids]
+      properties:
+        matterId:
+          type: string
+        custodianDids:
+          type: array
+          items:
+            type: string
+        scope:
+          type: string
+
+    ComplyLitigationMatter:
+      type: object
+      properties:
+        matterId:
+          type: string
+        orgDid:
+          type: string
+        scopeLabel:
+          type: string
+        status:
+          type: string
+          enum: [active, released]
+        custodianCount:
+          type: integer
+        dataL1Ref:
+          type: string
+
+    ComplyEDiscoveryExport:
+      type: object
+      properties:
+        exportId:
+          type: string
+        matterId:
+          type: string
+        status:
+          type: string
+          enum: [pending, processing, ready, delivered, failed]
+        messageCount:
+          type: integer
+        queryHash:
+          type: string
+        dataL1Ref:
+          type: string
+
+    ComplyEDiscoveryExportRequest:
+      type: object
+      required: [matterId]
+      properties:
+        matterId:
+          type: string
+        custodianSet:
+          type: array
+          items:
+            type: string
+        dateFrom:
+          type: string
+          format: date-time
+        dateTo:
           type: string
           format: date-time
 

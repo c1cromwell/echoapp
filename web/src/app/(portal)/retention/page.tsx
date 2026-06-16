@@ -3,6 +3,7 @@ import {
   activateLitigationHold,
   createRetentionPolicy,
   listRetentionPolicies,
+  type RetentionPolicyCreate,
 } from "@/lib/api/comply";
 import { RetentionPolicyForm } from "./RetentionPolicyForm";
 
@@ -17,7 +18,7 @@ export default async function RetentionPage() {
     const active = await getActiveOrg();
     if (!active) return;
     await createRetentionPolicy(active.orgDID, {
-      policy_type: String(formData.get("policy_type") ?? "permanent"),
+      policy_type: String(formData.get("policy_type") ?? "permanent") as RetentionPolicyCreate["policy_type"],
       conversation_id: String(formData.get("conversation_id") ?? "") || undefined,
       scope_label: String(formData.get("scope_label") ?? "") || undefined,
     });

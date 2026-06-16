@@ -44,7 +44,7 @@ export default async function EDiscoveryPage() {
               className="rounded-xl border border-glacial-border bg-glacial-surface px-4 py-3 text-sm"
             >
               <div className="flex justify-between text-white">
-                <span>{e.exportId.slice(0, 8)}…</span>
+                <span>{(e.exportId ?? "unknown").slice(0, 8)}…</span>
                 <span className="text-xs uppercase text-glacial-muted">{e.status}</span>
               </div>
               <p className="mt-1 text-xs text-glacial-muted">

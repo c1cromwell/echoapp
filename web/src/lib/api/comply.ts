@@ -1,7 +1,18 @@
 import "server-only";
 
+import type { components } from "@/lib/api/schema";
+
 const BASE = process.env.COMPLY_API_BASE_URL;
 const TOKEN = process.env.COMPLY_API_SERVICE_TOKEN;
+
+export type ComplyDashboardSummary = components["schemas"]["ComplyDashboardSummary"];
+export type RetentionPolicy = components["schemas"]["ComplyRetentionPolicy"];
+export type LitigationMatter = components["schemas"]["ComplyLitigationMatter"];
+export type EDiscoveryExport = components["schemas"]["ComplyEDiscoveryExport"];
+export type AuditReport = components["schemas"]["ComplyAuditReport"];
+export type RetentionPolicyCreate = components["schemas"]["ComplyRetentionPolicyCreate"];
+export type LitigationHoldRequest = components["schemas"]["ComplyLitigationHoldRequest"];
+export type EDiscoveryExportRequest = components["schemas"]["ComplyEDiscoveryExportRequest"];
 
 async function complyFetch<T>(
   path: string,
@@ -27,52 +38,6 @@ async function complyFetch<T>(
   return (await res.json()) as T;
 }
 
-/** WO-252 / WO-313 dashboard summary — zero-PII aggregates only. */
-export interface ComplyDashboardSummary {
-  deCoverageRate: string;
-  activeRetentionPolicies: number;
-  litigationHolds: number;
-  pendingExports: number;
-  anchorHealth: "healthy" | "degraded" | "down";
-}
-
-export interface RetentionPolicy {
-  id: string;
-  orgDid: string;
-  policyType: "permanent" | "time_limited" | "litigation_hold";
-  conversationId?: string;
-  scopeLabel?: string;
-  active: boolean;
-}
-
-export interface LitigationMatter {
-  matterId: string;
-  orgDid: string;
-  scopeLabel?: string;
-  status: "active" | "released";
-  custodianCount: number;
-  dataL1Ref?: string;
-}
-
-export interface EDiscoveryExport {
-  exportId: string;
-  matterId: string;
-  status: "pending" | "processing" | "ready" | "delivered" | "failed";
-  messageCount: number;
-  queryHash: string;
-  dataL1Ref?: string;
-}
-
-export interface AuditReport {
-  orgDid: string;
-  generatedAt: string;
-  activeRetentionPolicies: number;
-  activeLitigationHolds: number;
-  pendingExports: number;
-  anchorHealth: string;
-  verificationNotice: string;
-}
-
 export function getComplyDashboard(orgDID: string) {
   return complyFetch<ComplyDashboardSummary>("/comply/dashboard", orgDID);
 }
@@ -81,20 +46,14 @@ export function listRetentionPolicies(orgDID: string) {
   return complyFetch<{ policies: RetentionPolicy[] }>("/comply/retention/policy", orgDID);
 }
 
-export function createRetentionPolicy(
-  orgDID: string,
-  body: { policy_type: string; conversation_id?: string; scope_label?: string },
-) {
+export function createRetentionPolicy(orgDID: string, body: RetentionPolicyCreate) {
   return complyFetch<RetentionPolicy>("/comply/retention/policy", orgDID, {
     method: "POST",
     body: JSON.stringify(body),
   });
 }
 
-export function activateLitigationHold(
-  orgDID: string,
-  body: { matterId: string; custodianDids: string[]; scope?: string },
-) {
+export function activateLitigationHold(orgDID: string, body: LitigationHoldRequest) {
   return complyFetch<LitigationMatter>("/comply/litigation/hold", orgDID, {
     method: "POST",
     body: JSON.stringify(body),
@@ -105,10 +64,7 @@ export function listEDiscoveryExports(orgDID: string) {
   return complyFetch<{ exports: EDiscoveryExport[] }>("/comply/ediscovery/export", orgDID);
 }
 
-export function requestEDiscoveryExport(
-  orgDID: string,
-  body: { matterId: string; custodianSet?: string[]; dateFrom?: string; dateTo?: string },
-) {
+export function requestEDiscoveryExport(orgDID: string, body: EDiscoveryExportRequest) {
   return complyFetch<EDiscoveryExport>("/comply/ediscovery/export", orgDID, {
     method: "POST",
     body: JSON.stringify(body),
@@ -122,7 +78,7 @@ export function getAuditReport(orgDID: string, from?: string, to?: string) {
   return complyFetch<AuditReport>(`/comply/audit/report?${q}`, orgDID);
 }
 
-export function auditReportDownloadURL(orgDID: string) {
+export function auditReportDownloadURL() {
   const q = new URLSearchParams({ format: "pdf" });
   return `${BASE}/comply/audit/report?${q}`;
 }

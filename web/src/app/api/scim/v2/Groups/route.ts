@@ -1,27 +1,32 @@
 import { NextResponse } from "next/server";
 import { isAuthorizedScim } from "@/lib/scim/auth";
+import { SCIM_CONTENT_TYPE, scimError } from "@/lib/scim/provision";
 
-/**
- * SCIM 2.0 Groups endpoint (RFC 7644). Groups map to portal roles / orgDID scope.
- * WO-309 ships the auth-gated contract surface; membership sync lands with WO-310.
- */
-
-const SCIM_CONTENT_TYPE = "application/scim+json";
+const PORTAL_GROUPS = [
+  { id: "echo-comply-owner", displayName: "Echo-Comply-Owner" },
+  { id: "echo-comply-admin", displayName: "Echo-Comply-Admin" },
+  { id: "echo-comply-compliance", displayName: "Echo-Comply-Compliance" },
+  { id: "echo-comply-auditor", displayName: "Echo-Comply-Auditor" },
+  { id: "echo-comply-viewer", displayName: "Echo-Comply-Viewer" },
+];
 
 export async function GET(request: Request) {
-  if (!isAuthorizedScim(request)) {
-    return NextResponse.json(
-      { schemas: ["urn:ietf:params:scim:api:messages:2.0:Error"], status: "401", detail: "Unauthorized" },
-      { status: 401, headers: { "Content-Type": SCIM_CONTENT_TYPE } },
-    );
-  }
+  if (!isAuthorizedScim(request)) return scimError(401, "Unauthorized");
+
+  const resources = PORTAL_GROUPS.map((g) => ({
+    schemas: ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+    id: g.id,
+    displayName: g.displayName,
+    meta: { resourceType: "Group" },
+  }));
+
   return NextResponse.json(
     {
       schemas: ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
-      totalResults: 0,
+      totalResults: resources.length,
       startIndex: 1,
-      itemsPerPage: 0,
-      Resources: [],
+      itemsPerPage: resources.length,
+      Resources: resources,
     },
     { headers: { "Content-Type": SCIM_CONTENT_TYPE } },
   );
