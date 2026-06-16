@@ -30,6 +30,8 @@ struct ComplyDashboardView: View {
                     }
                 }
 
+                auditExportRow
+
                 NavigationLink {
                     ComplyPolicyListView(orgDID: orgDID, viewModel: viewModel)
                 } label: {
@@ -51,6 +53,40 @@ struct ComplyDashboardView: View {
         .background(Color.Echo.surface)
         .navigationTitle("Compliance")
         .task { await viewModel.load(orgDID: orgDID) }
+        .sheet(isPresented: $viewModel.showShareSheet) {
+            if let url = viewModel.auditPDFURL {
+                ShareLink(item: url) {
+                    Label("Share audit PDF", systemImage: "square.and.arrow.up")
+                        .font(Font.Echo.bodyMedium)
+                        .padding()
+                }
+                .presentationDetents([.medium])
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var auditExportRow: some View {
+        Button {
+            Task { await viewModel.exportAuditPDF(orgDID: orgDID) }
+        } label: {
+            HStack {
+                if viewModel.isExportingPDF {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "doc.richtext")
+                }
+                Text("Export audit PDF")
+                    .font(Font.Echo.bodyMedium)
+                Spacer()
+            }
+            .foregroundStyle(Color.Echo.onSurface)
+            .padding()
+            .background(Color.Echo.surfaceContainerHigh)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .disabled(viewModel.isExportingPDF)
     }
 
     @ViewBuilder
@@ -61,13 +97,26 @@ struct ComplyDashboardView: View {
             ComplyMetricCard(title: "Holds", value: "\(summary.litigationHolds)")
             ComplyMetricCard(title: "Exports", value: "\(summary.pendingExports)")
         }
-        ComplyMetricCard(title: "Anchor health", value: summary.anchorHealth.capitalized)
+        ComplyMetricCard(
+            title: "Anchor health",
+            value: summary.anchorHealth.capitalized,
+            tone: anchorTone(summary.anchorHealth)
+        )
+    }
+
+    private func anchorTone(_ health: String) -> Color {
+        switch health.lowercased() {
+        case "healthy": return .green
+        case "degraded": return .orange
+        default: return .red
+        }
     }
 }
 
 private struct ComplyMetricCard: View {
     let title: String
     let value: String
+    var tone: Color = Color.Echo.onSurface
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -76,7 +125,7 @@ private struct ComplyMetricCard: View {
                 .foregroundStyle(Color.Echo.outline)
             Text(value)
                 .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(Color.Echo.onSurface)
+                .foregroundStyle(tone)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -99,6 +148,11 @@ struct ComplyPolicyListView: View {
                         .font(Font.Echo.labelMd)
                         .foregroundStyle(Color.Echo.outline)
                 }
+                if let ref = policy.dataL1Ref, !ref.isEmpty {
+                    Text("anchor \(String(ref.prefix(12)))…")
+                        .font(Font.Echo.labelMd)
+                        .foregroundStyle(Color.green.opacity(0.85))
+                }
             }
         }
         .navigationTitle("Policies")
@@ -112,6 +166,9 @@ final class ComplyDashboardViewModel: ObservableObject {
     @Published var audit: ComplyAuditReport?
     @Published var policies: [ComplyRetentionPolicy] = []
     @Published var isLoading = false
+    @Published var isExportingPDF = false
+    @Published var showShareSheet = false
+    @Published var auditPDFURL: URL?
     @Published var errorMessage: String?
 
     private var complyAPI: (any ComplyAPIClient)?
@@ -136,6 +193,22 @@ final class ComplyDashboardViewModel: ObservableObject {
     func loadPolicies(orgDID: String) async {
         guard let client = resolveClient() else { return }
         policies = (try? await client.listPolicies(orgDID: orgDID)) ?? []
+    }
+
+    func exportAuditPDF(orgDID: String) async {
+        guard let client = resolveClient() else { return }
+        isExportingPDF = true
+        defer { isExportingPDF = false }
+        do {
+            let data = try await client.auditReportPDF(orgDID: orgDID)
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("echo-comply-audit-\(orgDID.suffix(8)).pdf")
+            try data.write(to: url, options: .atomic)
+            auditPDFURL = url
+            showShareSheet = true
+        } catch {
+            errorMessage = "Audit PDF export failed"
+        }
     }
 
     private func resolveClient() -> (any ComplyAPIClient)? {

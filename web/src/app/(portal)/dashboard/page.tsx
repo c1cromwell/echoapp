@@ -40,23 +40,23 @@ export default async function DashboardPage() {
             {org.orgName} — zero-PII view (hashes, CIDs, and aggregate metrics only).
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <a
             href="/api/comply/audit"
-            className="rounded-lg border border-glacial-border px-3 py-2 text-xs text-white hover:bg-glacial-surface"
+            className="rounded-lg border border-glacial-border px-3 py-2 text-center text-xs text-white hover:bg-glacial-surface"
           >
             Export audit PDF
           </a>
           <Link
             href="/retention"
-            className="rounded-lg bg-white/10 px-3 py-2 text-xs text-white hover:bg-white/15"
+            className="rounded-lg bg-white/10 px-3 py-2 text-center text-xs text-white hover:bg-white/15"
           >
             Manage policies
           </Link>
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-3 xs:grid-cols-2 sm:gap-4 lg:grid-cols-3">
         {cards.map((c) => (
           <div
             key={c.label}

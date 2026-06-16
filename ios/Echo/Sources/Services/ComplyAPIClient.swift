@@ -16,6 +16,7 @@ struct ComplyRetentionPolicy: Codable, Sendable, Equatable, Identifiable {
     let policyType: String
     let conversationId: String?
     let scopeLabel: String?
+    let dataL1Ref: String?
     let active: Bool
 }
 
@@ -39,6 +40,7 @@ protocol ComplyAPIClient: Sendable {
     func dashboard(orgDID: String) async throws -> ComplyDashboardSummary
     func listPolicies(orgDID: String) async throws -> [ComplyRetentionPolicy]
     func auditReport(orgDID: String) async throws -> ComplyAuditReport
+    func auditReportPDF(orgDID: String) async throws -> Data
 }
 
 #if os(iOS)
@@ -47,6 +49,7 @@ enum ComplyEndpoint: APIEndpoint {
     case dashboard(orgDID: String)
     case policies(orgDID: String)
     case audit(orgDID: String)
+    case auditPDF(orgDID: String)
 
     var path: String {
         switch self {
@@ -56,12 +59,14 @@ enum ComplyEndpoint: APIEndpoint {
             return "/comply/retention/policy"
         case .audit:
             return "/comply/audit/report?format=json"
+        case .auditPDF:
+            return "/comply/audit/report?format=pdf"
         }
     }
 
     var headers: [String: String] {
         switch self {
-        case .dashboard(let org), .policies(let org), .audit(let org):
+        case .dashboard(let org), .policies(let org), .audit(let org), .auditPDF(let org):
             return ["X-Org-DID": org]
         }
     }
@@ -88,6 +93,10 @@ actor ComplyAPI: ComplyAPIClient {
 
     func auditReport(orgDID: String) async throws -> ComplyAuditReport {
         try await apiClient.get(endpoint: ComplyEndpoint.audit(orgDID: orgDID))
+    }
+
+    func auditReportPDF(orgDID: String) async throws -> Data {
+        try await apiClient.getRaw(endpoint: ComplyEndpoint.auditPDF(orgDID: orgDID))
     }
 }
 

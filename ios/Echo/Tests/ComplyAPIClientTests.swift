@@ -18,5 +18,11 @@ final class ComplyAPIClientTests: XCTestCase {
         XCTAssertEqual(endpoint.headers["X-Org-DID"], "did:org:acme")
         XCTAssertEqual(endpoint.path, "/comply/dashboard")
     }
+
+    func testAuditPDFEndpoint() {
+        let endpoint = ComplyEndpoint.auditPDF(orgDID: "did:org:acme")
+        XCTAssertEqual(endpoint.path, "/comply/audit/report?format=pdf")
+        XCTAssertEqual(endpoint.headers["X-Org-DID"], "did:org:acme")
+    }
 }
 #endif
