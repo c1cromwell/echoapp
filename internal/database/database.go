@@ -50,16 +50,16 @@ type Credential struct {
 
 // QueuedMessage represents a message in the offline queue.
 type QueuedMessage struct {
-	MessageID    string     `json:"messageId"`
-	ConversationID string   `json:"conversationId,omitempty"`
-	SenderDID    string     `json:"senderDid"`
-	RecipientDID string     `json:"recipientDid"`
-	Payload      []byte     `json:"payload"`
-	Status       string     `json:"status"`
-	CreatedAt    time.Time  `json:"createdAt"`
-	ExpiresAt    time.Time  `json:"expiresAt"`
-	DeliveredAt  *time.Time `json:"deliveredAt,omitempty"`
-	ReadAt       *time.Time `json:"readAt,omitempty"`
+	MessageID      string     `json:"messageId"`
+	ConversationID string     `json:"conversationId,omitempty"`
+	SenderDID      string     `json:"senderDid"`
+	RecipientDID   string     `json:"recipientDid"`
+	Payload        []byte     `json:"payload"`
+	Status         string     `json:"status"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	ExpiresAt      time.Time  `json:"expiresAt"`
+	DeliveredAt    *time.Time `json:"deliveredAt,omitempty"`
+	ReadAt         *time.Time `json:"readAt,omitempty"`
 }
 
 // MessageMeta is the delivery-state + routing view of a queued message, used to
@@ -258,6 +258,8 @@ type DB interface {
 	MessageOpsStore
 	ConversationArchiveStore
 	DeviceSyncStore
+	ComplyExtendedStore
+	ConversationIndex
 }
 
 // ReactionRow is a single emoji reaction by one reactor on one message.
@@ -331,12 +333,25 @@ type MemoryDB struct {
 	discoveryIndex map[string]string            // hex(OPRF_k(phone)) → did
 
 	// M1 message ops (WO-25/84/59). Content stays opaque; metadata only.
-	editVersions map[string][]*MessageEdit  // messageID → ordered immutable versions (retained convos)
-	deletedMsgs  map[string]bool            // messageID → tombstoned
+	editVersions map[string][]*MessageEdit   // messageID → ordered immutable versions (retained convos)
+	deletedMsgs  map[string]bool             // messageID → tombstoned
 	pins         map[string][]*PinnedMessage // conversationID → pinned messages (max 5)
-	retained     map[string]bool            // conversationID → retention/litigation-hold flag
-	disappearing map[string]int             // conversationID → disappearing TTL seconds (0 = off)
-	archived     map[string]bool            // conversationID → archived (WO-198)
+	retained     map[string]bool             // conversationID → retention/litigation-hold flag
+	disappearing map[string]int              // conversationID → disappearing TTL seconds (0 = off)
+	archived     map[string]bool             // conversationID → archived (WO-198)
+
+	// WO-250 Comply policy metadata (no message content).
+	complyPolicies map[string]*RetentionPolicy
+	complyBindings map[string]*ConversationPolicyBinding
+	complyOrgs     map[string]*ComplyOrgProfile
+	// WO-251 litigation / eDiscovery metadata.
+	complyMatters       map[string]*LitigationMatter
+	complyCustodians    map[string][]*LitigationCustodianBinding
+	complyCustodianKeys map[string]struct{}
+	complyExports       map[string]*EDiscoveryExport
+	complyAudit         []*AuditEvent
+	complyMembers       map[string]*OrgMember
+	complyDEFP          map[string]*DEFingerprintRecord
 
 	// M3 device sync (WO-CA3): per-device addressed ciphertext streams, content-blind.
 	syncStreams map[string]map[string][]*SyncEntry // controllerDID → targetDeviceID → ordered entries
@@ -346,34 +361,43 @@ type MemoryDB struct {
 
 func NewMemoryDB() *MemoryDB {
 	return &MemoryDB{
-		users:              make(map[string]*User),
-		byUser:             make(map[string]*User),
-		trustScores:        make(map[string]*TrustScore),
-		credentials:        make(map[string]*Credential),
-		credsByDID:         make(map[string][]*Credential),
-		messages:           make(map[string]*QueuedMessage),
-		msgByRecip:         make(map[string][]*QueuedMessage),
-		batches:            make(map[string]*MerkleBatch),
-		contacts:           make(map[string][]*Contact),
-		invites:            make(map[string]*InviteLink),
-		mediaFiles:         make(map[string]*MediaFile),
-		mediaChunks:        make(map[string][]*MediaChunk),
-		devices:            make(map[string]*UserDevice),
-		devicesByDID:       make(map[string][]*UserDevice),
-		notificationPrefs:  make(map[string]*NotificationPrefs),
-		smsRecoveryByDID:   make(map[string]string),
-		smsRecoveryByPhone: make(map[string]string),
-		reactions:          make(map[string]map[string]string),
-		discoveryIndex:     make(map[string]string),
-		editVersions:       make(map[string][]*MessageEdit),
-		deletedMsgs:        make(map[string]bool),
-		pins:               make(map[string][]*PinnedMessage),
-		retained:           make(map[string]bool),
-		disappearing:       make(map[string]int),
-		archived:           make(map[string]bool),
-		syncStreams:        make(map[string]map[string][]*SyncEntry),
-		syncSeq:            make(map[string]map[string]int64),
-		syncRevoked:        make(map[string]map[string]bool),
+		users:               make(map[string]*User),
+		byUser:              make(map[string]*User),
+		trustScores:         make(map[string]*TrustScore),
+		credentials:         make(map[string]*Credential),
+		credsByDID:          make(map[string][]*Credential),
+		messages:            make(map[string]*QueuedMessage),
+		msgByRecip:          make(map[string][]*QueuedMessage),
+		batches:             make(map[string]*MerkleBatch),
+		contacts:            make(map[string][]*Contact),
+		invites:             make(map[string]*InviteLink),
+		mediaFiles:          make(map[string]*MediaFile),
+		mediaChunks:         make(map[string][]*MediaChunk),
+		devices:             make(map[string]*UserDevice),
+		devicesByDID:        make(map[string][]*UserDevice),
+		notificationPrefs:   make(map[string]*NotificationPrefs),
+		smsRecoveryByDID:    make(map[string]string),
+		smsRecoveryByPhone:  make(map[string]string),
+		reactions:           make(map[string]map[string]string),
+		discoveryIndex:      make(map[string]string),
+		editVersions:        make(map[string][]*MessageEdit),
+		deletedMsgs:         make(map[string]bool),
+		pins:                make(map[string][]*PinnedMessage),
+		retained:            make(map[string]bool),
+		disappearing:        make(map[string]int),
+		archived:            make(map[string]bool),
+		complyPolicies:      make(map[string]*RetentionPolicy),
+		complyBindings:      make(map[string]*ConversationPolicyBinding),
+		complyOrgs:          make(map[string]*ComplyOrgProfile),
+		complyMatters:       make(map[string]*LitigationMatter),
+		complyCustodians:    make(map[string][]*LitigationCustodianBinding),
+		complyCustodianKeys: make(map[string]struct{}),
+		complyExports:       make(map[string]*EDiscoveryExport),
+		complyMembers:       make(map[string]*OrgMember),
+		complyDEFP:          make(map[string]*DEFingerprintRecord),
+		syncStreams:         make(map[string]map[string][]*SyncEntry),
+		syncSeq:             make(map[string]map[string]int64),
+		syncRevoked:         make(map[string]map[string]bool),
 	}
 }
 

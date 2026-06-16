@@ -25,6 +25,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/infra"
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
 	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
+	"github.com/thechadcromwell/echoapp/internal/services/comply"
 	"github.com/thechadcromwell/echoapp/internal/services/contacts"
 	"github.com/thechadcromwell/echoapp/internal/services/groups"
 	"github.com/thechadcromwell/echoapp/internal/services/media"
@@ -38,19 +39,20 @@ import (
 
 // V3Handlers holds all service dependencies for v3 API routes.
 type V3Handlers struct {
-	DB           database.DB
-	Contacts     *contacts.Service
-	Notification *notification.Service
-	Media        *media.Service
-	Rewards      *rewards.Service
-	Groups       *groups.GroupService
-	Broadcasts   *broadcast_channels.ChannelService
-	RateLimiter  *infra.RateLimiter         // optional; enforces per-DID claim velocity (WO-35)
-	IdentityL1   *metagraph.MetagraphClient // optional; anchors @username -> DID on the Identity Metagraph (D1)
-	Signals      SignalPublisher            // optional; pushes live typing/receipt/reaction signals over WS (WO-10/192)
-	Notifier     OfflineNotifier            // optional; content-blind push when a signal target is offline (WO-57)
-	MessageBackup *passport.SyncService     // optional; WO-64/CA2 client-encrypted history backup relay
-	OverflowStorage encblob.Storage         // optional; WO-237 overflow blob retrieval
+	DB              database.DB
+	Contacts        *contacts.Service
+	Notification    *notification.Service
+	Media           *media.Service
+	Rewards         *rewards.Service
+	Groups          *groups.GroupService
+	Broadcasts      *broadcast_channels.ChannelService
+	RateLimiter     *infra.RateLimiter         // optional; enforces per-DID claim velocity (WO-35)
+	IdentityL1      *metagraph.MetagraphClient // optional; anchors @username -> DID on the Identity Metagraph (D1)
+	Signals         SignalPublisher            // optional; pushes live typing/receipt/reaction signals over WS (WO-10/192)
+	Notifier        OfflineNotifier            // optional; content-blind push when a signal target is offline (WO-57)
+	MessageBackup   *passport.SyncService      // optional; WO-64/CA2 client-encrypted history backup relay
+	OverflowStorage encblob.Storage            // optional; WO-237 overflow blob retrieval
+	Comply          *comply.Service            // optional; WO-250 retention enforcement
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.
@@ -1300,6 +1302,10 @@ func (h *V3Handlers) handleMessageDelete(w http.ResponseWriter, r *http.Request,
 	var req messageOpRequest
 	_ = h.readJSON(r, &req)
 	convID := h.conversationIDForMessage(r.Context(), messageID, req.ConversationID)
+	if h.Comply != nil && h.Comply.BlocksDeletion(r.Context(), convID) {
+		WriteError(w, http.StatusForbidden, "RETENTION_POLICY_ACTIVE", "retention_policy_active", r.Header.Get("X-Request-ID"))
+		return
+	}
 	retained, _ := h.DB.IsConversationRetained(r.Context(), convID)
 	if err := h.DB.MarkMessageDeleted(r.Context(), messageID, retained); err != nil {
 		WriteError(w, http.StatusInternalServerError, "DELETE_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
@@ -1441,15 +1447,44 @@ func (h *V3Handlers) handleConversationsSubroute(w http.ResponseWriter, r *http.
 		})
 	case action == "retention" && r.Method == http.MethodPost:
 		var req struct {
-			Retained bool `json:"retained"`
+			Retained   bool   `json:"retained"`
+			OrgDID     string `json:"org_did"`
+			PolicyType string `json:"policy_type"`
 		}
 		if err := h.readJSON(r, &req); err != nil {
 			WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
 			return
 		}
-		if err := h.DB.SetConversationRetention(r.Context(), convID, req.Retained); err != nil {
-			WriteError(w, http.StatusInternalServerError, "RETENTION_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
-			return
+		if req.Retained {
+			if h.Comply != nil && req.OrgDID != "" {
+				policyType := database.RetentionPolicyType(req.PolicyType)
+				if !policyType.Valid() {
+					policyType = database.PolicyPermanent
+				}
+				actor := h.getDID(r)
+				if actor == "" {
+					actor = req.OrgDID
+				}
+				if _, err := h.Comply.CreateRetentionPolicy(r.Context(), comply.CreatePolicyInput{
+					OrgDID:         req.OrgDID,
+					PolicyType:     policyType,
+					ConversationID: convID,
+					CreatedByDID:   actor,
+				}); err != nil {
+					WriteError(w, http.StatusInternalServerError, "RETENTION_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+					return
+				}
+			} else if err := h.DB.SetConversationRetention(r.Context(), convID, true); err != nil {
+				WriteError(w, http.StatusInternalServerError, "RETENTION_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+				return
+			}
+		} else {
+			if h.Comply != nil {
+				_ = h.Comply.ReleaseConversation(r.Context(), convID)
+			} else if err := h.DB.SetConversationRetention(r.Context(), convID, false); err != nil {
+				WriteError(w, http.StatusInternalServerError, "RETENTION_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+				return
+			}
 		}
 		WriteJSON(w, http.StatusOK, map[string]interface{}{
 			"conversation_id": convID,
@@ -1472,6 +1507,10 @@ func (h *V3Handlers) handleConversationsSubroute(w http.ResponseWriter, r *http.
 		}
 		if err := h.readJSON(r, &req); err != nil {
 			WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+			return
+		}
+		if req.TTLSeconds > 0 && h.Comply != nil && h.Comply.BlocksDisappearing(r.Context(), convID) {
+			WriteError(w, http.StatusForbidden, "RETENTION_POLICY_ACTIVE", "retention_policy_active", r.Header.Get("X-Request-ID"))
 			return
 		}
 		if err := h.DB.SetDisappearingTTL(r.Context(), convID, req.TTLSeconds); err != nil {

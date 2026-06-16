@@ -6,7 +6,7 @@ func TestServiceRegistry(t *testing.T) {
 	expectedServices := []string{
 		"gateway", "identity", "relay", "trust", "rewards",
 		"contacts", "metagraph-gateway", "notification", "media",
-		"log-publisher", "digital-evidence",
+		"log-publisher", "digital-evidence", "comply",
 	}
 	for _, name := range expectedServices {
 		if _, exists := ServiceRegistry[name]; !exists {
@@ -28,6 +28,7 @@ func TestServicePorts(t *testing.T) {
 		"media":             8008,
 		"log-publisher":     8009,
 		"digital-evidence":  8010,
+		"comply":            8011,
 	}
 	for name, expectedPort := range tests {
 		svc, ok := ServiceRegistry[name]
@@ -42,8 +43,8 @@ func TestServicePorts(t *testing.T) {
 }
 
 func TestServiceRegistryCount(t *testing.T) {
-	if len(ServiceRegistry) != 11 {
-		t.Errorf("expected 11 services in registry, got %d", len(ServiceRegistry))
+	if len(ServiceRegistry) != 12 {
+		t.Errorf("expected 12 services in registry, got %d", len(ServiceRegistry))
 	}
 }
 

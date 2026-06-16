@@ -91,6 +91,8 @@
 		612AEC81962F8C03C4C320CE /* AuthState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE82963DC16E738346A05815 /* AuthState.swift */; };
 		6238DD99EFF012D3A7FEEEB4 /* EnrollmentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 009F1BD1BB134BC9F328319B /* EnrollmentModels.swift */; };
 		62CFC3951E9205C32DCCF05F /* EnterpriseProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC38818C1BDF64A5211C44EF /* EnterpriseProfileView.swift */; };
+		C0MP001COMPLY000000000001 /* ComplyAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0MP001COMPLY000000000002 /* ComplyAPIClient.swift */; };
+		C0MP001COMPLY000000000003 /* ComplyDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0MP001COMPLY000000000004 /* ComplyDashboardView.swift */; };
 		62DBE95FAAB67442B3B5EED9 /* BiometricIntegrityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DE9B01FC700C282006EC335 /* BiometricIntegrityService.swift */; };
 		65B7A631E80A5838EAF5482F /* GovernanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE5A6B02C6BEFE1D85FBC722 /* GovernanceService.swift */; };
 		65E7AA602656B9B32AC68C7E /* EchoButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B75CA8C52C3A9434A8B8279 /* EchoButton.swift */; };
@@ -460,6 +462,8 @@
 		C95B308FE711FA8ED61A2788 /* StepUpSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepUpSheetView.swift; sourceTree = "<group>"; };
 		CBB8C644B3272DD41818930D /* MDLNFCSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MDLNFCSession.swift; sourceTree = "<group>"; };
 		CC38818C1BDF64A5211C44EF /* EnterpriseProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnterpriseProfileView.swift; sourceTree = "<group>"; };
+		C0MP001COMPLY000000000002 /* ComplyAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplyAPIClient.swift; sourceTree = "<group>"; };
+		C0MP001COMPLY000000000004 /* ComplyDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplyDashboardView.swift; sourceTree = "<group>"; };
 		CF7C9492974F5BE8B1BA960E /* Coordinators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Coordinators.swift; sourceTree = "<group>"; };
 		D0041D4DA2DF97AC5A6B4A6E /* Token.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Token.swift; sourceTree = "<group>"; };
 		D1182DD538E78B535FA84D42 /* EnrollmentCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentCoordinator.swift; sourceTree = "<group>"; };
@@ -791,6 +795,7 @@
 				F1A2B3C4012345678900011 /* OPRF */,
 				F1A2B3C401234567890000B /* PhoneNormalizer.swift */,
 				W0E00101234567890123401F /* ReactionsAPI.swift */,
+				C0MP001COMPLY000000000002 /* ComplyAPIClient.swift */,
 				449BB08C4DB7AF394D798FE4 /* Service.swift */,
 				B8F4E2A1039C4D7E8F1A0023 /* UsernameAvailabilityService.swift */,
 			);
@@ -1263,6 +1268,7 @@
 			isa = PBXGroup;
 			children = (
 				CC38818C1BDF64A5211C44EF /* EnterpriseProfileView.swift */,
+				C0MP001COMPLY000000000004 /* ComplyDashboardView.swift */,
 			);
 			path = Enterprise;
 			sourceTree = "<group>";
@@ -1673,6 +1679,8 @@
 				0FFEB52AED61050CC4EBD41A /* EnrollmentTailView.swift in Sources */,
 				C3D4E5F60718293A4B5C6D7E /* CredentialEnrollmentTailService.swift in Sources */,
 				62CFC3951E9205C32DCCF05F /* EnterpriseProfileView.swift in Sources */,
+				C0MP001COMPLY000000000003 /* ComplyDashboardView.swift in Sources */,
+				C0MP001COMPLY000000000001 /* ComplyAPIClient.swift in Sources */,
 				AD923851DBC3DEBD43DD01E9 /* EvidenceService.swift in Sources */,
 				9EFFC1D22C27CD50E7EEFD4F /* FirstRunCoordinator.swift in Sources */,
 				EFBD7F756B5E756D724800A9 /* GhostBorderCard.swift in Sources */,

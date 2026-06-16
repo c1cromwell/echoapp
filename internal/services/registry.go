@@ -25,4 +25,5 @@ var ServiceRegistry = map[string]ServiceDef{
 	"media":             NewServiceDef("media-service", 8008, "Encrypted media upload/download"),
 	"log-publisher":     NewServiceDef("log-publisher", 8009, "Batch encryption, IPFS submission, CID indexing"),
 	"digital-evidence":  NewServiceDef("digital-evidence", 8010, "Enterprise audit fingerprinting, media verification, Smart Checkmark"),
+	"comply":            NewServiceDef("comply-service", 8011, "Retention policies, litigation hold, eDiscovery orchestration (WO-250)"),
 }

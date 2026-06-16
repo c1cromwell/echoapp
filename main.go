@@ -22,6 +22,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
 	"github.com/thechadcromwell/echoapp/internal/rewards"
 	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
+	"github.com/thechadcromwell/echoapp/internal/services/comply"
 	"github.com/thechadcromwell/echoapp/internal/services/contacts"
 	"github.com/thechadcromwell/echoapp/internal/services/groups"
 	"github.com/thechadcromwell/echoapp/internal/services/media"
@@ -237,22 +238,36 @@ func (s *Server) Start() error {
 	}
 	messageBackupSvc := passport.NewSyncService(passport.NewMemSyncStore(), backupBlobStore)
 
-	router.V3 = &api.V3Handlers{
-		DB:           db,
-		Contacts:     contactsSvc,
-		Notification: notifSvc,
-		Media:        mediaSvc,
-		Rewards:      rewardsSvc.NewService(db, emission),
-		Groups:       groups.NewGroupService(),
-		Broadcasts:   broadcast_channels.NewChannelService(),
-		RateLimiter:  rateLimiter,
-		IdentityL1:   router.IdentityL1,  // D1: anchor @username -> DID on registration
-		Signals:       router.WSHub,       // WO-10/192: live reaction + read-receipt fan-out over WS
-		Notifier:      offlineNotifier,    // WO-57: push reactions to offline peers
-		MessageBackup: messageBackupSvc,   // WO-64/CA2: encrypted history backup relay
-		OverflowStorage: backupBlobStore,  // WO-237: overflow blob fetch for reconnect manifest
+	complySvc := comply.NewService(db, comply.Deps{
+		MessageOps:        db,
+		ConversationIndex: db,
+		ServiceToken:      os.Getenv("COMPLY_SERVICE_TOKEN"),
+		Notifier:          comply.NewPushNotifier(notifSvc),
+	})
+	if os.Getenv("COMPLY_EMBEDDED") != "false" {
+		router.Comply = &api.ComplyHandlers{Comply: complySvc}
 	}
-	router.WSHub.SetGroupMemberLister(router.V3.Groups) // M2: group text fan-out to members
+
+	router.V3 = &api.V3Handlers{
+		DB:              db,
+		Contacts:        contactsSvc,
+		Notification:    notifSvc,
+		Media:           mediaSvc,
+		Rewards:         rewardsSvc.NewService(db, emission),
+		Groups:          groups.NewGroupService(),
+		Broadcasts:      broadcast_channels.NewChannelService(),
+		RateLimiter:     rateLimiter,
+		IdentityL1:      router.IdentityL1, // D1: anchor @username -> DID on registration
+		Signals:         router.WSHub,      // WO-10/192: live reaction + read-receipt fan-out over WS
+		Notifier:        offlineNotifier,   // WO-57: push reactions to offline peers
+		MessageBackup:   messageBackupSvc,  // WO-64/CA2: encrypted history backup relay
+		OverflowStorage: backupBlobStore,   // WO-237: overflow blob fetch for reconnect manifest
+		Comply:          complySvc,         // WO-250 retention enforcement hooks
+	}
+	if os.Getenv("COMPLY_SERVICE_TOKEN") != "" {
+		log.Println("ECHO Comply retention service enabled (WO-250)")
+	}
+	router.WSHub.SetGroupMemberLister(router.V3.Groups)     // M2: group text fan-out to members
 	router.WSHub.SetOfflineOverflowStorage(backupBlobStore) // WO-237: queue overflow to encblob
 
 	// WO-53: Start audit log publisher background goroutine.

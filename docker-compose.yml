@@ -14,10 +14,14 @@ services:
         condition: service_healthy
       nats:
         condition: service_started
+      comply:
+        condition: service_started
     ports:
       - "8000:8000"
     environment:
       - API_PORT=8000
+      - COMPLY_EMBEDDED=false
+      - COMPLY_SERVICE_TOKEN=dev-comply-token
       - ENVIRONMENT=development
       - LOG_LEVEL=debug
       # PostgreSQL
@@ -116,6 +120,32 @@ services:
       retries: 5
     networks:
       - echo-network
+
+  # ECHO Comply microservice (WO-250/251/252) — port 8011
+  comply:
+    build:
+      context: .
+      dockerfile: cmd/comply/Dockerfile
+    container_name: echo-comply
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8011:8011"
+    environment:
+      - COMPLY_PORT=8011
+      - COMPLY_SERVICE_TOKEN=dev-comply-token
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=echoapp
+      - DATABASE_USER=echoapp
+      - DATABASE_PASSWORD=echoapp_dev
+      - DATABASE_SSLMODE=disable
+    volumes:
+      - ./migrations:/app/migrations:ro
+    networks:
+      - echo-network
+    restart: unless-stopped
 
   # Auto-create the media bucket on startup
   minio-init:

@@ -78,6 +78,7 @@ type Router struct {
 	Passport             *passport.Service                // WO-293 Echo Passport holder refs
 	PassportSync         *passport.SyncService            // WO-294 client-encrypted credential sync
 	PassportRecovery     *recovery.Service                // WO-296 social-threshold recovery metadata
+	Comply               *ComplyHandlers                  // WO-250 Comply REST (/comply/*)
 	tokenService         *auth.TokenService               // ES256 JWT token service
 
 	enrollmentVCMu          sync.Mutex
@@ -226,6 +227,8 @@ func (rt *Router) Handler() http.Handler {
 			rt.handleAuthRefresh(w, r)
 		case r.URL.Path == "/v3/auth/revoke":
 			rt.handleAuthRevoke(w, r)
+		case strings.HasPrefix(r.URL.Path, "/comply/"):
+			rt.handleComply(w, r)
 		case strings.HasPrefix(r.URL.Path, "/v3/"):
 			rt.handleV3(w, r)
 		default:
@@ -367,6 +370,7 @@ func (rt *Router) authMiddleware(next http.Handler) http.Handler {
 		// Health check, WebSocket, public registration endpoints, and
 		// did:key resolution (which is local-only and inherently public) bypass auth.
 		if r.URL.Path == "/health" || r.URL.Path == "/ws" || publicPaths[r.URL.Path] ||
+			strings.HasPrefix(r.URL.Path, "/comply/") && rt.Comply != nil && rt.Comply.ServiceAuth(r) ||
 			identityRequestExemptFromAuth(r.URL.Path, r.Method) ||
 			isOpenIDCredentialPath(r.URL.Path) ||
 			trustRegistryPublicRead(r.URL.Path, r.Method) ||
@@ -635,6 +639,17 @@ func (rt *Router) handleV2(w http.ResponseWriter, r *http.Request) {
 	default:
 		WriteError(w, http.StatusNotFound, "ENDPOINT_NOT_FOUND", "Endpoint not found", r.Header.Get("X-Request-ID"))
 	}
+}
+
+// handleComply delegates to ComplyHandlers (WO-250 / WO-252).
+func (rt *Router) handleComply(w http.ResponseWriter, r *http.Request) {
+	if rt.Comply == nil {
+		WriteError(w, http.StatusServiceUnavailable, "COMPLY_NOT_CONFIGURED", "Comply service not initialized", r.Header.Get("X-Request-ID"))
+		return
+	}
+	mux := http.NewServeMux()
+	rt.Comply.RegisterComplyRoutes(mux)
+	mux.ServeHTTP(w, r)
 }
 
 // handleV3 delegates to the V3Handlers which connect to real backend services.

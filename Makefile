@@ -327,6 +327,10 @@ dev-stop: testnet-down ## Tear down backend stack (does not stop metagraph)
 # Identity nodes (L0 port 9600, L1 port 9500) are custom Echo modules not
 # managed by Euclid hydra. They require sbt assembly JARs and their own
 # Docker setup. Use these targets once the core cluster is running.
+start-comply: ## Run ECHO Comply microservice on :8011 (WO-250/251/252)
+	@echo "Starting Comply service on :8011..."
+	COMPLY_PORT=8011 COMPLY_SERVICE_TOKEN=$${COMPLY_SERVICE_TOKEN:-dev-comply-token} $(GO) run ./cmd/comply
+
 start-identity: ## Start Identity L0 + L1 nodes (requires sbt assembly + running cluster)
 	@echo "Starting Identity nodes..."
 	@JAR_L0=$$(ls metagraph/modules/identity_l0/target/scala-2.13/*assembly*.jar 2>/dev/null | head -1); \

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
+	"github.com/thechadcromwell/echoapp/internal/services/comply"
 )
 
 // fakeSignalPublisher captures signals a handler pushes, so tests can assert
@@ -39,6 +40,10 @@ func (f *fakeSignalPublisher) all() []sentSignal {
 
 func signalsRouter(db database.DB, pub SignalPublisher) *Router {
 	return &Router{V3: &V3Handlers{DB: db, Signals: pub}}
+}
+
+func complySignalsRouter(db database.DB, pub SignalPublisher, svc *comply.Service) *Router {
+	return &Router{V3: &V3Handlers{DB: db, Signals: pub, Comply: svc}}
 }
 
 func enqueue(t *testing.T, db database.DB, id, conv, sender, recipient string) {
@@ -127,8 +132,8 @@ func TestMessageStatus_GETSyncsState(t *testing.T) {
 		t.Fatalf("status want 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 	var resp struct {
-		MessageID string `json:"messageId"`
-		Status    string `json:"status"`
+		MessageID string  `json:"messageId"`
+		Status    string  `json:"status"`
 		ReadAt    *string `json:"readAt"`
 	}
 	_ = json.Unmarshal(rec.Body.Bytes(), &resp)

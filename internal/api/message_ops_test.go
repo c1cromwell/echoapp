@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
+	"github.com/thechadcromwell/echoapp/internal/services/comply"
 )
 
 func postJSON(mux http.Handler, path, did string, body any) *httptest.ResponseRecorder {
@@ -214,5 +215,49 @@ func TestDisappearing_SetGetAndFanOut(t *testing.T) {
 	_ = postJSON(mux, "/v3/conversations/c1/disappearing", "did:alice", map[string]any{"ttl_seconds": 0})
 	if ttl, _ := db.GetDisappearingTTL(context.Background(), "c1"); ttl != 0 {
 		t.Fatalf("expected ttl cleared, got %d", ttl)
+	}
+}
+
+func TestMessageDelete_BlockedByComplyPolicy(t *testing.T) {
+	db := database.NewMemoryDB()
+	svc := comply.NewServiceLegacy(db, db, "tok")
+	mux := v3Mux(complySignalsRouter(db, &fakeSignalPublisher{}, svc))
+	enqueue(t, db, "m1", "c1", "did:alice", "did:bob")
+
+	_, err := svc.CreateRetentionPolicy(context.Background(), comply.CreatePolicyInput{
+		OrgDID:         "did:org:acme",
+		PolicyType:     database.PolicyLitigationHold,
+		ConversationID: "c1",
+		CreatedByDID:   "did:admin",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := postJSON(mux, "/v3/messages/m1/delete", "did:alice", map[string]any{"conversation_id": "c1"})
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("delete under hold want 403, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestDisappearing_BlockedByComplyPermanentPolicy(t *testing.T) {
+	db := database.NewMemoryDB()
+	svc := comply.NewServiceLegacy(db, db, "tok")
+	mux := v3Mux(complySignalsRouter(db, &fakeSignalPublisher{}, svc))
+
+	_, err := svc.CreateRetentionPolicy(context.Background(), comply.CreatePolicyInput{
+		OrgDID:         "did:org:acme",
+		PolicyType:     database.PolicyPermanent,
+		ConversationID: "c1",
+		CreatedByDID:   "did:admin",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := postJSON(mux, "/v3/conversations/c1/disappearing", "did:alice",
+		map[string]any{"ttl_seconds": 3600, "peer_did": "did:bob"})
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("disappearing under permanent policy want 403, got %d: %s", rec.Code, rec.Body.String())
 	}
 }

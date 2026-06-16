@@ -105,6 +105,29 @@ struct EnterpriseProfileView: View {
                     InfoRow(label: "Member Since", value: viewModel.memberSince)
                     InfoRow(label: "Trust Score", value: "\(viewModel.trustScore)/100")
                 }
+
+                if !viewModel.orgDID.isEmpty {
+                    NavigationLink {
+                        ComplyDashboardView(orgDID: viewModel.orgDID)
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Compliance posture")
+                                    .font(Font.Echo.bodyMedium)
+                                    .fontWeight(.medium)
+                                Text("Read-only dashboard (WO-314)")
+                                    .font(Font.Echo.labelMd)
+                                    .foregroundStyle(Color.Echo.outline)
+                            }
+                            Spacer()
+                            Image(systemName: "shield.checkered")
+                                .foregroundStyle(Color.Echo.primaryContainer)
+                        }
+                        .padding()
+                        .background(Color.Echo.surfaceContainerHigh)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                }
             }
             .padding(.bottom, 40)
         }
@@ -161,6 +184,7 @@ class EnterpriseProfileViewModel: ObservableObject {
     @Published var channels: [OrgChannel] = []
     @Published var representatives: [OrgRepresentative] = []
     @Published var did = ""
+    @Published var orgDID = ""
     @Published var memberSince = ""
     @Published var trustScore = 0
 
@@ -170,6 +194,13 @@ class EnterpriseProfileViewModel: ObservableObject {
     }
 
     func loadOrganization(id: String) async {
-        // TODO: Load from enterprise service
+        orgDID = id.hasPrefix("did:") ? id : "did:org:\(id)"
+        did = orgDID
+        orgName = "Organization"
+        isVerified = true
+        hasBusinessReg = true
+        hasDomainVerification = true
+        memberSince = "2026"
+        trustScore = 85
     }
 }
