@@ -3,8 +3,10 @@ package comply
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
+	"github.com/thechadcromwell/echoapp/internal/evidence"
 )
 
 // EnsureOrgAdmin upserts an admin member (service/bootstrap path).
@@ -74,11 +76,38 @@ func (s *Service) fingerprintConversationMessages(ctx context.Context, orgDID, c
 		return
 	}
 	for _, e := range entries {
-		ref := policyAnchorRef(orgDID, "de_fingerprint", e.MessageID, e.ConversationID)
+		ref := s.recordDEFingerprint(ctx, orgDID, e)
+		if ref == "" {
+			ref = policyAnchorRef(orgDID, "de_fingerprint", e.MessageID, e.ConversationID)
+		}
 		_ = s.store.RecordDEFingerprint(ctx, &database.DEFingerprintRecord{
 			OrgDID:         orgDID,
 			MessageID:      e.MessageID,
 			FingerprintRef: ref,
 		})
 	}
+}
+
+func (s *Service) recordDEFingerprint(ctx context.Context, orgDID string, e *database.ExportManifestEntry) string {
+	if s.evidence == nil || s.evidenceConfig == nil {
+		return ""
+	}
+	contentHash := policyAnchorRef(orgDID, "de_fingerprint", e.MessageID, e.ConversationID)
+	req, err := evidence.SmartCheckmarkFingerprint(
+		s.evidenceConfig,
+		contentHash,
+		e.Timestamp.UTC().Format(time.RFC3339),
+		e.SenderDID,
+	)
+	if err != nil {
+		return ""
+	}
+	resp, err := s.evidence.SubmitFingerprint(ctx, req)
+	if err != nil || resp == nil {
+		return ""
+	}
+	if resp.EventID != "" {
+		return resp.EventID
+	}
+	return resp.ExplorerURL
 }

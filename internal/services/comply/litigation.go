@@ -30,7 +30,7 @@ func (s *Service) ActivateLitigationHold(ctx context.Context, in ActivateLitigat
 	}
 
 	now := time.Now().UTC()
-	anchorRef := s.anchorRef(in.OrgDID, "litigation_hold_active", in.MatterID, now)
+	anchorRef := s.complianceAnchor(ctx, in.OrgDID, "litigation_hold_active", in.MatterID, now.Format(time.RFC3339))
 
 	matter := &database.LitigationMatter{
 		MatterID:       in.MatterID,
@@ -114,7 +114,7 @@ func (s *Service) ReleaseLitigationHold(ctx context.Context, orgDID, matterID, r
 	matter.Status = database.MatterReleased
 	matter.ReleasedAt = &now
 	matter.ReleasedByDID = releasedByDID
-	matter.DataL1Ref = s.anchorRef(orgDID, "litigation_hold_released", matterID, now)
+	matter.DataL1Ref = s.complianceAnchor(ctx, orgDID, "litigation_hold_released", matterID, now.Format(time.RFC3339))
 	if err := s.store.UpdateLitigationMatter(ctx, matter); err != nil {
 		return nil, err
 	}
@@ -139,8 +139,4 @@ func (s *Service) GetLitigationHold(ctx context.Context, orgDID, matterID string
 		return nil, database.ErrComplyMatterNotFound
 	}
 	return matter, nil
-}
-
-func (s *Service) anchorRef(orgDID, eventType, refID string, at time.Time) string {
-	return policyAnchorRef(orgDID, database.RetentionPolicyType(eventType), refID, at.Format(time.RFC3339))
 }

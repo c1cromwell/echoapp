@@ -238,11 +238,15 @@ func (s *Server) Start() error {
 	}
 	messageBackupSvc := passport.NewSyncService(passport.NewMemSyncStore(), backupBlobStore)
 
+	complyIntegration := comply.LoadIntegrationFromEnv()
 	complySvc := comply.NewService(db, comply.Deps{
 		MessageOps:        db,
 		ConversationIndex: db,
 		ServiceToken:      os.Getenv("COMPLY_SERVICE_TOKEN"),
 		Notifier:          comply.NewPushNotifier(notifSvc),
+		DataL1:            complyIntegration.DataL1,
+		Evidence:          complyIntegration.Evidence,
+		EvidenceConfig:    complyIntegration.EvidenceConfig,
 	})
 	if os.Getenv("COMPLY_EMBEDDED") != "false" {
 		router.Comply = &api.ComplyHandlers{Comply: complySvc}

@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
+	"github.com/thechadcromwell/echoapp/internal/evidence"
 )
 
 var (
@@ -26,11 +27,14 @@ type MessageOps interface {
 
 // Service implements WO-250 Comply retention policy management and enforcement hooks.
 type Service struct {
-	store        database.ComplyExtendedStore
-	messageOps   MessageOps
-	convIndex    database.ConversationIndex
-	serviceToken string
-	notifier     PushNotifier
+	store          database.ComplyExtendedStore
+	messageOps     MessageOps
+	convIndex      database.ConversationIndex
+	serviceToken   string
+	notifier       PushNotifier
+	dataL1         DataL1Submitter
+	evidence       evidence.EvidenceSubmitter
+	evidenceConfig *evidence.ClientConfig
 }
 
 // Deps wires optional integrations for the Comply service.
@@ -39,15 +43,21 @@ type Deps struct {
 	ConversationIndex database.ConversationIndex
 	ServiceToken      string
 	Notifier          PushNotifier
+	DataL1            DataL1Submitter
+	Evidence          evidence.EvidenceSubmitter
+	EvidenceConfig    *evidence.ClientConfig
 }
 
 func NewService(store database.ComplyExtendedStore, deps Deps) *Service {
 	return &Service{
-		store:        store,
-		messageOps:   deps.MessageOps,
-		convIndex:    deps.ConversationIndex,
-		serviceToken: deps.ServiceToken,
-		notifier:     deps.Notifier,
+		store:          store,
+		messageOps:     deps.MessageOps,
+		convIndex:      deps.ConversationIndex,
+		serviceToken:   deps.ServiceToken,
+		notifier:       deps.Notifier,
+		dataL1:         deps.DataL1,
+		evidence:       deps.Evidence,
+		evidenceConfig: deps.EvidenceConfig,
 	}
 }
 
@@ -88,7 +98,7 @@ func (s *Service) CreateRetentionPolicy(ctx context.Context, in CreatePolicyInpu
 		ScopeLabel:     in.ScopeLabel,
 		EffectiveAt:    time.Now().UTC(),
 		ExpiresAt:      in.ExpiresAt,
-		DataL1Ref:      policyAnchorRef(in.OrgDID, in.PolicyType, in.ConversationID, in.ScopeLabel),
+		DataL1Ref: s.complianceAnchor(ctx, in.OrgDID, string(in.PolicyType), in.ConversationID, in.ScopeLabel),
 		Active:         true,
 		CreatedByDID:   in.CreatedByDID,
 		CreatedAt:      time.Now().UTC(),
@@ -203,10 +213,7 @@ func (s *Service) Dashboard(ctx context.Context, orgDID string) (map[string]inte
 	if err != nil {
 		return nil, err
 	}
-	anchorHealth := "healthy"
-	if active == 0 && holds == 0 {
-		anchorHealth = "degraded"
-	}
+	anchorHealth := s.anchorHealthStatus()
 	return map[string]interface{}{
 		"deCoverageRate":          s.deCoverageRate(ctx, orgDID),
 		"activeRetentionPolicies": active,

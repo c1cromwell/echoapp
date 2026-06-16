@@ -33,11 +33,15 @@ func DefaultConfig() Config {
 
 // NewHandler builds the Comply HTTP handler (WO-250 / WO-251 / WO-252 on :8011).
 func NewHandler(db database.DB, notif *notification.Service, token string) http.Handler {
+	integration := comply.LoadIntegrationFromEnv()
 	svc := comply.NewService(db, comply.Deps{
 		MessageOps:        db,
 		ConversationIndex: db,
 		ServiceToken:      token,
 		Notifier:          comply.NewPushNotifier(notif),
+		DataL1:            integration.DataL1,
+		Evidence:          integration.Evidence,
+		EvidenceConfig:    integration.EvidenceConfig,
 	})
 	h := &api.ComplyHandlers{Comply: svc}
 	mux := http.NewServeMux()

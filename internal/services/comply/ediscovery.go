@@ -41,7 +41,7 @@ func (s *Service) CreateEDiscoveryExport(ctx context.Context, in CreateExportInp
 		OrgDID:       in.OrgDID,
 		MatterID:     in.MatterID,
 		Status:       database.ExportPending,
-		QueryHash:    policyAnchorRef(in.OrgDID, "export_query", in.MatterID, string(queryPayload)),
+		QueryHash:    s.complianceAnchor(ctx, in.OrgDID, "export_query", in.MatterID, string(queryPayload)),
 		RequesterDID: in.RequesterDID,
 		DateFrom:     in.DateFrom,
 		DateTo:       in.DateTo,
@@ -91,7 +91,10 @@ func (s *Service) processExport(exportID string, in CreateExportInput) {
 	}
 	for _, row := range manifest {
 		row.MerkleRef = policyAnchorRef(in.OrgDID, "merkle", row.MessageID, row.ConversationID)
-		row.EvidenceEventID = policyAnchorRef(in.OrgDID, "de_event", row.MessageID, row.Timestamp.Format(time.RFC3339))
+		row.EvidenceEventID = s.recordDEFingerprint(ctx, in.OrgDID, row)
+		if row.EvidenceEventID == "" {
+			row.EvidenceEventID = policyAnchorRef(in.OrgDID, "de_event", row.MessageID, row.Timestamp.Format(time.RFC3339))
+		}
 		_ = s.store.RecordDEFingerprint(ctx, &database.DEFingerprintRecord{
 			OrgDID:         in.OrgDID,
 			MessageID:      row.MessageID,
@@ -112,7 +115,7 @@ func (s *Service) processExport(exportID string, in CreateExportInput) {
 	export.Status = database.ExportReady
 	export.ReadyAt = &now
 	export.CoverSheetRef = policyAnchorRef(in.OrgDID, "cover_sheet", exportID, string(coverSheet))
-	export.DataL1Ref = policyAnchorRef(in.OrgDID, "export_checksum", exportID, export.CoverSheetRef)
+	export.DataL1Ref = s.complianceAnchor(ctx, in.OrgDID, "export_checksum", exportID, export.CoverSheetRef)
 	_ = s.store.UpdateEDiscoveryExport(ctx, export)
 	_ = s.store.AppendAuditEvent(ctx, &database.AuditEvent{
 		ID:         uuid.NewString(),

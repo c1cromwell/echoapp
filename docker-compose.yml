@@ -141,8 +141,16 @@ services:
       - DATABASE_USER=echoapp
       - DATABASE_PASSWORD=echoapp_dev
       - DATABASE_SSLMODE=disable
+      - DATA_L1_URL=http://host.docker.internal:9400
+      - IDENTITY_SERVICE_KEY_PEM=/app/.keys/identity-service.pem
+      # Optional: Constellation Digital Evidence API (Org-tier fingerprinting)
+      # - DIGITAL_EVIDENCE_API_KEY=
+      # - DIGITAL_EVIDENCE_ORG_ID=
+      # - DIGITAL_EVIDENCE_TENANT_ID=
+      # - DIGITAL_EVIDENCE_BASE_URL=https://evidence.constellationnetwork.io
     volumes:
       - ./migrations:/app/migrations:ro
+      - ./.keys:/app/.keys:ro
     networks:
       - echo-network
     restart: unless-stopped

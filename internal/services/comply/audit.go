@@ -38,10 +38,7 @@ func (s *Service) GenerateAuditReport(ctx context.Context, orgDID string, from, 
 	policies, _ := s.store.ListRetentionPolicies(ctx, orgDID, true)
 	exports, _ := s.store.ListEDiscoveryExports(ctx, orgDID, 20)
 
-	anchorHealth := "healthy"
-	if active == 0 && holds == 0 {
-		anchorHealth = "degraded"
-	}
+	anchorHealth := s.anchorHealthStatus()
 
 	return &AuditReport{
 		OrgDID:             orgDID,
