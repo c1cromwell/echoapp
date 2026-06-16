@@ -1,10 +1,8 @@
 import SwiftUI
 
-import SwiftUI
-
 /// ECHO Message Bubble Component
 /// Sent/Received with 7 delivery status indicators (v3.1)
-public enum MessageStatus: String {
+enum MessageStatus: String {
     case sending = "Sending..."
     case sent = "Sent"
     case delivered = "Delivered"
@@ -14,7 +12,7 @@ public enum MessageStatus: String {
     case verified = "Verified"     // Digital Evidence fingerprint anchored (Smart Checkmark)
 }
 
-public struct MessageBubble: View {
+struct MessageBubble: View {
     let message: String
     let isSent: Bool
     let status: MessageStatus
@@ -22,7 +20,7 @@ public struct MessageBubble: View {
     let timestamp: String
     let showDeliveryStatus: Bool
     
-    public init(
+    init(
         message: String,
         isSent: Bool,
         status: MessageStatus = .sent,
@@ -80,7 +78,7 @@ public struct MessageBubble: View {
         }
     }
     
-    public var body: some View {
+    var body: some View {
         VStack(alignment: isSent ? .trailing : .leading, spacing: Spacing.xs.rawValue) {
             // Message Bubble
             HStack {
@@ -130,14 +128,14 @@ public struct MessageBubble: View {
 
 // MARK: - Chat Bubble Group
 
-public struct MessageBubbleGroup: View {
+struct MessageBubbleGroup: View {
     let messages: [(String, MessageStatus, String, Bool)]
     
-    public init(messages: [(String, MessageStatus, String, Bool)]) {
+    init(messages: [(String, MessageStatus, String, Bool)]) {
         self.messages = messages
     }
     
-    public var body: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md.rawValue) {
             ForEach(Array(messages.indices), id: \.self) { index in
                 let (message, status, timestamp, isSent) = messages[index]

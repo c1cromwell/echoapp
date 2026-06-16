@@ -170,7 +170,7 @@ struct MediaBubbleView: View {
             switch mediaKind {
             case .image, .video:
                 imageData = data
-                _ = MediaThumbnailCache.thumbnail(for: ref.fileId, from: data)
+                _ = MediaThumbnailCache.thumbnail(for: mediaRef.fileId, from: data)
             case .audio:
                 audioData = data
                 waveformSamples = WaveformExtractor.samples(from: data)

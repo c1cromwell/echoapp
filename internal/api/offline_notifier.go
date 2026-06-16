@@ -34,3 +34,14 @@ func (n notificationOfflineNotifier) NotifyUndelivered(recipientID, senderID, co
 		SenderDID:      senderID,
 	})
 }
+
+func (n notificationOfflineNotifier) NotifyMissedCall(recipientID, senderID, callID string) {
+	if n.svc == nil || recipientID == "" {
+		return
+	}
+	_, _ = n.svc.Send(context.Background(), recipientID, notification.PushPayload{
+		Type:           notification.TypeMissedCall,
+		ConversationID: callID,
+		SenderDID:      senderID,
+	})
+}

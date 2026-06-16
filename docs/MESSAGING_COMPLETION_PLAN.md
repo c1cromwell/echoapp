@@ -191,11 +191,14 @@ UI skeleton exists; signaling foundation landed (real WebRTC + CallKit still pen
     `WebRTCCallSession` stub, `CallHistoryStore` (WO-196), `CallViewModel` rewired;
     `ConversationSignalService` decodes `call_signal`; `ContactDetailView` voice/video sheets;
     `Phase3Tests/CallSignalCodecTests.swift`; E2E §6.12.
-  - ⏳ **M4 remaining:** WebRTC.framework peer connection, real TURN credentials in prod, group calls,
-    missed-call push specialization; Xcode §6.12 sign-off.
   - ✅ **M4b foundation (2026-05-29):** structured JSON SDP + trickle ICE over `call_signal`;
     `WebRTCSessionDescription`, `CallKitCoordinator`; `WebRTCCallSession` ICE config + stub candidates;
     optional TURN via `ECHO_TURN_*` env on `GET /v3/calls/ice-servers`; `Phase3Tests/M4M5M7Tests.swift`.
+  - ✅ **M4c live WebRTC (2026-05-29):** `WebRTCLiveCallEngine` (`RTCPeerConnection` when WebRTC SPM linked);
+    stub fallback for macOS CI; `IncomingCallPresenter` + global incoming UI; `WebRTCVideoView`;
+    missed-call push (`type: missed_call`) on offline offer; [`ios/WEBRTC_XCODE_SETUP.md`](../ios/WEBRTC_XCODE_SETUP.md);
+    sign-off run sheet [`E2E_MESSAGING_SIGNOFF_CHECKLIST.md`](E2E_MESSAGING_SIGNOFF_CHECKLIST.md).
+  - ⏳ **M4 remaining:** prod TURN deployment, group calls; Xcode §6.12 sign-off with real audio on devices.
 
 ### M5 — Media & files (relay pipeline + voice notes)
 Encryption service exists; transport pipeline foundation in progress.

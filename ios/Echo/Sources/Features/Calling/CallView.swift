@@ -9,12 +9,21 @@ struct CallView: View {
     @StateObject private var viewModel: CallViewModel
     @Environment(\.dismiss) private var dismiss
 
-    init(peerDID: String, callType: CallType, contactName: String = "", isOutgoing: Bool = true) {
+    init(
+        peerDID: String,
+        callType: CallType,
+        contactName: String = "",
+        isOutgoing: Bool = true,
+        incomingCallId: String? = nil,
+        pendingOfferSDP: String? = nil
+    ) {
         _viewModel = StateObject(wrappedValue: CallViewModel(
             peerDID: peerDID,
             callType: callType,
             contactName: contactName,
-            isOutgoing: isOutgoing
+            isOutgoing: isOutgoing,
+            incomingCallId: incomingCallId,
+            pendingOfferSDP: pendingOfferSDP
         ))
     }
 
@@ -22,12 +31,10 @@ struct CallView: View {
         ZStack {
             // Background
             if viewModel.callType == .video && viewModel.state == .active {
-                // Remote video fills screen
-                VideoStreamPlaceholder()
+                WebRTCVideoView(track: viewModel.remoteVideoTrack)
                     .ignoresSafeArea()
 
-                // Self PiP — top left, draggable
-                SelfPreviewPiP()
+                WebRTCVideoView(track: viewModel.localVideoTrack)
                     .frame(width: 100, height: 140)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
                     .glacialShadow()

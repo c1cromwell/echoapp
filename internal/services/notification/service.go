@@ -17,6 +17,7 @@ type NotificationType string
 
 const (
 	TypeMessage  NotificationType = "message"
+	TypeMissedCall NotificationType = "missed_call"
 	TypeGroup    NotificationType = "group"
 	TypeChannel  NotificationType = "channel"
 	TypeSystem   NotificationType = "system"

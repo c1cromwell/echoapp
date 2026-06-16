@@ -14,18 +14,29 @@ import (
 
 // fakeNotifier records content-blind offline pushes (WO-57).
 type fakeNotifier struct {
-	mu   sync.Mutex
-	sent []pushRecord
+	mu     sync.Mutex
+	sent   []pushRecord
+	missed []missedCallRecord
 }
 
 type pushRecord struct {
 	recipient, sender, conversation string
 }
 
+type missedCallRecord struct {
+	recipient, sender, callID string
+}
+
 func (f *fakeNotifier) NotifyUndelivered(recipientID, senderID, conversationID string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.sent = append(f.sent, pushRecord{recipientID, senderID, conversationID})
+}
+
+func (f *fakeNotifier) NotifyMissedCall(recipientID, senderID, callID string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.missed = append(f.missed, missedCallRecord{recipientID, senderID, callID})
 }
 
 func (f *fakeNotifier) all() []pushRecord {

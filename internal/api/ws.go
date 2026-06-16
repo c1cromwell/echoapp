@@ -151,6 +151,8 @@ type GroupMemberLister interface {
 // fetches. Best-effort and must not block; the hub calls it asynchronously.
 type OfflineNotifier interface {
 	NotifyUndelivered(recipientID, senderID, conversationID string)
+	// NotifyMissedCall fires when an offline recipient misses a call offer (M4c / WO-196).
+	NotifyMissedCall(recipientID, senderID, callID string)
 }
 
 // Hub manages all active WebSocket connections and routes messages.
@@ -340,6 +342,33 @@ func (h *Hub) notifyUndelivered(recipientID, senderID, conversationID string) {
 	go n.NotifyUndelivered(recipientID, senderID, conversationID)
 }
 
+// deliverOrQueueCall delivers call_signal live, queues for reconnect, and pushes missed-call on offer.
+func (h *Hub) deliverOrQueueCall(recipient string, data []byte, senderID string, payload json.RawMessage) bool {
+	if h.SendToUser(recipient, data) {
+		return true
+	}
+	if h.offlineQueue != nil {
+		h.offlineQueue.Enqueue(recipient, data, wsOfflineRetention)
+	}
+	h.notifyCallUndelivered(recipient, senderID, payload)
+	return false
+}
+
+func (h *Hub) notifyCallUndelivered(recipientID, senderID string, payload json.RawMessage) {
+	h.mu.RLock()
+	n := h.notifier
+	h.mu.RUnlock()
+	if n == nil || recipientID == "" {
+		return
+	}
+	var sig CallSignal
+	if err := json.Unmarshal(payload, &sig); err == nil && sig.Action == "offer" && sig.CallID != "" {
+		go n.NotifyMissedCall(recipientID, senderID, sig.CallID)
+		return
+	}
+	go n.NotifyUndelivered(recipientID, senderID, "")
+}
+
 // ConnectedUsers returns the list of currently connected user IDs.
 func (h *Hub) ConnectedUsers() []string {
 	h.mu.RLock()
@@ -495,7 +524,7 @@ func (c *Client) routeInbound(msg WSMessage) {
 		if msg.To == "" || msg.To == c.userID {
 			return
 		}
-		c.hub.deliverOrQueue(msg.To, outBytes, c.userID, msg.ConversationID)
+		c.hub.deliverOrQueueCall(msg.To, outBytes, c.userID, msg.Payload)
 		return
 	}
 

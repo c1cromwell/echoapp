@@ -99,3 +99,20 @@ func TestCallSignalDroppedWithoutRecipient(t *testing.T) {
 	default:
 	}
 }
+
+func TestCallSignalOfflineOfferMissedCallPush(t *testing.T) {
+	hub := NewHub()
+	notifier := &fakeNotifier{}
+	hub.SetOfflineNotifier(notifier)
+	alice := &Client{hub: hub, userID: "did:alice", send: make(chan []byte, 1)}
+
+	payload, _ := json.Marshal(CallSignal{CallID: "call-missed-1", Action: "offer", CallType: "voice"})
+	msg := WSMessage{Type: "call_signal", To: "did:bob", Payload: payload}
+	alice.routeInbound(msg)
+
+	waitFor(t, func() bool { return len(notifier.missed) == 1 })
+	got := notifier.missed[0]
+	if got.recipient != "did:bob" || got.sender != "did:alice" || got.callID != "call-missed-1" {
+		t.Fatalf("unexpected missed-call push: %+v", got)
+	}
+}

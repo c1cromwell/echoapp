@@ -22,22 +22,34 @@ class CallViewModel: ObservableObject {
     @Published var isSpeaker = false
     @Published var isCameraOn = true
     @Published var isScreenSharing = false
-    @Published var localStream: Any?
-    @Published var remoteStream: Any?
+    @Published var localVideoTrack: Any?
+    @Published var remoteVideoTrack: Any?
+    @Published var usesLiveWebRTC = false
 
-    private let callId = UUID().uuidString
+    private let callId: String
     private var durationTimer: Timer?
     private let session = WebRTCCallSession()
     private var signaling: CallSignalingService?
     private var callKitUUID: UUID?
     private var localDID: String = ""
     private var startedAt = Date()
+    private let pendingOfferSDP: String?
+    private var hasAppliedIncomingOffer = false
 
-    init(peerDID: String, callType: CallType, contactName: String = "", isOutgoing: Bool = true) {
+    init(
+        peerDID: String,
+        callType: CallType,
+        contactName: String = "",
+        isOutgoing: Bool = true,
+        incomingCallId: String? = nil,
+        pendingOfferSDP: String? = nil
+    ) {
         self.peerDID = peerDID
         self.callType = callType
         self.contactName = contactName
         self.isOutgoing = isOutgoing
+        self.callId = incomingCallId ?? UUID().uuidString
+        self.pendingOfferSDP = pendingOfferSDP
         self.isCameraOn = callType == .video
     }
 
@@ -50,16 +62,27 @@ class CallViewModel: ObservableObject {
 
         do {
             let iceServers = try await signaling?.fetchICEServers() ?? []
-            session.configure(iceServers: iceServers) { [weak self] candidate in
-                Task { @MainActor in
-                    guard let self else { return }
-                    try? await self.signaling?.sendIce(
-                        callId: self.callId,
-                        to: self.peerDID,
-                        candidate: candidate
-                    )
+            session.configure(
+                iceServers: iceServers,
+                callType: callType,
+                onIceCandidate: { [weak self] candidate in
+                    Task { @MainActor in
+                        guard let self else { return }
+                        try? await self.signaling?.sendIce(
+                            callId: self.callId,
+                            to: self.peerDID,
+                            candidate: candidate
+                        )
+                    }
+                },
+                onConnected: { [weak self] in
+                    Task { @MainActor in await self?.markActive() }
                 }
-            }
+            )
+            usesLiveWebRTC = session.usesLiveWebRTC
+            localVideoTrack = session.localVideoTrack
+            remoteVideoTrack = session.remoteVideoTrack
+
             if isOutgoing {
                 callKitUUID = CallKitCoordinator.shared.reportOutgoingCall(
                     peerName: contactName.isEmpty ? peerDID : contactName,
@@ -73,6 +96,13 @@ class CallViewModel: ObservableObject {
                     callType: callType,
                     sdp: sdp
                 )
+            } else if let pendingOfferSDP, !hasAppliedIncomingOffer {
+                hasAppliedIncomingOffer = true
+                state = .ringing
+                stateLabel = "Incoming call..."
+                let answer = try await session.applyRemoteOffer(pendingOfferSDP, callType: callType)
+                try await signaling?.sendAnswer(callId: callId, to: peerDID, sdp: answer)
+                localVideoTrack = session.localVideoTrack
             } else {
                 state = .ringing
                 stateLabel = "Incoming call..."
@@ -97,9 +127,22 @@ class CallViewModel: ObservableObject {
         }
     }
 
-    func toggleMute() { isMuted.toggle() }
-    func toggleSpeaker() { isSpeaker.toggle() }
-    func toggleCamera() { isCameraOn.toggle() }
+    func toggleMute() {
+        isMuted.toggle()
+        session.setMuted(isMuted)
+    }
+
+    func toggleSpeaker() {
+        isSpeaker.toggle()
+        session.setSpeakerEnabled(isSpeaker)
+    }
+
+    func toggleCamera() {
+        isCameraOn.toggle()
+        session.setVideoEnabled(isCameraOn)
+        localVideoTrack = session.localVideoTrack
+    }
+
     func flipCamera() {}
     func startScreenShare() { isScreenSharing = true }
     func stopScreenShare() { isScreenSharing = false }
@@ -119,16 +162,16 @@ class CallViewModel: ObservableObject {
     }
 
     private func handleCallSignal(_ event: CallSignalEvent) {
-        guard event.callId == callId || isOutgoing == false else { return }
+        guard event.callId == callId else { return }
         switch event.action {
         case .offer:
-            guard !isOutgoing, let sdp = event.sdp else { return }
+            guard !isOutgoing, let sdp = event.sdp, !hasAppliedIncomingOffer else { return }
+            hasAppliedIncomingOffer = true
             Task {
                 do {
                     let answer = try await session.applyRemoteOffer(sdp, callType: callType)
                     try await signaling?.sendAnswer(callId: event.callId, to: event.peerDID, sdp: answer)
-                    await session.applyAnswer(answer)
-                    await markActive()
+                    localVideoTrack = session.localVideoTrack
                 } catch {
                     state = .ended
                     stateLabel = "Call failed"
@@ -137,8 +180,12 @@ class CallViewModel: ObservableObject {
         case .answer:
             guard let sdp = event.sdp else { return }
             Task {
-                await session.applyAnswer(sdp)
-                await markActive()
+                do {
+                    try await session.applyAnswer(sdp)
+                } catch {
+                    state = .ended
+                    stateLabel = "Call failed"
+                }
             }
         case .ice:
             if let ice = event.iceCandidate {
@@ -155,8 +202,11 @@ class CallViewModel: ObservableObject {
     }
 
     private func markActive() async {
+        guard state != .active else { return }
         state = .active
         stateLabel = "00:00"
+        remoteVideoTrack = session.remoteVideoTrack
+        localVideoTrack = session.localVideoTrack
         CallKitCoordinator.shared.reportConnected()
         startDurationTimer()
     }

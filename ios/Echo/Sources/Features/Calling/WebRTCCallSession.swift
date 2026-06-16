@@ -1,7 +1,7 @@
 #if os(iOS)
 import Foundation
 
-/// WebRTC peer session (M4b). Uses structured SDP JSON + ICE trickle; swap body when WebRTC.framework is linked.
+/// Facade over stub or live WebRTC peer engines (M4b/M4c).
 @MainActor
 final class WebRTCCallSession {
     enum Phase: Equatable {
@@ -13,81 +13,57 @@ final class WebRTCCallSession {
         case ended
     }
 
-    private(set) var phase: Phase = .idle
-    private(set) var localSDP: String?
-    private(set) var remoteSDP: String?
+    private let engine: WebRTCCallEngine
+    private var onConnected: (() -> Void)?
 
-    private var iceServers: [CallICEServer] = []
-    private var iceUfrag = UUID().uuidString.prefix(8).lowercased()
-    private var onIceCandidate: ((Data) -> Void)?
+    init(engine: WebRTCCallEngine? = nil) {
+        self.engine = engine ?? WebRTCCallEngineFactory.make()
+    }
 
-    func configure(iceServers: [CallICEServer], onIceCandidate: @escaping (Data) -> Void) {
-        self.iceServers = iceServers
-        self.onIceCandidate = onIceCandidate
+    var phase: Phase { engine.phase }
+    var usesLiveWebRTC: Bool { engine.usesLiveWebRTC }
+    var localVideoTrack: Any? { engine.localVideoTrack }
+    var remoteVideoTrack: Any? { engine.remoteVideoTrack }
+
+    func configure(
+        iceServers: [CallICEServer],
+        callType: CallType,
+        onIceCandidate: @escaping (Data) -> Void,
+        onConnected: @escaping () -> Void
+    ) {
+        self.onConnected = onConnected
+        engine.configure(
+            iceServers: iceServers,
+            callType: callType,
+            onIceCandidate: onIceCandidate,
+            onConnected: { [weak self] in
+                self?.onConnected?()
+            }
+        )
     }
 
     func createOffer(callType: CallType) async throws -> String {
-        phase = .offering
-        let desc = WebRTCSessionDescription.offer(callType: callType, iceUfrag: String(iceUfrag))
-        let encoded = try desc.encoded()
-        localSDP = encoded
-        await emitStubCandidates()
-        return encoded
+        try await engine.createOffer()
     }
 
     func applyRemoteOffer(_ sdp: String, callType: CallType) async throws -> String {
-        phase = .ringing
-        remoteSDP = sdp
-        let offer = try WebRTCSessionDescription.decode(from: sdp)
-        let answer = WebRTCSessionDescription.answer(for: offer)
-        let encoded = try answer.encoded()
-        localSDP = encoded
-        await emitStubCandidates()
-        return encoded
+        try await engine.applyRemoteOffer(sdp)
     }
 
-    func applyAnswer(_ sdp: String) async {
-        remoteSDP = sdp
-        phase = .connecting
-        try? await Task.sleep(nanoseconds: 300_000_000)
-        phase = .connected
+    func applyAnswer(_ sdp: String) async throws {
+        try await engine.applyAnswer(sdp)
     }
 
     func addIceCandidate(_ data: Data) async {
-        _ = try? ICECandidatePayload.decode(from: data)
-        if phase == .connecting {
-            phase = .connected
-        }
+        await engine.addIceCandidate(data)
     }
+
+    func setMuted(_ muted: Bool) { engine.setMuted(muted) }
+    func setVideoEnabled(_ enabled: Bool) { engine.setVideoEnabled(enabled) }
+    func setSpeakerEnabled(_ enabled: Bool) { engine.setSpeakerEnabled(enabled) }
 
     func hangup() {
-        phase = .ended
-        onIceCandidate = nil
-    }
-
-    var configuredIceServerCount: Int { iceServers.count }
-
-    private func emitStubCandidates() async {
-        guard let onIceCandidate else { return }
-        let stun = iceServers.first?.urls.first ?? "stun:stun.l.google.com:19302"
-        let payload = ICECandidatePayload(
-            candidate: "candidate:1 1 UDP 2130706431 192.168.0.1 54321 typ host",
-            sdpMid: "0",
-            sdpMLineIndex: 0
-        )
-        if let data = try? payload.encoded() {
-            onIceCandidate(data)
-        }
-        _ = stun
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        let relay = ICECandidatePayload(
-            candidate: "candidate:2 1 UDP 1694498815 10.0.0.1 54322 typ relay",
-            sdpMid: "0",
-            sdpMLineIndex: 0
-        )
-        if let data = try? relay.encoded() {
-            onIceCandidate(data)
-        }
+        engine.hangup()
     }
 }
 #endif

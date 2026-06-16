@@ -243,6 +243,12 @@
 		M4B005CALL00000000000005 /* CallSignalingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F005CALL00000000000005 /* CallSignalingService.swift */; };
 		M4B006CALL00000000000006 /* WebRTCSessionDescription.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F006CALL00000000000006 /* WebRTCSessionDescription.swift */; };
 		M4B007CALL00000000000007 /* CallKitCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F007CALL00000000000007 /* CallKitCoordinator.swift */; };
+		M4B008CALL00000000000008 /* WebRTCCallEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F008CALL00000000000008 /* WebRTCCallEngine.swift */; };
+		M4B009CALL00000000000009 /* WebRTCStubCallEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F009CALL00000000000009 /* WebRTCStubCallEngine.swift */; };
+		M4B010CALL00000000000010 /* WebRTCLiveCallEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F010CALL00000000000010 /* WebRTCLiveCallEngine.swift */; };
+		M4B011CALL00000000000011 /* WebRTCAudioSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F011CALL00000000000011 /* WebRTCAudioSession.swift */; };
+		M4B012CALL00000000000012 /* WebRTCVideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F012CALL00000000000012 /* WebRTCVideoView.swift */; };
+		M4B013CALL00000000000013 /* IncomingCallPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F013CALL00000000000013 /* IncomingCallPresenter.swift */; };
 		M5B001MEDIA000000000001 /* MediaAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F001MEDIA000000000001 /* MediaAPIClient.swift */; };
 		M5B002MEDIA000000000002 /* MediaMessageCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F002MEDIA000000000002 /* MediaMessageCrypto.swift */; };
 		M5B003MEDIA000000000003 /* MediaMessageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F003MEDIA000000000003 /* MediaMessageService.swift */; };
@@ -538,6 +544,12 @@
 		M4F005CALL00000000000005 /* CallSignalingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallSignalingService.swift; sourceTree = "<group>"; };
 		M4F006CALL00000000000006 /* WebRTCSessionDescription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCSessionDescription.swift; sourceTree = "<group>"; };
 		M4F007CALL00000000000007 /* CallKitCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallKitCoordinator.swift; sourceTree = "<group>"; };
+		M4F008CALL00000000000008 /* WebRTCCallEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCCallEngine.swift; sourceTree = "<group>"; };
+		M4F009CALL00000000000009 /* WebRTCStubCallEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCStubCallEngine.swift; sourceTree = "<group>"; };
+		M4F010CALL00000000000010 /* WebRTCLiveCallEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCLiveCallEngine.swift; sourceTree = "<group>"; };
+		M4F011CALL00000000000011 /* WebRTCAudioSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCAudioSession.swift; sourceTree = "<group>"; };
+		M4F012CALL00000000000012 /* WebRTCVideoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCVideoView.swift; sourceTree = "<group>"; };
+		M4F013CALL00000000000013 /* IncomingCallPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomingCallPresenter.swift; sourceTree = "<group>"; };
 		M5F001MEDIA000000000001 /* MediaAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAPIClient.swift; sourceTree = "<group>"; };
 		M5F002MEDIA000000000002 /* MediaMessageCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaMessageCrypto.swift; sourceTree = "<group>"; };
 		M5F003MEDIA000000000003 /* MediaMessageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaMessageService.swift; sourceTree = "<group>"; };
@@ -1272,6 +1284,12 @@
 				M4F003CALL00000000000003 /* WebRTCCallSession.swift */,
 				M4F006CALL00000000000006 /* WebRTCSessionDescription.swift */,
 				M4F007CALL00000000000007 /* CallKitCoordinator.swift */,
+				M4F008CALL00000000000008 /* WebRTCCallEngine.swift */,
+				M4F009CALL00000000000009 /* WebRTCStubCallEngine.swift */,
+				M4F010CALL00000000000010 /* WebRTCLiveCallEngine.swift */,
+				M4F011CALL00000000000011 /* WebRTCAudioSession.swift */,
+				M4F012CALL00000000000012 /* WebRTCVideoView.swift */,
+				M4F013CALL00000000000013 /* IncomingCallPresenter.swift */,
 				FF63CD1AB50EF7D840F6A9E1 /* CallView.swift */,
 				335CBE1170EA2977BE45071D /* CallViewModel.swift */,
 			);
@@ -1547,6 +1565,12 @@
 				M4B003CALL00000000000003 /* WebRTCCallSession.swift in Sources */,
 				M4B006CALL00000000000006 /* WebRTCSessionDescription.swift in Sources */,
 				M4B007CALL00000000000007 /* CallKitCoordinator.swift in Sources */,
+				M4B008CALL00000000000008 /* WebRTCCallEngine.swift in Sources */,
+				M4B009CALL00000000000009 /* WebRTCStubCallEngine.swift in Sources */,
+				M4B010CALL00000000000010 /* WebRTCLiveCallEngine.swift in Sources */,
+				M4B011CALL00000000000011 /* WebRTCAudioSession.swift in Sources */,
+				M4B012CALL00000000000012 /* WebRTCVideoView.swift in Sources */,
+				M4B013CALL00000000000013 /* IncomingCallPresenter.swift in Sources */,
 				M4B004CALL00000000000004 /* CallICEAPIClient.swift in Sources */,
 				M4B005CALL00000000000005 /* CallSignalingService.swift in Sources */,
 				M5B001MEDIA000000000001 /* MediaAPIClient.swift in Sources */,

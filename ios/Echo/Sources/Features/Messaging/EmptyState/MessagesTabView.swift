@@ -8,6 +8,7 @@ struct MessagesTabView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.scenePhase) private var scenePhase
     @Bindable private var conversationStore = ConversationStore.shared
+    @ObservedObject private var incomingCalls = IncomingCallPresenter.shared
 
     @State private var composeSheetPresented = false
     @State private var enrollmentSheetPresented = false
@@ -188,6 +189,19 @@ struct MessagesTabView: View {
                 }
             }
         }
+        .fullScreenCover(item: Binding(
+            get: { incomingCalls.activeCall },
+            set: { if $0 == nil { incomingCalls.clearAfterDismiss() } }
+        )) { call in
+            CallView(
+                peerDID: call.peerDID,
+                callType: call.callType,
+                isOutgoing: false,
+                incomingCallId: call.callId,
+                pendingOfferSDP: call.offerSDP
+            )
+            .onDisappear { incomingCalls.clearAfterDismiss() }
+        }
         .onReceive(
             NotificationCenter.default.publisher(for: .echoPendingInvite)
         ) { notification in
@@ -282,6 +296,7 @@ struct MessagesTabView: View {
 
         try? await service.connect(accessToken: token)
         #if os(iOS)
+        await IncomingCallPresenter.shared.configureIfNeeded()
         ScreenshotAlertService.shared.configure(signalService: service)
         ScreenshotAlertService.shared.startMonitoring()
         #endif

@@ -290,23 +290,25 @@ Automated helpers: `go test ./internal/api/ -run Backup`, `swift test --filter B
 | 7 | Background app overnight / trigger foreground | Auto-backup runs when due (wifi-only respected) |
 | 8 | **Restore from Local** (same device) | Threads restored from Documents backup without cloud |
 
-### 6.12 Call signaling (M4a–b / WO-196 foundation)
+### 6.12 Call signaling (M4a–c / WO-196 + WebRTC)
 
-Two signed-in clients on the same LAN backend (`make dev`). Real media (WebRTC.framework) is still stubbed —
-this gate validates WS offer/answer/ICE routing, CallKit presentation, and call UI/history.
+Two signed-in clients on the same LAN backend (`make dev`). With WebRTC SPM linked (see [`ios/WEBRTC_XCODE_SETUP.md`](../ios/WEBRTC_XCODE_SETUP.md)), this gate validates real audio/video, CallKit, and call history.
 
 | Step | Action | Expected |
 |------|--------|----------|
-| 1 | A: open contact B → **Voice call** | `CallView` + CallKit outgoing UI; A sends JSON SDP offer via `call_signal` |
-| 2 | B online | B receives offer via WS; CallKit incoming UI or auto-answer path fires |
-| 3 | B accepts (or A receives answer) | Answer SDP + trickle ICE candidates delivered; stub session marks active |
-| 4 | Either party hangs up | `hangup` signal sent; both return to contact detail |
+| 1 | A: open contact B → **Voice call** | `CallView` + CallKit outgoing UI; A sends SDP offer via `call_signal` |
+| 2 | B online (Messages tab) | CallKit incoming + full-screen `CallView` auto-presents |
+| 3 | B accepts (or A receives answer) | Answer SDP + trickle ICE; **live audio** connects (`usesLiveWebRTC == true`) |
+| 4 | Either party hangs up | `hangup` signal sent; both return to prior screen |
 | 5 | Decline path | B rejects → A sees "Declined"; history records missed |
-| 6 | Settings / call history (when surfaced) | `CallHistoryStore` entry for peer + duration/missed |
+| 6 | Video call | Remote video + local PiP when connected |
+| 7 | B offline; A calls | Missed-call push (`type: missed_call`) fires |
 
 Optional: set `ECHO_TURN_URL` (+ username/credential) on backend → `GET /v3/calls/ice-servers` includes TURN.
 
-Automated helpers: `go test ./internal/api/ -run 'Call|ICE'`, `swift test --filter 'CallSignalCodecTests|WebRTCSessionDescriptionTests'` (Xcode).
+Automated helpers: `go test ./internal/api/ -run 'Call|ICE'`, `swift test --filter 'CallSignalCodecTests|WebRTCCallSessionTests'` (Xcode).
+
+**Full matrix:** [`E2E_MESSAGING_SIGNOFF_CHECKLIST.md`](E2E_MESSAGING_SIGNOFF_CHECKLIST.md) §6.4–6.16.
 
 ### 6.13 Media messages (M5a–b / WO-194 + media relay)
 
