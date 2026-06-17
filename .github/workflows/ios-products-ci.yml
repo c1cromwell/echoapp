@@ -1,0 +1,51 @@
+name: iOS Products CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-products-ci.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-products-ci.yml'
+
+jobs:
+  xcode-schemes:
+    name: Build ${{ matrix.product }}
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - product: Echo Messaging
+            scheme: EchoMessaging
+            configuration: Debug-Messaging
+          - product: Echo Comply Companion
+            scheme: EchoComplyCompanion
+            configuration: Debug-Comply
+          - product: Echo Passport
+            scheme: EchoPassport
+            configuration: Debug-Passport
+    defaults:
+      run:
+        working-directory: ios/Echo
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+
+      - name: Resolve SPM dependencies
+        run: swift package resolve
+
+      - name: Build scheme (generic iOS, unsigned)
+        run: |
+          xcodebuild build \
+            -project EchoApp.xcodeproj \
+            -scheme "${{ matrix.scheme }}" \
+            -configuration "${{ matrix.configuration }}" \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO

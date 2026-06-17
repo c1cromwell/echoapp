@@ -1,0 +1,126 @@
+name: Product Releases
+
+on:
+  push:
+    tags:
+      - 'echo-messaging@v*'
+      - 'comply-portal@v*'
+      - 'echo-comply-ios@v*'
+      - 'echo-passport@v*'
+      - 'passport-sdk@v*'
+
+permissions:
+  contents: write
+
+jobs:
+  resolve-product:
+    name: Resolve release product
+    runs-on: ubuntu-latest
+    outputs:
+      product: ${{ steps.map.outputs.product }}
+      version: ${{ steps.map.outputs.version }}
+    steps:
+      - id: map
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          case "$TAG" in
+            echo-messaging@*)    PRODUCT=echo-messaging ;;
+            comply-portal@*)     PRODUCT=comply-portal ;;
+            echo-comply-ios@*)   PRODUCT=echo-comply-ios ;;
+            echo-passport@*)     PRODUCT=echo-passport ;;
+            passport-sdk@*)      PRODUCT=passport-sdk ;;
+            *) echo "Unknown tag: $TAG"; exit 1 ;;
+          esac
+          VERSION="${TAG#*@}"
+          echo "product=$PRODUCT" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  release-notes:
+    name: Create GitHub Release
+    needs: resolve-product
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${{ needs.resolve-product.outputs.product }} ${{ needs.resolve-product.outputs.version }}" \
+            --notes "Product-scoped release for **${{ needs.resolve-product.outputs.product }}**.\n\nSee [docs/PRODUCT_LAUNCH.md](https://github.com/${{ github.repository }}/blob/main/docs/PRODUCT_LAUNCH.md) for deploy steps."
+
+  comply-portal:
+    name: Build Comply portal
+    needs: resolve-product
+    if: needs.resolve-product.outputs.product == 'comply-portal'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: node ../scripts/test-zero-pii.mjs
+
+  echo-messaging-backend:
+    name: Verify messaging backend
+    needs: resolve-product
+    if: needs.resolve-product.outputs.product == 'echo-messaging'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: make release-check
+
+  ios-archive:
+    name: Archive iOS (${{ needs.resolve-product.outputs.product }})
+    needs: resolve-product
+    if: |
+      contains(fromJSON('["echo-messaging","echo-comply-ios","echo-passport"]'), needs.resolve-product.outputs.product)
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: ios/Echo
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+
+      - name: Map scheme
+        id: scheme
+        run: |
+          case "${{ needs.resolve-product.outputs.product }}" in
+            echo-messaging)   SCHEME=EchoMessaging; CONFIG=Release-Messaging ;;
+            echo-comply-ios)  SCHEME=EchoComplyCompanion; CONFIG=Release-Comply ;;
+            echo-passport)    SCHEME=EchoPassport; CONFIG=Release-Passport ;;
+          esac
+          echo "scheme=$SCHEME" >> "$GITHUB_OUTPUT"
+          echo "configuration=$CONFIG" >> "$GITHUB_OUTPUT"
+
+      - name: Archive (unsigned — sign in Xcode / ASC)
+        run: |
+          xcodebuild archive \
+            -project EchoApp.xcodeproj \
+            -scheme "${{ steps.scheme.outputs.scheme }}" \
+            -configuration "${{ steps.scheme.outputs.configuration }}" \
+            -archivePath "$RUNNER_TEMP/${{ needs.resolve-product.outputs.product }}.xcarchive" \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload xcarchive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ needs.resolve-product.outputs.product }}-xcarchive
+          path: ${{ runner.temp }}/${{ needs.resolve-product.outputs.product }}.xcarchive
+          if-no-files-found: error

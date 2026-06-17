@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "289C9196664AFDFEB6EB4B5B"
-               BuildableName = "Echo.app"
+               BuildableName = "Echo Passport.app"
                BlueprintName = "EchoApp"
                ReferencedContainer = "container:EchoApp.xcodeproj">
             </BuildableReference>
@@ -24,14 +24,14 @@
       </BuildActionEntries>
    </BuildAction>
    <TestAction
-      buildConfiguration = "Debug-Messaging"
+      buildConfiguration = "Debug-Passport"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
       shouldAutocreateTestPlan = "YES">
    </TestAction>
    <LaunchAction
-      buildConfiguration = "Debug-Messaging"
+      buildConfiguration = "Debug-Passport"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
@@ -39,14 +39,13 @@
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
-      allowLocationSimulation = "YES"
-      queueDebuggingEnableBacktraceRecording = "Yes">
+      allowLocationSimulation = "YES">
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "289C9196664AFDFEB6EB4B5B"
-            BuildableName = "Echo.app"
+            BuildableName = "Echo Passport.app"
             BlueprintName = "EchoApp"
             ReferencedContainer = "container:EchoApp.xcodeproj">
          </BuildableReference>
@@ -60,7 +59,7 @@
       </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
-      buildConfiguration = "Release-Messaging"
+      buildConfiguration = "Release-Passport"
       shouldUseLaunchSchemeArgsEnv = "YES"
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
@@ -70,17 +69,17 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "289C9196664AFDFEB6EB4B5B"
-            BuildableName = "Echo.app"
+            BuildableName = "Echo Passport.app"
             BlueprintName = "EchoApp"
             ReferencedContainer = "container:EchoApp.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
    <AnalyzeAction
-      buildConfiguration = "Debug-Messaging">
+      buildConfiguration = "Debug-Passport">
    </AnalyzeAction>
    <ArchiveAction
-      buildConfiguration = "Release-Messaging"
+      buildConfiguration = "Release-Passport"
       revealArchiveInOrganizer = "YES">
    </ArchiveAction>
 </Scheme>

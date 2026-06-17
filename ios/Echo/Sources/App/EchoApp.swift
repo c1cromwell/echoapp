@@ -3,30 +3,37 @@ import SwiftUI
 
 @main
 struct EchoApp: App {
+    #if ECHO_PRODUCT_MESSAGING
     @State private var appState: AppState
+    #endif
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        #if ECHO_PRODUCT_MESSAGING
         let provisionService = SilentProvisionService(
             secureEnclave: RealProvisionSecureEnclave(),
             api: RealProvisionAPI(),
-            stargazer: StubProvisionStargazer(),     // Phase 2: real Stargazer SDK
-            passkeyProvider: StubProvisionPasskey()  // Phase 2: real WebAuthn
+            stargazer: StubProvisionStargazer(),
+            passkeyProvider: StubProvisionPasskey()
         )
         _appState = State(initialValue: AppState(provisionService: provisionService))
+        #endif
     }
 
     var body: some Scene {
         WindowGroup {
+            #if ECHO_PRODUCT_MESSAGING
             EchoRootView(appState: appState)
+            #elseif ECHO_PRODUCT_COMPLY
+            ComplyCompanionRootView()
+            #else
+            PassportRootView()
+            #endif
         }
         .onChange(of: scenePhase) { _, newPhase in
+            #if ECHO_PRODUCT_MESSAGING
             switch newPhase {
             case .active:
-                // WO-224: Re-derive storage key when app returns to foreground.
-                // deriveStorageKey is nonisolated + synchronous — no biometric prompt
-                // (it uses the key label as IKM proxy). Full biometric re-derivation
-                // happens inside SecureEnclaveManager for the identity key path.
                 Task {
                     let storageKey = SecureEnclaveManager.shared.deriveStorageKey(
                         keyId: "echo-identity-signing"
@@ -35,7 +42,6 @@ struct EchoApp: App {
                 }
 
             case .background:
-                // WO-208 / WO-223 / WO-224: zero all in-memory key material.
                 Task {
                     await SecureEnclaveManager.shared.purgeOnBackground()
                     await LocalDatabase.shared.lockStorage()
@@ -44,6 +50,7 @@ struct EchoApp: App {
             default:
                 break
             }
+            #endif
         }
     }
 }

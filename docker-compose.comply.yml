@@ -1,0 +1,72 @@
+# Comply-only stack — portal operators + Comply microservice without the messaging gateway.
+#
+# Use when shipping Echo Comply as a standalone product:
+#   make dev-comply
+#
+# Deploy the Next.js portal separately (Vercel / container) with:
+#   COMPLY_API_BASE_URL=http://<this-host>:8011
+#   NEXT_PUBLIC_SUPABASE_* from a tenant-dedicated Supabase project (see docs/PRODUCT_LAUNCH.md)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: echo-comply-postgres
+    environment:
+      POSTGRES_DB: echo_comply
+      POSTGRES_USER: echoapp
+      POSTGRES_PASSWORD: echoapp_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - comply-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U echoapp -d echo_comply"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - echo-comply
+
+  comply:
+    build:
+      context: .
+      dockerfile: cmd/comply/Dockerfile
+    container_name: echo-comply-standalone
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8011:8011"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - COMPLY_PORT=8011
+      - COMPLY_SERVICE_TOKEN=${COMPLY_SERVICE_TOKEN:-dev-comply-token}
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=echo_comply
+      - DATABASE_USER=echoapp
+      - DATABASE_PASSWORD=echoapp_dev
+      - DATABASE_SSLMODE=disable
+      # Optional Data L1 anchoring — point at your tenant cluster or leave default for local dev
+      - DATA_L1_URL=${DATA_L1_URL:-http://host.docker.internal:9400}
+      - IDENTITY_SERVICE_KEY_PEM=/app/.keys/identity-service.pem
+    volumes:
+      - ./migrations:/app/migrations:ro
+      - ./.keys:/app/.keys:ro
+    networks:
+      - echo-comply
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8011/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  comply-postgres-data:
+
+networks:
+  echo-comply:
+    driver: bridge

@@ -41,6 +41,8 @@
 		2EBDB781E9F9E3338A380A54 /* DriversLicenseEnrollmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E26908B044D2529A3AF3196 /* DriversLicenseEnrollmentView.swift */; };
 		2FEB81F194C9771E7367A871 /* ContactsScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3617296D58F3E5183D04F2DC /* ContactsScreens.swift */; };
 		312161CDFC3760FC0C664259 /* EchoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DA5734FC837B81E3AB437EA /* EchoApp.swift */; };
+		ECHOPROD0000000000000002 /* EchoProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECHOPROD0000000000000001 /* EchoProduct.swift */; };
+		ECHOPROD0000000000000004 /* ProductRootViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECHOPROD0000000000000003 /* ProductRootViews.swift */; };
 		3399739A9F2955088DF321FD /* EchoColorPalette+FirstRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = A36E448A4DBA558B75312595 /* EchoColorPalette+FirstRun.swift */; };
 		344D6D5F64214D153384A4D7 /* RewardsScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC2D26D748DC08F2C29096A /* RewardsScreens.swift */; };
 		3566ABF7C390638A0A34888E /* EnrollmentComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D31158E5FAFEB804F593D66 /* EnrollmentComponents.swift */; };
@@ -407,6 +409,8 @@
 		7B3C0C127DF32B5035EB2473 /* CertificatePinner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CertificatePinner.swift; sourceTree = "<group>"; };
 		7BAE98848BA987C5A80A8C29 /* Sources/Features/Contacts/QRContactAddCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Contacts/QRContactAddCoordinator.swift; sourceTree = "<group>"; };
 		7DA5734FC837B81E3AB437EA /* EchoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoApp.swift; sourceTree = "<group>"; };
+		ECHOPROD0000000000000001 /* EchoProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoProduct.swift; sourceTree = "<group>"; };
+		ECHOPROD0000000000000003 /* ProductRootViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductRootViews.swift; sourceTree = "<group>"; };
 		7F7551FB31B365B2C0926B4B /* SignatureGradientButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignatureGradientButton.swift; sourceTree = "<group>"; };
 		81B28C5CAE4896371D46E4AD /* CallState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallState.swift; sourceTree = "<group>"; };
 		830227A791B82E3302542EAE /* LoginViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginViewModel.swift; sourceTree = "<group>"; };
@@ -1250,7 +1254,9 @@
 			children = (
 				3C05A999CF9E116DBCB842A7 /* AppState.swift */,
 				A1B2C3D401234567890ABC01 /* SessionSignOut.swift */,
+				ECHOPROD0000000000000001 /* EchoProduct.swift */,
 				7DA5734FC837B81E3AB437EA /* EchoApp.swift */,
+				ECHOPROD0000000000000003 /* ProductRootViews.swift */,
 				3611A4DB2DD50E20ACB4AB02 /* MainTabView.swift */,
 			);
 			path = App;
@@ -1661,6 +1667,8 @@
 				2EBDB781E9F9E3338A380A54 /* DriversLicenseEnrollmentView.swift in Sources */,
 				C8E44B1DDE4EB56B73389E6D /* ECHOError.swift in Sources */,
 				312161CDFC3760FC0C664259 /* EchoApp.swift in Sources */,
+				ECHOPROD0000000000000002 /* EchoProduct.swift in Sources */,
+				ECHOPROD0000000000000004 /* ProductRootViews.swift in Sources */,
 				65E7AA602656B9B32AC68C7E /* EchoButton.swift in Sources */,
 				05E71DC2A73CC168A684FF4B /* EchoCard.swift in Sources */,
 				3399739A9F2955088DF321FD /* EchoColorPalette+FirstRun.swift in Sources */,
@@ -1910,7 +1918,7 @@
 			};
 			name = Debug;
 		};
-		21B44CC1F8DEF5C8B361FD65 /* Release */ = {
+		21B44CC1F8DEF5C8B361FD65 /* Release-Messaging */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -1918,7 +1926,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "EchoApp-Info.plist";
+				INFOPLIST_FILE = Configs/EchoMessaging-Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Echo;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -1928,13 +1937,15 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.echo.app;
+				PRODUCT_NAME = Echo;
 				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = ECHO_PRODUCT_MESSAGING;
 				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
-			name = Release;
+			name = "Release-Messaging";
 		};
-		7439EE63DD32C50AC3401006 /* Debug */ = {
+		7439EE63DD32C50AC3401006 /* Debug-Messaging */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -1942,7 +1953,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "EchoApp-Info.plist";
+				INFOPLIST_FILE = Configs/EchoMessaging-Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Echo;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -1952,11 +1964,121 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.echo.app;
+				PRODUCT_NAME = Echo;
 				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG ECHO_PRODUCT_MESSAGING";
 				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
-			name = Debug;
+			name = "Debug-Messaging";
+		};
+		C0MP0BDG0000000000000001 /* Debug-Comply */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Configs/ComplyCompanion-Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Echo Comply";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.echo.comply;
+				PRODUCT_NAME = "Echo Comply";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG ECHO_PRODUCT_COMPLY";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Debug-Comply";
+		};
+		C0MP0BDG0000000000000002 /* Release-Comply */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Configs/ComplyCompanion-Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Echo Comply";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.echo.comply;
+				PRODUCT_NAME = "Echo Comply";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = ECHO_PRODUCT_COMPLY;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Release-Comply";
+		};
+		P4SSP0RT0000000000000001 /* Debug-Passport */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Configs/Passport-Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Echo Passport";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.echo.passport;
+				PRODUCT_NAME = "Echo Passport";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG ECHO_PRODUCT_PASSPORT";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Debug-Passport";
+		};
+		P4SSP0RT0000000000000002 /* Release-Passport */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Configs/Passport-Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Echo Passport";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.echo.passport;
+				PRODUCT_NAME = "Echo Passport";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = ECHO_PRODUCT_PASSPORT;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Release-Passport";
 		};
 		9701C0B1BEA837CCC4AB0DFC /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -2029,11 +2151,15 @@
 		BDDF8B906B237213F6AE168A /* Build configuration list for PBXNativeTarget "EchoApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				7439EE63DD32C50AC3401006 /* Debug */,
-				21B44CC1F8DEF5C8B361FD65 /* Release */,
+				7439EE63DD32C50AC3401006 /* Debug-Messaging */,
+				21B44CC1F8DEF5C8B361FD65 /* Release-Messaging */,
+				C0MP0BDG0000000000000001 /* Debug-Comply */,
+				C0MP0BDG0000000000000002 /* Release-Comply */,
+				P4SSP0RT0000000000000001 /* Debug-Passport */,
+				P4SSP0RT0000000000000002 /* Release-Passport */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
+			defaultConfigurationName = "Debug-Messaging";
 		};
 /* End XCConfigurationList section */
 	};

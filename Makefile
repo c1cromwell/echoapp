@@ -1,5 +1,5 @@
 .PHONY: help build run test clean install-deps lint fmt vet build-prod tls-cert migrate \
-	dev dev-stop dev-status dev-logs dev-restart validate-phase1 metagraph-verify-skeleton metagraph-test \
+	dev dev-stop dev-status dev-logs dev-restart dev-comply dev-comply-stop validate-phase1 metagraph-verify-skeleton metagraph-test \
 	testnet-up testnet-down release-check regression regression-quick regression-with-phase1 ios-preflight \
 	phase3-signals-proof echooprf-ios
 
@@ -18,6 +18,8 @@ help:
 	@echo "  make dev-logs        Tail backend stack logs"
 	@echo "  make dev-restart     Restart the backend stack only (keeps metagraph running)"
 	@echo "  make dev-stop        Tear down backend stack (metagraph stays up — use 'hydra stop' for that)"
+	@echo "  make dev-comply      Comply-only stack (Postgres :5433 + Comply API :8011)"
+	@echo "  make dev-comply-stop Tear down Comply-only stack"
 	@echo "  make validate-phase1 Run scripts/validate-phase1.sh go/no-go check"
 	@echo "  make regression      Headless regression (Go + iOS SPM) — docs/E2E_LAUNCH_AND_TESTING.md"
 	@echo "  make regression-quick Go race tests only"
@@ -233,6 +235,7 @@ info:
 
 EUCLID_DIR ?= $(abspath ../euclid-development-environment)
 COMPOSE_TESTNET := docker compose -f docker-compose.testnet.yml
+COMPOSE_COMPLY := docker compose -f docker-compose.comply.yml
 HYDRA_HEALTH_TIMEOUT := 300
 
 dev: ## Bring up full Phase-1 cluster
@@ -323,6 +326,15 @@ metagraph-test: ## WO-272/277: run validators + Identity L1 wiring tests (sbt + 
 dev-stop: testnet-down ## Tear down backend stack (does not stop metagraph)
 	@echo "Backend stack down. Metagraph still running — use:"
 	@echo "  cd $(EUCLID_DIR) && scripts/hydra stop"
+
+dev-comply: ## Comply-only stack (portal operators; no messaging gateway)
+	@echo "Starting Comply-only stack (postgres :5433, comply :8011)..."
+	@$(COMPOSE_COMPLY) up -d --build
+	@echo "  Comply API: http://localhost:8011/health"
+	@echo "  Portal: set COMPLY_API_BASE_URL=http://localhost:8011 in web/.env.local"
+
+dev-comply-stop: ## Tear down Comply-only stack
+	@$(COMPOSE_COMPLY) down
 
 # Identity nodes (L0 port 9600, L1 port 9500) are custom Echo modules not
 # managed by Euclid hydra. They require sbt assembly JARs and their own

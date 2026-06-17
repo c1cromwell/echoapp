@@ -5,6 +5,9 @@ WO-309 scaffold. Next.js (App Router) + Supabase. The repo's first web surface, 
 
 ## Architecture (load-bearing)
 
+Multi-tenant production deploys use **one Supabase project per customer tier** and a dedicated
+`COMPLY_API_BASE_URL` per tenant. See [`docs/PRODUCT_LAUNCH.md`](../docs/PRODUCT_LAUNCH.md).
+
 - **Supabase** = portal **operator auth** (SSO/SAML/OIDC + SCIM) and the **operator ↔ org
   membership** mapping (`organizations`, `org_members`). Nothing else.
 - **Go Comply backend** (`COMPLY_API_BASE_URL`) = **system of record** for all compliance data
