@@ -50,6 +50,9 @@ const ALLOWED_KEYS = new Set([
   "queryHash",
   "policies",
   "exports",
+  "segments",
+  "status",
+  "metrics",
 ]);
 
 function collectKeys(value, path = "$", keys = new Set()) {
@@ -116,7 +119,19 @@ const exportListSample = {
   ],
 };
 
-for (const sample of [dashboardSample, auditSample, policyListSample, exportListSample]) {
+const segmentSample = {
+  orgDid: "did:key:z6Mkexample",
+  segments: [
+    {
+      segment: "hipaa",
+      label: "Healthcare (HIPAA)",
+      status: "not_configured",
+      metrics: [{ key: "retentionPolicies", label: "ePHI retention policies", value: "0" }],
+    },
+  ],
+};
+
+for (const sample of [dashboardSample, auditSample, policyListSample, exportListSample, segmentSample]) {
   collectKeys(sample);
 }
 

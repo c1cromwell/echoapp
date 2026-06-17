@@ -19,6 +19,7 @@ type ComplyHandlers struct {
 // RegisterComplyRoutes mounts Comply REST endpoints on the gateway (:8000/comply/*) or :8011 standalone.
 func (h *ComplyHandlers) RegisterComplyRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/comply/dashboard", h.handleComplyDashboard)
+	mux.HandleFunc("/comply/segments/summary", h.handleComplySegmentSummary)
 	mux.HandleFunc("/comply/org/profile", h.handleComplyOrgProfile)
 	mux.HandleFunc("/comply/audit/report", h.handleComplyAuditReport)
 	mux.HandleFunc("/comply/retention/policy", h.handleComplyRetentionPolicy)
@@ -63,6 +64,24 @@ func (h *ComplyHandlers) handleComplyOrgProfile(w http.ResponseWriter, r *http.R
 		return
 	}
 	WriteJSON(w, http.StatusOK, profile)
+}
+
+func (h *ComplyHandlers) handleComplySegmentSummary(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	orgDID, ok := h.authorizeComplyRead(r)
+	if !ok || h.Comply == nil {
+		WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Comply authorization required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	report, err := h.Comply.SegmentDashboard(r.Context(), orgDID)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "SEGMENTS_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, report)
 }
 
 func (h *ComplyHandlers) handleComplyRetentionPolicy(w http.ResponseWriter, r *http.Request) {

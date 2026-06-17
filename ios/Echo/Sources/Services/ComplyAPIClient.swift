@@ -34,6 +34,25 @@ struct ComplyAuditReport: Codable, Sendable, Equatable {
     let verificationNotice: String
 }
 
+struct ComplySegmentMetric: Codable, Sendable, Equatable {
+    let key: String
+    let label: String
+    let value: String
+}
+
+struct ComplySegmentReport: Codable, Sendable, Equatable, Identifiable {
+    var id: String { segment }
+    let segment: String
+    let label: String
+    let status: String
+    let metrics: [ComplySegmentMetric]
+}
+
+struct ComplySegmentDashboard: Codable, Sendable, Equatable {
+    let orgDid: String
+    let segments: [ComplySegmentReport]
+}
+
 // MARK: - Client
 
 protocol ComplyAPIClient: Sendable {
@@ -41,6 +60,7 @@ protocol ComplyAPIClient: Sendable {
     func listPolicies(orgDID: String) async throws -> [ComplyRetentionPolicy]
     func auditReport(orgDID: String) async throws -> ComplyAuditReport
     func auditReportPDF(orgDID: String) async throws -> Data
+    func segmentDashboard(orgDID: String) async throws -> ComplySegmentDashboard
 }
 
 #if os(iOS)
@@ -50,6 +70,7 @@ enum ComplyEndpoint: APIEndpoint {
     case policies(orgDID: String)
     case audit(orgDID: String)
     case auditPDF(orgDID: String)
+    case segments(orgDID: String)
 
     var path: String {
         switch self {
@@ -61,12 +82,14 @@ enum ComplyEndpoint: APIEndpoint {
             return "/comply/audit/report?format=json"
         case .auditPDF:
             return "/comply/audit/report?format=pdf"
+        case .segments:
+            return "/comply/segments/summary"
         }
     }
 
     var headers: [String: String] {
         switch self {
-        case .dashboard(let org), .policies(let org), .audit(let org), .auditPDF(let org):
+        case .dashboard(let org), .policies(let org), .audit(let org), .auditPDF(let org), .segments(let org):
             return ["X-Org-DID": org]
         }
     }
@@ -97,6 +120,10 @@ actor ComplyAPI: ComplyAPIClient {
 
     func auditReportPDF(orgDID: String) async throws -> Data {
         try await apiClient.getRaw(endpoint: ComplyEndpoint.auditPDF(orgDID: orgDID))
+    }
+
+    func segmentDashboard(orgDID: String) async throws -> ComplySegmentDashboard {
+        try await apiClient.get(endpoint: ComplyEndpoint.segments(orgDID: orgDID))
     }
 }
 

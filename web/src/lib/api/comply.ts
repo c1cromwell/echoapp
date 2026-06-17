@@ -11,6 +11,7 @@ export type LitigationMatter = components["schemas"]["ComplyLitigationMatter"];
 export type EDiscoveryExport = components["schemas"]["ComplyEDiscoveryExport"];
 export type AuditReport = components["schemas"]["ComplyAuditReport"];
 export type ComplyOrgProfile = components["schemas"]["ComplyOrgProfile"];
+export type SegmentDashboard = components["schemas"]["ComplySegmentDashboard"];
 export type RetentionPolicyCreate = components["schemas"]["ComplyRetentionPolicyCreate"];
 export type LitigationHoldRequest = components["schemas"]["ComplyLitigationHoldRequest"];
 export type EDiscoveryExportRequest = components["schemas"]["ComplyEDiscoveryExportRequest"];
@@ -41,6 +42,10 @@ async function complyFetch<T>(
 
 export function getComplyDashboard(orgDID: string) {
   return complyFetch<ComplyDashboardSummary>("/comply/dashboard", orgDID);
+}
+
+export function getSegmentDashboard(orgDID: string) {
+  return complyFetch<SegmentDashboard>("/comply/segments/summary", orgDID);
 }
 
 export function getOrgProfile(orgDID: string) {

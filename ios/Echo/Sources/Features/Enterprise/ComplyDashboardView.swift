@@ -32,6 +32,21 @@ struct ComplyDashboardView: View {
 
                 auditExportRow
 
+                if !viewModel.segments.isEmpty {
+                    GhostBorderSection(title: "SEGMENT REPORTS") {
+                        ForEach(viewModel.segments) { seg in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(seg.label)
+                                    .font(Font.Echo.bodyMedium)
+                                ForEach(seg.metrics, id: \.key) { m in
+                                    InfoRow(label: m.label, value: m.value)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                }
+
                 NavigationLink {
                     ComplyPolicyListView(orgDID: orgDID, viewModel: viewModel)
                 } label: {
@@ -165,6 +180,7 @@ final class ComplyDashboardViewModel: ObservableObject {
     @Published var summary: ComplyDashboardSummary?
     @Published var audit: ComplyAuditReport?
     @Published var policies: [ComplyRetentionPolicy] = []
+    @Published var segments: [ComplySegmentReport] = []
     @Published var isLoading = false
     @Published var isExportingPDF = false
     @Published var showShareSheet = false
@@ -183,8 +199,12 @@ final class ComplyDashboardViewModel: ObservableObject {
         do {
             async let dash = client.dashboard(orgDID: orgDID)
             async let auditReport = client.auditReport(orgDID: orgDID)
+            async let segmentReport = client.segmentDashboard(orgDID: orgDID)
             summary = try await dash
             audit = try await auditReport
+            if let segDash = try? await segmentReport {
+                segments = segDash.segments
+            }
         } catch {
             errorMessage = "Could not load compliance posture"
         }

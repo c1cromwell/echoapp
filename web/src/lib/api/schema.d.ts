@@ -3149,6 +3149,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/comply/segments/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Segment compliance reports (HIPAA / FOIA / law firm) — WO-313
+         * @description Zero-PII aggregate segment metrics for enterprise compliance verticals.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Organization DID tenant scope */
+                    "X-Org-DID": components["parameters"]["OrgDID"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Segment dashboard */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ComplySegmentDashboard"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/comply/org/profile": {
         parameters: {
             query?: never;
@@ -3688,6 +3730,23 @@ export interface components {
             seats?: number;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        ComplySegmentMetric: {
+            key?: string;
+            label?: string;
+            value?: string;
+        };
+        ComplySegmentReport: {
+            /** @enum {string} */
+            segment?: "hipaa" | "foia" | "law_firm";
+            label?: string;
+            /** @enum {string} */
+            status?: "active" | "not_configured";
+            metrics?: components["schemas"]["ComplySegmentMetric"][];
+        };
+        ComplySegmentDashboard: {
+            orgDid?: string;
+            segments?: components["schemas"]["ComplySegmentReport"][];
         };
         ComplyRetentionPolicyCreate: {
             /** @enum {string} */

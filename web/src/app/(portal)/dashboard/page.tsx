@@ -3,15 +3,18 @@ import { getActiveOrg } from "@/lib/auth/org";
 import {
   getAuditReport,
   getComplyDashboard,
+  getSegmentDashboard,
 } from "@/lib/api/comply";
+import { SegmentReports } from "@/components/portal/SegmentReports";
 
 export default async function DashboardPage() {
   const org = await getActiveOrg();
   if (!org) return null;
 
-  const [summary, audit] = await Promise.all([
+  const [summary, audit, segments] = await Promise.all([
     getComplyDashboard(org.orgDID).catch(() => null),
     getAuditReport(org.orgDID).catch(() => null),
+    getSegmentDashboard(org.orgDID).catch(() => null),
   ]);
 
   const cards = [
@@ -89,6 +92,10 @@ export default async function DashboardPage() {
             </div>
           </dl>
         </section>
+      )}
+
+      {segments && segments.segments && segments.segments.length > 0 && (
+        <SegmentReports segments={segments.segments} />
       )}
 
       {!summary && (
