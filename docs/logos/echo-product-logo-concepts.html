@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECHO — Product Logo Concepts: Comply & Passport</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Space+Grotesk:wght@300;400;500;600;700&family=Outfit:wght@200;300;400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --echo-accent: #0EA5E9;
+    --echo-accent-dark: #0284C7;
+    --echo-accent-light: #7DD3FC;
+    --echo-bg: #0B1120;
+    --echo-bg-card: #111827;
+    --echo-bg-surface: #1E293B;
+    --echo-text: #F1F5F9;
+    --echo-text-muted: #94A3B8;
+    --echo-border: #334155;
+    /* Comply palette */
+    --comply-primary: #10B981;
+    --comply-secondary: #34D399;
+    --comply-dark: #059669;
+    /* Passport palette */
+    --passport-primary: #8B5CF6;
+    --passport-secondary: #A78BFA;
+    --passport-dark: #7C3AED;
+  }
+
+  body {
+    background: var(--echo-bg);
+    color: var(--echo-text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 40px 24px;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: 64px;
+  }
+
+  .page-header h1 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--echo-accent);
+    margin-bottom: 12px;
+  }
+
+  .page-header h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 40px;
+    font-weight: 300;
+    color: var(--echo-text);
+    letter-spacing: -1px;
+  }
+
+  .page-header p {
+    color: var(--echo-text-muted);
+    font-size: 15px;
+    margin-top: 12px;
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+  }
+
+  .product-section {
+    max-width: 1200px;
+    margin: 0 auto 80px;
+  }
+
+  .section-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .section-header h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 28px;
+    font-weight: 400;
+    margin-bottom: 8px;
+  }
+
+  .section-header p {
+    color: var(--echo-text-muted);
+    font-size: 14px;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .concept-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 28px;
+  }
+
+  .concept-card {
+    background: var(--echo-bg-card);
+    border: 1px solid var(--echo-border);
+    border-radius: 20px;
+    overflow: hidden;
+    transition: transform 0.3s, border-color 0.3s;
+  }
+
+  .concept-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--echo-accent);
+  }
+
+  .concept-card.comply:hover { border-color: var(--comply-primary); }
+  .concept-card.passport:hover { border-color: var(--passport-primary); }
+
+  .concept-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    min-height: 260px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .concept-preview::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  .concept-card.comply .concept-preview::before {
+    background: radial-gradient(ellipse at center, rgba(16,185,129,0.08) 0%, transparent 65%);
+  }
+
+  .concept-card.passport .concept-preview::before {
+    background: radial-gradient(ellipse at center, rgba(139,92,246,0.08) 0%, transparent 65%);
+  }
+
+  .concept-info {
+    padding: 20px 24px;
+    border-top: 1px solid var(--echo-border);
+  }
+
+  .concept-number {
+    font-family: 'Outfit', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .comply .concept-number { color: var(--comply-primary); }
+  .passport .concept-number { color: var(--passport-primary); }
+
+  .concept-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .concept-desc {
+    font-size: 13px;
+    color: var(--echo-text-muted);
+    line-height: 1.5;
+  }
+
+  .divider {
+    max-width: 1200px;
+    margin: 0 auto 80px;
+    border: none;
+    border-top: 1px solid var(--echo-border);
+  }
+
+  .footer-note {
+    text-align: center;
+    color: var(--echo-text-muted);
+    font-size: 12px;
+    padding: 40px 0;
+    border-top: 1px solid var(--echo-border);
+    max-width: 1100px;
+    margin: 0 auto;
+    line-height: 1.8;
+  }
+
+  .footer-note strong { color: var(--echo-accent); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Echo Product Identity</h1>
+  <h2>Comply & Passport Logo Concepts</h2>
+  <p>Each product logo uses the ECHO Ripple Pulse mark as its foundation, with a distinctive overlay symbol and color palette to differentiate the product line while maintaining brand coherence.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     ECHO COMPLY — 5 CONCEPTS
+     ═══════════════════════════════════════════════════════ -->
+<div class="product-section">
+  <div class="section-header">
+    <h3 style="color: var(--comply-primary);">Echo Comply</h3>
+    <p>Organization compliance dashboard. Color: Emerald green (#10B981) — trust, verification, regulatory confidence. Each concept layers a compliance symbol over the ripple pulse base.</p>
+  </div>
+
+  <div class="concept-grid">
+
+    <!-- COMPLY 1: Shield Overlay -->
+    <div class="concept-card comply">
+      <div class="concept-preview">
+        <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Ripple Pulse base (dimmed) -->
+          <circle cx="100" cy="100" r="7" fill="#10B981" opacity="0.3"/>
+          <circle cx="100" cy="100" r="14" stroke="#10B981" stroke-width="2" fill="none" opacity="0.2"/>
+          <circle cx="100" cy="100" r="22" stroke="#10B981" stroke-width="1.8" fill="none" opacity="0.15"/>
+          <circle cx="100" cy="100" r="31" stroke="#10B981" stroke-width="1.5" fill="none" opacity="0.1"/>
+          <path d="M 68 68 A 48 48 0 0 1 132 68" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.25"/>
+          <path d="M 68 132 A 48 48 0 0 0 132 132" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.25"/>
+          <path d="M 52 52 A 68 68 0 0 1 148 52" stroke="#34D399" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.2"/>
+          <path d="M 52 148 A 68 68 0 0 0 148 148" stroke="#34D399" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.2"/>
+          <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#10B981" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.15"/>
+          <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#10B981" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.15"/>
+          <!-- Shield overlay -->
+          <path d="M 100 55 L 135 72 L 135 108 Q 135 138 100 152 Q 65 138 65 108 L 65 72 Z"
+                stroke="#10B981" stroke-width="3" fill="none" opacity="0.9"/>
+          <!-- Checkmark inside shield -->
+          <path d="M 82 105 L 95 118 L 120 88" stroke="#10B981" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <div class="concept-info">
+        <div class="concept-number">Concept 01</div>
+        <div class="concept-title">Shield & Check</div>
+        <div class="concept-desc">Compliance shield with verification checkmark at center. Ripple arcs fade behind the shield, conveying protected signal propagation. Direct, institutional.</div>
+      </div>
+    </div>
+
+    <!-- COMPLY 2: Circular Seal -->
+    <div class="concept-card comply">
+      <div class="concept-preview">
+        <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Ripple Pulse base (dimmed) -->
+          <circle cx="100" cy="100" r="7" fill="#10B981" opacity="0.25"/>
+          <circle cx="100" cy="100" r="14" stroke="#10B981" stroke-width="2" fill="none" opacity="0.15"/>
+          <circle cx="100" cy="100" r="22" stroke="#10B981" stroke-width="1.8" fill="none" opacity="0.12"/>
+          <path d="M 68 68 A 48 48 0 0 1 132 68" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.2"/>
+          <path d="M 68 132 A 48 48 0 0 0 132 132" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.2"/>
+          <path d="M 52 52 A 68 68 0 0 1 148 52" stroke="#34D399" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.18"/>
+          <path d="M 52 148 A 68 68 0 0 0 148 148" stroke="#34D399" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.18"/>
+          <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#10B981" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.12"/>
+          <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#10B981" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.12"/>
+          <!-- Outer seal ring -->
+          <circle cx="100" cy="100" r="58" stroke="#10B981" stroke-width="3" fill="none" opacity="0.8"/>
+          <circle cx="100" cy="100" r="52" stroke="#10B981" stroke-width="1" fill="none" opacity="0.4"/>
+          <!-- Scale of justice (simplified balance) -->
+          <line x1="100" y1="72" x2="100" y2="120" stroke="#10B981" stroke-width="3" stroke-linecap="round"/>
+          <line x1="78" y1="90" x2="122" y2="90" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
+          <!-- Left pan -->
+          <path d="M 78 90 L 72 106 Q 78 112 84 106 Z" stroke="#10B981" stroke-width="1.5" fill="#10B981" fill-opacity="0.3"/>
+          <!-- Right pan -->
+          <path d="M 122 90 L 116 106 Q 122 112 128 106 Z" stroke="#10B981" stroke-width="1.5" fill="#10B981" fill-opacity="0.3"/>
+          <!-- Base -->
+          <line x1="88" y1="126" x2="112" y2="126" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="concept-info">
+        <div class="concept-number">Concept 02</div>
+        <div class="concept-title">Seal of Balance</div>
+        <div class="concept-desc">Official circular seal framing scales of justice. The outer ring doubles as the ripple boundary, blending the echo pattern with a regulatory emblem. Authoritative, legal.</div>
+      </div>
+    </div>
+
+    <!-- COMPLY 3: Audit Trail -->
+    <div class="concept-card comply">
+      <div class="concept-preview">
+        <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Ripple Pulse base (dimmed, green) -->
+          <circle cx="100" cy="100" r="7" fill="#10B981"/>
+          <circle cx="100" cy="100" r="14" stroke="#10B981" stroke-width="2" fill="none" opacity="0.7"/>
+          <circle cx="100" cy="100" r="22" stroke="#10B981" stroke-width="1.8" fill="none" opacity="0.5"/>
+          <circle cx="100" cy="100" r="31" stroke="#10B981" stroke-width="1.5" fill="none" opacity="0.3"/>
+          <path d="M 68 68 A 48 48 0 0 1 132 68" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+          <path d="M 68 132 A 48 48 0 0 0 132 132" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+          <path d="M 52 52 A 68 68 0 0 1 148 52" stroke="#34D399" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.5"/>
+          <path d="M 52 148 A 68 68 0 0 0 148 148" stroke="#34D399" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.5"/>
+          <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#10B981" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.35"/>
+          <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#10B981" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.35"/>
+          <!-- Clipboard / document overlay -->
+          <rect x="78" y="58" rx="4" ry="4" width="44" height="56" stroke="#10B981" stroke-width="2.5" fill="var(--echo-bg-card)" fill-opacity="0.85"/>
+          <!-- Clipboard tab -->
+          <rect x="90" y="53" rx="2" ry="2" width="20" height="10" stroke="#10B981" stroke-width="2" fill="var(--echo-bg-card)"/>
+          <!-- Check lines -->
+          <path d="M 86 74 L 90 78 L 96 70" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="100" y1="74" x2="114" y2="74" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+          <path d="M 86 86 L 90 90 L 96 82" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="100" y1="86" x2="114" y2="86" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+          <path d="M 86 98 L 90 102 L 96 94" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="100" y1="98" x2="114" y2="98" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+        </svg>
+      </div>
+      <div class="concept-info">
+        <div class="concept-number">Concept 03</div>
+        <div class="concept-title">Audit Clipboard</div>
+        <div class="concept-desc">Checklist clipboard at the ripple core. Each completed audit item radiates outward through the echo arcs. Practical, process-oriented, immediately readable as "compliance."</div>
+      </div>
+    </div>
+
+    <!-- COMPLY 4: Fingerprint Grid -->
+    <div class="concept-card comply">
+      <div class="concept-preview">
+        <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Ripple arcs (green, background) -->
+          <path d="M 52 52 A 68 68 0 0 1 148 52" stroke="#10B981" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+          <path d="M 52 148 A 68 68 0 0 0 148 148" stroke="#10B981" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+          <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#34D399" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.2"/>
+          <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#34D399" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.2"/>
+          <path d="M 56 56 A 62 62 0 0 0 56 144" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.15"/>
+          <path d="M 144 56 A 62 62 0 0 1 144 144" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.15"/>
+          <!-- Fingerprint-like concentric arcs (rotated to look like a print) -->
+          <path d="M 82 100 A 18 18 0 0 1 118 100" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M 76 100 A 24 24 0 0 1 124 100" stroke="#10B981" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.85"/>
+          <path d="M 70 100 A 30 30 0 0 1 130 100" stroke="#10B981" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.7"/>
+          <path d="M 64 100 A 36 36 0 0 1 136 100" stroke="#10B981" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0.55"/>
+          <path d="M 82 100 A 18 18 0 0 0 118 100" stroke="#34D399" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M 76 100 A 24 24 0 0 0 124 100" stroke="#34D399" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.85"/>
+          <path d="M 70 100 A 30 30 0 0 0 130 100" stroke="#34D399" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.7"/>
+          <path d="M 64 100 A 36 36 0 0 0 136 100" stroke="#34D399" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0.55"/>
+          <!-- Core dot -->
+          <circle cx="100" cy="100" r="5" fill="#10B981"/>
+        </svg>
+      </div>
+      <div class="concept-info">
+        <div class="concept-number">Concept 04</div>
+        <div class="concept-title">Identity Fingerprint</div>
+        <div class="concept-desc">Ripple arcs morph into fingerprint whorls around the core. A visual pun: the echo IS the identity signature. Dual green tones create depth. Biometric, forensic, unmistakable.</div>
+      </div>
+    </div>
+
+    <!-- COMPLY 5: Lock + Pulse -->
+    <div class="concept-card comply">
+      <div class="concept-preview">
+        <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Full ripple pulse in green -->
+          <circle cx="100" cy="100" r="7" fill="#10B981"/>
+          <circle cx="100" cy="100" r="14" stroke="#10B981" stroke-width="2" fill="none" opacity="0.8"/>
+          <circle cx="100" cy="100" r="22" stroke="#10B981" stroke-width="1.8" fill="none" opacity="0.6"/>
+          <circle cx="100" cy="100" r="31" stroke="#10B981" stroke-width="1.5" fill="none" opacity="0.4"/>
+          <path d="M 68 68 A 48 48 0 0 1 132 68" stroke="#10B981" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <path d="M 68 132 A 48 48 0 0 0 132 132" stroke="#10B981" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <path d="M 52 52 A 68 68 0 0 1 148 52" stroke="#34D399" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+          <path d="M 52 148 A 68 68 0 0 0 148 148" stroke="#34D399" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+          <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+          <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+          <path d="M 56 56 A 62 62 0 0 0 56 144" stroke="#10B981" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+          <path d="M 144 56 A 62 62 0 0 1 144 144" stroke="#10B981" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+          <!-- Lock shackle (top arc) integrated into ripple -->
+          <path d="M 88 90 L 88 78 A 12 12 0 0 1 112 78 L 112 90" stroke="#10B981" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+          <!-- Lock body -->
+          <rect x="82" y="90" rx="3" ry="3" width="36" height="28" fill="#10B981" opacity="0.85"/>
+          <!-- Keyhole -->
+          <circle cx="100" cy="101" r="4" fill="var(--echo-bg-card)"/>
+          <rect x="98" y="103" width="4" height="8" rx="1" fill="var(--echo-bg-card)"/>
+        </svg>
+      </div>
+      <div class="concept-info">
+        <div class="concept-number">Concept 05</div>
+        <div class="concept-title">Locked Pulse</div>
+        <div class="concept-desc">The full echo ripple recolored in emerald, with a padlock integrated at the core. The ripple radiates FROM the lock. Simplest variant: color shift + one strong symbol. Secure, institutional.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════════════
+     ECHO PASSPORT — 5 CONCEPTS
+     ═══════════════════════════════════════════════════════ -->
+<div class="product-section">
+  <div class="section-header">
+    <h3 style="color: var(--passport-primary);">Echo Passport</h3>
+    <p>Verifiable credentials wallet. Color: Violet (#8B5CF6) — digital identity, trust, credential authority. Each concept layers a credential/identity symbol over the ripple pulse base.</p>
+  </div>
+
+  <div class="concept-grid">
+
+    <!-- PASSPORT 1: Credential Card -->
+    <div class="concept-card passport">
+      <div class="concept-preview">
+        <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Ripple Pulse base (dimmed violet) -->
+          <circle cx="100" cy="100" r="7" fill="#8B5CF6" opacity="0.3"/>
+          <circle cx="100" cy="100" r="14" stroke="#8B5CF6" stroke-width="2" fill="none" opacity="0.2"/>
+          <circle cx="100" cy="100" r="22" stroke="#8B5CF6" stroke-width="1.8" fill="none" opacity="0.15"/>
+          <path d="M 68 68 A 48 48 0 0 1 132 68" stroke="#8B5CF6" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.25"/>
+          <path d="M 68 132 A 48 48 0 0 0 132 132" stroke="#8B5CF6" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.25"/>
+          <path d="M 52 52 A 68 68 0 0 1 148 52" stroke="#A78BFA" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.2"/>
+          <path d="M 52 148 A 68 68 0 0 0 148 148" stroke="#A78BFA" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.2"/>
+          <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.15"/>
+          <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.15"/>
+          <!-- ID Card -->
+          <rect x="62" y="68" rx="6" ry="6" width="76" height="52" stroke="#8B5CF6" stroke-width="2.5" fill="var(--echo-bg-card)" fill-opacity="0.9"/>
+          <!-- Photo placeholder -->
+          <rect x="70" y="76" rx="2" ry="2" width="20" height="24" fill="#8B5CF6" opacity="0.4"/>
+          <!-- Name lines -->
+          <line x1="96" y1="80" x2="130" y2="80" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+          <line x1="96" y1="88" x2="122" y2="88" stroke="#8B5CF6" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+          <!-- Chip -->
+          <rect x="70" y="106" rx="1.5" ry="1.5" width="14" height="10" stroke="#8B5CF6" stroke-width="1.5" fill="#8B5CF6" fill-opacity="0.2"/>
+          <!-- Verified badge -->
+          <circle cx="130" cy="108" r="8" fill="#8B5CF6" opacity="0.9"/>
+          <path d="M 126 108 L 129 111 L 134 105" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="concept-info">
+        <div class="concept-number">Concept 01</div>
+        <div class="concept-title">Verified Credential</div>
+        <div class="concept-desc">ID card with chip and verified badge floating at the ripple center. The credential itself becomes the signal origin. Modern, clean, immediately reads as "digital ID."</div>
+      </div>
+    </div>
+
+    <!-- PASSPORT 2: Key + Ripple -->
+    <div class="concept-card passport">
+      <div class="concept-preview">
+        <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Full ripple pulse in violet -->
+          <circle cx="100" cy="100" r="7" fill="#8B5CF6"/>
+          <circle cx="100" cy="100" r="14" stroke="#8B5CF6" stroke-width="2" fill="none" opacity="0.8"/>
+          <circle cx="100" cy="100" r="22" stroke="#8B5CF6" stroke-width="1.8" fill="none" opacity="0.6"/>
+          <circle cx="100" cy="100" r="31" stroke="#8B5CF6" stroke-width="1.5" fill="none" opacity="0.4"/>
+          <path d="M 68 68 A 48 48 0 0 1 132 68" stroke="#8B5CF6" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <path d="M 68 132 A 48 48 0 0 0 132 132" stroke="#8B5CF6" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <path d="M 52 52 A 68 68 0 0 1 148 52" stroke="#A78BFA" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+          <path d="M 52 148 A 68 68 0 0 0 148 148" stroke="#A78BFA" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+          <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#8B5CF6" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+          <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#8B5CF6" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+          <!-- Skeleton key overlay -->
+          <circle cx="100" cy="86" r="12" stroke="#8B5CF6" stroke-width="3" fill="var(--echo-bg-card)"/>
+          <circle cx="100" cy="86" r="5" fill="#8B5CF6" opacity="0.5"/>
+          <line x1="100" y1="98" x2="100" y2="128" stroke="#8B5CF6" stroke-width="3" stroke-linecap="round"/>
+          <line x1="100" y1="118" x2="110" y2="118" stroke="#8B5CF6" stroke-width="3" stroke-linecap="round"/>
+          <line x1="100" y1="126" x2="108" y2="126" stroke="#8B5CF6" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="concept-info">
+        <div class="concept-number">Concept 02</div>
+        <div class="concept-title">Skeleton Key</div>
+        <div class="concept-desc">Cryptographic key placed vertically through the ripple center. The key head ring aligns with the inner concentric circles. Signals access, authority, and control over one's credentials.</div>
+      </div>
+    </div>
+
+    <!-- PASSPORT 3: Passport Book -->
+    <div class="concept-card passport">
+      <div class="concept-preview">
+        <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Ripple arcs (background violet) -->
+          <path d="M 52 52 A 68 68 0 0 1 148 52" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+          <path d="M 52 148 A 68 68 0 0 0 148 148" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+          <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#A78BFA" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.22"/>
+          <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#A78BFA" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.22"/>
+          <path d="M 56 56 A 62 62 0 0 0 56 144" stroke="#8B5CF6" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.18"/>
+          <path d="M 144 56 A 62 62 0 0 1 144 144" stroke="#8B5CF6" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.18"/>
+          <!-- Passport booklet -->
+          <rect x="70" y="56" rx="5" ry="5" width="60" height="80" fill="#8B5CF6" opacity="0.15" stroke="#8B5CF6" stroke-width="2.5"/>
+          <!-- Inner circle emblem (ripple core as passport emblem) -->
+          <circle cx="100" cy="88" r="16" stroke="#8B5CF6" stroke-width="2" fill="none" opacity="0.8"/>
+          <circle cx="100" cy="88" r="10" stroke="#A78BFA" stroke-width="1.5" fill="none" opacity="0.6"/>
+          <circle cx="100" cy="88" r="4" fill="#8B5CF6"/>
+          <!-- PASSPORT text -->
+          <text x="100" y="122" font-family="'Outfit', sans-serif" font-size="8" font-weight="600" letter-spacing="3" fill="#8B5CF6" text-anchor="middle" opacity="0.8">PASSPORT</text>
+          <!-- Bottom line -->
+          <line x1="80" y1="128" x2="120" y2="128" stroke="#8B5CF6" stroke-width="1" opacity="0.4"/>
+        </svg>
+      </div>
+      <div class="concept-info">
+        <div class="concept-number">Concept 03</div>
+        <div class="concept-title">Digital Passport</div>
+        <div class="concept-desc">Physical passport silhouette with the ripple mark as its central emblem. The most literal interpretation: your digital passport, branded with the echo signal.</div>
+      </div>
+    </div>
+
+    <!-- PASSPORT 4: QR Portal -->
+    <div class="concept-card passport">
+      <div class="concept-preview">
+        <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Ripple Pulse base (dimmed) -->
+          <circle cx="100" cy="100" r="7" fill="#8B5CF6" opacity="0.4"/>
+          <circle cx="100" cy="100" r="14" stroke="#8B5CF6" stroke-width="2" fill="none" opacity="0.25"/>
+          <circle cx="100" cy="100" r="22" stroke="#8B5CF6" stroke-width="1.8" fill="none" opacity="0.18"/>
+          <circle cx="100" cy="100" r="31" stroke="#8B5CF6" stroke-width="1.5" fill="none" opacity="0.12"/>
+          <path d="M 68 68 A 48 48 0 0 1 132 68" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.2"/>
+          <path d="M 68 132 A 48 48 0 0 0 132 132" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.2"/>
+          <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#A78BFA" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.15"/>
+          <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#A78BFA" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.15"/>
+          <!-- QR-style corner brackets -->
+          <!-- Top-left -->
+          <path d="M 64 68 L 64 60 L 72 60" stroke="#8B5CF6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="66" y="62" width="12" height="12" fill="#8B5CF6" opacity="0.6" rx="1"/>
+          <!-- Top-right -->
+          <path d="M 136 68 L 136 60 L 128 60" stroke="#8B5CF6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="122" y="62" width="12" height="12" fill="#8B5CF6" opacity="0.6" rx="1"/>
+          <!-- Bottom-left -->
+          <path d="M 64 132 L 64 140 L 72 140" stroke="#8B5CF6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="66" y="126" width="12" height="12" fill="#8B5CF6" opacity="0.6" rx="1"/>
+          <!-- Central data blocks (abstract QR modules) -->
+          <rect x="92" y="82" width="6" height="6" fill="#A78BFA" opacity="0.7" rx="1"/>
+          <rect x="102" y="82" width="6" height="6" fill="#8B5CF6" opacity="0.5" rx="1"/>
+          <rect x="86" y="92" width="6" height="6" fill="#8B5CF6" opacity="0.5" rx="1"/>
+          <rect x="96" y="92" width="8" height="8" fill="#8B5CF6" opacity="0.8" rx="1"/>
+          <rect x="108" y="92" width="6" height="6" fill="#A78BFA" opacity="0.5" rx="1"/>
+          <rect x="92" y="104" width="6" height="6" fill="#A78BFA" opacity="0.5" rx="1"/>
+          <rect x="102" y="104" width="6" height="6" fill="#8B5CF6" opacity="0.7" rx="1"/>
+          <rect x="112" y="104" width="6" height="6" fill="#8B5CF6" opacity="0.4" rx="1"/>
+          <rect x="86" y="112" width="6" height="6" fill="#8B5CF6" opacity="0.3" rx="1"/>
+          <rect x="96" y="114" width="6" height="6" fill="#A78BFA" opacity="0.6" rx="1"/>
+        </svg>
+      </div>
+      <div class="concept-info">
+        <div class="concept-number">Concept 04</div>
+        <div class="concept-title">QR Portal</div>
+        <div class="concept-desc">QR code corner brackets frame the ripple center, with abstract data blocks replacing inner rings. The ripple becomes scannable data. Tech-forward, modern, bridges physical and digital credential presentation.</div>
+      </div>
+    </div>
+
+    <!-- PASSPORT 5: Globe + User -->
+    <div class="concept-card passport">
+      <div class="concept-preview">
+        <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Full ripple pulse in violet -->
+          <circle cx="100" cy="100" r="31" stroke="#8B5CF6" stroke-width="1.5" fill="none" opacity="0.3"/>
+          <path d="M 68 68 A 48 48 0 0 1 132 68" stroke="#8B5CF6" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.7"/>
+          <path d="M 68 132 A 48 48 0 0 0 132 132" stroke="#8B5CF6" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.7"/>
+          <path d="M 52 52 A 68 68 0 0 1 148 52" stroke="#A78BFA" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+          <path d="M 52 148 A 68 68 0 0 0 148 148" stroke="#A78BFA" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+          <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#8B5CF6" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.4"/>
+          <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#8B5CF6" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.4"/>
+          <path d="M 56 56 A 62 62 0 0 0 56 144" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.25"/>
+          <path d="M 144 56 A 62 62 0 0 1 144 144" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.25"/>
+          <!-- Globe circle (repurposes innermost ring) -->
+          <circle cx="100" cy="95" r="24" stroke="#8B5CF6" stroke-width="2.5" fill="none"/>
+          <!-- Globe meridians -->
+          <ellipse cx="100" cy="95" rx="10" ry="24" stroke="#8B5CF6" stroke-width="1.5" fill="none" opacity="0.6"/>
+          <!-- Globe equator + tropic -->
+          <line x1="76" y1="95" x2="124" y2="95" stroke="#8B5CF6" stroke-width="1.5" opacity="0.5"/>
+          <ellipse cx="100" cy="83" rx="20" ry="3" stroke="#8B5CF6" stroke-width="1" fill="none" opacity="0.3"/>
+          <ellipse cx="100" cy="107" rx="20" ry="3" stroke="#8B5CF6" stroke-width="1" fill="none" opacity="0.3"/>
+          <!-- Person silhouette below globe -->
+          <circle cx="100" cy="130" r="6" fill="#8B5CF6" opacity="0.8"/>
+          <path d="M 86 148 Q 86 138 100 136 Q 114 138 114 148" fill="#8B5CF6" opacity="0.6"/>
+        </svg>
+      </div>
+      <div class="concept-info">
+        <div class="concept-number">Concept 05</div>
+        <div class="concept-title">Global Identity</div>
+        <div class="concept-desc">Globe at the ripple center with a person silhouette beneath. Your identity, recognized worldwide. The echo arcs become latitude lines at the poles. Grand, aspirational, human-centered.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="footer-note">
+  <strong>Design Notes</strong><br>
+  All concepts use the ECHO Ripple Pulse mark as their foundation layer.<br>
+  Comply palette: Emerald #10B981 / #34D399 — trust, regulation, go-signal green.<br>
+  Passport palette: Violet #8B5CF6 / #A78BFA — digital authority, premium credential space.<br>
+  Each concept works in monochrome (stroke-only) and at app-icon scale (40px+).
+</div>
+
+</body>
+</html>

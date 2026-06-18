@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 
 /// Messaging - Conversation List Screen
@@ -870,4 +871,5 @@ struct MessagingScreens_Previews: PreviewProvider {
         }
     }
 }
+#endif
 #endif
