@@ -14,8 +14,11 @@ actor OfflineQueueManager {
         queue.count
     }
 
-    /// Enqueue a relay request for later send
+    /// Enqueue a relay request for later send.
+    /// Idempotent on `messageId`: a request already queued (e.g. re-enqueued by a
+    /// drain that races with a fresh send on WebSocket reconnect) is not duplicated.
     func enqueue(_ request: RelayRequest) {
+        guard !queue.contains(where: { $0.messageId == request.messageId }) else { return }
         if queue.count >= maxQueueSize {
             // Evict oldest to stay within limit
             queue.removeFirst()

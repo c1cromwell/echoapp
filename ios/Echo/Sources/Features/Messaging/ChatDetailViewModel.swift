@@ -202,14 +202,15 @@ final class ChatDetailViewModel {
         // Persist the edit (WO-25). The server fans the new ciphertext out to the
         // peer; under retention it also stores an immutable version. Best-effort.
         if let opsAPI {
-            let payload: TextMessagePayload
+            // Fail closed: an edit that can't be encrypted is never persisted or fanned
+            // out as plaintext. The local edit above still stands; only transmission is gated.
             do {
-                payload = try await textCrypto.encryptPayload(plaintext: trimmed, peerDID: peerDID, messageId: messageId)
+                let payload = try await textCrypto.encryptPayload(plaintext: trimmed, peerDID: peerDID, messageId: messageId)
+                if let ciphertext = try? JSONEncoder().encode(payload) {
+                    _ = try? await opsAPI.editMessage(messageId: messageId, conversationId: conversationId, ciphertext: ciphertext)
+                }
             } catch {
-                payload = TextMessagePayload(messageId: messageId, text: trimmed, encrypted: nil)
-            }
-            if let ciphertext = try? JSONEncoder().encode(payload) {
-                _ = try? await opsAPI.editMessage(messageId: messageId, conversationId: conversationId, ciphertext: ciphertext)
+                errorMessage = "Edit could not be encrypted and was not sent."
             }
         }
         return true
@@ -380,16 +381,15 @@ final class ChatDetailViewModel {
         onSend(trimmed)
 
         do {
-            let payload: TextMessagePayload
-            do {
-                payload = try await textCrypto.encryptPayload(
-                    plaintext: trimmed,
-                    peerDID: peerDID,
-                    messageId: message.id
-                )
-            } catch {
-                payload = TextMessagePayload(messageId: message.id, text: trimmed, encrypted: nil)
-            }
+            // Fail closed: never fall back to plaintext on the wire. If encryption
+            // fails (e.g. the peer's key can't be resolved), let it propagate to the
+            // outer catch, which marks the message .failed — mirroring the group
+            // send path in GroupChatViewModel rather than silently leaking plaintext.
+            let payload = try await textCrypto.encryptPayload(
+                plaintext: trimmed,
+                peerDID: peerDID,
+                messageId: message.id
+            )
             try await signalService.sendTextMessage(
                 conversationId: conversationId,
                 peerDID: peerDID,

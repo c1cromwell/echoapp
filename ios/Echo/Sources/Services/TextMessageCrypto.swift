@@ -5,7 +5,12 @@ import CryptoKit
 /// Encrypts/decrypts chat bodies for WebSocket relay (Kinnami P-256 + identity registry keys).
 actor TextMessageCrypto {
     private let identityResolve: IdentityResolveClient
-    private var peerKeyCache: [String: String] = [:]
+    private struct CachedKey { let hex: String; let fetchedAt: Date }
+    private var peerKeyCache: [String: CachedKey] = [:]
+    /// Bound the cache so peer key rotation is eventually re-fetched and memory
+    /// can't grow without limit across many conversations.
+    private let peerKeyTTL: TimeInterval = 60 * 60 // 1 hour
+    private let peerKeyCacheMax = 256
 
     init(identityResolve: IdentityResolveClient) {
         self.identityResolve = identityResolve
@@ -23,9 +28,9 @@ actor TextMessageCrypto {
     }
 
     func decryptPayload(_ payload: TextMessagePayload) async throws -> String {
-        if let plain = payload.text, !plain.isEmpty, payload.encrypted == nil {
-            return plain
-        }
+        // Fail closed on receive: a private 1:1 payload must be encrypted. A
+        // plaintext-only payload (no ciphertext) is rejected rather than displayed,
+        // so a malicious or misconfigured relay can't downgrade a chat to cleartext.
         guard let encrypted = payload.encrypted else {
             throw TextMessageCryptoError.missingCiphertext
         }
@@ -38,9 +43,18 @@ actor TextMessageCrypto {
     }
 
     private func cachedPeerKeyHex(peerDID: String) async throws -> String {
-        if let cached = peerKeyCache[peerDID] { return cached }
+        if let cached = peerKeyCache[peerDID],
+           Date().timeIntervalSince(cached.fetchedAt) < peerKeyTTL {
+            return cached.hex
+        }
         let hex = try await identityResolve.primaryPublicKeyHex(peerDID: peerDID)
-        peerKeyCache[peerDID] = hex
+        if peerKeyCache.count >= peerKeyCacheMax {
+            // Evict the oldest entry to stay bounded.
+            if let oldest = peerKeyCache.min(by: { $0.value.fetchedAt < $1.value.fetchedAt }) {
+                peerKeyCache.removeValue(forKey: oldest.key)
+            }
+        }
+        peerKeyCache[peerDID] = CachedKey(hex: hex, fetchedAt: Date())
         return hex
     }
 
