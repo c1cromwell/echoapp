@@ -72,6 +72,9 @@ struct MainTabView: View {
         }
         .animation(.easeInOut(duration: 0.2), value: hideTabBar)
         .onPreferenceChange(TabBarHiddenPreferenceKey.self) { hideTabBar = $0 }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            ProvisioningStatusBanner()
+        }
     }
 }
 

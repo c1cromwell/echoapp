@@ -37,18 +37,22 @@ the reference pattern for fixing the 1:1 path.
 
 ## 3. Journey-by-journey assessment
 
-### Enrollment — **good**
+### Enrollment — **good; failure now recoverable (fixed)**
 `CredentialEnrollmentTailService` + `SilentProvisionService` run a 4-step backgrounded pipeline
-(SE key → DID → wallet → passkey) with retry/backoff and Keychain mirroring. Gaps are polish:
-per-step progress UI and wiring the existing `retry()` to a button. Add a regression test asserting
-`echo.username.current` is written (guards the Face ID login contract in memory
-`project_ios_auth_identity_keys`).
+(SE key → DID → wallet → passkey) with retry/backoff and Keychain mirroring (`echo.username.current`
+is written by both `AppState.firstRunCompleted` and the provision pipeline; `GlacialLoginScreen`
+also self-heals it — the Face ID login contract is well covered). The genuine gap: `firstRunCompleted`
+routes straight to `.authenticated`, so a **failed** background provision was invisible with no
+retry. **Fixed:** `ProvisioningStatusBanner` (non-blocking, top inset in `MainTabView`) shows on
+`.failed` and wires the existing `SilentProvisionService.retry(displayName:)`.
 
-### Login — **works, thin recovery**
-`LoginViewModel.loginWithPasskey` does challenge → passkey assertion (Face ID) → server verify →
-token store. Real gaps: `AUTH_007` (new device) and `AUTH_009` (lockout) set an `errorMessage` but
-there is **no recovery navigation**, and the 15-min hard-lockout countdown (state already in
-`SecureEnclaveManager.currentLockState()`) is not surfaced.
+### Login — **complete (correction)**
+The live login is `GlacialLoginScreen` (wired in `AppState`/`AuthCoordinatorView`). It already
+handles soft-lock, **hard-lock with a live 15-min `CountdownLabel`**, biometrics-unavailable,
+no-account, "Recover via SMS," "Sign in on new device" (`LinkDeviceScanView`), and self-heals the
+Keychain username. The exploration's "thin recovery / no countdown" finding was against
+`LoginViewModel` + `LoginView`, which have **no usages — dead code** (candidate for deletion). No
+login fix was needed.
 
 ### Send / private message — **CRITICAL, device-decrypt now FIXED (Option B)**
 - **Device decrypt — FIXED via Option B.** Root cause was: messaging ECDH used the P-256 identity
