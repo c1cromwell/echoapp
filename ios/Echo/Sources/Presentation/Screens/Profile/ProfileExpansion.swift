@@ -1,3 +1,4 @@
+#if os(iOS)
 // Presentation/Screens/Profile/ProfileExpansion.swift
 // Profile page expansion per iOS Spec v4.2.1 §17
 // Adds DID display, wallet summary, QR share, and credential badges
@@ -159,3 +160,4 @@ struct CredentialRow: View {
         }
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Enterprise/EnterpriseProfileView.swift
 // Enterprise profile with verified organization credentials and authorized representatives
 
@@ -204,3 +205,4 @@ class EnterpriseProfileViewModel: ObservableObject {
         trustScore = 85
     }
 }
+#endif

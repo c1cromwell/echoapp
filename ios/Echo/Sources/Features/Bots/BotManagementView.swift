@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Bots/BotManagementView.swift
 // Bot management screen with active bots and discovery
 
@@ -273,3 +274,4 @@ class BotManagementViewModel: ObservableObject {
         // TODO: Add bot to active list
     }
 }
+#endif

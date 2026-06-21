@@ -1,3 +1,4 @@
+#if os(iOS)
 // Core/DesignSystem/Components/GlacialNavigationBar.swift
 // Frosted glass navigation bar with ghost border
 
@@ -48,3 +49,4 @@ struct GlacialNavigationBar<Leading: View, Trailing: View>: View {
         Spacer()
     }
 }
+#endif

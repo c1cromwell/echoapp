@@ -1,3 +1,4 @@
+#if os(iOS)
 // Core/DesignSystem/Components/EchoLogo.swift
 // Concentric ripple circle logo — represents encrypted signal propagation
 
@@ -114,3 +115,4 @@ struct EchoLogo: View {
     }
     .padding()
 }
+#endif

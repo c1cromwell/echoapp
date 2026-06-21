@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 
 /// Messages hub (spec §3.2 + docs/design-previews/messagehub1.png). Layout:
@@ -600,4 +601,5 @@ struct MessagesHubView_Previews: PreviewProvider {
         )
     }
 }
+#endif
 #endif

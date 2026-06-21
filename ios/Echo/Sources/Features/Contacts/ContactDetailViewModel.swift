@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Contacts/ContactDetailViewModel.swift
 // Manages contact detail screen state
 
@@ -190,3 +191,4 @@ struct SharedMediaItem: Identifiable {
 enum MediaItemType: String {
     case photo, video, file, link
 }
+#endif

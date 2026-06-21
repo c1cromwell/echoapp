@@ -1,3 +1,4 @@
+#if os(iOS)
 // Presentation/Screens/Backup/BackupView.swift
 // Backup & security screen with recovery phrase, encrypted backup, and export options
 
@@ -340,3 +341,4 @@ struct ExportButton: View {
         }
     }
 }
+#endif

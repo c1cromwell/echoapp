@@ -1,3 +1,4 @@
+#if os(iOS)
 // Core/DesignSystem/Modifiers/IcyBackground.swift
 // Blurred gradient orbs creating the frozen lake depth effect
 
@@ -40,3 +41,4 @@ extension View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .icyBackground()
 }
+#endif

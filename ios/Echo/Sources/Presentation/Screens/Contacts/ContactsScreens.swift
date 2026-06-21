@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 #if os(iOS)
 import Contacts
@@ -351,4 +352,5 @@ struct ContactsAndTrustScreens_Previews: PreviewProvider {
         }
     }
 }
+#endif
 #endif

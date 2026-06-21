@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 
 /// Sends and receives conversation signals and text chat over a shared WebSocket.
@@ -195,3 +196,4 @@ final class ConversationSignalService: @unchecked Sendable {
         handler?(event)
     }
 }
+#endif

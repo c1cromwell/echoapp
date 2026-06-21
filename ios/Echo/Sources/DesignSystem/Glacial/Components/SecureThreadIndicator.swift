@@ -1,3 +1,4 @@
+#if os(iOS)
 // Core/DesignSystem/Components/SecureThreadIndicator.swift
 // 2px pulsating sky blue line indicating active encrypted connection
 
@@ -26,3 +27,4 @@ public struct SecureThreadIndicator: View {
         Spacer()
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 import CryptoKit
 import SwiftData
@@ -604,3 +605,4 @@ enum DatabaseError: LocalizedError {
         }
     }
 }
+#endif

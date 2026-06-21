@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 
 /// WO-314 read-mostly compliance posture dashboard for org administrators.
@@ -243,3 +244,4 @@ final class ComplyDashboardViewModel: ObservableObject {
         return nil
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if os(iOS)
 // Presentation/Screens/QRIdentity/QRIdentityView.swift
 // QR code identity sharing and scanning for trusted contact attestation
 
@@ -273,3 +274,4 @@ struct QRScannerView: View {
         }
     }
 }
+#endif

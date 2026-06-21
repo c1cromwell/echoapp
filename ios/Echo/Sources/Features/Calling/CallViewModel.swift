@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Calling/CallViewModel.swift
 // Manages voice/video call state and WebRTC signaling
 
@@ -243,3 +244,4 @@ class CallViewModel: ObservableObject {
         }
     }
 }
+#endif

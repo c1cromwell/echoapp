@@ -1,3 +1,4 @@
+#if os(iOS)
 // Core/DesignSystem/Components/SignatureGradientButton.swift
 // Pill CTA with deep navy → sky blue gradient
 
@@ -87,3 +88,4 @@ struct GlacialPressStyle: ButtonStyle {
     }
     .padding()
 }
+#endif

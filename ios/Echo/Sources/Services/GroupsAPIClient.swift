@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 
 // MARK: - REST models (match internal/api/v3_handlers.go group routes)
@@ -173,4 +174,5 @@ actor LiveGroupsAPIClient: GroupsAPIClient {
 }
 
 private struct EmptyResponse: Decodable {}
+#endif
 #endif

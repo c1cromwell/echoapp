@@ -1,3 +1,4 @@
+#if os(iOS)
 // Presentation/Screens/Notifications/NotificationCenterView.swift
 // Notification center with grouped notifications, swipe actions, and badge management
 
@@ -198,3 +199,4 @@ class NotificationViewModel: ObservableObject {
         }
     }
 }
+#endif

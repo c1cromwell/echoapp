@@ -1,3 +1,4 @@
+#if os(iOS)
 // Features/Calling/CallView.swift
 // Voice/Video call screen with WebRTC integration
 
@@ -319,3 +320,4 @@ struct SpringButtonStyle: ButtonStyle {
             .animation(.spring(response: 0.3, dampingFraction: 0.85), value: configuration.isPressed)
     }
 }
+#endif

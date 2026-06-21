@@ -1,3 +1,4 @@
+#if os(iOS)
 // Presentation/Screens/Media/MediaGalleryView.swift
 // Shared media gallery with tabbed grid/list layouts
 
@@ -235,3 +236,4 @@ struct LinkPreviewCard: View {
         .ghostBorder(opacity: 0.15)
     }
 }
+#endif

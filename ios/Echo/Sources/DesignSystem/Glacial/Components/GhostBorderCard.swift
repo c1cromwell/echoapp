@@ -1,3 +1,4 @@
+#if os(iOS)
 // Core/DesignSystem/Components/GhostBorderCard.swift
 // Surface-container card with 15% opacity border
 
@@ -34,3 +35,4 @@ struct GhostBorderCard<Content: View>: View {
     }
     .padding()
 }
+#endif

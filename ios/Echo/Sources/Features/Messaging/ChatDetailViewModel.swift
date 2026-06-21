@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 import Observation
 
@@ -837,3 +838,4 @@ struct ChatDetailMessage: Identifiable, Equatable {
         self.pollId = pollId
     }
 }
+#endif

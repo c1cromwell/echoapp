@@ -1,3 +1,4 @@
+#if os(iOS)
 // Presentation/Screens/Search/SearchView.swift
 // Advanced message search with filters and recent searches
 
@@ -429,3 +430,4 @@ struct EmptySearchState: View {
         .padding(.top, 60)
     }
 }
+#endif
