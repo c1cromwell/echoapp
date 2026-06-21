@@ -41,8 +41,6 @@
 		2EBDB781E9F9E3338A380A54 /* DriversLicenseEnrollmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E26908B044D2529A3AF3196 /* DriversLicenseEnrollmentView.swift */; };
 		2FEB81F194C9771E7367A871 /* ContactsScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3617296D58F3E5183D04F2DC /* ContactsScreens.swift */; };
 		312161CDFC3760FC0C664259 /* EchoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DA5734FC837B81E3AB437EA /* EchoApp.swift */; };
-		ECHOPROD0000000000000002 /* EchoProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECHOPROD0000000000000001 /* EchoProduct.swift */; };
-		ECHOPROD0000000000000004 /* ProductRootViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECHOPROD0000000000000003 /* ProductRootViews.swift */; };
 		3399739A9F2955088DF321FD /* EchoColorPalette+FirstRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = A36E448A4DBA558B75312595 /* EchoColorPalette+FirstRun.swift */; };
 		344D6D5F64214D153384A4D7 /* RewardsScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC2D26D748DC08F2C29096A /* RewardsScreens.swift */; };
 		3566ABF7C390638A0A34888E /* EnrollmentComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D31158E5FAFEB804F593D66 /* EnrollmentComponents.swift */; };
@@ -93,8 +91,6 @@
 		612AEC81962F8C03C4C320CE /* AuthState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE82963DC16E738346A05815 /* AuthState.swift */; };
 		6238DD99EFF012D3A7FEEEB4 /* EnrollmentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 009F1BD1BB134BC9F328319B /* EnrollmentModels.swift */; };
 		62CFC3951E9205C32DCCF05F /* EnterpriseProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC38818C1BDF64A5211C44EF /* EnterpriseProfileView.swift */; };
-		C0MP001COMPLY000000000001 /* ComplyAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0MP001COMPLY000000000002 /* ComplyAPIClient.swift */; };
-		C0MP001COMPLY000000000003 /* ComplyDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0MP001COMPLY000000000004 /* ComplyDashboardView.swift */; };
 		62DBE95FAAB67442B3B5EED9 /* BiometricIntegrityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DE9B01FC700C282006EC335 /* BiometricIntegrityService.swift */; };
 		65B7A631E80A5838EAF5482F /* GovernanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE5A6B02C6BEFE1D85FBC722 /* GovernanceService.swift */; };
 		65E7AA602656B9B32AC68C7E /* EchoButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B75CA8C52C3A9434A8B8279 /* EchoButton.swift */; };
@@ -160,6 +156,8 @@
 		BEF419257F11F7742E880917 /* Sources/Features/Personas/PersonaSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41C636DFBEAD5B1D182D3ED4 /* Sources/Features/Personas/PersonaSwitcher.swift */; };
 		BFEA7EAD0D93D48A883B414B /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3611A4DB2DD50E20ACB4AB02 /* MainTabView.swift */; };
 		C0729FD92FEA98E967F7C966 /* CallState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81B28C5CAE4896371D46E4AD /* CallState.swift */; };
+		C0MP001COMPLY000000000001 /* ComplyAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0MP001COMPLY000000000002 /* ComplyAPIClient.swift */; };
+		C0MP001COMPLY000000000003 /* ComplyDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0MP001COMPLY000000000004 /* ComplyDashboardView.swift */; };
 		C1EB0C374AD56790B5FE8064 /* Rewards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8338FAD6819C1B7C9702729C /* Rewards.swift */; };
 		C3D4E5F60718293A4B5C6D7E /* CredentialEnrollmentTailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C6D /* CredentialEnrollmentTailService.swift */; };
 		C6D8F4344B7978E226BA8A35 /* Sources/Features/Settings/PrivacySettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BEDF0FDB113BA7F8CA28856 /* Sources/Features/Settings/PrivacySettingsStore.swift */; };
@@ -194,6 +192,8 @@
 		E3AAD5ACF260E4D8B7F3317D /* EnrollmentCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1182DD538E78B535FA84D42 /* EnrollmentCoordinator.swift */; };
 		E64E49293DC680A084CC8D3B /* Sources/Features/Messaging/ChatFolderFilterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1878FA1FFD4E9EFD1EFB1AE5 /* Sources/Features/Messaging/ChatFolderFilterView.swift */; };
 		EBE941308BA1497E86CDDC4B /* Sources/Features/Onboarding/FirstRun/EchoWelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C2E10C8C6F42118EFD6384 /* Sources/Features/Onboarding/FirstRun/EchoWelcomeView.swift */; };
+		ECHOPROD0000000000000002 /* EchoProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECHOPROD0000000000000001 /* EchoProduct.swift */; };
+		ECHOPROD0000000000000004 /* ProductRootViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECHOPROD0000000000000003 /* ProductRootViews.swift */; };
 		ED91895D0A2BADD4D75CBD9C /* StargazerBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D6853063939468B7D527045 /* StargazerBridge.swift */; };
 		EECBE178A0D0465BACA697E7 /* Sources/Security/BiometricLockoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6125BC995B494A6E8821C867 /* Sources/Security/BiometricLockoutView.swift */; };
 		EEEDA2B55F7CFFFC2EB6AB80 /* GovernanceCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C49FC8E17752442724AAFF6E /* GovernanceCoordinator.swift */; };
@@ -348,7 +348,7 @@
 		38C4A7F93C8ECC244BCDC593 /* NewModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewModels.swift; sourceTree = "<group>"; };
 		39CF996729D9443190C3AAFB /* DeviceFingerprintService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceFingerprintService.swift; sourceTree = "<group>"; };
 		3A3969657C8BE94FC969D441 /* QRIdentityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRIdentityView.swift; sourceTree = "<group>"; };
-		3B355D26B7A704237F7ACEEF /* EchoApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EchoApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3B355D26B7A704237F7ACEEF /* Echo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Echo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B75CA8C52C3A9434A8B8279 /* EchoButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoButton.swift; sourceTree = "<group>"; };
 		3C05A999CF9E116DBCB842A7 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		3C4FB342BDBA4A46BCB6A489 /* Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift; sourceTree = "<group>"; };
@@ -409,8 +409,6 @@
 		7B3C0C127DF32B5035EB2473 /* CertificatePinner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CertificatePinner.swift; sourceTree = "<group>"; };
 		7BAE98848BA987C5A80A8C29 /* Sources/Features/Contacts/QRContactAddCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Contacts/QRContactAddCoordinator.swift; sourceTree = "<group>"; };
 		7DA5734FC837B81E3AB437EA /* EchoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoApp.swift; sourceTree = "<group>"; };
-		ECHOPROD0000000000000001 /* EchoProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoProduct.swift; sourceTree = "<group>"; };
-		ECHOPROD0000000000000003 /* ProductRootViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductRootViews.swift; sourceTree = "<group>"; };
 		7F7551FB31B365B2C0926B4B /* SignatureGradientButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignatureGradientButton.swift; sourceTree = "<group>"; };
 		81B28C5CAE4896371D46E4AD /* CallState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallState.swift; sourceTree = "<group>"; };
 		830227A791B82E3302542EAE /* LoginViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginViewModel.swift; sourceTree = "<group>"; };
@@ -458,6 +456,8 @@
 		B8F4E2A1039C4D7E8F1A0023 /* UsernameAvailabilityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsernameAvailabilityService.swift; sourceTree = "<group>"; };
 		BCBCDF7E5502A846F3A8FE89 /* OTPInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OTPInputView.swift; sourceTree = "<group>"; };
 		C0938A03CE500725DD817C15 /* EchoCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoCard.swift; sourceTree = "<group>"; };
+		C0MP001COMPLY000000000002 /* ComplyAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplyAPIClient.swift; sourceTree = "<group>"; };
+		C0MP001COMPLY000000000004 /* ComplyDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplyDashboardView.swift; sourceTree = "<group>"; };
 		C170891BE3D56A3B4727E7D9 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		C3F638568F074357AEE51CD9 /* Sources/Features/Onboarding/VIP/VIPPathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/VIP/VIPPathView.swift; sourceTree = "<group>"; };
 		C49FC8E17752442724AAFF6E /* GovernanceCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GovernanceCoordinator.swift; sourceTree = "<group>"; };
@@ -466,8 +466,6 @@
 		C95B308FE711FA8ED61A2788 /* StepUpSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepUpSheetView.swift; sourceTree = "<group>"; };
 		CBB8C644B3272DD41818930D /* MDLNFCSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MDLNFCSession.swift; sourceTree = "<group>"; };
 		CC38818C1BDF64A5211C44EF /* EnterpriseProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnterpriseProfileView.swift; sourceTree = "<group>"; };
-		C0MP001COMPLY000000000002 /* ComplyAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplyAPIClient.swift; sourceTree = "<group>"; };
-		C0MP001COMPLY000000000004 /* ComplyDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplyDashboardView.swift; sourceTree = "<group>"; };
 		CF7C9492974F5BE8B1BA960E /* Coordinators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Coordinators.swift; sourceTree = "<group>"; };
 		D0041D4DA2DF97AC5A6B4A6E /* Token.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Token.swift; sourceTree = "<group>"; };
 		D1182DD538E78B535FA84D42 /* EnrollmentCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentCoordinator.swift; sourceTree = "<group>"; };
@@ -497,6 +495,8 @@
 		EB3F2272967F4E123A1DE17B /* WalletCredentialEnrollmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCredentialEnrollmentView.swift; sourceTree = "<group>"; };
 		EB47291F5963BAD0723EFF8E /* ECHOError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ECHOError.swift; sourceTree = "<group>"; };
 		ECCC06B73C31FDEE4EF82197 /* IcyBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IcyBackground.swift; sourceTree = "<group>"; };
+		ECHOPROD0000000000000001 /* EchoProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoProduct.swift; sourceTree = "<group>"; };
+		ECHOPROD0000000000000003 /* ProductRootViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductRootViews.swift; sourceTree = "<group>"; };
 		EE65679F8E3F64D8AA42587A /* RecoveryPromptScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPromptScheduler.swift; sourceTree = "<group>"; };
 		EF1C5DE7829640F9BD1D51AA /* Sources/Presentation/Screens/Profile/IdentityCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Presentation/Screens/Profile/IdentityCardView.swift; sourceTree = "<group>"; };
 		EF94E33E9CC502C47205F597 /* Sources/Features/Messaging/ConversationID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Messaging/ConversationID.swift; sourceTree = "<group>"; };
@@ -729,7 +729,7 @@
 		290D02D64F0CB90A283D9880 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				3B355D26B7A704237F7ACEEF /* EchoApp.app */,
+				3B355D26B7A704237F7ACEEF /* Echo.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1507,8 +1507,8 @@
 			name = EchoApp;
 			packageProductDependencies = (
 			);
-			productName = EchoApp;
-			productReference = 3B355D26B7A704237F7ACEEF /* EchoApp.app */;
+			productName = Echo;
+			productReference = 3B355D26B7A704237F7ACEEF /* Echo.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -1916,7 +1916,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 			};
-			name = Debug;
+			name = "Debug-Messaging";
 		};
 		21B44CC1F8DEF5C8B361FD65 /* Release-Messaging */ = {
 			isa = XCBuildConfiguration;
@@ -1926,7 +1926,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Configs/EchoMessaging-Info.plist;
+				INFOPLIST_FILE = "Configs/EchoMessaging-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Echo;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -1953,7 +1953,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Configs/EchoMessaging-Info.plist;
+				INFOPLIST_FILE = "Configs/EchoMessaging-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Echo;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -1965,6 +1965,8 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.echo.app;
 				PRODUCT_NAME = Echo;
+				ENABLE_DEBUG_DYLIB = NO;
+				API_URL = "http://localhost:8000";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG ECHO_PRODUCT_MESSAGING";
 				SWIFT_VERSION = 5.9;
@@ -1972,115 +1974,7 @@
 			};
 			name = "Debug-Messaging";
 		};
-		C0MP0BDG0000000000000001 /* Debug-Comply */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Configs/ComplyCompanion-Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Echo Comply";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.echo.comply;
-				PRODUCT_NAME = "Echo Comply";
-				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG ECHO_PRODUCT_COMPLY";
-				SWIFT_VERSION = 5.9;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = "Debug-Comply";
-		};
-		C0MP0BDG0000000000000002 /* Release-Comply */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Configs/ComplyCompanion-Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Echo Comply";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.echo.comply;
-				PRODUCT_NAME = "Echo Comply";
-				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = ECHO_PRODUCT_COMPLY;
-				SWIFT_VERSION = 5.9;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = "Release-Comply";
-		};
-		P4SSP0RT0000000000000001 /* Debug-Passport */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Configs/Passport-Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Echo Passport";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.echo.passport;
-				PRODUCT_NAME = "Echo Passport";
-				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG ECHO_PRODUCT_PASSPORT";
-				SWIFT_VERSION = 5.9;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = "Debug-Passport";
-		};
-		P4SSP0RT0000000000000002 /* Release-Passport */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Configs/Passport-Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Echo Passport";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.echo.passport;
-				PRODUCT_NAME = "Echo Passport";
-				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = ECHO_PRODUCT_PASSPORT;
-				SWIFT_VERSION = 5.9;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = "Release-Passport";
-		};
-		9701C0B1BEA837CCC4AB0DFC /* Release */ = {
+		9701C0B1BEA837CCC4AB0DFC /* Release-Messaging */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -2134,7 +2028,355 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 			};
-			name = Release;
+			name = "Release-Messaging";
+		};
+		ECH0PRJ0000000000000003 /* Debug-Comply */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = "Debug-Comply";
+		};
+		ECH0PRJ0000000000000005 /* Debug-Passport */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = "Debug-Passport";
+		};
+		ECH0PRJ0000000000000004 /* Release-Comply */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = "Release-Comply";
+		};
+		ECH0PRJ0000000000000006 /* Release-Passport */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = "Release-Passport";
+		};
+		C0MP0BDG0000000000000001 /* Debug-Comply */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Configs/ComplyCompanion-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Echo Comply";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.echo.comply;
+				PRODUCT_NAME = "Echo Comply";
+				ENABLE_DEBUG_DYLIB = NO;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG ECHO_PRODUCT_COMPLY";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Debug-Comply";
+		};
+		C0MP0BDG0000000000000002 /* Release-Comply */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Configs/ComplyCompanion-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Echo Comply";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.echo.comply;
+				PRODUCT_NAME = "Echo Comply";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = ECHO_PRODUCT_COMPLY;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Release-Comply";
+		};
+		P4SSP0RT0000000000000001 /* Debug-Passport */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Configs/Passport-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Echo Passport";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.echo.passport;
+				PRODUCT_NAME = "Echo Passport";
+				ENABLE_DEBUG_DYLIB = NO;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG ECHO_PRODUCT_PASSPORT";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Debug-Passport";
+		};
+		P4SSP0RT0000000000000002 /* Release-Passport */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Configs/Passport-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Echo Passport";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.echo.passport;
+				PRODUCT_NAME = "Echo Passport";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = ECHO_PRODUCT_PASSPORT;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Release-Passport";
 		};
 /* End XCBuildConfiguration section */
 
@@ -2142,11 +2384,15 @@
 		709EA207E6F768719F76C7E8 /* Build configuration list for PBXProject "EchoApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				10CE784C023CE0432173CEE4 /* Debug */,
-				9701C0B1BEA837CCC4AB0DFC /* Release */,
+				10CE784C023CE0432173CEE4 /* Debug-Messaging */,
+				9701C0B1BEA837CCC4AB0DFC /* Release-Messaging */,
+				ECH0PRJ0000000000000003 /* Debug-Comply */,
+				ECH0PRJ0000000000000004 /* Release-Comply */,
+				ECH0PRJ0000000000000005 /* Debug-Passport */,
+				ECH0PRJ0000000000000006 /* Release-Passport */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
+			defaultConfigurationName = "Debug-Messaging";
 		};
 		BDDF8B906B237213F6AE168A /* Build configuration list for PBXNativeTarget "EchoApp" */ = {
 			isa = XCConfigurationList;

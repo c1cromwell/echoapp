@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "289C9196664AFDFEB6EB4B5B"
-               BuildableName = "EchoApp.app"
+               BuildableName = "Echo.app"
                BlueprintName = "EchoApp"
                ReferencedContainer = "container:EchoApp.xcodeproj">
             </BuildableReference>
@@ -45,7 +45,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "289C9196664AFDFEB6EB4B5B"
-            BuildableName = "EchoApp.app"
+            BuildableName = "Echo.app"
             BlueprintName = "EchoApp"
             ReferencedContainer = "container:EchoApp.xcodeproj">
          </BuildableReference>
@@ -69,7 +69,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "289C9196664AFDFEB6EB4B5B"
-            BuildableName = "EchoApp.app"
+            BuildableName = "Echo.app"
             BlueprintName = "EchoApp"
             ReferencedContainer = "container:EchoApp.xcodeproj">
          </BuildableReference>

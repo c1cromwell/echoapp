@@ -167,6 +167,14 @@ Manual compile gate:
 
 ```bash
 cd ios/Echo
+# on mac
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+  xcodebuild -project EchoApp.xcodeproj \
+  -scheme EchoApp \
+  -sdk iphonesimulator \
+  -destination 'generic/platform=iOS Simulator' \
+  build
+# in Xcode
 xcodebuild -project EchoApp.xcodeproj -scheme EchoApp \
   -sdk iphonesimulator \
   -destination 'generic/platform=iOS Simulator' \
