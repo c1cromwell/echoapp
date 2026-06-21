@@ -93,7 +93,7 @@ public enum PresentationEvidence: Sendable {
 
 // MARK: - Enrollment Errors
 
-public enum EnrollmentError: LocalizedError, Sendable {
+public enum EnrollmentError: LocalizedError, Sendable, Equatable {
     case userCancelled
     case deviceUnsupported(reason: String)
     case issuerNotInTrustRegistry(issuerDID: String)
@@ -145,7 +145,7 @@ public enum EnrollmentError: LocalizedError, Sendable {
 // MARK: - Enrollment Progress
 
 /// Drives the shared tail flow (DID → wallet → passkey) progress UI.
-public enum EnrollmentStage: Sendable {
+public enum EnrollmentStage: Sendable, Equatable {
     case idle
     case verifyingCredential
     case creatingDID
