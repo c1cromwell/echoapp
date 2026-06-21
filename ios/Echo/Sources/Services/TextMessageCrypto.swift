@@ -87,23 +87,12 @@ actor TextMessageCrypto {
         return data
     }
 
-    /// Uses the same P-256 identity key material as `echo-identity-signing` (simulator + device).
+    /// Loads the dedicated messaging key-agreement private key (Option B). Backed by a
+    /// software P-256 key in the Keychain, so ECDH decryption works on hardware as well
+    /// as the Simulator — unlike the non-extractable Secure Enclave identity key.
+    /// The matching public key is registered for peers by `MessagingKeyRegistrar`.
     static func loadAgreementPrivateKey() async throws -> P256.KeyAgreement.PrivateKey {
-        #if targetEnvironment(simulator)
-        for keyId in ["echo-identity-signing", "echo-identity-signing-linked"] {
-            let storageKey = "sim_privkey_\(keyId)"
-            if let data = try? await KeychainManager.shared.retrieveData(key: storageKey),
-               let agreement = try? P256.KeyAgreement.PrivateKey(rawRepresentation: data) {
-                return agreement
-            }
-            if let data = try? await KeychainManager.shared.retrieveData(key: storageKey),
-               let signing = try? P256.Signing.PrivateKey(rawRepresentation: data),
-               let agreement = try? P256.KeyAgreement.PrivateKey(rawRepresentation: signing.rawRepresentation) {
-                return agreement
-            }
-        }
-        #endif
-        throw TextMessageCryptoError.noLocalKey
+        try await MessagingAgreementKey.loadOrCreate()
     }
 }
 

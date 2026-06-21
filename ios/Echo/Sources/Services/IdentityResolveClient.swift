@@ -5,9 +5,11 @@ import Foundation
 struct IdentityResolveClient: Sendable {
     struct Device: Decodable, Sendable {
         let publicKeyHex: String
+        let deviceLabel: String?
 
         enum CodingKeys: String, CodingKey {
             case publicKeyHex = "public_key_hex"
+            case deviceLabel = "device_label"
         }
     }
 
@@ -22,12 +24,18 @@ struct IdentityResolveClient: Sendable {
         self.apiClient = apiClient
     }
 
-    /// First registered device key (P-256 SEC1 hex) for the peer DID.
+    /// Public key (P-256 SEC1 hex) a peer should be encrypted to. Prefers the dedicated
+    /// messaging key-agreement device (`MessagingAgreementKey.deviceLabel`); falls back
+    /// to the first registered key for peers that predate Option B.
     func primaryPublicKeyHex(peerDID: String) async throws -> String {
         let encoded = peerDID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? peerDID
         let response: Response = try await apiClient.get(
             endpoint: IdentityEndpoint.resolveDID(did: encoded)
         )
+        if let agreement = response.devices.first(where: { $0.deviceLabel == MessagingAgreementKey.deviceLabel }),
+           !agreement.publicKeyHex.isEmpty {
+            return agreement.publicKeyHex
+        }
         guard let hex = response.devices.first?.publicKeyHex, !hex.isEmpty else {
             throw IdentityResolveError.noDevices
         }

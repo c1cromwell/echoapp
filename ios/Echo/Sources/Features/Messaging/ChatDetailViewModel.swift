@@ -127,6 +127,11 @@ final class ChatDetailViewModel {
     }
 
     func connect(accessToken: String) async {
+        // Best-effort, idempotent: ensure this device's messaging key-agreement public
+        // key is registered so peers can encrypt to it (Option B). Fire-and-forget.
+        let did = currentUserDID
+        Task.detached { await MessagingKeyRegistrar().ensureRegistered(did: did) }
+
         do {
             try await signalService.connect(accessToken: accessToken)
         } catch {

@@ -50,14 +50,18 @@ token store. Real gaps: `AUTH_007` (new device) and `AUTH_009` (lockout) set an 
 there is **no recovery navigation**, and the 15-min hard-lockout countdown (state already in
 `SecureEnclaveManager.currentLockState()`) is not surfaced.
 
-### Send / private message — **CRITICAL, partially fixed**
-- **Device decrypt is broken (P0, not yet fixed).** `TextMessageCrypto.loadAgreementPrivateKey()`
-  has only a `#if targetEnvironment(simulator)` branch. Root cause: messaging ECDH uses the P-256
-  identity key, but on device `echo-identity-signing` is a **non-exportable Secure Enclave key**
-  (`kSecAttrTokenIDSecureEnclave`; private bytes never leave the enclave — the T0 invariant).
-  `KinnamiEncryption.decryptWithKeyAgreement` requires a CryptoKit `P256.KeyAgreement.PrivateKey`,
-  which an SE key can never provide. **→ E2E decrypt cannot work on real hardware today.** See §5
-  for the two fix options.
+### Send / private message — **CRITICAL, device-decrypt now FIXED (Option B)**
+- **Device decrypt — FIXED via Option B.** Root cause was: messaging ECDH used the P-256 identity
+  key, but on device `echo-identity-signing` is a **non-exportable Secure Enclave key**
+  (`kSecAttrTokenIDSecureEnclave`; private bytes never leave the enclave — the T0 invariant), and
+  `KinnamiEncryption.decryptWithKeyAgreement` requires a CryptoKit `P256.KeyAgreement.PrivateKey` an
+  SE key can never provide — so `loadAgreementPrivateKey()` only had a simulator branch. Fixed by
+  introducing a **dedicated software P-256 key-agreement key** (`MessagingAgreementKey`, Keychain,
+  device-only) used for ECDH on both Simulator and hardware; its public key is registered as a
+  labelled device (`MessagingKeyRegistrar` → `POST /identity/devices`, signed by the identity key)
+  and `IdentityResolveClient` now resolves peers' messaging key by that label. Verified: iOS-triple
+  library build green; round-trip test (`SecurityTests/MessagingAgreementRoundTripTests`) compiles;
+  zero new errors vs. baseline. Remaining gate: two-device runtime decrypt.
 - **Fail-open to plaintext (P0) — FIXED this session.** 1:1 send and edit now fail **closed**:
   if encryption fails, the message is marked `.failed` / the edit is not transmitted, matching
   `GroupChatViewModel`. (`ChatDetailViewModel.swift`.)
