@@ -1621,6 +1621,11 @@ func (h *V3Handlers) handleGroupAddMember(w http.ResponseWriter, r *http.Request
 		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
 		return
 	}
+	// Only members with manage-members permission (owner/admin) may add members.
+	if err := h.Groups.AuthorizeAction(req.GroupID, h.getDID(r), groups.PermissionManageMembers); err != nil {
+		WriteError(w, http.StatusForbidden, "FORBIDDEN", "only group admins can manage members", r.Header.Get("X-Request-ID"))
+		return
+	}
 	member, err := h.Groups.AddMember(req.GroupID, req.MemberDID, 0, groups.TrustLevelNewcomer, false)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "MEMBER_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
@@ -1647,6 +1652,11 @@ func (h *V3Handlers) handleGroupRemoveMember(w http.ResponseWriter, r *http.Requ
 	}
 	if err := h.readJSON(r, &req); err != nil {
 		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	// Only members with manage-members permission (owner/admin) may remove members.
+	if err := h.Groups.AuthorizeAction(req.GroupID, h.getDID(r), groups.PermissionManageMembers); err != nil {
+		WriteError(w, http.StatusForbidden, "FORBIDDEN", "only group admins can manage members", r.Header.Get("X-Request-ID"))
 		return
 	}
 	if err := h.Groups.RemoveMember(req.GroupID, req.MemberID); err != nil {

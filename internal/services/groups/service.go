@@ -309,6 +309,27 @@ func (gs *GroupService) HasPermission(groupID, memberID string, permission Permi
 	return false, nil
 }
 
+// AuthorizeAction returns ErrUnauthorized unless actorID holds `permission` in the
+// group. Membership/role mutations (add, remove, role change, rekey) must be gated on
+// this server-side so a non-admin can't drive them by calling the endpoint directly.
+// A caller that is not a member of the group is treated as unauthorized.
+func (gs *GroupService) AuthorizeAction(groupID, actorID string, permission Permission) error {
+	if actorID == "" {
+		return ErrUnauthorized
+	}
+	ok, err := gs.HasPermission(groupID, actorID, permission)
+	if err != nil {
+		if errors.Is(err, ErrMemberNotFound) {
+			return ErrUnauthorized // not a member → cannot act
+		}
+		return err
+	}
+	if !ok {
+		return ErrUnauthorized
+	}
+	return nil
+}
+
 // MuteUser mutes a user for a specified duration
 func (gs *GroupService) MuteUser(groupID, memberID string, duration time.Duration) error {
 	member, err := gs.GetMember(groupID, memberID)
