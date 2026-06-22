@@ -7,6 +7,7 @@ struct ContactDiscoveryView: View {
 
     var body: some View {
         List {
+            #if DEBUG
             Section {
                 Label(
                     OPRFClientFactory.runtimeMode == .live ? "Live OPRF" : "Mock OPRF (dev)",
@@ -17,6 +18,7 @@ struct ContactDiscoveryView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            #endif
 
             if let synced = viewModel.lastSyncedAt {
                 Section {
@@ -34,7 +36,7 @@ struct ContactDiscoveryView: View {
                 }
             } else if let error = viewModel.errorMessage {
                 ContentUnavailableView {
-                    Label("Discovery failed", systemImage: "exclamationmark.triangle")
+                    Label("Couldn't scan contacts", systemImage: "exclamationmark.triangle")
                 } description: {
                     Text(error)
                 } actions: {
@@ -44,7 +46,7 @@ struct ContactDiscoveryView: View {
                 ContentUnavailableView {
                     Label("No matches yet", systemImage: "person.2.slash")
                 } description: {
-                    Text("Contacts on ECHO will appear here after a private scan. Enable discovery in Settings → Privacy and add SMS backup during onboarding.")
+                    Text("Your contacts who use ECHO will show up here once you turn on contact discovery in Privacy settings.")
                 } actions: {
                     Button("Scan contacts") { Task { await viewModel.sync() } }
                 }

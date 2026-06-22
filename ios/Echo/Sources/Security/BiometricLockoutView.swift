@@ -101,7 +101,7 @@ public struct BiometricLockoutView: View {
 
     private var title: String {
         switch lockState {
-        case .requiresPasscode: return "Biometric Locked"
+        case .requiresPasscode: return "\(biometricLabel) Locked"
         case .hardLocked:       return "Temporarily Locked"
         case .allowed:          return ""
         }
@@ -109,14 +109,14 @@ public struct BiometricLockoutView: View {
 
     private var subtitle: String {
         switch lockState {
-        case .requiresPasscode(let count):
-            return "Too many failed attempts (\(count)/5). Enter your device passcode to continue."
+        case .requiresPasscode:
+            return "For your security, use your device passcode to unlock."
         case .hardLocked:
             let mins = max(1, (secondsRemaining + 59) / 60)
             let unit = mins == 1 ? "minute" : "minutes"
             return secondsRemaining > 0
-                ? "Too many failed attempts. Wait \(mins) \(unit) before trying again."
-                : "Lockout expired. You may try again."
+                ? "For your security, \(biometricLabel) is locked. Try again in \(mins) \(unit)."
+                : "You can try again now."
         case .allowed:
             return ""
         }

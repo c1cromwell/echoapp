@@ -215,7 +215,7 @@ final class ChatDetailViewModel {
                     _ = try? await opsAPI.editMessage(messageId: messageId, conversationId: conversationId, ciphertext: ciphertext)
                 }
             } catch {
-                errorMessage = "Edit could not be encrypted and was not sent."
+                errorMessage = "Your edit couldn't be sent. Try again."
             }
         }
         return true
@@ -259,7 +259,7 @@ final class ChatDetailViewModel {
         } catch {
             // Roll back the optimistic change.
             if willPin { pinnedMessageIDs.remove(messageId) } else { pinnedMessageIDs.insert(messageId) }
-            errorMessage = "Couldn't update pin."
+            errorMessage = "Couldn't update pin. Try again."
             return nil
         }
     }
@@ -451,7 +451,7 @@ final class ChatDetailViewModel {
         ConversationThreadStore.appendIfNew(conversationId: conversationId, message: message)
 
         guard let mediaService else {
-            errorMessage = "Media service not configured."
+            errorMessage = "Photos and videos aren't available right now. Try again later."
             if let idx = messages.firstIndex(where: { $0.id == message.id }) {
                 messages[idx].deliveryStatus = .failed
                 syncThreadMessage(messages[idx])

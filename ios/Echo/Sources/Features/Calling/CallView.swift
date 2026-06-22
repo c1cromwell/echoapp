@@ -201,7 +201,7 @@ struct EncryptionBadge: View {
         HStack(spacing: 6) {
             Image(systemName: "lock.fill")
                 .font(.system(size: 10))
-            Text("End-to-End Encrypted")
+            Text("Encrypted — only you two can hear this call")
                 .font(Font.Echo.labelSm)
         }
         .foregroundStyle(Color.Echo.outline)

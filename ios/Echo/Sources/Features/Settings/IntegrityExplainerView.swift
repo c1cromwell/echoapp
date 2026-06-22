@@ -6,25 +6,25 @@ struct IntegrityExplainerView: View {
     var body: some View {
         List {
             Section {
-                Text("ECHO threads are end-to-end encrypted on your device. Optional integrity anchors record only cryptographic hashes on the Constellation metagraph — never message bodies.")
+                Text("Your messages are private and stay on your device. We can optionally save a tamper-proof fingerprint of a conversation (never the message text) so it can be verified later.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
-            Section("What is anchored") {
-                Label("Username → DID binding", systemImage: "at")
-                Label("Trust tier updates", systemImage: "checkmark.shield")
-                Label("Evidence event hashes (when enabled)", systemImage: "link")
+            Section("What we can verify") {
+                Label("Your username matches your account", systemImage: "at")
+                Label("Trust level updates", systemImage: "checkmark.shield")
+                Label("Conversation fingerprints (when enabled)", systemImage: "link")
             }
 
-            Section("What is never on chain") {
+            Section("What we never store") {
                 Label("Message text or media", systemImage: "xmark.circle")
                 Label("Phone contacts or address book", systemImage: "xmark.circle")
                 Label("Your private keys", systemImage: "xmark.circle")
             }
 
             Section {
-                Text("This is different from Meta, X, or Telegram accounts tied to a phone number and a central database.")
+                Text("You don't need a phone number or email to use ECHO — your account lives on your device.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }

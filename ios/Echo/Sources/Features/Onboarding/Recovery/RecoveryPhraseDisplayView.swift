@@ -56,7 +56,7 @@ struct RecoveryPhraseDisplayView: View {
                 .font(.system(size: 22, weight: .semibold))
                 .kerning(-0.3)
                 .foregroundStyle(Color.Echo.onSurface)
-            Text("Store them somewhere only you can access. Anyone with this phrase can restore your ECHO identity.")
+            Text("Keep these words private. Anyone who has them can access your account, so write them down somewhere safe.")
                 .font(.system(size: 13))
                 .foregroundStyle(Color.Echo.onSurfaceVariant)
                 .lineSpacing(2)
@@ -129,7 +129,7 @@ struct RecoveryPhraseDisplayView: View {
             Text("Recording detected")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(Color.Echo.onSurface)
-            Text("Stop screen recording to view your phrase.")
+            Text("We've hidden your recovery phrase while you're recording the screen, to keep it private.")
                 .font(.system(size: 13))
                 .foregroundStyle(Color.Echo.onSurfaceVariant)
         }

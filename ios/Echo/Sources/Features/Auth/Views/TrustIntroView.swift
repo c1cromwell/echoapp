@@ -23,7 +23,7 @@ public struct TrustIntroView: View {
                             Text("Your Trust Score")
                                 .typographyStyle(.display, color: .echoPrimaryText)
 
-                            Text("Echo uses a transparent trust system to keep the community safe and reward positive participation.")
+                            Text("ECHO has trust tiers to keep people safe and reward active users.")
                                 .typographyStyle(.body, color: .echoSecondaryText)
                                 .multilineTextAlignment(.center)
                         }
@@ -47,13 +47,13 @@ public struct TrustIntroView: View {
                                 icon: "star.circle.fill",
                                 color: .echoTrustTrusted,
                                 title: "Trusted",
-                                description: "Full payments, governance participation, staking."
+                                description: "Full payments and more features."
                             )
                             trustTierRow(
                                 icon: "checkmark.seal.fill",
                                 color: .echoTrustVerified,
                                 title: "Verified",
-                                description: "All features unlocked. Higher earning multipliers."
+                                description: "All features unlocked."
                             )
                         }
 
@@ -65,7 +65,7 @@ public struct TrustIntroView: View {
                             buildTrustItem("Verify your phone number and passkey")
                             buildTrustItem("Send messages and stay active")
                             buildTrustItem("Get vouched for by trusted users")
-                            buildTrustItem("Participate in governance")
+                            buildTrustItem("Add a verified ID")
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }

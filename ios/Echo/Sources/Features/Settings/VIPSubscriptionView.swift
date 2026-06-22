@@ -24,7 +24,7 @@ struct VIPSubscriptionView: View {
         .alert("VIP activated", isPresented: $showSuccess) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("You're on ECHO VIP. Benefits apply on this device; App Store billing ships in a later update.")
+            Text("You're on ECHO VIP. Your benefits work on this device. Automatic billing is coming soon.")
         }
     }
 
@@ -38,7 +38,7 @@ struct VIPSubscriptionView: View {
                     Text("ECHO VIP")
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundColor(.echoInk)
-                    Text(isActive ? "Member" : "Upgrade your experience")
+                    Text(isActive ? "Member" : "Get premium features")
                         .font(.system(size: 14))
                         .foregroundColor(.echoInk55)
                 }
@@ -119,7 +119,7 @@ struct VIPSubscriptionView: View {
     }
 
     private var legalNote: some View {
-        Text("Free tier keeps full E2E messaging and anchoring. VIP adds convenience and status — never security. App Store auto-renew ships in a future build; this TestFlight path activates VIP for development.")
+        Text("Free ECHO keeps full private messaging. VIP adds convenience and status — never extra security. Automatic billing is coming soon.")
             .font(.system(size: 12))
             .foregroundColor(.echoInk55)
             .fixedSize(horizontal: false, vertical: true)

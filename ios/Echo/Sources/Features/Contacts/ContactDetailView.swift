@@ -74,7 +74,7 @@ public struct ContactDetailView: View {
                 // Trust & Identity card
                 GhostBorderSection(title: "TRUST & IDENTITY") {
                     TrustRow(label: "Trust Score", value: "\(viewModel.contact.trustScore)/100")
-                    TrustRow(label: "DID", value: viewModel.contact.didShort, copyable: true)
+                    TrustRow(label: "Identity Key", value: viewModel.contact.didShort, copyable: true)
                     TrustRow(label: "Verified Since", value: viewModel.contact.verifiedDate)
                     TrustRow(label: "Mutual Groups", value: "\(viewModel.contact.mutualGroups)")
                     TrustRow(label: "Mutual Contacts", value: "\(viewModel.contact.mutualContacts)")

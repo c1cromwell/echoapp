@@ -15,7 +15,7 @@ struct LiveQRCodeScannerView: View {
 
             if cameraDenied {
                 VStack(spacing: 16) {
-                    Text("Camera access is required to scan QR codes.")
+                    Text("Turn on camera access in Settings to scan QR codes and add contacts.")
                         .font(.system(size: 15))
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.center)
@@ -29,7 +29,7 @@ struct LiveQRCodeScannerView: View {
 
                 VStack {
                     Spacer()
-                    Text("Align Echo profile QR in the frame")
+                    Text("Point your camera at a contact's QR code")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.white.opacity(0.85))
                         .padding(.bottom, 8)

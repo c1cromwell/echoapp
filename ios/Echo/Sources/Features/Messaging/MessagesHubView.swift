@@ -85,7 +85,7 @@ struct MessagesHubView: View {
                         switch segment {
                         case .chats:    chatsContent
                         case .groups:   groupsContent
-                        case .channels: placeholder(icon: "dot.radiowaves.left.and.right", text: "Broadcast channels are coming after groups.")
+                        case .channels: placeholder(icon: "dot.radiowaves.left.and.right", text: "Channels are coming soon.")
                         case .hidden:   hiddenContent
                         case .archived: archivedContent
                         }
@@ -109,7 +109,7 @@ struct MessagesHubView: View {
                 VStack(spacing: 14) {
                     Image(systemName: "person.3.fill").font(.system(size: 40)).foregroundColor(.echoInk40)
                     Text("Create a group").font(.system(size: 20, weight: .semibold)).foregroundColor(.echoInk)
-                    Text("Name your group and add trusted contacts. Group conversations arrive with the social-graph phase.")
+                    Text("Name your group and add the people you trust. Group chats are coming soon.")
                         .font(.system(size: 14)).foregroundColor(.echoInk55)
                         .multilineTextAlignment(.center)
                 }

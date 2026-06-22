@@ -92,7 +92,7 @@ public struct BiometricEnrollmentView: View {
                     }
                     .disabled(phase.isWorking)
 
-                    Text("Required to use Echo — your face IS your password.")
+                    Text("Your face unlocks ECHO and keeps your account safe.")
                         .font(.system(size: 11))
                         .foregroundColor(.echoSecondaryText)
                         .multilineTextAlignment(.center)

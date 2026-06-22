@@ -45,7 +45,7 @@ struct ChatDestinationView: View {
                     }
                 )
             } else {
-                ProgressView("Opening secure thread…")
+                ProgressView("Opening chat…")
             }
         }
         .hidesGlacialTabBarWhenPushed(true)

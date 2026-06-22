@@ -23,7 +23,7 @@ struct PrivacyHubView: View {
             } header: {
                 Text("Phone backup")
             } footer: {
-                Text("We store only a hash for recovery and optional PSI discovery. Raw numbers are not kept on the server.")
+                Text("We save a secure, scrambled version of your number for account recovery. Your real number never stays on our servers.")
             }
 
             Section("Messaging privacy") {
@@ -35,7 +35,7 @@ struct PrivacyHubView: View {
                 }
             }
             Section("Discovery") {
-                NavigationLink("Contact discovery (PSI)") {
+                NavigationLink("Contact discovery") {
                     ContactDiscoveryView()
                 }
                 NavigationLink("Phone discoverability") {
@@ -97,7 +97,7 @@ struct ContactDiscoverySettingsView: View {
                 Text(footerText)
             }
             Section("Remove from discovery") {
-                Button("Remove my phone from discovery", role: .destructive) {
+                Button("Stop letting people find me by my number", role: .destructive) {
                     discoverable = false
                     Task { await persistOptIn(false) }
                 }
@@ -115,7 +115,7 @@ struct ContactDiscoverySettingsView: View {
             } header: {
                 Text("Contact scan")
             } footer: {
-                Text("Manual only runs when you tap Scan in Privacy → Contact discovery (PSI). Weekly and monthly are stored locally until background sync ships.")
+                Text("Manual scans run when you tap Scan. Weekly and monthly scans are saved on your device for now.")
             }
         }
         .navigationTitle("Phone discovery")
@@ -129,7 +129,7 @@ struct ContactDiscoverySettingsView: View {
         if trustTier >= 3 && tierDefault {
             return "Tier \(trustTier) accounts are discoverable by default. You can opt out anytime."
         }
-        return "Tier \(trustTier) accounts are hidden by default. Opt in to let contacts find you via PSI."
+        return "Tier \(trustTier) accounts are hidden by default. Opt in to let contacts find you."
     }
 
     private func loadSettings() async {
@@ -170,7 +170,7 @@ private struct AccountDataView: View {
     var body: some View {
         List {
             Section {
-                Text("Your messages stay E2E encrypted. Account deletion revokes server sessions and refresh tokens; durable Identity Metagraph revocation ships in a later wave.")
+                Text("Your messages stay encrypted even if you delete your account. Deleting your account signs you out everywhere; full identity removal is coming soon.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -204,7 +204,7 @@ private struct AccountDataView: View {
                 Task { await deleteAccount() }
             }
         } message: {
-            Text("This cannot be undone from the device alone. Confirm you have exported your recovery phrase.")
+            Text("This can't be undone. Make sure you've saved your recovery phrase first.")
         }
     }
 

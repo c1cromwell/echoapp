@@ -103,7 +103,7 @@ public struct NameAndKeyView: View {
                             .font(.echomono(11))
                             .foregroundStyle(Color.echoTrustGreen)
                     } else if !username.isEmpty {
-                        Text("2–32 chars, letters and digits only")
+                        Text("Use 2–32 characters")
                             .font(.system(size: 11))
                             .foregroundStyle(Color.echoInk40)
                     }
@@ -160,7 +160,7 @@ public struct NameAndKeyView: View {
 
             let rows: [(String, String)] = [
                 ("Display name", username.isEmpty ? "…" : "@\(username)"),
-                ("Public key",   "did:key:z6Mk···"),
+                ("Public key",   "On this device"),
                 ("Phone number", "—"),
                 ("Email",        "—"),
                 ("Password",     "—"),

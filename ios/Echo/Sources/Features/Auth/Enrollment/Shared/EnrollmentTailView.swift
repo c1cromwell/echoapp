@@ -35,9 +35,9 @@ final class EnrollmentTailViewModel {
         var subtitle: String {
             switch self {
             case .creatingIdentity:
-                return "Registering your did:key with Echo and linking it to your verified credential."
+                return "Setting up your account and linking it to your verified ID."
             case .creatingWallet:
-                return "Generating your Constellation wallet via Stargazer SDK. Your keys never leave this device."
+                return "Setting up your wallet. Your keys never leave this device."
             case .registeringPasskey:
                 return "Bind your account to Face ID so future sign-ins take one tap."
             case .done:

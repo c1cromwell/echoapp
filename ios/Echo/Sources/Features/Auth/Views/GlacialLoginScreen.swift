@@ -183,7 +183,7 @@ public struct GlacialLoginScreen: View {
                     }
                 } label: {
                     HStack(spacing: 6) {
-                        Text("SECURE ALTERNATIVE")
+                        Text("OTHER SIGN-IN OPTIONS")
                             .font(.system(size: 11, weight: .semibold))
                             .tracking(1)
                             .foregroundStyle(Color.echoInk40)
@@ -285,7 +285,7 @@ public struct GlacialLoginScreen: View {
                 .lineSpacing(2)
                 .foregroundStyle(Color.echoInk)
 
-            Text("Face ID has been removed or is not enrolled on this device. Use your device passcode or recover your account.")
+            Text("Face ID isn't set up. Use your device passcode to continue, or recover your account.")
                 .font(.system(size: 13))
                 .lineSpacing(3)
                 .foregroundStyle(Color.echoInk55)
@@ -331,7 +331,7 @@ public struct GlacialLoginScreen: View {
                 .lineSpacing(2)
                 .foregroundStyle(Color.echoInk)
 
-            Text("Face ID is temporarily unavailable after multiple failed attempts. Use your device passcode to continue.")
+            Text("For your security, Face ID is locked. Use your device passcode to continue.")
                 .font(.system(size: 13))
                 .lineSpacing(3)
                 .foregroundStyle(Color.echoInk55)
@@ -370,7 +370,7 @@ public struct GlacialLoginScreen: View {
                 .lineSpacing(2)
                 .foregroundStyle(Color.echoInk)
 
-            Text("Too many failed attempts. Face ID is locked for 15 minutes.")
+            Text("For your security, Face ID is locked. Try again in 15 minutes.")
                 .font(.system(size: 13))
                 .lineSpacing(3)
                 .foregroundStyle(Color.echoInk55)

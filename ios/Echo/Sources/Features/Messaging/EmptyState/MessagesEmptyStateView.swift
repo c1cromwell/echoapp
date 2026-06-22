@@ -129,10 +129,10 @@ struct TrustTierBanner: View {
 
     private var subtitle: String {
         switch tier {
-        case 0: return "Provisioning your identity…"
-        case 1, 2: return "Add a credential to upgrade →"
-        case 3: return "Add a credential for higher trust →"
-        case 4: return "Present a government ID for Tier 5 →"
+        case 0: return "Setting up your account…"
+        case 1, 2: return "Verify your identity to build trust →"
+        case 3: return "Verify your identity for higher trust →"
+        case 4: return "Add a government ID for the highest trust level →"
         default: return "Maximum trust reached"
         }
     }

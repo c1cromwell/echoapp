@@ -42,7 +42,7 @@ public struct StorageLockedView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 24)
 
-                    Text("Your messages are protected with a key derived from your biometrics. Authenticate to unlock.")
+                    Text("Your messages are locked with Face ID. Unlock to continue.")
                         .font(.system(size: 14))
                         .foregroundColor(.echoSecondaryText)
                         .multilineTextAlignment(.center)
@@ -76,7 +76,7 @@ public struct StorageLockedView: View {
                         }
                     }
 
-                    Text("Your message content never leaves your device unencrypted.")
+                    Text("Your messages stay encrypted on your device.")
                         .font(.system(size: 11))
                         .foregroundColor(.echoSecondaryText)
                         .multilineTextAlignment(.center)

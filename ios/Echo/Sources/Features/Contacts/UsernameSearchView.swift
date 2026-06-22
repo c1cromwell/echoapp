@@ -27,7 +27,7 @@ struct UsernameSearchView: View {
                     ContentUnavailableView {
                         Label("No match", systemImage: "person.fill.questionmark")
                     } description: {
-                        Text("No one on ECHO matches “\(viewModel.lastQuery)”. Usernames are case-insensitive.")
+                        Text("No one found with that username. Try a different name.")
                     }
                 } else {
                     List {
@@ -88,7 +88,7 @@ struct UsernameSearchView: View {
                 Text("@\(hit.username)")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.echoInk)
-                Text(hit.did)
+                Text(ContactThreadHelper.truncatedDID(hit.did))
                     .font(.system(size: 12, design: .monospaced))
                     .foregroundColor(.echoInk40)
                     .lineLimit(1)

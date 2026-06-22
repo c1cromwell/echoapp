@@ -59,7 +59,7 @@ public struct PasskeySetupView: View {
                         .font(.system(size: 22, weight: .bold))
                         .foregroundColor(.echoPrimaryText)
 
-                    Text("Create a passkey using Face ID. Your private key never leaves this device.")
+                    Text("Create a backup way to sign in using Face ID. Your account stays on your phone.")
                         .font(.system(size: 14))
                         .foregroundColor(.echoSecondaryText)
                         .multilineTextAlignment(.center)
