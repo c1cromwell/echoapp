@@ -161,12 +161,18 @@ isn't available.
    `layer as! AVCaptureVideoPreviewLayer` is guaranteed by the `layerClass` override. Left as-is
    with clarifying comments.
 
-**Still open (the real remaining crypto item): sender authentication.** The live inbound path
-(`InboundTextMessageResolver` → `TextMessageCrypto.decryptPayload`) gives confidentiality but does
-**not authenticate the sender** — ECIES proves the message was encrypted to you, not who sent it.
-Proper fix is a protocol addition: sender signs the payload with the identity key, the wire carries
-`{senderDID, signature}`, and the receiver resolves the sender DID → identity public key → verifies.
-This spans iOS + wire format + relay passthrough, so it's a feature, not a localized fix.
+5. ✅ **Sender authentication (1:1)** — DONE. ECIES gave confidentiality but not authenticity;
+   the relay could substitute a payload. Now the sender signs a canonical binding of
+   `(messageId, ciphertext)` with the messaging key and the wire carries `{sender_did, signature}`
+   (`MessageSenderAuth`, `TextMessagePayload`). On receive, `InboundTextMessageResolver` resolves the
+   claimed sender's registered key and **rejects** a present-but-invalid signature ("Unverified
+   sender"); `.unsigned` legacy messages still flow until signing is universal. The signer reuses the
+   `MessagingAgreementKey` (P-256 does ECDH + ECDSA) — no new key, no per-message biometric — and
+   `encryptPayload` now awaits `MessagingKeyRegistrar.ensureRegistered` before the first signed send
+   so the peer can resolve the matching key (closes the registration race). Round-trip / tamper /
+   wrong-key unit tests in `SecurityTests/MessageSenderAuthTests`. Remaining: two-device runtime
+   check; make `.unsigned` rejection mandatory once all clients sign; consider a dedicated signing
+   key if ECDH/ECDSA separation is later required.
 
 Next: **Wave 3 / 4** — feature completion, then backend hardening, per §3–4.
 

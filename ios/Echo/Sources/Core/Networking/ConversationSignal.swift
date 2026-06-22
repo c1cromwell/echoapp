@@ -175,6 +175,10 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
     let groupKeyVersion: Int?
     /// Client-encrypted media relay reference (M5). Cleartext only in legacy/dev paths.
     let media: MediaAttachmentRef?
+    /// Sender authentication (1:1): the sender's DID and a P-256 signature over
+    /// `(messageId, ciphertext)`. Optional for backward compatibility; see `MessageSenderAuth`.
+    let senderDID: String?
+    let signature: Data?
 
     enum CodingKeys: String, CodingKey {
         case messageId = "message_id"
@@ -183,6 +187,8 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
         case groupCiphertext = "group_ciphertext"
         case groupKeyVersion = "group_key_version"
         case media
+        case senderDID = "sender_did"
+        case signature
     }
 
     init(
@@ -191,7 +197,9 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
         encrypted: EncryptedMessageWithPublicKey? = nil,
         groupCiphertext: Data? = nil,
         groupKeyVersion: Int? = nil,
-        media: MediaAttachmentRef? = nil
+        media: MediaAttachmentRef? = nil,
+        senderDID: String? = nil,
+        signature: Data? = nil
     ) {
         self.messageId = messageId
         self.text = text
@@ -199,6 +207,8 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
         self.groupCiphertext = groupCiphertext
         self.groupKeyVersion = groupKeyVersion
         self.media = media
+        self.senderDID = senderDID
+        self.signature = signature
     }
 }
 

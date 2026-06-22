@@ -24,7 +24,49 @@ actor TextMessageCrypto {
             plaintext: plaintext,
             recipientPublicKeyData: pubData
         )
-        return TextMessagePayload(messageId: messageId, text: nil, encrypted: encrypted)
+        // Sender authentication: sign (messageId, ciphertext) with our messaging key so
+        // the recipient can verify the message genuinely came from us and was not altered.
+        let senderDID = await CurrentUserSession.currentDID()
+        // Ensure our messaging key is registered before the signed message goes out, so the
+        // recipient can resolve the matching public key and verification doesn't spuriously
+        // fail on a registration race for a brand-new account. Idempotent + flag-gated.
+        if let did = senderDID {
+            await MessagingKeyRegistrar().ensureRegistered(did: did)
+        }
+        let signingKey = try await MessagingAgreementKey.loadOrCreate()
+        let signature = try? MessageSenderAuth.sign(
+            messageId: messageId, encrypted: encrypted, signingKeyRaw: signingKey.rawRepresentation
+        )
+        return TextMessagePayload(
+            messageId: messageId, text: nil, encrypted: encrypted,
+            senderDID: senderDID, signature: signature
+        )
+    }
+
+    /// Result of checking an inbound payload's sender-authentication signature.
+    enum SenderVerification {
+        case verified   // signature present and valid
+        case unsigned   // no signature (legacy sender) — caller decides policy
+        case invalid    // signature present but does not verify → reject
+    }
+
+    /// Verifies the sender-authentication signature on an inbound 1:1 payload against the
+    /// public key the registry holds for `expectedSenderDID` (the relay-claimed sender).
+    /// A pass proves the message came from that DID and was not tampered with in transit.
+    func senderVerification(for payload: TextMessagePayload, expectedSenderDID: String) async -> SenderVerification {
+        guard let signature = payload.signature, let encrypted = payload.encrypted else {
+            return .unsigned
+        }
+        guard !expectedSenderDID.isEmpty,
+              let hex = try? await cachedPeerKeyHex(peerDID: expectedSenderDID),
+              let signerKey = try? Self.dataFromPublicKeyHex(hex) else {
+            return .invalid
+        }
+        let ok = MessageSenderAuth.verify(
+            messageId: payload.messageId, encrypted: encrypted,
+            signature: signature, signerPublicKey: signerKey
+        )
+        return ok ? .verified : .invalid
     }
 
     func decryptPayload(_ payload: TextMessagePayload) async throws -> String {

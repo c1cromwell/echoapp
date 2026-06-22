@@ -13,6 +13,12 @@ enum InboundTextMessageResolver {
         if let wire = event.wirePayload, wire.encrypted != nil {
             let client = await DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
             let crypto = TextMessageCrypto(identityResolve: IdentityResolveClient(apiClient: client))
+            // Sender authentication: reject a message whose signature is present but does
+            // not verify against the claimed sender — a tampered or spoofed relay payload.
+            // (`.unsigned` legacy messages still flow through until signing is universal.)
+            if await crypto.senderVerification(for: wire, expectedSenderDID: event.peerDID) == .invalid {
+                return ResolvedBody(body: TextMessagePayload.encryptedPlaceholder, preview: "Unverified sender")
+            }
             if let decrypted = try? await crypto.decryptPayload(wire) {
                 if let mediaWire = MediaMessageService.parseWire(from: decrypted) {
                     body = TextMessagePayload.mediaPlaceholder(for: mediaWire.media)
