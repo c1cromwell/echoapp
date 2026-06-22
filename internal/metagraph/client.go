@@ -24,19 +24,23 @@ type MetagraphConfig struct {
 
 // MetagraphClient is an HTTP client for the Constellation metagraph APIs.
 type MetagraphClient struct {
-	config MetagraphConfig
-	http   *http.Client
+	config  MetagraphConfig
+	http    *http.Client
+	breaker *CircuitBreaker
 }
 
-// NewMetagraphClient creates a new metagraph gateway client.
+// NewMetagraphClient creates a new metagraph gateway client. Submissions are guarded
+// by a circuit breaker so a slow/unavailable metagraph fast-fails instead of making
+// every caller (relay anchoring, media, governance, rewards) wait the full timeout.
 func NewMetagraphClient(config MetagraphConfig) *MetagraphClient {
 	timeout := config.Timeout
 	if timeout == 0 {
 		timeout = 30 * time.Second
 	}
 	return &MetagraphClient{
-		config: config,
-		http:   &http.Client{Timeout: timeout},
+		config:  config,
+		http:    &http.Client{Timeout: timeout},
+		breaker: NewCircuitBreaker(5, 30*time.Second),
 	}
 }
 
@@ -62,7 +66,9 @@ type CurrencyL1Transaction struct {
 
 // SubmitCurrencyL1 submits a Currency L1 transaction and returns the tx hash.
 func (c *MetagraphClient) SubmitCurrencyL1(ctx context.Context, tx CurrencyL1Transaction) (string, error) {
-	return c.submitTransaction(ctx, c.config.CurrencyL1URL+"/transactions", tx)
+	return c.guarded(func() (string, error) {
+		return c.submitTransaction(ctx, c.config.CurrencyL1URL+"/transactions", tx)
+	})
 }
 
 // SubmitDataL1 posts a Data L1 data-application update.
@@ -72,16 +78,20 @@ func (c *MetagraphClient) SubmitDataL1(ctx context.Context, tx interface{}) (str
 	if base == "" {
 		return "", fmt.Errorf("metagraph: DataL1URL is not configured")
 	}
-	if c.config.IdentitySigner != nil {
-		return c.SubmitSignedData(ctx, base, tx, *c.config.IdentitySigner)
-	}
+	signer := c.config.IdentitySigner
 	// Fail closed in production: never anchor unsigned data that the metagraph and
 	// downstream verifiers would otherwise have to trust without provenance. In
 	// dev/test an unsigned submission is allowed so the stack runs without a key.
-	if os.Getenv("ENVIRONMENT") == "production" {
+	// (Config errors are returned before the breaker so they don't trip it.)
+	if signer == nil && os.Getenv("ENVIRONMENT") == "production" {
 		return "", fmt.Errorf("metagraph: refusing unsigned Data L1 submission in production (configure IdentitySigner / IDENTITY_SERVICE_KEY_PEM)")
 	}
-	return c.submitTransaction(ctx, base+"/transactions", tx)
+	return c.guarded(func() (string, error) {
+		if signer != nil {
+			return c.SubmitSignedData(ctx, base, tx, *signer)
+		}
+		return c.submitTransaction(ctx, base+"/transactions", tx)
+	})
 }
 
 // QueryValidators returns active L1 validators from the metagraph.
