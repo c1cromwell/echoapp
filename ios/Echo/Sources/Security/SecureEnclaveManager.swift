@@ -180,6 +180,9 @@ actor SecureEnclaveManager {
     var ref: CFTypeRef?
     let status = SecItemAdd(attributes as CFDictionary, &ref)
 
+    // `ref as! SecKey?` is the compiler-sanctioned idiom for a CoreFoundation type
+    // returned by a SecItem call guarded on errSecSuccess (`as?` is rejected for CF
+    // downcasts that always succeed). Safe by construction, not a force-unwrap bug.
     guard status == errSecSuccess, let secKey = ref as! SecKey? else {
       throw SecureEnclaveError.keyGenerationFailed("SecItemAdd: OSStatus \(status)")
     }
@@ -490,6 +493,8 @@ actor SecureEnclaveManager {
     let status = SecItemCopyMatching(query as CFDictionary, &ref)
     
     if status == errSecSuccess {
+      // CoreFoundation downcast guarded by errSecSuccess — `as!` is the sanctioned
+      // idiom here (`as?` is rejected as always-succeeding for CF types).
       return (ref as! SecKey)
     } else if status == errSecItemNotFound {
       return nil

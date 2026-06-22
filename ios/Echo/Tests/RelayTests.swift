@@ -89,75 +89,6 @@ final class AnchoringTrackerTests: XCTestCase {
     }
 }
 
-// MARK: - OfflineQueueManager Tests
-
-final class OfflineQueueManagerTests: XCTestCase {
-
-    var queue: OfflineQueueManager!
-
-    override func setUp() {
-        super.setUp()
-        queue = OfflineQueueManager()
-    }
-
-    func testEnqueueAndCount() async {
-        let request = makeRelayRequest(messageId: "msg-1")
-        await queue.enqueue(request)
-
-        let count = await queue.count
-        XCTAssertEqual(count, 1)
-    }
-
-    func testDequeueAll() async {
-        await queue.enqueue(makeRelayRequest(messageId: "msg-1"))
-        await queue.enqueue(makeRelayRequest(messageId: "msg-2"))
-
-        let items = await queue.dequeueAll()
-        XCTAssertEqual(items.count, 2)
-
-        let countAfter = await queue.count
-        XCTAssertEqual(countAfter, 0)
-    }
-
-    func testDequeueAllEmpty() async {
-        let items = await queue.dequeueAll()
-        XCTAssertTrue(items.isEmpty)
-    }
-
-    func testRemoveByMessageId() async {
-        await queue.enqueue(makeRelayRequest(messageId: "msg-1"))
-        await queue.enqueue(makeRelayRequest(messageId: "msg-2"))
-
-        await queue.remove(messageId: "msg-1")
-
-        let items = await queue.peek()
-        XCTAssertEqual(items.count, 1)
-        XCTAssertEqual(items.first?.messageId, "msg-2")
-    }
-
-    func testClear() async {
-        for i in 0..<10 {
-            await queue.enqueue(makeRelayRequest(messageId: "msg-\(i)"))
-        }
-        await queue.clear()
-
-        let count = await queue.count
-        XCTAssertEqual(count, 0)
-    }
-
-    private func makeRelayRequest(messageId: String) -> RelayRequest {
-        RelayRequest(
-            messageId: messageId,
-            conversationId: "conv-1",
-            contentType: "text",
-            encryptedPayload: Data("encrypted".utf8),
-            commitment: Data("commitment".utf8),
-            signature: Data("sig".utf8),
-            timestamp: Date()
-        )
-    }
-}
-
 // MARK: - DeliveryStatus Tests
 
 final class DeliveryStatusTests: XCTestCase {
@@ -436,17 +367,5 @@ final class GroupKeyErrorTests: XCTestCase {
         XCTAssertNotNil(GroupKeyError.decryptionFailed.errorDescription)
         XCTAssertNotNil(GroupKeyError.keyRotationFailed.errorDescription)
         XCTAssertNotNil(GroupKeyError.notGroupAdmin.errorDescription)
-    }
-}
-
-// MARK: - MessageRelayError Tests
-
-final class MessageRelayErrorTests: XCTestCase {
-
-    func testErrorDescriptions() {
-        XCTAssertNotNil(MessageRelayError.invalidSignature.errorDescription)
-        XCTAssertNotNil(MessageRelayError.commitmentMismatch.errorDescription)
-        XCTAssertNotNil(MessageRelayError.decryptionFailed.errorDescription)
-        XCTAssertNotNil(MessageRelayError.relayUnavailable.errorDescription)
     }
 }

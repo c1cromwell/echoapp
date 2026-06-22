@@ -41,8 +41,8 @@ final class ChatDetailViewModel {
     /// Disappearing-message TTL for this conversation (0 = off).
     var disappearingTTLSeconds = 0
 
-    /// Outbound send hook. Wire to `MessagingService` / `MessageRelayManager` from Xcode;
-    /// defaults to a no-op so the optimistic UI works headless and in previews.
+    /// Outbound send hook. Defaults to a no-op so the optimistic UI works headless and
+    /// in previews; the live send path runs through `ConversationSignalService`.
     private var onSend: (String) -> Void = { _ in }
 
     // MARK: - Internal state

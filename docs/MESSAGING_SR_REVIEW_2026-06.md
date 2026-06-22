@@ -143,14 +143,32 @@ These were chosen because they close real confidentiality/correctness gaps **wit
 crypto core or requiring deletions — i.e., low build-break risk in a session where the Xcode gate
 isn't available.
 
-## 7. Recommended execution order (waves)
+## 7. Execution status (waves)
 
-1. **Wave 2 / device decrypt (Option B)** — the one fix that makes private messaging work on
-   hardware. Highest priority despite being labeled Wave 2; do it next with the Xcode loop.
-2. **Delete dead `MessageRelayManager` + `OfflineQueueManager`/`RelayRequest` cascade** — only with
-   the Xcode build available to confirm no hidden references (`AnchoringTracker` is live and stays).
-3. **Wave 1 polish** — enrollment progress/retry UI, AUTH_007/009 recovery, lockout countdown.
-4. **Wave 3 / 4** — feature completion, then backend hardening, per §3–4.
+1. ✅ **Device decrypt (Option B)** — DONE (`MessagingAgreementKey` + `MessagingKeyRegistrar` +
+   resolve-by-label). See §3 / §5. Remaining gate: two-device runtime decrypt.
+2. ✅ **Deleted dead `MessageRelayManager` + `OfflineQueueManager`** (incl. `RelayRequest` /
+   `IncomingRelayMessage` / `MessageRelayError`) and their `RelayTests` sections. This removed the
+   broken parallel path (wrong key ids `messaging-signing-key`/`messaging-key-agreement`, the
+   `getPublicKey`-used-as-private-key bug, and an unauthenticated `handleIncomingMessage`).
+   `AnchoringTracker` and `WSRelayMessage` are now unused-but-inert and left in place.
+3. ✅ **Wave 1** — `ProvisioningStatusBanner` (failed-provision retry). Login was already complete
+   (`GlacialLoginScreen`); `LoginViewModel`/`LoginView` are dead (deletion deferred — referenced by
+   `AuthTests`).
+4. ✅ **Force-unwrap audit** — verdict: the flagged casts are **safe by construction**, not bugs.
+   `SecureEnclaveManager`'s `ref as! SecKey` (×2) is the compiler-sanctioned CoreFoundation idiom
+   under `errSecSuccess` (`as?` is rejected as always-succeeding); `MDLQRScannerView`'s
+   `layer as! AVCaptureVideoPreviewLayer` is guaranteed by the `layerClass` override. Left as-is
+   with clarifying comments.
+
+**Still open (the real remaining crypto item): sender authentication.** The live inbound path
+(`InboundTextMessageResolver` → `TextMessageCrypto.decryptPayload`) gives confidentiality but does
+**not authenticate the sender** — ECIES proves the message was encrypted to you, not who sent it.
+Proper fix is a protocol addition: sender signs the payload with the identity key, the wire carries
+`{senderDID, signature}`, and the receiver resolves the sender DID → identity public key → verifies.
+This spans iOS + wire format + relay passthrough, so it's a feature, not a localized fix.
+
+Next: **Wave 3 / 4** — feature completion, then backend hardening, per §3–4.
 
 ## 8. Verification gate
 
