@@ -148,6 +148,34 @@ func deriveKeyID(pub *ecdsa.PublicKey) string {
 	return hex.EncodeToString(sum[:])[:8]
 }
 
+// PublicJWKS returns a JSON Web Key Set advertising the current ES256 public
+// signing key. The `kid` matches the one stamped into issued tokens, so verifiers
+// can fetch the key from /.well-known/jwks.json instead of receiving it out of
+// band — and it is the foundation for rotation (publish old + new keys during the
+// overlap window).
+func (ts *TokenService) PublicJWKS() ([]byte, error) {
+	// EC coordinates must be fixed 32-byte big-endian (left-padded) per RFC 7518.
+	coord := func(i *big.Int) string {
+		b := i.Bytes()
+		if len(b) < 32 {
+			padded := make([]byte, 32)
+			copy(padded[32-len(b):], b)
+			b = padded
+		}
+		return base64.RawURLEncoding.EncodeToString(b)
+	}
+	jwk := map[string]string{
+		"kty": "EC",
+		"crv": "P-256",
+		"alg": "ES256",
+		"use": "sig",
+		"kid": ts.keyID,
+		"x":   coord(ts.publicKey.X),
+		"y":   coord(ts.publicKey.Y),
+	}
+	return json.Marshal(map[string]any{"keys": []map[string]string{jwk}})
+}
+
 // IssueAccessToken creates a signed access token for the given claims.
 func (ts *TokenService) IssueAccessToken(userDID string, deviceID string, trustTier int, scope string) (string, *TokenClaims, error) {
 	now := time.Now()
@@ -226,19 +254,34 @@ func (ts *TokenService) signClaims(claims *TokenClaims) (string, error) {
 		claims.Elevated, claims.ElevatedAction,
 	)
 
-	// ES256 sign
-	hash := sha256.Sum256([]byte(payload))
+	// Standard ES256 JWT: the signature covers `base64url(header).base64url(payload)`
+	// (so the header — alg/kid — is integrity-protected) and r‖s are each fixed
+	// 32-byte big-endian. This is interoperable with any RFC 7515 verifier and the
+	// key published at /.well-known/jwks.json.
+	header := base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf(`{"alg":"ES256","kid":"%s"}`, ts.keyID)))
+	body := base64.RawURLEncoding.EncodeToString([]byte(payload))
+	signingInput := header + "." + body
+
+	hash := sha256.Sum256([]byte(signingInput))
 	r, s, err := ecdsa.Sign(rand.Reader, ts.privateKey, hash[:])
 	if err != nil {
 		return "", fmt.Errorf("sign token: %w", err)
 	}
 
-	sig := append(r.Bytes(), s.Bytes()...)
-	header := base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf(`{"alg":"ES256","kid":"%s"}`, ts.keyID)))
-	body := base64.RawURLEncoding.EncodeToString([]byte(payload))
+	sig := append(leftPad32(r.Bytes()), leftPad32(s.Bytes())...)
 	signature := base64.RawURLEncoding.EncodeToString(sig)
 
-	return header + "." + body + "." + signature, nil
+	return signingInput + "." + signature, nil
+}
+
+// leftPad32 returns b as a fixed 32-byte big-endian slice (EC scalars / coords).
+func leftPad32(b []byte) []byte {
+	if len(b) >= 32 {
+		return b
+	}
+	out := make([]byte, 32)
+	copy(out[32-len(b):], b)
+	return out
 }
 
 // ValidateAccessToken verifies and decodes an access token.
@@ -268,25 +311,37 @@ func (ts *TokenService) parseToken(tokenString string) (*TokenClaims, error) {
 		return nil, fmt.Errorf("malformed token")
 	}
 
+	// Reject any header whose alg is not ES256 (the header is signed below, but
+	// checking explicitly avoids relying solely on the signature for alg safety).
+	if headerBytes, hErr := base64.RawURLEncoding.DecodeString(parts[0]); hErr == nil {
+		var hdr struct {
+			Alg string `json:"alg"`
+		}
+		if json.Unmarshal(headerBytes, &hdr) == nil && hdr.Alg != "ES256" {
+			return nil, fmt.Errorf("unsupported token alg %q", hdr.Alg)
+		}
+	}
+
 	// Decode payload
 	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
 		return nil, fmt.Errorf("decode payload: %w", err)
 	}
 
-	// Verify signature
-	hash := sha256.Sum256(payloadBytes)
+	// Verify signature over the standard JWT signing input (header.payload), with
+	// fixed 32-byte r‖s.
+	hash := sha256.Sum256([]byte(parts[0] + "." + parts[1]))
 	sigBytes, err := base64.RawURLEncoding.DecodeString(parts[2])
 	if err != nil {
 		return nil, fmt.Errorf("decode signature: %w", err)
 	}
 
-	if len(sigBytes) < 64 {
+	if len(sigBytes) != 64 {
 		return nil, fmt.Errorf("invalid signature length")
 	}
 
-	r := new(big.Int).SetBytes(sigBytes[:len(sigBytes)/2])
-	s := new(big.Int).SetBytes(sigBytes[len(sigBytes)/2:])
+	r := new(big.Int).SetBytes(sigBytes[:32])
+	s := new(big.Int).SetBytes(sigBytes[32:])
 
 	if !ecdsa.Verify(ts.publicKey, hash[:], r, s) {
 		return nil, fmt.Errorf("invalid signature")

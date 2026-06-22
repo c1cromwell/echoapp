@@ -183,6 +183,8 @@ func (rt *Router) Handler() http.Handler {
 		switch {
 		case r.URL.Path == "/health":
 			rt.handleHealth(w, r)
+		case r.URL.Path == "/.well-known/jwks.json":
+			rt.handleJWKS(w, r)
 		case r.URL.Path == "/ws":
 			// WebSocket upgrade — handled before auth middleware wraps the response
 			ServeWS(rt.WSHub, rt.UserIDExtractor, w, r)
@@ -257,6 +259,7 @@ func (rt *Router) requestIDMiddleware(next http.Handler) http.Handler {
 // publicPaths are exempt from Bearer token authentication.
 // These are registration and restore endpoints that new devices call before they have a token.
 var publicPaths = map[string]bool{
+	"/.well-known/jwks.json":           true, // ES256 public signing key (JWK Set), no auth
 	"/v1/auth/register-did":            true,
 	"/v1/auth/restore-challenge":       true,
 	"/v1/auth/restore-did":             true,

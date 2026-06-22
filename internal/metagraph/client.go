@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -73,6 +74,12 @@ func (c *MetagraphClient) SubmitDataL1(ctx context.Context, tx interface{}) (str
 	}
 	if c.config.IdentitySigner != nil {
 		return c.SubmitSignedData(ctx, base, tx, *c.config.IdentitySigner)
+	}
+	// Fail closed in production: never anchor unsigned data that the metagraph and
+	// downstream verifiers would otherwise have to trust without provenance. In
+	// dev/test an unsigned submission is allowed so the stack runs without a key.
+	if os.Getenv("ENVIRONMENT") == "production" {
+		return "", fmt.Errorf("metagraph: refusing unsigned Data L1 submission in production (configure IdentitySigner / IDENTITY_SERVICE_KEY_PEM)")
 	}
 	return c.submitTransaction(ctx, base+"/transactions", tx)
 }

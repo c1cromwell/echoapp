@@ -100,18 +100,30 @@ by thread retention, not unbounded. No change.
 
 ---
 
-## 4. Architecture findings (backend) [verify against Go source]
+## 4. Architecture findings (backend) — Wave 4
 
-- `X-Device-Info` is plaintext-trusted in `internal/auth/middleware.go` → integrity flags
-  (jailbreak, etc.) are forgeable. Bind with Apple App Attest / DeviceCheck.
-- Metagraph submissions go out **unsigned** when `IDENTITY_SERVICE_KEY_PEM` is absent
-  (`internal/metagraph/client.go`) → any backend could submit false commitments. Require signing.
-- JWT signing key is loaded once with **no rotation** (`internal/auth/token.go`). Add key
-  versioning + a JWKS endpoint.
-- Per-DID rate limiting is per-instance → multiplies under horizontal scaling. Move to a
-  Redis sliding-window/token-bucket.
-- Relay can block on synchronous metagraph calls. Add a circuit breaker so a Data L1 timeout
-  can't stall message relay (`internal/api/ws.go`, `internal/services/relay/relay.go`).
+**Done (tested with `go test`):**
+- ✅ **JWKS endpoint** `/.well-known/jwks.json` (`internal/api/jwks_handler.go`) publishes the ES256
+  public signing key as a JWK Set; `TokenService.PublicJWKS()` (`internal/auth/token.go`). The
+  existing `kid` already lets future rotation publish old+new during overlap.
+- ✅ **Standard ES256 JWT (security fix).** The signer was **non-standard**: it hashed only the
+  payload and used unpadded `r‖s`, so the header (`alg`/`kid`) was **not integrity-protected** and
+  tokens weren't verifiable by any RFC 7515 verifier. `signClaims`/`parseToken` now sign/verify the
+  standard `header.payload` input with fixed 32-byte `r‖s`, and `parseToken` rejects non-ES256 `alg`.
+  Test reconstructs the key from the JWKS and verifies a real token.
+- ✅ **Metagraph fail-closed in production.** `SubmitDataL1` now refuses an unsigned submission when
+  `ENVIRONMENT=production` (instead of silently anchoring unsigned), keeping dev unaffected
+  (`internal/metagraph/client.go`).
+
+**Scoped follow-ups (larger infra, not in this pass):**
+- **Distributed rate limiting** — `AuthRateLimiter` is in-memory (`internal/auth/ratelimit.go`, "would
+  use Redis"); a `RedisBackend` abstraction already exists to back it. Multiplies the limit under
+  horizontal scaling until converted.
+- **Signed device integrity** — `ValidateDeviceInfo` only checks field presence
+  (`internal/auth/device.go`); real anti-forgery needs Apple App Attest / DeviceCheck (server-side
+  attestation validation) — a sizable platform integration.
+- **Relay circuit breaker** (`internal/api/ws.go`, `internal/services/relay/relay.go`) and
+  **server-side group-admin enforcement**.
 
 ---
 
@@ -185,8 +197,14 @@ isn't available.
    authenticates), group key versioning (exists), call-history wiring (exists), search pruning
    (`removeMessage` exists, bounded by threads). Server-side group-admin enforcement → Wave 4.
 
-Next: **Wave 4** — backend hardening (signed device integrity, signed metagraph submissions, JWT
-rotation, distributed rate limiting, relay circuit breaker, group-admin enforcement), per §4.
+7. ✅ **Wave 4 (backend)** — JWKS endpoint, standard ES256 JWT (header now integrity-protected),
+   and metagraph fail-closed-in-production. All `go test`-verified across `internal/...`. Scoped
+   follow-ups: Redis-backed rate limiting, App Attest device integrity, relay circuit breaker,
+   server-side group-admin enforcement (see §4).
+
+All seven items (Option B + Waves 1–4 + sender auth) are landed on `main`. Remaining work is the
+documented scoped follow-ups plus the **two-device runtime test** that the headless build can't
+exercise.
 
 ## 8. Verification gate
 
