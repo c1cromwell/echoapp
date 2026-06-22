@@ -1,10 +1,19 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
 )
+
+// RateLimitStore is an atomic, shared (e.g. Redis) sliding-window backend. When set,
+// auth limits (OTP sends, login, refresh) are enforced across all instances rather
+// than per-process — closing the cross-instance bypass under horizontal scaling.
+// *infra.RedisClient satisfies this structurally.
+type RateLimitStore interface {
+	AllowRate(ctx context.Context, key string, limit int, window time.Duration) (allowed bool, remaining int, retryAfter time.Duration, err error)
+}
 
 // AuthRateLimitConfig defines a rate limit rule.
 type AuthRateLimitConfig struct {
@@ -13,11 +22,12 @@ type AuthRateLimitConfig struct {
 	Window time.Duration
 }
 
-// AuthRateLimiter implements sliding window rate limiting.
-// In production, this would use Redis sorted sets.
+// AuthRateLimiter implements sliding window rate limiting, in-process by default and
+// distributed when a RateLimitStore is attached via SetStore.
 type AuthRateLimiter struct {
 	mu      sync.Mutex
 	windows map[string][]time.Time // key -> timestamps of requests
+	store   RateLimitStore         // optional; enforced cross-instance when set
 }
 
 // NewAuthRateLimiter creates a new rate limiter.
@@ -27,9 +37,36 @@ func NewAuthRateLimiter() *AuthRateLimiter {
 	}
 }
 
+// SetStore enables distributed (Redis-backed) enforcement. A store error at request
+// time falls back to the in-process window rather than failing the request.
+func (rl *AuthRateLimiter) SetStore(store RateLimitStore) {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	rl.store = store
+}
+
 // Check tests whether a request should be allowed under the given config.
 // Returns nil if allowed, AuthError if rate limited.
 func (rl *AuthRateLimiter) Check(key string, cfg AuthRateLimitConfig) *AuthError {
+	// Distributed path (lock-free so the Redis round-trip doesn't serialize checks).
+	rl.mu.Lock()
+	store := rl.store
+	rl.mu.Unlock()
+	if store != nil {
+		if allowed, _, retryAfter, err := store.AllowRate(context.Background(), key, cfg.Limit, cfg.Window); err == nil {
+			if allowed {
+				return nil
+			}
+			ra := int(retryAfter.Seconds())
+			if ra < 1 {
+				ra = 1
+			}
+			e := NewAuthError(ErrCodeGlobalRateLimit, 429)
+			e.RetryAfter = &ra
+			return e
+		}
+	}
+
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 

@@ -1,10 +1,17 @@
 package infra
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
 )
+
+// RateLimitStore is an atomic, shared (e.g. Redis) sliding-window backend. When set
+// on a RateLimiter, limits are enforced across all instances instead of per-process.
+type RateLimitStore interface {
+	AllowRate(ctx context.Context, key string, limit int, window time.Duration) (allowed bool, remaining int, retryAfter time.Duration, err error)
+}
 
 // RateLimitExceededError carries the Retry-After duration so the HTTP layer
 // can set the Retry-After header per RFC 6585 §4.
@@ -63,6 +70,16 @@ type RateLimiter struct {
 	vipLimits  map[string]RateLimitConfig
 	limits     map[string]RateLimitConfig // kept for backward compat
 	buckets    map[string]*tokenBucket
+	store      RateLimitStore // optional; when set, enforced cross-instance
+}
+
+// SetStore enables distributed (e.g. Redis-backed) enforcement. When the store
+// errors at request time the limiter falls back to its in-process window, so a
+// Redis blip degrades to per-instance limiting rather than failing requests.
+func (rl *RateLimiter) SetStore(store RateLimitStore) {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	rl.store = store
 }
 
 type tokenBucket struct {
@@ -95,9 +112,8 @@ func (rl *RateLimiter) Check(did, action string) error {
 
 // CheckTiered is like Check but applies VIP limits when tier == TierVIP.
 func (rl *RateLimiter) CheckTiered(did, action string, tier SubscriptionTier) error {
-	rl.mu.Lock()
-	defer rl.mu.Unlock()
-
+	// baseLimits/vipLimits are set once at construction and never mutated, so they
+	// are safe to read without the lock.
 	limits := rl.baseLimits
 	if tier == TierVIP {
 		limits = rl.vipLimits
@@ -109,6 +125,27 @@ func (rl *RateLimiter) CheckTiered(did, action string, tier SubscriptionTier) er
 	}
 
 	key := string(tier) + ":" + did + ":" + action
+
+	// Distributed path: enforce across instances via the shared store, lock-free so a
+	// Redis round-trip doesn't serialize all checks. On error, fall back to the
+	// in-process window (degraded but still protected).
+	rl.mu.Lock()
+	store := rl.store
+	rl.mu.Unlock()
+	if store != nil {
+		if allowed, _, retryAfter, err := store.AllowRate(context.Background(), key, limit.MaxRequests, limit.Window); err == nil {
+			if allowed {
+				return nil
+			}
+			if retryAfter <= 0 {
+				retryAfter = limit.Window
+			}
+			return &RateLimitExceededError{RetryAfter: retryAfter}
+		}
+	}
+
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
 	bucket, exists := rl.buckets[key]
 
 	if !exists {

@@ -3,10 +3,80 @@ package infra
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 )
+
+// rateLimitScript is an atomic sliding-window-log limiter over a sorted set:
+// drop entries older than the window, count what remains, and admit (recording a
+// new entry) only if under the limit. Running it server-side in one EVAL makes the
+// decision correct across many API instances sharing one Redis.
+//
+// KEYS[1] = bucket key
+// ARGV: now(ms), window(ms), limit, unique-member
+// returns {allowed(0|1), remaining, retryAfter(ms)}
+var rateLimitScript = redis.NewScript(`
+local now = tonumber(ARGV[1])
+local window = tonumber(ARGV[2])
+local limit = tonumber(ARGV[3])
+redis.call('ZREMRANGEBYSCORE', KEYS[1], 0, now - window)
+local count = redis.call('ZCARD', KEYS[1])
+if count < limit then
+  redis.call('ZADD', KEYS[1], now, ARGV[4])
+  redis.call('PEXPIRE', KEYS[1], window)
+  return {1, limit - count - 1, 0}
+end
+local oldest = redis.call('ZRANGE', KEYS[1], 0, 0, 'WITHSCORES')
+local retry = window
+if oldest[2] then
+  retry = (tonumber(oldest[2]) + window) - now
+  if retry < 0 then retry = 0 end
+end
+return {0, 0, retry}
+`)
+
+var rateLimitSeq uint64
+
+// AllowRate atomically records a hit against `key` and reports whether it is within
+// `limit` requests per `window`, sharing state across instances via Redis. Returns
+// the remaining allowance and, when denied, how long to wait. Satisfies the
+// RateLimitStore interfaces used by the in-process limiters.
+func (r *RedisClient) AllowRate(ctx context.Context, key string, limit int, window time.Duration) (bool, int, time.Duration, error) {
+	if limit <= 0 || window <= 0 {
+		return true, 0, 0, nil
+	}
+	now := time.Now().UnixMilli()
+	// Unique member so two hits in the same millisecond don't collide in the set.
+	member := strconv.FormatInt(now, 10) + ":" + strconv.FormatUint(atomic.AddUint64(&rateLimitSeq, 1), 10)
+	res, err := rateLimitScript.Run(ctx, r.client, []string{"rl:" + key},
+		now, window.Milliseconds(), limit, member).Result()
+	if err != nil {
+		return false, 0, 0, err
+	}
+	vals, ok := res.([]interface{})
+	if !ok || len(vals) != 3 {
+		return false, 0, 0, fmt.Errorf("ratelimit: unexpected script result %v", res)
+	}
+	allowed := luaInt(vals[0]) == 1
+	remaining := int(luaInt(vals[1]))
+	retry := time.Duration(luaInt(vals[2])) * time.Millisecond
+	return allowed, remaining, retry, nil
+}
+
+// luaInt coerces a Lua number (go-redis returns int64) to int64.
+func luaInt(v interface{}) int64 {
+	switch n := v.(type) {
+	case int64:
+		return n
+	case int:
+		return int64(n)
+	default:
+		return 0
+	}
+}
 
 // RedisConfig holds Redis connection settings.
 type RedisConfig struct {

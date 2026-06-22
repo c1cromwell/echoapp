@@ -205,6 +205,15 @@ func (s *Server) Start() error {
 		"otp_send":        {MaxRequests: 3, Window: 15 * time.Minute},
 	})
 
+	// Distributed enforcement: with Redis, rate limits are shared across all API
+	// instances (N servers no longer multiply the effective limit). Falls back to
+	// per-instance windows automatically if Redis is unavailable at request time.
+	if redisClient != nil {
+		rateLimiter.SetStore(redisClient)
+		router.PublicRateLimiter.SetStore(redisClient)
+		log.Println("rate limiting backed by Redis (distributed across instances)")
+	}
+
 	// Wave 12: SMS provider — Twilio in prod, stub in dev/test.
 	smsProvider, isProd := infra.NewSMSProvider()
 	router.SMSProvider = smsProvider
