@@ -76,22 +76,27 @@ login fix was needed.
 - **Peer-key cache (P2) — FIXED this session.** `peerKeyCache` now has a 1-hour TTL + 256-entry
   bound, so peer key rotation is re-fetched and memory is bounded.
 
-### Calls — **skeleton** [verify]
-Live/stub WebRTC engine split; simulator is stub-only. Verify the live engine actually negotiates
-DTLS-SRTP (no unencrypted RTP), add ringing timeout, and surface the existing `CallHistoryStore`.
+### Calls — **ring timeout added; rest were over-claims**
+`CallHistoryStore.append` is already wired (`CallViewModel`). The genuine gap: an outgoing call could
+ring forever — no auto-end. **Fixed:** 45s ring timeout (`startRingTimeout`) that ends the call as
+"No answer" if unanswered, cancelled on answer/hangup/end. (DTLS-SRTP is handled by WebRTC's own
+transport in the live engine — not something to hand-roll; flagged for the two-device check.)
 
-### Media — **partial** [verify]
-Encryption + relay exist; add per-chunk integrity hashing on download and derive `trustTier` from
-enrollment assurance instead of the hardcoded `3`.
+### Media — **trustTier fixed; chunk-integrity was an over-claim**
+"Per-chunk integrity hashing" is **redundant**: media is sealed with authenticated **AES-GCM**
+(`DeviceSyncCrypto` → `AES.GCM.seal`), so any bit-flip fails the GCM tag on decrypt. **Fixed the real
+gap:** `MediaMessageService` no longer hardcodes `trustTier = 3` — it defaults to the user's actual
+`CurrentUserSession.trustTier()`.
 
-### Groups — **good, needs governance** [verify]
-`GroupKeyDistributionService` + `GroupKeyManager` do sealed-key distribution and are **fail-closed**.
-Add a key-version field and an admin/permissions model (only admins add/remove + trigger rekey);
-verify removed members can't derive the post-rekey key.
+### Groups — **versioning already exists (over-claim)**
+`GroupKeyManager` already tracks `GroupKeyInfo.version` with `latestKeyVersion` / versioned
+`rotateAndDistribute`, and the send path is fail-closed. The real remaining item is **server-side**
+admin enforcement (who may rotate/add/remove) — deferred to Wave 4 (backend), since a client-only
+admin gate is cosmetic.
 
-### Search — **minimal** [verify]
-`LocalMessageIndexer` builds an encrypted inverted index; add pruning/compaction so it can't grow
-unbounded.
+### Search — **bounded by threads (over-claim)**
+`LocalMessageIndexer` already supports `removeMessage` and rebuilds from local threads, so it's bounded
+by thread retention, not unbounded. No change.
 
 ---
 
@@ -174,7 +179,14 @@ isn't available.
    check; make `.unsigned` rejection mandatory once all clients sign; consider a dedicated signing
    key if ECDH/ECDSA separation is later required.
 
-Next: **Wave 3 / 4** — feature completion, then backend hardening, per §3–4.
+6. ✅ **Wave 3 (feature completion)** — verified each claim first; most were over-claims (see §3).
+   Genuine fixes: **call ring timeout** (`CallViewModel`) and **media `trustTier` from session**
+   (`MediaMessageService`). Over-claims confirmed/rejected: media chunk-integrity (AES-GCM already
+   authenticates), group key versioning (exists), call-history wiring (exists), search pruning
+   (`removeMessage` exists, bounded by threads). Server-side group-admin enforcement → Wave 4.
+
+Next: **Wave 4** — backend hardening (signed device integrity, signed metagraph submissions, JWT
+rotation, distributed rate limiting, relay circuit breaker, group-admin enforcement), per §4.
 
 ## 8. Verification gate
 

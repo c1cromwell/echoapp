@@ -28,7 +28,7 @@ actor MediaMessageService {
         messageId: String,
         peerDID: String,
         conversationId: String,
-        trustTier: Int = 3
+        trustTier: Int = CurrentUserSession.trustTier()
     ) async throws {
         let encryptedFile = try await mediaCrypto.encryptFile(data, peerDID: peerDID)
         let upload = try await mediaAPI.uploadEncrypted(
@@ -65,7 +65,7 @@ actor MediaMessageService {
         data: Data,
         mimeType: String,
         mediaKind: MediaKind,
-        trustTier: Int = 3
+        trustTier: Int = CurrentUserSession.trustTier()
     ) async throws -> MediaAttachmentRef {
         let encryptedFile = try await mediaCrypto.encryptFileSymmetric(data)
         let upload = try await mediaAPI.uploadEncrypted(

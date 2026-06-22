@@ -36,6 +36,9 @@ class CallViewModel: ObservableObject {
     private var startedAt = Date()
     private let pendingOfferSDP: String?
     private var hasAppliedIncomingOffer = false
+    private var ringTimeoutTask: Task<Void, Never>?
+    /// Auto-end an outgoing call that is never answered (seconds).
+    private let ringTimeoutSeconds: UInt64 = 45
 
     init(
         peerDID: String,
@@ -97,6 +100,9 @@ class CallViewModel: ObservableObject {
                     callType: callType,
                     sdp: sdp
                 )
+                state = .ringing
+                stateLabel = "Ringing..."
+                startRingTimeout()
             } else if let pendingOfferSDP, !hasAppliedIncomingOffer {
                 hasAppliedIncomingOffer = true
                 state = .ringing
@@ -116,6 +122,7 @@ class CallViewModel: ObservableObject {
     }
 
     func endCall() {
+        cancelRingTimeout()
         durationTimer?.invalidate()
         durationTimer = nil
         session.hangup()
@@ -193,6 +200,7 @@ class CallViewModel: ObservableObject {
                 Task { await session.addIceCandidate(ice) }
             }
         case .hangup, .reject:
+            cancelRingTimeout()
             state = .ended
             stateLabel = event.action == .reject ? "Declined" : "Call Ended"
             recordCall(missed: event.action == .reject)
@@ -204,6 +212,7 @@ class CallViewModel: ObservableObject {
 
     private func markActive() async {
         guard state != .active else { return }
+        cancelRingTimeout()
         state = .active
         stateLabel = "00:00"
         remoteVideoTrack = session.remoteVideoTrack
@@ -230,6 +239,36 @@ class CallViewModel: ObservableObject {
         contactName = ContactThreadHelper.truncatedDID(peerDID)
         let tier = ContactTrustIndex.shared.tier(conversationId: "", peerDID: peerDID)
         contactTrustTier = TrustTier.from(tierInt: tier)
+    }
+
+    /// Outgoing calls ring for at most `ringTimeoutSeconds`; if unanswered the call is
+    /// ended as a no-answer so it can't hang in the ringing state forever.
+    private func startRingTimeout() {
+        ringTimeoutTask?.cancel()
+        let seconds = ringTimeoutSeconds
+        ringTimeoutTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: seconds * 1_000_000_000)
+            guard !Task.isCancelled else { return }
+            await self?.handleRingTimeout()
+        }
+    }
+
+    private func cancelRingTimeout() {
+        ringTimeoutTask?.cancel()
+        ringTimeoutTask = nil
+    }
+
+    private func handleRingTimeout() {
+        guard state == .ringing || state == .connecting else { return }
+        cancelRingTimeout()
+        durationTimer?.invalidate()
+        durationTimer = nil
+        session.hangup()
+        CallKitCoordinator.shared.endCall()
+        state = .ended
+        stateLabel = "No answer"
+        recordCall(missed: true)
+        Task { try? await signaling?.sendHangup(callId: callId, to: peerDID) }
     }
 
     private func startDurationTimer() {
