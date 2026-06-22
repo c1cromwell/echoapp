@@ -115,15 +115,21 @@ by thread retention, not unbounded. No change.
   `ENVIRONMENT=production` (instead of silently anchoring unsigned), keeping dev unaffected
   (`internal/metagraph/client.go`).
 
-**Scoped follow-ups (larger infra, not in this pass):**
-- **Distributed rate limiting** — `AuthRateLimiter` is in-memory (`internal/auth/ratelimit.go`, "would
-  use Redis"); a `RedisBackend` abstraction already exists to back it. Multiplies the limit under
-  horizontal scaling until converted.
-- **Signed device integrity** — `ValidateDeviceInfo` only checks field presence
-  (`internal/auth/device.go`); real anti-forgery needs Apple App Attest / DeviceCheck (server-side
-  attestation validation) — a sizable platform integration.
-- **Relay circuit breaker** (`internal/api/ws.go`, `internal/services/relay/relay.go`) and
-  **server-side group-admin enforcement**.
+**Scoped follow-ups — now done (all `go test`-verified):**
+- ✅ **Distributed rate limiting** — `infra.RedisClient.AllowRate` (atomic sliding-window-log via
+  Lua); `infra.RateLimiter` + `auth.AuthRateLimiter` delegate to it (lock-free, in-memory fallback
+  on Redis error); wired in `main.go`. Limits now hold across the fleet.
+- ✅ **Relay circuit breaker** — `metagraph.CircuitBreaker` (closed/open/half-open) guards
+  `SubmitDataL1`/`SubmitCurrencyL1`, so a degraded metagraph fast-fails instead of making every
+  caller wait the timeout.
+- ✅ **Server-side group-admin enforcement** — `GroupService.AuthorizeAction`; add/remove-member
+  handlers now require `PermissionManageMembers` (owner/admin) → 403 otherwise.
+- ✅ **App Attest device integrity** — `internal/auth/appattest`: full attestation + assertion
+  verifier (CBOR, x5c chain to an injectable/Apple root, nonce extension, sign-count replay
+  protection), CI-tested via a synthetic root. Integration (enrollment handler + per-request
+  middleware, config-gated) and remaining production needs (Apple Root CA PEM, iOS
+  `DCAppAttestService` client, DB-backed key store, real-device E2E) are specified in
+  `docs/APP_ATTEST_INTEGRATION.md`.
 
 ---
 
