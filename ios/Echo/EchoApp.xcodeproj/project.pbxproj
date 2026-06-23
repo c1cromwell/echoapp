@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		65AC9600566B2AAEE349E4E8 /* bip39_english.txt in Resources */ = {isa = PBXBuildFile; fileRef = 15A0EDEE224144604791751D /* bip39_english.txt */; };
 		9BF27F59DB120AC25A20CA65 /* BackupCryptoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65D7ADC046E5D7474E11FE3C /* BackupCryptoTests.swift */; };
 		41E4C0AFF44DCACEC0011462 /* CallSignalCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0C67EEC31E72248ADC8A437 /* CallSignalCodecTests.swift */; };
 		C7ACC3AD5DF6E44DEE3CCE32 /* ChatDetailViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 018BEDD5C1E44DC876A5A18F /* ChatDetailViewModelTests.swift */; };
@@ -338,6 +339,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		15A0EDEE224144604791751D /* bip39_english.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = bip39_english.txt; sourceTree = "<group>"; };
 		65D7ADC046E5D7474E11FE3C /* BackupCryptoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCryptoTests.swift; sourceTree = "<group>"; };
 		F0C67EEC31E72248ADC8A437 /* CallSignalCodecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallSignalCodecTests.swift; sourceTree = "<group>"; };
 		018BEDD5C1E44DC876A5A18F /* ChatDetailViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatDetailViewModelTests.swift; sourceTree = "<group>"; };
@@ -672,6 +674,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		CF8FBBC5A8A613FEA6825F54 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				15A0EDEE224144604791751D /* bip39_english.txt */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		930B0F85E8C631514258FECB /* Phase3Tests */ = {
 			isa = PBXGroup;
 			children = (
@@ -1170,6 +1180,7 @@
 		7FAD8E9B6523B82CFD5D0E0D = {
 			isa = PBXGroup;
 			children = (
+				CF8FBBC5A8A613FEA6825F54 /* Resources */,
 				930B0F85E8C631514258FECB /* Phase3Tests */,
 				ECCC562F637CE3015478A7DF /* SecurityTests */,
 				F1A2B3C4012345678900012 /* EchoApp-Info.plist */,
@@ -1643,6 +1654,7 @@
 			buildConfigurationList = BDDF8B906B237213F6AE168A /* Build configuration list for PBXNativeTarget "EchoApp" */;
 			buildPhases = (
 				B2C88D326DA240AA4549DCEF /* Sources */,
+				5FD4BE639BFE3E67572E4678 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -1692,6 +1704,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		5FD4BE639BFE3E67572E4678 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				65AC9600566B2AAEE349E4E8 /* bip39_english.txt in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		C6E82E90BA2434F7060A82B2 /* Sources */ = {

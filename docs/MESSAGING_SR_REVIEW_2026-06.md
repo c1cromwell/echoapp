@@ -220,19 +220,22 @@ exercise.
   previously-dormant `SecurityTests` execute on the iOS Simulator instead of only via `swift test`
   (which builds for macOS, where the `#if os(iOS)` crypto compiles out). Run:
   `xcodebuild test -scheme EchoMessaging -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO`
-  → **129 tests, 0 failures (4 skipped)**. Covers the Option B device-decrypt
+  → **129 tests, 0 failures (2 skipped)**. Covers the Option B device-decrypt
   (`MessagingAgreementRoundTripTests`, incl. the registered-public-hex round trip + wrong-key reject),
   1:1 sender auth (`MessageSenderAuthTests`: valid / tampered / wrong-signer), the group key path
-  (`GroupKeyManagerTests`), device-sync crypto, and the messaging signal/codec/store logic. This closes
-  the "validated only by headless build" gap for the crypto core. (Note: the crypto source files were
-  also missing from the Xcode app target until 2026-06-23 — they compiled only under SwiftPM — so this
-  is the first time the app and these tests build together.)
-  - **4 quarantined tests (`XCTSkip`, follow-ups):** `DeviceIdentityStoreTests.testDeviceIdIsStable` /
-    `testAssignSyncDeviceIdPinsStream` (Keychain round-trip unreliable in an unsigned app-hosted sim
-    test host); `BackupCryptoTests.testEncryptDecryptRoundTrip` / `testDecryptRejectsBadPhrase` —
-    blocked by a **real app bug**: `bip39_english.txt` is missing from the repo/app bundle, so
-    `BIP39Wordlist` assertion-fails and recovery-phrase creation is broken in the shipping app. Fix by
-    adding the canonical 2048-word list + an app resources build phase, then re-enable.
+  (`GroupKeyManagerTests`), device-sync crypto, phrase-encrypted backup (`BackupCryptoTests`), and the
+  messaging signal/codec/store logic. This closes the "validated only by headless build" gap for the
+  crypto core. (Note: the crypto source files were also missing from the Xcode app target until
+  2026-06-23 — they compiled only under SwiftPM — so this is the first time the app and these tests
+  build together.)
+  - **Fixed (2026-06-23): `bip39_english.txt` now bundled.** It had been missing from the repo/app
+    entirely (the `EchoApp` target had no resources build phase), so `BIP39Wordlist` assertion-failed
+    and recovery-phrase creation was broken in the shipping app. Added the canonical 2048-word list
+    (`ios/Echo/Resources/bip39_english.txt`, sha256 `2f5eed…dbda`) + a `PBXResourcesBuildPhase` on the
+    app target, and re-enabled `BackupCryptoTests` (now green, using checksum-valid test mnemonics).
+  - **2 quarantined tests (`XCTSkip`, follow-up):** `DeviceIdentityStoreTests.testDeviceIdIsStable` /
+    `testAssignSyncDeviceIdPinsStream` — Keychain round-trip is unreliable in an unsigned app-hosted
+    simulator test host.
 - **Still required — true two-device runtime test.** Enroll → send private message → **decrypt on a
   second physical device**. The unit gate proves the key-agreement/signature math on one process; it
   does **not** exercise the live `MessagingKeyRegistrar` → `IdentityResolveClient` registration/resolve
