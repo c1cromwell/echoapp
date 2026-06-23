@@ -215,7 +215,26 @@ exercise.
 ## 8. Verification gate
 
 - Per change: Xcode build (the real gate — headless `swift build` can't load macros) + unit tests.
-- Crypto: a **two-device** enroll → send private message → **decrypt on the second device** test.
-  This single test catches the device-decrypt break and any dead-path regression. It does not exist
-  yet and should be added with Wave 2.
+- **Crypto unit gate — now runnable in Xcode (2026-06-23).** An app-hosted iOS unit-test target
+  (`EchoUnitTests`) was added to `EchoApp.xcodeproj` and wired into the `EchoMessaging` scheme, so the
+  previously-dormant `SecurityTests` execute on the iOS Simulator instead of only via `swift test`
+  (which builds for macOS, where the `#if os(iOS)` crypto compiles out). Run:
+  `xcodebuild test -scheme EchoMessaging -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO`
+  → **129 tests, 0 failures (4 skipped)**. Covers the Option B device-decrypt
+  (`MessagingAgreementRoundTripTests`, incl. the registered-public-hex round trip + wrong-key reject),
+  1:1 sender auth (`MessageSenderAuthTests`: valid / tampered / wrong-signer), the group key path
+  (`GroupKeyManagerTests`), device-sync crypto, and the messaging signal/codec/store logic. This closes
+  the "validated only by headless build" gap for the crypto core. (Note: the crypto source files were
+  also missing from the Xcode app target until 2026-06-23 — they compiled only under SwiftPM — so this
+  is the first time the app and these tests build together.)
+  - **4 quarantined tests (`XCTSkip`, follow-ups):** `DeviceIdentityStoreTests.testDeviceIdIsStable` /
+    `testAssignSyncDeviceIdPinsStream` (Keychain round-trip unreliable in an unsigned app-hosted sim
+    test host); `BackupCryptoTests.testEncryptDecryptRoundTrip` / `testDecryptRejectsBadPhrase` —
+    blocked by a **real app bug**: `bip39_english.txt` is missing from the repo/app bundle, so
+    `BIP39Wordlist` assertion-fails and recovery-phrase creation is broken in the shipping app. Fix by
+    adding the canonical 2048-word list + an app resources build phase, then re-enable.
+- **Still required — true two-device runtime test.** Enroll → send private message → **decrypt on a
+  second physical device**. The unit gate proves the key-agreement/signature math on one process; it
+  does **not** exercise the live `MessagingKeyRegistrar` → `IdentityResolveClient` registration/resolve
+  round trip across devices. Still to be added.
 - Two-device run of `docs/E2E_LAUNCH_AND_TESTING.md` §6.4 for typing/receipts.

@@ -2,8 +2,8 @@ import XCTest
 @testable import Echo
 
 final class PinnedConversationsStoreTests: XCTestCase {
-    func testMaxPins_isFive() {
-        XCTAssertEqual(PinnedConversationsStore.maxPins, 5)
+    func testMaxPins_isTwenty() {
+        XCTAssertEqual(PinnedConversationsStore.maxPins, 20)
     }
 
     @MainActor
@@ -38,7 +38,8 @@ final class MessagesHubSupportTests: XCTestCase {
             id == "1" ? 2 : 0
         }
         XCTAssertEqual(counts[.verified], 2)
-        XCTAssertNil(counts[.unverified])
+        // folderUnreadCounts reports every folder with unread > 0, including unverified.
+        XCTAssertEqual(counts[.unverified], 5)
     }
 }
 

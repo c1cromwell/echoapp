@@ -3,6 +3,7 @@ import XCTest
 @testable import Echo
 
 #if os(iOS)
+@MainActor
 final class WebRTCCallSessionTests: XCTestCase {
     func testStubEngineRoundTrip() async throws {
         let session = WebRTCCallSession(engine: WebRTCStubCallEngine())

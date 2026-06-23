@@ -29,8 +29,8 @@ final class GroupKeyManagerTests: XCTestCase {
         await manager.storeReceivedKey(groupId: "grp-test", version: info.version, keyData: keyData)
 
         let plaintext = Data("hello group".utf8)
-        let ciphertext = try manager.encryptForGroup(plaintext: plaintext, groupId: "grp-test")
-        let decrypted = try manager.decryptFromGroup(
+        let ciphertext = try await manager.encryptForGroup(plaintext: plaintext, groupId: "grp-test")
+        let decrypted = try await manager.decryptFromGroup(
             ciphertext: ciphertext,
             groupId: "grp-test",
             keyVersion: info.version

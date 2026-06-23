@@ -11,6 +11,7 @@ final class ChatDetailViewModelTests: XCTestCase {
 
     override func setUp() async throws {
         try await super.setUp()
+        Self.clearPersistedThreads()
         transport = MockConversationSignalTransport()
         service = ConversationSignalService(transport: transport)
         reactions = MockReactionsAPIClient()
@@ -26,6 +27,20 @@ final class ChatDetailViewModelTests: XCTestCase {
             ChatDetailMessage(id: "out-1", senderDID: "did:key:me", currentUserDID: "did:key:me", deliveryStatus: .delivered),
             ChatDetailMessage(id: "in-1", senderDID: "did:key:peer", currentUserDID: "did:key:me"),
         ]
+    }
+
+    override func tearDown() async throws {
+        Self.clearPersistedThreads()
+        try await super.tearDown()
+    }
+
+    /// `ConversationThreadStore` is UserDefaults-backed; clear its keys between tests so
+    /// persisted threads from one test don't leak into another (these tests share a process).
+    private static func clearPersistedThreads() {
+        let defaults = UserDefaults.standard
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("echo.thread.v1.") {
+            defaults.removeObject(forKey: key)
+        }
     }
 
     func testInboundTyping_setsPeerIsTyping() async {
@@ -74,9 +89,12 @@ final class ChatDetailViewModelTests: XCTestCase {
         let appended = vm.messages.last
         XCTAssertEqual(appended?.content, "hi there")
         XCTAssertTrue(appended?.isFromCurrentUser == true)
-        XCTAssertEqual(appended?.deliveryStatus, .sent)
         XCTAssertEqual(sent, ["hi there"])
-        XCTAssertTrue(transport.sentTexts.contains(where: { $0.contains("\"type\":\"text\"") }))
+        // Fail-closed (2026-06 security fix): with no resolvable peer messaging key in this
+        // unit context, encryption fails, so the message is marked .failed and is never
+        // transmitted as plaintext. The optimistic UI hook still fires.
+        XCTAssertEqual(appended?.deliveryStatus, .failed)
+        XCTAssertFalse(transport.sentTexts.contains(where: { $0.contains("\"type\":\"text\"") }))
     }
 
     func testConfigure_loadsPersistedThread() async {
@@ -195,7 +213,10 @@ final class ChatDetailViewModelTests: XCTestCase {
         let ok = await vm.applyEdit(messageId: "out-1", newText: "edited!")
         XCTAssertTrue(ok)
         XCTAssertEqual(vm.messages.first(where: { $0.id == "out-1" })?.content, "edited!")
-        XCTAssertEqual(ops.editCalls.first?.messageId, "out-1")
+        // Fail-closed (2026-06 security fix): the local edit stands, but with no resolvable
+        // peer messaging key the new ciphertext can't be produced, so the edit is never fanned
+        // out to the backend (no plaintext edit transmission).
+        XCTAssertTrue(ops.editCalls.isEmpty)
     }
 
     func testDeleteMessage_removesAndCallsBackend() async {

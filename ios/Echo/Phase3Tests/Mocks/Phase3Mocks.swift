@@ -3,7 +3,7 @@ import Foundation
 
 /// In-memory transport for ConversationSignalService unit tests.
 final class MockConversationSignalTransport: ConversationSignalTransport, @unchecked Sendable {
-    private(set) var sentTexts: [String] = []
+    var sentTexts: [String] = []
     private(set) var lastAccessToken: String?
     var onTextMessage: (@Sendable (String) -> Void)?
 
