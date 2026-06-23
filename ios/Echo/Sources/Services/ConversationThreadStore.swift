@@ -26,6 +26,26 @@ struct StoredThreadMessage: Codable, Equatable, Sendable, Identifiable {
         )
     }
 
+    init(
+        id: String,
+        senderDID: String,
+        content: String,
+        timestamp: String,
+        deliveryStatus: DeliveryStatus? = nil,
+        replyToMessageId: String? = nil,
+        replyPreview: String? = nil,
+        sentAtISO: String? = nil
+    ) {
+        self.id = id
+        self.senderDID = senderDID
+        self.content = content
+        self.timestamp = timestamp
+        self.deliveryStatus = deliveryStatus
+        self.replyToMessageId = replyToMessageId
+        self.replyPreview = replyPreview
+        self.sentAtISO = sentAtISO
+    }
+
     init(from message: ChatDetailMessage) {
         id = message.id
         senderDID = message.senderDID
