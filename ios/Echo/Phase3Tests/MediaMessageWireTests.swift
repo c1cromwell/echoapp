@@ -3,6 +3,13 @@ import XCTest
 
 #if os(iOS)
 final class MediaMessageWireTests: XCTestCase {
+    func testVoiceNoteCodec_normalizesWaveform() {
+        let samples: [CGFloat] = [0.1, 0.5, 0.9, 0.3]
+        let bars = VoiceNoteCodec.normalizedWaveform(samples, targetCount: 4)
+        XCTAssertEqual(bars.count, 4)
+        XCTAssertEqual(VoiceNoteCodec.wireMimeType, "audio/mp4")
+    }
+
     func testWireRoundTrip() throws {
         let wire = MediaMessageWire(
             messageId: "m-media-1",

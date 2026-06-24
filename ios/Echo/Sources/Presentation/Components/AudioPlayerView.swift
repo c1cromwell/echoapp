@@ -7,6 +7,7 @@ final class AudioPlayerManager: ObservableObject {
     @Published var isPlaying = false
     @Published var progress: Double = 0
     @Published var duration: TimeInterval = 0
+    @Published var playbackRate: Float = 1.0
     @Published private(set) var isLoaded = false
 
     private var player: AVAudioPlayer?
@@ -16,6 +17,8 @@ final class AudioPlayerManager: ObservableObject {
         stop()
         player = try? AVAudioPlayer(data: data)
         player?.prepareToPlay()
+        player?.enableRate = true
+        player?.rate = playbackRate
         duration = player?.duration ?? 0
         isLoaded = player != nil
     }
@@ -29,9 +32,23 @@ final class AudioPlayerManager: ObservableObject {
         } else {
             try? AVAudioSession.sharedInstance().setCategory(.playback)
             try? AVAudioSession.sharedInstance().setActive(true)
+            player.rate = playbackRate
             player.play()
             isPlaying = true
             startTimer()
+        }
+    }
+
+    func cyclePlaybackRate() {
+        switch playbackRate {
+        case 0.75: playbackRate = 1.0
+        case 1.0: playbackRate = 1.25
+        case 1.25: playbackRate = 1.5
+        default: playbackRate = 0.75
+        }
+        player?.enableRate = true
+        if isPlaying {
+            player?.rate = playbackRate
         }
     }
 
@@ -46,8 +63,9 @@ final class AudioPlayerManager: ObservableObject {
 
     func seek(to fraction: Double) {
         guard let player else { return }
-        player.currentTime = player.duration * max(0, min(fraction, 1))
-        progress = fraction
+        let clamped = max(0, min(fraction, 1))
+        player.currentTime = player.duration * clamped
+        progress = clamped
     }
 
     private func startTimer() {
@@ -85,30 +103,58 @@ struct AudioPlayerView: View {
             }
             .buttonStyle(.plain)
 
-            WaveformView(
-                samples: waveformSamples,
-                progress: player.progress,
-                accentColor: .echoSignal,
-                inactiveColor: .echoInk40.opacity(0.5)
-            )
+            GeometryReader { geo in
+                WaveformView(
+                    samples: waveformSamples,
+                    progress: player.progress,
+                    accentColor: .echoSignal,
+                    inactiveColor: .echoInk40.opacity(0.5)
+                )
+                .frame(height: 30)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            let width = max(geo.size.width, 1)
+                            let fraction = Double(value.location.x / width)
+                            player.seek(to: fraction)
+                        }
+                )
+            }
             .frame(height: 30)
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { value in
-                        let fraction = value.location.x / max(value.startLocation.x + 1, 1)
-                        player.seek(to: Double(fraction))
-                    }
-            )
 
-            Text(formattedDuration)
+            Button {
+                player.cyclePlaybackRate()
+            } label: {
+                Text(rateLabel)
+                    .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(Color.echoInk55)
+                    .frame(minWidth: 34)
+            }
+            .buttonStyle(.plain)
+
+            Text(formattedTime)
                 .font(.system(size: 12, weight: .medium).monospacedDigit())
                 .foregroundStyle(Color.echoInk55)
         }
     }
 
-    private var formattedDuration: String {
+    private var rateLabel: String {
+        switch player.playbackRate {
+        case 0.75: return "0.75×"
+        case 1.25: return "1.25×"
+        case 1.5: return "1.5×"
+        default: return "1×"
+        }
+    }
+
+    private var formattedTime: String {
+        let current = Int(player.duration * player.progress)
         let total = Int(player.duration)
+        return "\(formatSeconds(current))/\(formatSeconds(total))"
+    }
+
+    private func formatSeconds(_ total: Int) -> String {
         let minutes = total / 60
         let seconds = total % 60
         return String(format: "%d:%02d", minutes, seconds)

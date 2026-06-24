@@ -22,8 +22,6 @@ final class DeviceHistorySyncService {
     /// Primary device: export local history + search index to a newly linked device.
     func seedAllToDevice(publicKeyHex: String) async throws {
         try await seedHistoryToDevice(publicKeyHex: publicKeyHex)
-        guard let syncAPI = DIContainer.shared.resolveDeviceSyncAPI(),
-              let crypto = DIContainer.shared.resolveDeviceSyncCrypto() else { return }
         let indexSync = SearchIndexSyncService(syncAPI: syncAPI, crypto: crypto)
         try? await indexSync.pushIndexToDevice(publicKeyHex: publicKeyHex)
     }
@@ -45,24 +43,34 @@ final class DeviceHistorySyncService {
         )
     }
 
-    /// Linked device: pull pending ciphertext entries, unwrap, merge into local stores.
+    /// Linked device: pull pending sync entries (history + WO-73 search index) and apply.
     @discardableResult
     func pullAndApplyPendingHistory() async throws -> Int {
         let deviceId = await DeviceIdentityStore.currentDeviceId()
         var cursor = SyncCursorStore.load(deviceId: deviceId)
-        var appliedBundles = 0
+        var appliedEntries = 0
+        let indexStore = EncryptedIndexStore.shared
 
         while true {
             let page = try await syncAPI.pull(deviceId: deviceId, after: cursor, limit: pullPageSize)
             guard !page.entries.isEmpty else { break }
 
             for entry in page.entries {
-                let entryType = entry.entryType ?? DeviceSyncEntryType.history
-                guard entryType == DeviceSyncEntryType.history else { continue }
-                let plaintext = try await crypto.unwrapWithLocalKey(ciphertext: entry.ciphertext)
-                let bundle = try HistorySyncBundle.decode(from: plaintext)
-                HistorySyncBundleMerger.apply(bundle, to: conversationStore)
-                appliedBundles += 1
+                switch entry.entryType ?? DeviceSyncEntryType.history {
+                case DeviceSyncEntryType.history:
+                    let plaintext = try await crypto.unwrapWithLocalKey(ciphertext: entry.ciphertext)
+                    let bundle = try HistorySyncBundle.decode(from: plaintext)
+                    HistorySyncBundleMerger.apply(bundle, to: conversationStore)
+                    appliedEntries += 1
+                case DeviceSyncEntryType.searchIndex:
+                    let plaintext = try await crypto.unwrapWithLocalKey(ciphertext: entry.ciphertext)
+                    let snapshot = try JSONDecoder().decode(SearchIndexSnapshot.self, from: plaintext)
+                    try indexStore.save(snapshot)
+                    await LocalMessageIndexer.shared.importSnapshot(snapshot)
+                    appliedEntries += 1
+                default:
+                    continue
+                }
             }
 
             cursor = page.nextCursor
@@ -70,7 +78,7 @@ final class DeviceHistorySyncService {
             if page.entries.count < pullPageSize { break }
         }
 
-        return appliedBundles
+        return appliedEntries
     }
 
     /// Revoke a linked device's sync stream (e.g. when removing the device).
@@ -90,7 +98,7 @@ enum DeviceHistorySyncError: LocalizedError {
     }
 }
 
-/// Fire-and-forget pull after unlock; safe to call from login and Messages tab.
+/// Fire-and-forget pull after unlock; applies history + WO-73 search index (S4).
 enum DeviceHistorySyncBootstrap {
     static func pullIfNeeded() {
         Task { @MainActor in

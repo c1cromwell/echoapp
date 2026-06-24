@@ -58,6 +58,22 @@ final class HistorySyncBundleTests: XCTestCase {
                 "group:grp-1": [
                     StoredThreadMessage(id: "g1", senderDID: "did:key:a", content: "hi", timestamp: "Now")
                 ]
+            ],
+            pollsByConversation: [
+                "group:grp-1": [
+                    "poll-1": ChatPoll(
+                        id: "poll-1",
+                        conversationId: "group:grp-1",
+                        creatorDID: "did:key:a",
+                        question: "Snack?",
+                        options: [
+                            ChatPollOption(id: "y", text: "Yes", voteCount: 0, voters: []),
+                            ChatPollOption(id: "n", text: "No", voteCount: 0, voters: []),
+                        ],
+                        isClosed: false,
+                        createdAt: Date()
+                    ),
+                ],
             ]
         )
         let data = try bundle.encoded()

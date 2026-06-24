@@ -57,12 +57,7 @@ actor SearchIndexSyncService {
 /// Fire-and-forget pull for WO-73 search index sync entries.
 enum SearchIndexSyncBootstrap {
     static func pullIfNeeded() {
-        Task {
-            guard let syncAPI = await DIContainer.shared.resolveDeviceSyncAPI(),
-                  let crypto = await DIContainer.shared.resolveDeviceSyncCrypto() else { return }
-            let service = SearchIndexSyncService(syncAPI: syncAPI, crypto: crypto)
-            _ = try? await service.pullAndApplySearchIndex()
-        }
+        DeviceHistorySyncBootstrap.pullIfNeeded()
     }
 }
 #endif

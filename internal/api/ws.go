@@ -39,7 +39,6 @@ var ephemeralSignalTypes = map[string]bool{
 	"read_receipt":     true, // payload: ReadReceiptSignal
 	"reaction":         true, // payload: ReactionSignal (live update; durable truth is the reactions API)
 	"group_key":        true, // payload: GroupKeySignal (E2E key package; content-blind opaque blob)
-	"poll":             true, // payload: PollSignal (live poll update; WO-23)
 	"screenshot_alert": true, // payload: ScreenshotAlertSignal (M6)
 }
 
@@ -532,6 +531,15 @@ func (c *Client) routeInbound(msg WSMessage) {
 			return
 		}
 		c.hub.SendToUser(msg.To, outBytes)
+		return
+	}
+
+	// Poll updates (WO-23): directed only; queue offline for reconnect (S4 durability).
+	if msg.Type == "poll" {
+		if msg.To == "" || msg.To == c.userID {
+			return
+		}
+		c.hub.deliverOrQueue(msg.To, outBytes, c.userID, msg.ConversationID)
 		return
 	}
 

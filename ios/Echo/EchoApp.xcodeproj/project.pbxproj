@@ -292,6 +292,7 @@
 		M5B002MEDIA000000000002 /* MediaMessageCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F002MEDIA000000000002 /* MediaMessageCrypto.swift */; };
 		M5B003MEDIA000000000003 /* MediaMessageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F003MEDIA000000000003 /* MediaMessageService.swift */; };
 		M5B004MEDIA000000000004 /* VoiceNoteRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F004MEDIA000000000004 /* VoiceNoteRecorder.swift */; };
+		M5B005MEDIA000000000005 /* VoiceNoteCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F005MEDIA000000000005 /* VoiceNoteCodec.swift */; };
 		M5B005MEDIA000000000005 /* MediaThumbnailCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F005MEDIA000000000005 /* MediaThumbnailCache.swift */; };
 		M5B006MEDIA000000000006 /* WaveformExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = M5F006MEDIA000000000006 /* WaveformExtractor.swift */; };
 		M6B001SRCH0000000000001 /* MessageSearchTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = M6F001SRCH0000000000001 /* MessageSearchTokenizer.swift */; };
@@ -634,6 +635,7 @@
 		M5F002MEDIA000000000002 /* MediaMessageCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaMessageCrypto.swift; sourceTree = "<group>"; };
 		M5F003MEDIA000000000003 /* MediaMessageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaMessageService.swift; sourceTree = "<group>"; };
 		M5F004MEDIA000000000004 /* VoiceNoteRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRecorder.swift; sourceTree = "<group>"; };
+		M5F005MEDIA000000000005 /* VoiceNoteCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteCodec.swift; sourceTree = "<group>"; };
 		M5F005MEDIA000000000005 /* MediaThumbnailCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaThumbnailCache.swift; sourceTree = "<group>"; };
 		M5F006MEDIA000000000006 /* WaveformExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformExtractor.swift; sourceTree = "<group>"; };
 		M6F001SRCH0000000000001 /* MessageSearchTokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageSearchTokenizer.swift; sourceTree = "<group>"; };
@@ -1097,6 +1099,7 @@
 				D288A005234567890123415 /* ReactionReactorDetailSheet.swift */,
 				W0E001012345678901234017 /* TypingIndicatorView.swift */,
 				M5F004MEDIA000000000004 /* VoiceNoteRecorder.swift */,
+				M5F005MEDIA000000000005 /* VoiceNoteCodec.swift */,
 				3D2F15A32FD305E70020765D /* MessagesHubView.swift */,
 				3D99E73A2FDEBD550094416C /* ChatPollViews.swift */,
 				M7F003AI00000000000003 /* SmartReplyBar.swift */,
@@ -1829,6 +1832,7 @@
 				M5B002MEDIA000000000002 /* MediaMessageCrypto.swift in Sources */,
 				M5B003MEDIA000000000003 /* MediaMessageService.swift in Sources */,
 				M5B004MEDIA000000000004 /* VoiceNoteRecorder.swift in Sources */,
+				M5B005MEDIA000000000005 /* VoiceNoteCodec.swift in Sources */,
 				M5B005MEDIA000000000005 /* MediaThumbnailCache.swift in Sources */,
 				M5B006MEDIA000000000006 /* WaveformExtractor.swift in Sources */,
 				M6B001SRCH0000000000001 /* MessageSearchTokenizer.swift in Sources */,

@@ -28,7 +28,8 @@ actor MediaMessageService {
         messageId: String,
         peerDID: String,
         conversationId: String,
-        trustTier: Int = CurrentUserSession.trustTier()
+        trustTier: Int = CurrentUserSession.trustTier(),
+        waveformBars: [Float]? = nil
     ) async throws {
         let encryptedFile = try await mediaCrypto.encryptFile(data, peerDID: peerDID)
         let upload = try await mediaAPI.uploadEncrypted(
@@ -45,7 +46,8 @@ actor MediaMessageService {
             mediaKind: mediaKind.rawValue,
             byteSize: data.count,
             chunkCount: upload.chunkCount,
-            caption: caption
+            caption: caption,
+            waveformBars: waveformBars
         )
         let wire = MediaMessageWire(messageId: messageId, media: ref, caption: caption)
         let plaintext = String(decoding: try JSONEncoder().encode(wire), as: UTF8.self)

@@ -438,7 +438,8 @@ final class ChatDetailViewModel {
         data: Data,
         mimeType: String,
         mediaKind: MediaKind,
-        caption: String = ""
+        caption: String = "",
+        waveformBars: [Float]? = nil
     ) async -> String? {
         guard !data.isEmpty else { return nil }
         let trimmedCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -482,7 +483,8 @@ final class ChatDetailViewModel {
                 caption: trimmedCaption.isEmpty ? nil : trimmedCaption,
                 messageId: message.id,
                 peerDID: peerDID,
-                conversationId: conversationId
+                conversationId: conversationId,
+                waveformBars: waveformBars
             )
             if let idx = messages.firstIndex(where: { $0.id == message.id }) {
                 messages[idx].deliveryStatus = .sent
@@ -504,11 +506,13 @@ final class ChatDetailViewModel {
     @discardableResult
     func sendVoiceNote(from recorder: VoiceNoteRecorder, caption: String = "") async -> String? {
         guard let data = try? recorder.stopRecording() else { return nil }
+        let bars = VoiceNoteCodec.normalizedWaveform(recorder.waveformSamples)
         return await sendMedia(
             data: data,
-            mimeType: "audio/mp4",
+            mimeType: VoiceNoteCodec.wireMimeType,
             mediaKind: .audio,
-            caption: caption
+            caption: caption,
+            waveformBars: bars.isEmpty ? nil : bars
         )
     }
 

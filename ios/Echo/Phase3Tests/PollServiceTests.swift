@@ -67,5 +67,35 @@ final class PollServiceTests: XCTestCase {
         )
         XCTAssertTrue(closed?.isClosed == true)
     }
+
+    func testPollMerger_unionsVotes() {
+        let local = ChatPoll(
+            id: "poll-1",
+            conversationId: "c1",
+            creatorDID: "did:alice",
+            question: "Lunch?",
+            options: [
+                ChatPollOption(id: "a", text: "Pizza", voteCount: 1, voters: ["did:alice"]),
+                ChatPollOption(id: "b", text: "Salad", voteCount: 0, voters: []),
+            ],
+            isClosed: false,
+            createdAt: Date()
+        )
+        let remote = ChatPoll(
+            id: "poll-1",
+            conversationId: "c1",
+            creatorDID: "did:alice",
+            question: "Lunch?",
+            options: [
+                ChatPollOption(id: "a", text: "Pizza", voteCount: 1, voters: ["did:bob"]),
+                ChatPollOption(id: "b", text: "Salad", voteCount: 1, voters: ["did:bob"]),
+            ],
+            isClosed: false,
+            createdAt: Date()
+        )
+        let merged = PollMerger.union(local, remote)
+        XCTAssertEqual(merged.options[0].voteCount, 2)
+        XCTAssertEqual(merged.options[1].voteCount, 1)
+    }
 }
 #endif

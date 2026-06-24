@@ -2,7 +2,7 @@
 import AVFoundation
 import Foundation
 
-/// WO-194 voice note capture foundation (AAC in .m4a container).
+/// WO-194 voice note capture (AAC in .m4a; see VoiceNoteCodec).
 @MainActor
 final class VoiceNoteRecorder: NSObject, ObservableObject {
     @Published private(set) var isRecording = false
@@ -21,13 +21,7 @@ final class VoiceNoteRecorder: NSObject, ObservableObject {
 
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("voice-\(UUID().uuidString).m4a")
-        let settings: [String: Any] = [
-            AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-            AVSampleRateKey: 44_100,
-            AVNumberOfChannelsKey: 1,
-            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
-        ]
-        let recorder = try AVAudioRecorder(url: url, settings: settings)
+        let recorder = try AVAudioRecorder(url: url, settings: VoiceNoteCodec.recorderSettings)
         recorder.delegate = self
         recorder.isMeteringEnabled = true
         guard recorder.record() else {

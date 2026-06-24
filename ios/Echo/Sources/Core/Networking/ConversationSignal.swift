@@ -220,6 +220,8 @@ struct MediaAttachmentRef: Codable, Sendable, Equatable {
     let byteSize: Int
     let chunkCount: Int
     let caption: String?
+    /// Precomputed playback bars (amplitude only, not speech content).
+    let waveformBars: [Float]?
 
     enum CodingKeys: String, CodingKey {
         case fileId = "file_id"
@@ -228,6 +230,25 @@ struct MediaAttachmentRef: Codable, Sendable, Equatable {
         case byteSize = "byte_size"
         case chunkCount = "chunk_count"
         case caption
+        case waveformBars = "waveform_bars"
+    }
+
+    init(
+        fileId: String,
+        mimeType: String,
+        mediaKind: String,
+        byteSize: Int,
+        chunkCount: Int,
+        caption: String?,
+        waveformBars: [Float]? = nil
+    ) {
+        self.fileId = fileId
+        self.mimeType = mimeType
+        self.mediaKind = mediaKind
+        self.byteSize = byteSize
+        self.chunkCount = chunkCount
+        self.caption = caption
+        self.waveformBars = waveformBars
     }
 }
 

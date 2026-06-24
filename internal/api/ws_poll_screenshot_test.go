@@ -66,3 +66,15 @@ func TestRouteInbound_PollWithoutRecipientDropped(t *testing.T) {
 		t.Fatalf("poll without recipient must be dropped")
 	}
 }
+
+func TestRouteInbound_PollQueuedWhenOffline(t *testing.T) {
+	h := NewHub()
+	sender := &Client{hub: h, userID: "did:key:alice", send: make(chan []byte, 8)}
+
+	sender.routeInbound(pollMsg("did:key:alice", "did:key:bob"))
+
+	queued := h.offlineQueue.DequeueAll("did:key:bob")
+	if len(queued.Blobs) != 1 {
+		t.Fatalf("queued %d poll blobs for offline bob, want 1", len(queued.Blobs))
+	}
+}

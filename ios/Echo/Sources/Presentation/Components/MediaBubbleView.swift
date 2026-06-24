@@ -173,7 +173,11 @@ struct MediaBubbleView: View {
                 _ = MediaThumbnailCache.thumbnail(for: mediaRef.fileId, from: data)
             case .audio:
                 audioData = data
-                waveformSamples = WaveformExtractor.samples(from: data)
+                if let bars = mediaRef.waveformBars, !bars.isEmpty {
+                    waveformSamples = bars.map { CGFloat($0) }
+                } else {
+                    waveformSamples = WaveformExtractor.samples(from: data)
+                }
             case .file:
                 break
             }
