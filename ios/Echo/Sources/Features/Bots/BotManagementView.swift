@@ -1,6 +1,6 @@
 #if os(iOS)
 // Features/Bots/BotManagementView.swift
-// Bot management screen with active bots and discovery
+// Bot management screen with active bots and discovery (Stage 4 / WO-11)
 
 import SwiftUI
 
@@ -14,7 +14,13 @@ public struct BotManagementView: View {
     public var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                // My Bots section
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .font(.system(size: 13))
+                        .foregroundColor(.echoAlert)
+                        .padding(.horizontal, 20)
+                }
+
                 if !viewModel.activeBots.isEmpty {
                     SectionLabel("MY BOTS")
                     ForEach(viewModel.activeBots) { bot in
@@ -25,15 +31,20 @@ public struct BotManagementView: View {
                     }
                 }
 
-                // Discover Bots section
                 SectionLabel("DISCOVER BOTS")
+                if viewModel.availableBots.isEmpty && !viewModel.isLoading {
+                    Text("No bots available right now.")
+                        .font(.system(size: 14))
+                        .foregroundColor(.echoInk55)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 28)
+                }
                 ForEach(viewModel.availableBots) { bot in
                     DiscoverBotRow(bot: bot) {
-                        Task { await viewModel.addBot(bot) }
+                        viewModel.beginInstall(bot)
                     }
                 }
 
-                // Sandbox disclaimer
                 HStack(spacing: 8) {
                     Image(systemName: "shield.checkered")
                         .foregroundStyle(Color.Echo.outline)
@@ -56,10 +67,20 @@ public struct BotManagementView: View {
         .navigationTitle("Bot Management")
         .sheet(isPresented: $viewModel.showBotDetail) {
             if let bot = viewModel.selectedBot {
-                BotDetailView(bot: bot)
+                BotDetailView(bot: bot, viewModel: viewModel)
             }
         }
+        .sheet(item: $viewModel.pendingInstall) { manifest in
+            BotInstallPermissionsSheet(
+                bot: manifest,
+                onInstall: { permissions in
+                    Task { await viewModel.confirmInstall(manifest: manifest, permissions: permissions) }
+                },
+                onCancel: { viewModel.pendingInstall = nil }
+            )
+        }
         .task { await viewModel.loadBots() }
+        .refreshable { await viewModel.loadBots() }
     }
 }
 
@@ -92,7 +113,6 @@ struct BotCard: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 12) {
-                // Bot icon
                 RoundedRectangle(cornerRadius: 16)
                     .fill(Color.Echo.surfaceContainerHigh)
                     .frame(width: 48, height: 48)
@@ -103,10 +123,19 @@ struct BotCard: View {
                     )
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(bot.name)
-                        .font(Font.Echo.bodyMedium)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Color.Echo.onSurface)
+                    HStack(spacing: 6) {
+                        Text(bot.name)
+                            .font(Font.Echo.bodyMedium)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Color.Echo.onSurface)
+                        Text("\(bot.trustScore)")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(trustColor)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(trustColor.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
                     Text(bot.description)
                         .font(Font.Echo.labelMd)
                         .foregroundStyle(Color.Echo.outline)
@@ -115,7 +144,6 @@ struct BotCard: View {
 
                 Spacer()
 
-                // Status indicator
                 Circle()
                     .fill(bot.isActive ? Color.Echo.success : Color.Echo.outline)
                     .frame(width: 8, height: 8)
@@ -129,6 +157,12 @@ struct BotCard: View {
         }
         .buttonStyle(SpringButtonStyle())
         .padding(.horizontal, 20)
+    }
+
+    private var trustColor: Color {
+        if bot.trustScore >= 80 { return .echoSignal }
+        if bot.trustScore >= 60 { return .echoInk70 }
+        return .echoAlert
     }
 }
 
@@ -179,13 +213,13 @@ struct DiscoverBotRow: View {
 
 struct BotDetailView: View {
     let bot: BotInfo
+    @ObservedObject var viewModel: BotManagementViewModel
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Bot header
                     VStack(spacing: 12) {
                         RoundedRectangle(cornerRadius: 24)
                             .fill(Color.Echo.surfaceContainerHigh)
@@ -207,23 +241,27 @@ struct BotDetailView: View {
                     }
                     .padding(.top, 16)
 
-                    // Configuration
                     GhostBorderSection(title: "CONFIGURATION") {
                         InfoRow(label: "Status", value: bot.isActive ? "Active" : "Inactive")
-                        InfoRow(label: "Last Triggered", value: bot.lastTriggered ?? "Never")
+                        InfoRow(label: "Trust score", value: "\(bot.trustScore)/100")
                         InfoRow(label: "Permissions", value: bot.permissions)
                     }
 
-                    // Actions
                     VStack(spacing: 12) {
                         Button(bot.isActive ? "Disable Bot" : "Enable Bot") {
-                            // TODO: Toggle bot
+                            Task {
+                                await viewModel.setActive(botDID: bot.id, active: !bot.isActive)
+                                dismiss()
+                            }
                         }
                         .font(.system(size: 14)).fontWeight(.bold)
                         .foregroundStyle(bot.isActive ? Color.Echo.error : Color.Echo.primaryContainer)
 
                         Button("Remove Bot") {
-                            // TODO: Remove bot
+                            Task {
+                                await viewModel.removeBot(botDID: bot.id)
+                                dismiss()
+                            }
                         }
                         .font(.system(size: 14)).fontWeight(.bold)
                         .foregroundStyle(Color.Echo.error.opacity(0.7))
@@ -253,8 +291,30 @@ struct BotInfo: Identifiable {
     let name: String
     let description: String
     let isActive: Bool
-    let lastTriggered: String?
+    let trustScore: Int
     let permissions: String
+
+    static func from(manifest: BotManifestDTO) -> BotInfo {
+        BotInfo(
+            id: manifest.botDID,
+            name: manifest.name,
+            description: manifest.description,
+            isActive: false,
+            trustScore: manifest.trustScore,
+            permissions: manifest.requiredPermissions.joined(separator: ", ")
+        )
+    }
+
+    static func from(install: BotInstallationDTO, manifest: BotManifestDTO?) -> BotInfo {
+        BotInfo(
+            id: install.botDID,
+            name: manifest?.name ?? "Installed bot",
+            description: manifest?.description ?? install.botDID,
+            isActive: install.active,
+            trustScore: manifest?.trustScore ?? 0,
+            permissions: install.grantedPermissions.joined(separator: ", ")
+        )
+    }
 }
 
 // MARK: - Bot Management ViewModel
@@ -265,13 +325,99 @@ class BotManagementViewModel: ObservableObject {
     @Published var availableBots: [BotInfo] = []
     @Published var selectedBot: BotInfo?
     @Published var showBotDetail = false
+    @Published var pendingInstall: BotManifestDTO?
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+
+    private var catalog: [BotManifestDTO] = []
+
+    private var api: BotAPIClient? {
+        guard let client = DIContainer.shared.resolveAPIClient() else { return nil }
+        return BotAPIClient(apiClient: client)
+    }
 
     func loadBots() async {
-        // TODO: Load from bot service
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        guard let api else {
+            catalog = localFallbackCatalog()
+            rebuildLists(installed: [])
+            return
+        }
+
+        do {
+            async let catalogTask = api.fetchCatalog()
+            async let installedTask = api.fetchInstalled()
+            catalog = try await catalogTask
+            let installed = try await installedTask
+            rebuildLists(installed: installed)
+        } catch {
+            errorMessage = error.localizedDescription
+            catalog = localFallbackCatalog()
+            rebuildLists(installed: [])
+        }
     }
 
-    func addBot(_ bot: BotInfo) async {
-        // TODO: Add bot to active list
+    func beginInstall(_ bot: BotInfo) {
+        guard let manifest = catalog.first(where: { $0.botDID == bot.id }) else { return }
+        pendingInstall = manifest
+    }
+
+    func confirmInstall(manifest: BotManifestDTO, permissions: [String]) async {
+        guard let api else { return }
+        pendingInstall = nil
+        do {
+            _ = try await api.install(botDID: manifest.botDID, permissions: permissions)
+            await loadBots()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func removeBot(botDID: String) async {
+        guard let api else { return }
+        do {
+            try await api.uninstall(botDID: botDID)
+            await loadBots()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func setActive(botDID: String, active: Bool) async {
+        guard let api else { return }
+        do {
+            _ = try await api.setActive(botDID: botDID, active: active)
+            await loadBots()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func rebuildLists(installed: [BotInstallationDTO]) {
+        let installedIDs = Set(installed.map(\.botDID))
+        let manifestByID = Dictionary(uniqueKeysWithValues: catalog.map { ($0.botDID, $0) })
+        activeBots = installed.map { BotInfo.from(install: $0, manifest: manifestByID[$0.botDID]) }
+        availableBots = catalog
+            .filter { !installedIDs.contains($0.botDID) }
+            .map(BotInfo.from(manifest:))
+    }
+
+    private func localFallbackCatalog() -> [BotManifestDTO] {
+        [
+            BotManifestDTO(
+                botDID: "did:key:z6MkechoReminderBot00000000000000000001",
+                name: "Echo Reminder",
+                description: "Schedule gentle nudges in your chats.",
+                version: "0.1.0",
+                requiredPermissions: ["send_message", "read_messages"],
+                trustScore: 82
+            ),
+        ]
     }
 }
+
+extension BotManifestDTO: Identifiable {}
 #endif

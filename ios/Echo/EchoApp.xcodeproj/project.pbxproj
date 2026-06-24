@@ -209,6 +209,8 @@
 		CBF3ACC0B7864928AF7B2A71 /* Sources/Core/FileSharing/FileEncryptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83363FD297D440F283E14242 /* Sources/Core/FileSharing/FileEncryptionService.swift */; };
 		CCF456E401C263EE1B3078EE /* WelcomeCarouselView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 159B7E22B0490C8325290E1D /* WelcomeCarouselView.swift */; };
 		CD1AC1E671D7F6AD85E098B9 /* BotManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3447EF241863D2F44F36140 /* BotManagementView.swift */; };
+		S4B001BOT00000000000001 /* BotAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = S4F001BOT00000000000001 /* BotAPIClient.swift */; };
+		S4B002BOT00000000000002 /* BotInstallPermissionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = S4F002BOT00000000000002 /* BotInstallPermissionsSheet.swift */; };
 		D00EDC7A198D4EA19F4D210D /* Sources/DesignSystem/FlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01B611B57B284D0999ADD396 /* Sources/DesignSystem/FlowLayout.swift */; };
 		D27CE2A4CBA4349D88E416BD /* OTPViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE6641C0BB8CB66FA14EF444 /* OTPViewModel.swift */; };
 		D288A001234567890123401 /* EchoDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = D288A001234567890123411 /* EchoDeepLink.swift */; };
@@ -559,6 +561,8 @@
 		D288A004234567890123414 /* ContactFavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactFavoritesStore.swift; sourceTree = "<group>"; };
 		D288A005234567890123415 /* ReactionReactorDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactionReactorDetailSheet.swift; sourceTree = "<group>"; };
 		D3447EF241863D2F44F36140 /* BotManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BotManagementView.swift; sourceTree = "<group>"; };
+		S4F001BOT00000000000001 /* BotAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BotAPIClient.swift; sourceTree = "<group>"; };
+		S4F002BOT00000000000002 /* BotInstallPermissionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BotInstallPermissionsSheet.swift; sourceTree = "<group>"; };
 		D61E569198EEF3B0893C66CA /* AuthCoordinatorVM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthCoordinatorVM.swift; sourceTree = "<group>"; };
 		D67C6100C05E589214298B67 /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
 		D7EA66E9610DBC99DBC16F6E /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
@@ -955,6 +959,7 @@
 				F1A2B3C40123456789000B3 /* DeviceLinkAPIClient.swift */,
 				D288A004234567890123414 /* ContactFavoritesStore.swift */,
 				F1A2B3C4012345678900007 /* ContactDiscoveryAPIClient.swift */,
+				S4F001BOT00000000000001 /* BotAPIClient.swift */,
 				F1A2B3C4012345678900009 /* ContactDiscoveryService.swift */,
 				W0E001012345678901234001 /* ConversationStore.swift */,
 				W0E001012345678901234022 /* ConversationThreadStore.swift */,
@@ -1515,6 +1520,7 @@
 			isa = PBXGroup;
 			children = (
 				D3447EF241863D2F44F36140 /* BotManagementView.swift */,
+				S4F002BOT00000000000002 /* BotInstallPermissionsSheet.swift */,
 			);
 			path = Bots;
 			sourceTree = "<group>";
@@ -1938,6 +1944,8 @@
 				A5CE60D4C68F69ADB00F7E36 /* BiometricAuthManager.swift in Sources */,
 				62DBE95FAAB67442B3B5EED9 /* BiometricIntegrityService.swift in Sources */,
 				CD1AC1E671D7F6AD85E098B9 /* BotManagementView.swift in Sources */,
+				S4B001BOT00000000000001 /* BotAPIClient.swift in Sources */,
+				S4B002BOT00000000000002 /* BotInstallPermissionsSheet.swift in Sources */,
 				C0729FD92FEA98E967F7C966 /* CallState.swift in Sources */,
 				DE32CBC7A45FAEC445285B65 /* CallView.swift in Sources */,
 				59E8F775DE3CE4DB0C228459 /* CallViewModel.swift in Sources */,

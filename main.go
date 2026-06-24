@@ -21,6 +21,7 @@ import (
 	applog "github.com/thechadcromwell/echoapp/internal/logging"
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
 	"github.com/thechadcromwell/echoapp/internal/rewards"
+	"github.com/thechadcromwell/echoapp/internal/services/bots"
 	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
 	"github.com/thechadcromwell/echoapp/internal/services/comply"
 	"github.com/thechadcromwell/echoapp/internal/services/contacts"
@@ -271,6 +272,7 @@ func (s *Server) Start() error {
 
 	sealedTokenStore := messaging.NewSealedTokenStore()
 	convNotifPrefs := messaging.NewConversationNotificationPrefsStore()
+	botInstalls := bots.NewInstallStore()
 
 	router.V3 = &api.V3Handlers{
 		DB:              db,
@@ -289,6 +291,7 @@ func (s *Server) Start() error {
 		Comply:          complySvc,         // WO-250 retention enforcement hooks
 		SealedTokens:    sealedTokenStore,  // WO-219 sealed-sender delivery tokens
 		ConvNotifPrefs:  convNotifPrefs,    // WO-56 per-conversation mute prefs
+		Bots:            botInstalls,       // Stage 4 bot install grants
 	}
 	if os.Getenv("COMPLY_SERVICE_TOKEN") != "" {
 		log.Println("ECHO Comply retention service enabled (WO-250)")

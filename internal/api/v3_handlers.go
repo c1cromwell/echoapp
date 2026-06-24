@@ -24,6 +24,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/database"
 	"github.com/thechadcromwell/echoapp/internal/infra"
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/services/bots"
 	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
 	"github.com/thechadcromwell/echoapp/internal/services/comply"
 	"github.com/thechadcromwell/echoapp/internal/services/contacts"
@@ -56,6 +57,7 @@ type V3Handlers struct {
 	Comply          *comply.Service                               // optional; WO-250 retention enforcement
 	SealedTokens    *messaging.SealedTokenStore                   // optional; WO-219 sealed-sender tokens
 	ConvNotifPrefs  *messaging.ConversationNotificationPrefsStore // optional; WO-56 mute prefs
+	Bots            *bots.InstallStore                            // optional; Stage 4 bot installs
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.
@@ -118,6 +120,9 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 
 	// WebRTC call signaling (M4)
 	mux.HandleFunc("/v3/calls/ice-servers", h.handleCallsICEServers)
+
+	// Bots (Stage 4 / WO-11 foundation)
+	mux.HandleFunc("/v3/bots/", h.handleBotsSubroute)
 
 	// Group endpoints
 	mux.HandleFunc("/v3/groups/key/distribute", h.handleGroupKeyDistribute)
