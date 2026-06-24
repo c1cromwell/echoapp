@@ -71,7 +71,7 @@ func (c *Client) routeSealedText(msg WSMessage) {
 	if err != nil {
 		return
 	}
-	c.hub.deliverOrQueue(msg.To, outBytes, "", msg.ConversationID)
+	c.hub.deliverOrQueue(msg.To, outBytes, "", msg.ConversationID, msg.Silent)
 }
 
 // handleMessageSubroute dispatches /v3/messages/* before message-id parsing.

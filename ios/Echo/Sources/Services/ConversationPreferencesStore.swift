@@ -86,6 +86,9 @@ public final class ConversationPreferencesStore {
     public func save(_ prefs: ConversationPreferences, for conversationId: String) {
         let data = try? JSONEncoder().encode(prefs)
         backing.set(data, forKey: prefix + conversationId)
+        #if os(iOS)
+        ConversationNotificationSync.syncMuted(conversationId: conversationId, muted: prefs.isMuted)
+        #endif
     }
 
     public func setMuted(_ muted: Bool, for conversationId: String) {

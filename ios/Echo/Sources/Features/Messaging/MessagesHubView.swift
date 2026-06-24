@@ -95,6 +95,9 @@ struct MessagesHubView: View {
                 }
             }
         }
+        #if os(iOS)
+        .screenCaptureGuard(enabled: segment == .hidden && hiddenUnlocked && !isDuressHiddenVault)
+        #endif
         .sheet(isPresented: $showPersonaSheet) {
             PersonaSwitcherSheet(
                 personas: personas,

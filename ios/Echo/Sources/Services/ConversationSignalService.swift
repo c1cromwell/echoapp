@@ -132,12 +132,14 @@ final class ConversationSignalService: @unchecked Sendable {
     func sendTextMessage(
         conversationId: String,
         peerDID: String,
-        payload: TextMessagePayload
+        payload: TextMessagePayload,
+        silent: Bool = false
     ) async throws {
         let wire = try ConversationSignalCodec.encodeTextMessage(
             to: peerDID,
             conversationId: conversationId,
-            payload: payload
+            payload: payload,
+            silent: silent
         )
         try await transport.send(text: wire)
     }
@@ -145,12 +147,14 @@ final class ConversationSignalService: @unchecked Sendable {
     func sendSealedTextMessage(
         conversationId: String,
         peerDID: String,
-        payload: SealedTextPayload
+        payload: SealedTextPayload,
+        silent: Bool = false
     ) async throws {
         let wire = try ConversationSignalCodec.encodeSealedTextMessage(
             to: peerDID,
             conversationId: conversationId,
-            payload: payload
+            payload: payload,
+            silent: silent
         )
         try await transport.send(text: wire)
     }

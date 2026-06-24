@@ -23,7 +23,7 @@ func NewOfflineNotifier(svc *notification.Service) OfflineNotifier {
 	return notificationOfflineNotifier{svc: svc}
 }
 
-func (n notificationOfflineNotifier) NotifyUndelivered(recipientID, senderID, conversationID string) {
+func (n notificationOfflineNotifier) NotifyUndelivered(recipientID, senderID, conversationID string, silent bool) {
 	if n.svc == nil || recipientID == "" {
 		return
 	}
@@ -32,6 +32,7 @@ func (n notificationOfflineNotifier) NotifyUndelivered(recipientID, senderID, co
 		Type:           notification.TypeMessage,
 		ConversationID: conversationID,
 		SenderDID:      senderID,
+		Silent:         silent,
 	})
 }
 

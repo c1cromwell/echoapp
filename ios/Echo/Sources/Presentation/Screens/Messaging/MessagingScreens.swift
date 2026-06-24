@@ -504,6 +504,11 @@ struct ChatView: View {
                 withAnimation(.glacialPress) { reactionTargetId = nil }
             }
         }
+        #if os(iOS)
+        .screenCaptureGuard(
+            enabled: ConversationPreferencesStore.shared.isHidden(conversationId: conversationId)
+        )
+        #endif
     }
 
     private var chatNavigationBar: some View {

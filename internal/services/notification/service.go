@@ -36,6 +36,7 @@ type PushPayload struct {
 	Type           NotificationType `json:"type"`
 	ConversationID string           `json:"conversationId,omitempty"`
 	SenderDID      string           `json:"senderDid,omitempty"`
+	Silent         bool             `json:"silent,omitempty"` // WO-56: background wake without alert
 }
 
 // SendResult represents the result of a push notification send.
@@ -48,7 +49,7 @@ type SendResult struct {
 
 // PushSender abstracts the push notification delivery backend.
 type PushSender interface {
-	SendPush(ctx context.Context, deviceToken string, conversationID string, notifType string) error
+	SendPush(ctx context.Context, deviceToken string, conversationID string, notifType string, silent bool) error
 }
 
 // Service provides push notification operations.
@@ -124,7 +125,7 @@ func (s *Service) Send(ctx context.Context, recipientDID string, payload PushPay
 	for _, d := range devices {
 		if len(d.APNsToken) >= 8 {
 			if s.pusher != nil {
-				if err := s.pusher.SendPush(ctx, d.APNsToken, payload.ConversationID, string(payload.Type)); err != nil {
+				if err := s.pusher.SendPush(ctx, d.APNsToken, payload.ConversationID, string(payload.Type), payload.Silent); err != nil {
 					continue
 				}
 			}

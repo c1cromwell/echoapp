@@ -47,14 +47,15 @@ type V3Handlers struct {
 	Rewards         *rewards.Service
 	Groups          *groups.GroupService
 	Broadcasts      *broadcast_channels.ChannelService
-	RateLimiter     *infra.RateLimiter          // optional; enforces per-DID claim velocity (WO-35)
-	IdentityL1      *metagraph.MetagraphClient  // optional; anchors @username -> DID on the Identity Metagraph (D1)
-	Signals         SignalPublisher             // optional; pushes live typing/receipt/reaction signals over WS (WO-10/192)
-	Notifier        OfflineNotifier             // optional; content-blind push when a signal target is offline (WO-57)
-	MessageBackup   *passport.SyncService       // optional; WO-64/CA2 client-encrypted history backup relay
-	OverflowStorage encblob.Storage             // optional; WO-237 overflow blob retrieval
-	Comply          *comply.Service             // optional; WO-250 retention enforcement
-	SealedTokens    *messaging.SealedTokenStore // optional; WO-219 sealed-sender tokens
+	RateLimiter     *infra.RateLimiter                            // optional; enforces per-DID claim velocity (WO-35)
+	IdentityL1      *metagraph.MetagraphClient                    // optional; anchors @username -> DID on the Identity Metagraph (D1)
+	Signals         SignalPublisher                               // optional; pushes live typing/receipt/reaction signals over WS (WO-10/192)
+	Notifier        OfflineNotifier                               // optional; content-blind push when a signal target is offline (WO-57)
+	MessageBackup   *passport.SyncService                         // optional; WO-64/CA2 client-encrypted history backup relay
+	OverflowStorage encblob.Storage                               // optional; WO-237 overflow blob retrieval
+	Comply          *comply.Service                               // optional; WO-250 retention enforcement
+	SealedTokens    *messaging.SealedTokenStore                   // optional; WO-219 sealed-sender tokens
+	ConvNotifPrefs  *messaging.ConversationNotificationPrefsStore // optional; WO-56 mute prefs
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.
@@ -1012,7 +1013,7 @@ func (h *V3Handlers) publishReactionSignal(ctx context.Context, reactorDID, mess
 	// If the peer wasn't connected, wake them with a content-blind push (WO-57).
 	// A removed reaction (empty emoji) is not worth a push.
 	if !delivered && emoji != "" && h.Notifier != nil {
-		h.Notifier.NotifyUndelivered(target, reactorDID, meta.ConversationID)
+		h.Notifier.NotifyUndelivered(target, reactorDID, meta.ConversationID, false)
 	}
 }
 
@@ -1231,7 +1232,7 @@ func (h *V3Handlers) publishOpSignal(ctx context.Context, actorDID, messageID, c
 		})
 	}
 	if !delivered && h.Notifier != nil {
-		h.Notifier.NotifyUndelivered(target, actorDID, conversationID)
+		h.Notifier.NotifyUndelivered(target, actorDID, conversationID, false)
 	}
 }
 
@@ -1259,7 +1260,7 @@ func (h *V3Handlers) publishToPeer(peerDID, actorDID, conversationID, opType str
 		})
 	}
 	if !delivered && h.Notifier != nil {
-		h.Notifier.NotifyUndelivered(peerDID, actorDID, conversationID)
+		h.Notifier.NotifyUndelivered(peerDID, actorDID, conversationID, false)
 	}
 }
 
@@ -1499,6 +1500,8 @@ func (h *V3Handlers) handleConversationsSubroute(w http.ResponseWriter, r *http.
 	}
 
 	switch {
+	case action == "notifications" && (r.Method == http.MethodGet || r.Method == http.MethodPut):
+		h.handleConversationNotifications(w, r, convID)
 	case action == "pins" && r.Method == http.MethodGet:
 		pins, err := h.DB.GetPinnedMessages(r.Context(), convID)
 		if err != nil {

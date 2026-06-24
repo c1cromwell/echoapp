@@ -23,6 +23,7 @@ type WSMessage struct {
 	ConversationID string          `json:"conversation_id,omitempty"` // optional conversation scope
 	Payload        json.RawMessage `json:"payload"`                   // message content
 	Timestamp      string          `json:"timestamp"`
+	Silent         bool            `json:"silent,omitempty"` // WO-56: suppress alert push for recipient
 }
 
 // WSControlMessage represents a control action (ping, subscribe, etc.).
@@ -151,23 +152,24 @@ type GroupMemberLister interface {
 // push (conversation id + sender only, never content) so the device wakes and
 // fetches. Best-effort and must not block; the hub calls it asynchronously.
 type OfflineNotifier interface {
-	NotifyUndelivered(recipientID, senderID, conversationID string)
+	NotifyUndelivered(recipientID, senderID, conversationID string, silent bool)
 	// NotifyMissedCall fires when an offline recipient misses a call offer (M4c / WO-196).
 	NotifyMissedCall(recipientID, senderID, callID string)
 }
 
 // Hub manages all active WebSocket connections and routes messages.
 type Hub struct {
-	mu           sync.RWMutex
-	clients      map[string]*Client // userID -> client
-	broadcast    chan []byte
-	register     chan *Client
-	unregister   chan *Client
-	notifier     OfflineNotifier             // optional; push for offline recipients (WO-57)
-	groupMembers GroupMemberLister           // optional; fan-out group text to members (M2)
-	offlineQueue *wsOfflineQueue             // directed WS blobs for offline recipients (M2)
-	rateLimiter  *infra.RateLimiter          // WO-44 per-DID WS message budget (optional)
-	sealedTokens *messaging.SealedTokenStore // WO-219 sealed-sender delivery tokens
+	mu             sync.RWMutex
+	clients        map[string]*Client // userID -> client
+	broadcast      chan []byte
+	register       chan *Client
+	unregister     chan *Client
+	notifier       OfflineNotifier                               // optional; push for offline recipients (WO-57)
+	groupMembers   GroupMemberLister                             // optional; fan-out group text to members (M2)
+	offlineQueue   *wsOfflineQueue                               // directed WS blobs for offline recipients (M2)
+	rateLimiter    *infra.RateLimiter                            // WO-44 per-DID WS message budget (optional)
+	sealedTokens   *messaging.SealedTokenStore                   // WO-219 sealed-sender delivery tokens
+	convNotifPrefs *messaging.ConversationNotificationPrefsStore // WO-56 mute → silent push
 }
 
 // NewHub creates a new WebSocket hub.
@@ -244,21 +246,26 @@ func (h *Hub) PublishSignal(to string, msg WSMessage) bool {
 	if err != nil {
 		return false
 	}
-	if h.deliverOrQueue(msg.To, data, msg.From, msg.ConversationID) {
+	if h.deliverOrQueue(msg.To, data, msg.From, msg.ConversationID, msg.Silent) {
 		return true
 	}
 	return false
 }
 
+// SetConversationNotificationPrefs configures mute lookup for silent push (WO-56).
+func (h *Hub) SetConversationNotificationPrefs(s *messaging.ConversationNotificationPrefsStore) {
+	h.convNotifPrefs = s
+}
+
 // deliverOrQueue sends live or enqueues for reconnect replay (M2 offline group + signals).
-func (h *Hub) deliverOrQueue(recipient string, data []byte, senderID, conversationID string) bool {
+func (h *Hub) deliverOrQueue(recipient string, data []byte, senderID, conversationID string, silent bool) bool {
 	if h.SendToUser(recipient, data) {
 		return true
 	}
 	if h.offlineQueue != nil {
 		h.offlineQueue.Enqueue(recipient, data, wsOfflineRetention)
 	}
-	h.notifyUndelivered(recipient, senderID, conversationID)
+	h.notifyUndelivered(recipient, senderID, conversationID, silent)
 	return false
 }
 
@@ -340,14 +347,18 @@ func (h *Hub) SetOfflineOverflowStorage(s encblob.Storage) {
 }
 
 // notifyUndelivered fires a content-blind push asynchronously if a notifier is set.
-func (h *Hub) notifyUndelivered(recipientID, senderID, conversationID string) {
+func (h *Hub) notifyUndelivered(recipientID, senderID, conversationID string, silent bool) {
 	h.mu.RLock()
 	n := h.notifier
+	prefs := h.convNotifPrefs
 	h.mu.RUnlock()
 	if n == nil || recipientID == "" {
 		return
 	}
-	go n.NotifyUndelivered(recipientID, senderID, conversationID)
+	if prefs != nil && prefs.IsMuted(recipientID, conversationID) {
+		return
+	}
+	go n.NotifyUndelivered(recipientID, senderID, conversationID, silent)
 }
 
 // deliverOrQueueCall delivers call_signal live, queues for reconnect, and pushes missed-call on offer.
@@ -374,7 +385,7 @@ func (h *Hub) notifyCallUndelivered(recipientID, senderID string, payload json.R
 		go n.NotifyMissedCall(recipientID, senderID, sig.CallID)
 		return
 	}
-	go n.NotifyUndelivered(recipientID, senderID, "")
+	go n.NotifyUndelivered(recipientID, senderID, "", false)
 }
 
 // ConnectedUsers returns the list of currently connected user IDs.
@@ -548,7 +559,7 @@ func (c *Client) routeInbound(msg WSMessage) {
 		if msg.To == "" || msg.To == c.userID {
 			return
 		}
-		c.hub.deliverOrQueue(msg.To, outBytes, c.userID, msg.ConversationID)
+		c.hub.deliverOrQueue(msg.To, outBytes, c.userID, msg.ConversationID, msg.Silent)
 		return
 	}
 
@@ -569,7 +580,7 @@ func (c *Client) routeInbound(msg WSMessage) {
 
 	if msg.To != "" {
 		// Directed message: deliver live, queue for reconnect, or push (WO-57).
-		c.hub.deliverOrQueue(msg.To, outBytes, c.userID, msg.ConversationID)
+		c.hub.deliverOrQueue(msg.To, outBytes, c.userID, msg.ConversationID, msg.Silent)
 	} else {
 		c.hub.broadcast <- outBytes
 	}
@@ -609,7 +620,7 @@ func (c *Client) routeGroupText(msg WSMessage) {
 		if err != nil {
 			continue
 		}
-		c.hub.deliverOrQueue(member, perMember, c.userID, msg.ConversationID)
+		c.hub.deliverOrQueue(member, perMember, c.userID, msg.ConversationID, msg.Silent)
 	}
 }
 

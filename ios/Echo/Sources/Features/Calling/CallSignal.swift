@@ -12,6 +12,8 @@ enum CallSignalAction: String, Codable, Sendable {
     case hangup
     case reject
     case ring
+    case screenShareStart = "screen_share_start"
+    case screenShareStop = "screen_share_stop"
 }
 
 struct CallSignalPayload: Codable, Sendable, Equatable {

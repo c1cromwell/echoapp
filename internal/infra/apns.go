@@ -73,16 +73,25 @@ type APNsResponse struct {
 
 // SendPush sends a content-blind push notification to a device token.
 // Per the blueprint, only conversation IDs are sent — never message content.
-func (a *APNsClient) SendPush(ctx context.Context, deviceToken string, conversationID string, notifType string) (*APNsResponse, error) {
-	payload := APNsPayload{
-		APS: APS{
-			Alert: APSAlert{
-				Title: "Echo",
-				Body:  "You have a new message",
+func (a *APNsClient) SendPush(ctx context.Context, deviceToken string, conversationID string, notifType string, silent bool) (*APNsResponse, error) {
+	var payload APNsPayload
+	if silent {
+		payload = APNsPayload{
+			APS: APS{
+				ContentAvailable: 1,
 			},
-			Sound:          "default",
-			MutableContent: 1,
-		},
+		}
+	} else {
+		payload = APNsPayload{
+			APS: APS{
+				Alert: APSAlert{
+					Title: "Echo",
+					Body:  "You have a new message",
+				},
+				Sound:          "default",
+				MutableContent: 1,
+			},
+		}
 	}
 
 	body, err := json.Marshal(payload)
@@ -98,8 +107,13 @@ func (a *APNsClient) SendPush(ctx context.Context, deviceToken string, conversat
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("apns-topic", a.cfg.BundleID)
-	req.Header.Set("apns-push-type", "alert")
-	req.Header.Set("apns-priority", "10")
+	if silent {
+		req.Header.Set("apns-push-type", "background")
+		req.Header.Set("apns-priority", "5")
+	} else {
+		req.Header.Set("apns-push-type", "alert")
+		req.Header.Set("apns-priority", "10")
+	}
 	req.Header.Set("apns-expiration", "0")
 
 	// In production, sign with JWT bearer token using the .p8 key.

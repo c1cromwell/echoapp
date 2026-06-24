@@ -91,6 +91,21 @@ final class CallSignalingService {
         )
     }
 
+    func sendScreenShare(callId: String, to peerDID: String, active: Bool) async throws {
+        try await send(
+            to: peerDID,
+            payload: CallSignalPayload(
+                callId: callId,
+                action: active
+                    ? CallSignalAction.screenShareStart.rawValue
+                    : CallSignalAction.screenShareStop.rawValue,
+                callType: nil,
+                sdp: nil,
+                iceCandidate: nil
+            )
+        )
+    }
+
     private func send(to peerDID: String, payload: CallSignalPayload) async throws {
         let wire = try CallSignalCodec.encode(to: peerDID, payload: payload)
         try await signalService.sendRaw(wire: wire)

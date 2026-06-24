@@ -20,5 +20,20 @@ final class CallSignalCodecTests: XCTestCase {
         XCTAssertEqual(event.callType, .voice)
         XCTAssertEqual(event.sdp, "v=0")
     }
+
+    func testScreenShareEncodeDecode() throws {
+        let wire = try CallSignalCodec.encode(
+            to: "did:key:bob",
+            payload: CallSignalPayload(
+                callId: "call-1",
+                action: CallSignalAction.screenShareStart.rawValue,
+                callType: nil,
+                sdp: nil,
+                iceCandidate: nil
+            )
+        )
+        let event = try XCTUnwrap(try CallSignalCodec.decode(from: wire))
+        XCTAssertEqual(event.action, .screenShareStart)
+    }
 }
 #endif

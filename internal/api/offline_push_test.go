@@ -27,7 +27,7 @@ type missedCallRecord struct {
 	recipient, sender, callID string
 }
 
-func (f *fakeNotifier) NotifyUndelivered(recipientID, senderID, conversationID string) {
+func (f *fakeNotifier) NotifyUndelivered(recipientID, senderID, conversationID string, silent bool) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.sent = append(f.sent, pushRecord{recipientID, senderID, conversationID})

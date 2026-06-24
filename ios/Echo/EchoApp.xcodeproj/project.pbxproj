@@ -282,6 +282,8 @@
 		S5B004HIDDEN000000000004 /* HiddenChatsSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F004HIDDEN000000000004 /* Sources/Services/HiddenChatsSession.swift */; };
 		S5B005HIDDEN000000000005 /* HiddenFolderGateSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F005HIDDEN000000000005 /* Sources/Features/Messaging/HiddenFolderGateSheet.swift */; };
 		S5B006HIDDEN000000000006 /* HiddenFolderSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F006HIDDEN000000000006 /* Sources/Features/Messaging/HiddenFolderSettingsView.swift */; };
+		S5B007HIDDEN000000000007 /* ScreenCaptureGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F007HIDDEN000000000007 /* Sources/Core/Security/ScreenCaptureGuard.swift */; };
+		S5B008NOTIF00000000000008 /* ConversationNotificationSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F008NOTIF00000000000008 /* Sources/Services/ConversationNotificationSync.swift */; };
 		M4B001CALL00000000000001 /* CallSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F001CALL00000000000001 /* CallSignal.swift */; };
 		M4B002CALL00000000000002 /* CallHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F002CALL00000000000002 /* CallHistoryStore.swift */; };
 		M4B003CALL00000000000003 /* WebRTCCallSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F003CALL00000000000003 /* WebRTCCallSession.swift */; };
@@ -632,6 +634,8 @@
 		S5F004HIDDEN000000000004 /* Sources/Services/HiddenChatsSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/HiddenChatsSession.swift; sourceTree = "<group>"; };
 		S5F005HIDDEN000000000005 /* Sources/Features/Messaging/HiddenFolderGateSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Messaging/HiddenFolderGateSheet.swift; sourceTree = "<group>"; };
 		S5F006HIDDEN000000000006 /* Sources/Features/Messaging/HiddenFolderSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Messaging/HiddenFolderSettingsView.swift; sourceTree = "<group>"; };
+		S5F007HIDDEN000000000007 /* Sources/Core/Security/ScreenCaptureGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Core/Security/ScreenCaptureGuard.swift; sourceTree = "<group>"; };
+		S5F008NOTIF00000000000008 /* Sources/Services/ConversationNotificationSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/ConversationNotificationSync.swift; sourceTree = "<group>"; };
 		M4F001CALL00000000000001 /* CallSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallSignal.swift; sourceTree = "<group>"; };
 		M4F002CALL00000000000002 /* CallHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallHistoryStore.swift; sourceTree = "<group>"; };
 		M4F003CALL00000000000003 /* WebRTCCallSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCCallSession.swift; sourceTree = "<group>"; };
@@ -980,6 +984,7 @@
 				8BEDF0FDB113BA7F8CA28856 /* Sources/Features/Settings/PrivacySettingsStore.swift */,
 				8B2D9B3E64D0D0827FBE804A /* Sources/Services/TextMessageCrypto.swift */,
 				S5F002SEALED000000000002 /* Sources/Services/SealedSenderService.swift */,
+				S5F008NOTIF00000000000008 /* Sources/Services/ConversationNotificationSync.swift */,
 				S5F003HIDDEN000000000003 /* Sources/Services/HiddenFolderSettingsStore.swift */,
 				S5F004HIDDEN000000000004 /* Sources/Services/HiddenChatsSession.swift */,
 				24BE1DF715DD46161989FCE7 /* Sources/Services/IdentityResolveClient.swift */,
@@ -993,6 +998,7 @@
 				DDF6D1C6D0E4EB6697FB6BD1 /* Sources/Services/ConversationPreferencesStore.swift */,
 				3141640DB14B49719F5CD49A /* Sources/Core/Security/StepUpAuthManager.swift */,
 				S5F001HIDDEN000000000001 /* Sources/Core/Security/HiddenThreadCrypto.swift */,
+				S5F007HIDDEN000000000007 /* Sources/Core/Security/ScreenCaptureGuard.swift */,
 				3C4FB342BDBA4A46BCB6A489 /* Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift */,
 				C3F638568F074357AEE51CD9 /* Sources/Features/Onboarding/VIP/VIPPathView.swift */,
 				5E6EA147E2FF4D5F80E78EB1 /* Sources/Features/Onboarding/VIP/VIPStandardIDVView.swift */,
@@ -1842,6 +1848,8 @@
 				S5B004HIDDEN000000000004 /* HiddenChatsSession.swift in Sources */,
 				S5B005HIDDEN000000000005 /* HiddenFolderGateSheet.swift in Sources */,
 				S5B006HIDDEN000000000006 /* HiddenFolderSettingsView.swift in Sources */,
+				S5B007HIDDEN000000000007 /* ScreenCaptureGuard.swift in Sources */,
+				S5B008NOTIF00000000000008 /* ConversationNotificationSync.swift in Sources */,
 				M4B001CALL00000000000001 /* CallSignal.swift in Sources */,
 				M4B002CALL00000000000002 /* CallHistoryStore.swift in Sources */,
 				M4B003CALL00000000000003 /* WebRTCCallSession.swift in Sources */,

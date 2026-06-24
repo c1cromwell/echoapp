@@ -270,6 +270,7 @@ func (s *Server) Start() error {
 	groupSvc := groups.NewGroupService(groupOpts...)
 
 	sealedTokenStore := messaging.NewSealedTokenStore()
+	convNotifPrefs := messaging.NewConversationNotificationPrefsStore()
 
 	router.V3 = &api.V3Handlers{
 		DB:              db,
@@ -287,14 +288,16 @@ func (s *Server) Start() error {
 		OverflowStorage: backupBlobStore,   // WO-237: overflow blob fetch for reconnect manifest
 		Comply:          complySvc,         // WO-250 retention enforcement hooks
 		SealedTokens:    sealedTokenStore,  // WO-219 sealed-sender delivery tokens
+		ConvNotifPrefs:  convNotifPrefs,    // WO-56 per-conversation mute prefs
 	}
 	if os.Getenv("COMPLY_SERVICE_TOKEN") != "" {
 		log.Println("ECHO Comply retention service enabled (WO-250)")
 	}
-	router.WSHub.SetGroupMemberLister(router.V3.Groups)     // M2: group text fan-out to members
-	router.WSHub.SetSealedTokenStore(sealedTokenStore)      // WO-219: sealed-sender token validation
-	router.WSHub.SetRateLimiter(rateLimiter)                // WO-44: WS send budget
-	router.WSHub.SetOfflineOverflowStorage(backupBlobStore) // WO-237: queue overflow to encblob
+	router.WSHub.SetGroupMemberLister(router.V3.Groups)           // M2: group text fan-out to members
+	router.WSHub.SetSealedTokenStore(sealedTokenStore)            // WO-219: sealed-sender token validation
+	router.WSHub.SetConversationNotificationPrefs(convNotifPrefs) // WO-56: mute → push suppression
+	router.WSHub.SetRateLimiter(rateLimiter)                      // WO-44: WS send budget
+	router.WSHub.SetOfflineOverflowStorage(backupBlobStore)       // WO-237: queue overflow to encblob
 
 	// WO-53: Start audit log publisher background goroutine.
 	// Uses FallbackIPFSStorage (Pinata→Storj) when env vars are set;

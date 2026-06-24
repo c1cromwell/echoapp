@@ -152,8 +152,15 @@ class CallViewModel: ObservableObject {
     }
 
     func flipCamera() {}
-    func startScreenShare() { isScreenSharing = true }
-    func stopScreenShare() { isScreenSharing = false }
+    func startScreenShare() {
+        isScreenSharing = true
+        Task { try? await signaling?.sendScreenShare(callId: callId, to: peerDID, active: true) }
+    }
+
+    func stopScreenShare() {
+        isScreenSharing = false
+        Task { try? await signaling?.sendScreenShare(callId: callId, to: peerDID, active: false) }
+    }
 
     private func configureSignaling() async {
         guard let signalService = DIContainer.shared.resolveConversationSignalService(),
@@ -207,6 +214,10 @@ class CallViewModel: ObservableObject {
         case .ring:
             state = .ringing
             stateLabel = "Ringing..."
+        case .screenShareStart:
+            isScreenSharing = true
+        case .screenShareStop:
+            isScreenSharing = false
         }
     }
 

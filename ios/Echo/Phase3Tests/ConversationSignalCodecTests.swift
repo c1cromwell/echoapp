@@ -61,6 +61,18 @@ final class ConversationSignalCodecTests: XCTestCase {
         XCTAssertEqual(e.text, "Hello")
     }
 
+    func testTextMessageEnvelope_silentFlag() throws {
+        let json = try ConversationSignalCodec.encodeTextMessage(
+            to: "did:key:bob",
+            conversationId: "conv-1",
+            payload: TextMessagePayload(messageId: "m1", text: "Quiet", encrypted: nil),
+            silent: true
+        )
+        let data = try XCTUnwrap(json.data(using: .utf8))
+        let envelope = try JSONDecoder().decode(WSEnvelope<TextMessagePayload>.self, from: data)
+        XCTAssertEqual(envelope.silent, true)
+    }
+
     func testDecodeEvent_unknownTypeReturnsNil() throws {
         let json = """
         {"type":"presence","to":"did:key:x","payload":{}}

@@ -147,6 +147,14 @@ final class ChatDetailViewModel {
         peerIsTyping = false
     }
 
+    private var conversationIsMuted: Bool {
+        ConversationPreferencesStore.shared.isMuted(conversationId)
+    }
+
+    private var outboundSilentDelivery: Bool {
+        PrivacySettingsStore.load().silentMessages
+    }
+
     // MARK: - Typing
 
     func onInputChanged(_ text: String) {
@@ -401,6 +409,7 @@ final class ChatDetailViewModel {
                 peerDID: peerDID,
                 messageId: message.id
             )
+            let deliverSilent = outboundSilentDelivery
             if SealedSenderPreferences.isEnabled, !conversationId.hasPrefix("group:") {
                 let client = DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
                 let sealedService = SealedSenderService(
@@ -415,13 +424,15 @@ final class ChatDetailViewModel {
                 try await signalService.sendSealedTextMessage(
                     conversationId: conversationId,
                     peerDID: peerDID,
-                    payload: sealed
+                    payload: sealed,
+                    silent: deliverSilent
                 )
             } else {
                 try await signalService.sendTextMessage(
                     conversationId: conversationId,
                     peerDID: peerDID,
-                    payload: payload
+                    payload: payload,
+                    silent: deliverSilent
                 )
             }
             if let replyId {
@@ -552,7 +563,7 @@ final class ChatDetailViewModel {
     }
 
     private func scheduleTypingSend(state: TypingState) {
-        guard privacy.sendTypingIndicators else { return }
+        guard privacy.sendTypingIndicators, !conversationIsMuted else { return }
         Task {
             try? await signalService.sendTyping(
                 conversationId: conversationId,
@@ -566,7 +577,7 @@ final class ChatDetailViewModel {
         guard typingBurstActive else { return }
         typingBurstActive = false
         typingIdleTask?.cancel()
-        if privacy.sendTypingIndicators {
+        if privacy.sendTypingIndicators, !conversationIsMuted {
             try? await signalService.sendTyping(
                 conversationId: conversationId,
                 peerDID: peerDID,
@@ -625,6 +636,7 @@ final class ChatDetailViewModel {
     /// Best-effort durable read receipts (WO-192). The WS signal is the live nudge;
     /// this REST call is what makes read state survive an offline peer.
     private func persistReadReceipts(_ messageIds: [String]) async {
+        guard !conversationIsMuted, privacy.sendReadReceipts else { return }
         guard let receiptsAPI else { return }
         for id in messageIds {
             _ = try? await receiptsAPI.markRead(messageId: id)

@@ -34,11 +34,13 @@ struct WSEnvelope<Payload: Codable>: Codable, Sendable where Payload: Sendable {
     var conversationId: String?
     var payload: Payload
     var timestamp: String?
+    /// WO-56: request silent delivery (background push / no alert on recipient).
+    var silent: Bool?
 
     enum CodingKeys: String, CodingKey {
         case type, to, from
         case conversationId = "conversation_id"
-        case payload, timestamp
+        case payload, timestamp, silent
     }
 }
 
@@ -527,7 +529,8 @@ enum ConversationSignalCodec {
     static func encodeTextMessage(
         to peerDID: String,
         conversationId: String,
-        payload: TextMessagePayload
+        payload: TextMessagePayload,
+        silent: Bool = false
     ) throws -> String {
         let envelope = WSEnvelope(
             type: ConversationSignalType.text,
@@ -535,7 +538,8 @@ enum ConversationSignalCodec {
             from: nil,
             conversationId: conversationId,
             payload: payload,
-            timestamp: isoTimestamp()
+            timestamp: isoTimestamp(),
+            silent: silent ? true : nil
         )
         let data = try encoder.encode(envelope)
         guard let json = String(data: data, encoding: .utf8) else {
@@ -547,7 +551,8 @@ enum ConversationSignalCodec {
     static func encodeSealedTextMessage(
         to peerDID: String,
         conversationId: String,
-        payload: SealedTextPayload
+        payload: SealedTextPayload,
+        silent: Bool = false
     ) throws -> String {
         let envelope = WSEnvelope(
             type: ConversationSignalType.sealedText,
@@ -555,7 +560,8 @@ enum ConversationSignalCodec {
             from: nil,
             conversationId: conversationId,
             payload: payload,
-            timestamp: isoTimestamp()
+            timestamp: isoTimestamp(),
+            silent: silent ? true : nil
         )
         let data = try encoder.encode(envelope)
         guard let json = String(data: data, encoding: .utf8) else {
