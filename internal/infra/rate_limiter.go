@@ -46,9 +46,12 @@ func DefaultRateLimits() map[string]RateLimitConfig {
 	return map[string]RateLimitConfig{
 		"api_request":     {MaxRequests: 100, Window: time.Minute},
 		"message_send":    {MaxRequests: 60, Window: time.Minute},
+		"websocket_msg":   {MaxRequests: 60, Window: time.Minute},
+		"sync_push":       {MaxRequests: 120, Window: time.Minute},
+		"backup_push":     {MaxRequests: 20, Window: time.Hour},
+		"group_mutation":  {MaxRequests: 30, Window: time.Minute},
 		"reward_claim":    {MaxRequests: 10, Window: 24 * time.Hour},
 		"data_submission": {MaxRequests: 10, Window: time.Minute},
-		"websocket_msg":   {MaxRequests: 60, Window: time.Minute},
 	}
 }
 

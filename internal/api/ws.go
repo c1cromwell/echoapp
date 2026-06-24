@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"github.com/thechadcromwell/echoapp/internal/infra"
 	"github.com/thechadcromwell/echoapp/pkg/storage/encblob"
 )
 
@@ -34,11 +35,11 @@ type WSControlMessage struct {
 // recipient (`to`) — they are never broadcast to all connected clients, since
 // that would leak who is typing / reading to everyone online.
 var ephemeralSignalTypes = map[string]bool{
-	"typing":       true, // payload: TypingSignal
-	"read_receipt": true, // payload: ReadReceiptSignal
-	"reaction":       true, // payload: ReactionSignal (live update; durable truth is the reactions API)
-	"group_key":    true, // payload: GroupKeySignal (E2E key package; content-blind opaque blob)
-	"poll":           true, // payload: PollSignal (live poll update; WO-23)
+	"typing":           true, // payload: TypingSignal
+	"read_receipt":     true, // payload: ReadReceiptSignal
+	"reaction":         true, // payload: ReactionSignal (live update; durable truth is the reactions API)
+	"group_key":        true, // payload: GroupKeySignal (E2E key package; content-blind opaque blob)
+	"poll":             true, // payload: PollSignal (live poll update; WO-23)
 	"screenshot_alert": true, // payload: ScreenshotAlertSignal (M6)
 }
 
@@ -157,14 +158,15 @@ type OfflineNotifier interface {
 
 // Hub manages all active WebSocket connections and routes messages.
 type Hub struct {
-	mu            sync.RWMutex
-	clients       map[string]*Client // userID -> client
-	broadcast     chan []byte
-	register      chan *Client
-	unregister    chan *Client
-	notifier      OfflineNotifier   // optional; push for offline recipients (WO-57)
-	groupMembers  GroupMemberLister // optional; fan-out group text to members (M2)
-	offlineQueue  *wsOfflineQueue   // directed WS blobs for offline recipients (M2)
+	mu           sync.RWMutex
+	clients      map[string]*Client // userID -> client
+	broadcast    chan []byte
+	register     chan *Client
+	unregister   chan *Client
+	notifier     OfflineNotifier    // optional; push for offline recipients (WO-57)
+	groupMembers GroupMemberLister  // optional; fan-out group text to members (M2)
+	offlineQueue *wsOfflineQueue    // directed WS blobs for offline recipients (M2)
+	rateLimiter  *infra.RateLimiter // WO-44 per-DID WS message budget (optional)
 }
 
 // NewHub creates a new WebSocket hub.
@@ -176,6 +178,11 @@ func NewHub() *Hub {
 		unregister:   make(chan *Client),
 		offlineQueue: newWSOfflineQueue(),
 	}
+}
+
+// SetRateLimiter enables per-DID WebSocket send rate limits (WO-44).
+func (h *Hub) SetRateLimiter(rl *infra.RateLimiter) {
+	h.rateLimiter = rl
 }
 
 // Run starts the hub's event loop. Call this in a goroutine.
@@ -502,6 +509,15 @@ func (c *Client) readPump() {
 // Other messages preserve the existing behavior: direct when `to` is set, else
 // broadcast.
 func (c *Client) routeInbound(msg WSMessage) {
+	if c.hub.rateLimiter != nil && c.userID != "" && msg.Type != "control" {
+		action := "websocket_msg"
+		if msg.Type == "text" {
+			action = "message_send"
+		}
+		if err := c.hub.rateLimiter.Check(c.userID, action); err != nil {
+			return
+		}
+	}
 	if msg.From == "" {
 		msg.From = c.userID
 	}

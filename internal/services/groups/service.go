@@ -1,6 +1,7 @@
 package groups
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -18,22 +19,6 @@ var (
 	ErrCooldownNotMet         = errors.New("member cooldown period not met")
 )
 
-// GroupService manages group operations
-type GroupService struct {
-	groups       map[string]*Group
-	memberships  map[string][]*GroupMember // groupID -> members
-	memberLookup map[string]*GroupMember   // memberID:groupID -> member
-}
-
-// NewGroupService creates a new group service
-func NewGroupService() *GroupService {
-	return &GroupService{
-		groups:       make(map[string]*Group),
-		memberships:  make(map[string][]*GroupMember),
-		memberLookup: make(map[string]*GroupMember),
-	}
-}
-
 // GroupProfile represents group profile information
 type GroupProfile struct {
 	Name          string
@@ -47,19 +32,49 @@ type GroupProfile struct {
 	MaxModerators int
 }
 
+// GroupService manages group operations backed by a GroupStore.
+type GroupService struct {
+	store GroupStore
+}
+
+// GroupServiceOption configures GroupService construction.
+type GroupServiceOption func(*GroupService)
+
+// WithStore sets a custom persistence backend (default: in-memory).
+func WithStore(store GroupStore) GroupServiceOption {
+	return func(gs *GroupService) {
+		gs.store = store
+	}
+}
+
+// NewGroupService creates a group service. When Postgres is available, pass
+// WithStore(NewPostgresStore(pool)) from main.
+func NewGroupService(opts ...GroupServiceOption) *GroupService {
+	gs := &GroupService{store: newMemoryStore()}
+	for _, opt := range opts {
+		opt(gs)
+	}
+	return gs
+}
+
+func (gs *GroupService) ctx() context.Context {
+	return context.Background()
+}
+
 // CreateGroup creates a new group
 func (gs *GroupService) CreateGroup(groupID, ownerID string, groupType GroupType, profile GroupProfile, requirements VerificationRequirements) (*Group, error) {
-	// Validate group doesn't already exist
-	if _, exists := gs.groups[groupID]; exists {
+	exists, err := gs.store.GroupExists(gs.ctx(), groupID)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
 		return nil, fmt.Errorf("group %s already exists", groupID)
 	}
 
-	// Validate group type
 	if groupType != GroupTypePublic && groupType != GroupTypePrivate && groupType != GroupTypeSecret {
 		return nil, ErrInvalidGroupType
 	}
 
-	// Create group
 	group := &Group{
 		GroupID:        groupID,
 		OwnerID:        ownerID,
@@ -73,7 +88,7 @@ func (gs *GroupService) CreateGroup(groupID, ownerID string, groupType GroupType
 		CreatedAt:      time.Now(),
 		Requirements:   requirements,
 		MaxMembers:     profile.MaxMembers,
-		CurrentMembers: 0,
+		CurrentMembers: 1,
 		MaxAdmins:      profile.MaxAdmins,
 		MaxModerators:  profile.MaxModerators,
 		Settings: GroupSettings{
@@ -92,17 +107,15 @@ func (gs *GroupService) CreateGroup(groupID, ownerID string, groupType GroupType
 			EnablePublicVoting:  false,
 		},
 		Stats: GroupStatistics{
-			VerifiedMemberPercentage: 0,
-			AverageTrustScore:        0,
-			ActivityLevel:            ActivityLevelLow,
-			SecurityRating:           SecurityRatingA,
+			ActivityLevel:  ActivityLevelLow,
+			SecurityRating: SecurityRatingA,
 		},
 	}
 
-	gs.groups[groupID] = group
-	gs.memberships[groupID] = make([]*GroupMember, 0)
+	if err := gs.store.SaveGroup(gs.ctx(), group); err != nil {
+		return nil, err
+	}
 
-	// Add owner as member
 	owner := &GroupMember{
 		MemberID:          ownerID,
 		GroupID:           groupID,
@@ -115,21 +128,16 @@ func (gs *GroupService) CreateGroup(groupID, ownerID string, groupType GroupType
 		NotificationLevel: NotificationAll,
 		ShowTrustScore:    true,
 	}
-
-	gs.memberships[groupID] = append(gs.memberships[groupID], owner)
-	gs.memberLookup[ownerID+":"+groupID] = owner
-	group.CurrentMembers = 1
+	if err := gs.store.SaveMember(gs.ctx(), owner); err != nil {
+		return nil, err
+	}
 
 	return group, nil
 }
 
 // GetGroup retrieves a group by ID
 func (gs *GroupService) GetGroup(groupID string) (*Group, error) {
-	group, exists := gs.groups[groupID]
-	if !exists {
-		return nil, ErrGroupNotFound
-	}
-	return group, nil
+	return gs.store.GetGroup(gs.ctx(), groupID)
 }
 
 // AddMember adds a user to a group
@@ -139,22 +147,20 @@ func (gs *GroupService) AddMember(groupID, memberID string, trustScore int, trus
 		return nil, err
 	}
 
-	// Check if user is already a member
 	if _, err := gs.GetMember(groupID, memberID); err == nil {
 		return nil, ErrAlreadyMember
+	} else if !errors.Is(err, ErrMemberNotFound) {
+		return nil, err
 	}
 
-	// Check capacity
 	if group.CurrentMembers >= group.MaxMembers {
 		return nil, ErrGroupFull
 	}
 
-	// Check trust requirements
 	if trustScore < group.Requirements.MinimumTrustScore {
 		return nil, ErrInsufficientTrustLevel
 	}
 
-	// Determine role based on verification
 	role := GroupRolePending
 	if group.Requirements.ApprovalMode == ApprovalModeAuto {
 		if isVerified && trustLevel != TrustLevelUnverified {
@@ -176,26 +182,25 @@ func (gs *GroupService) AddMember(groupID, memberID string, trustScore int, trus
 		NotificationLevel: NotificationAll,
 		ShowTrustScore:    !isVerified,
 	}
-
 	if isVerified {
 		member.VerifiedAt = time.Now()
 	}
 
-	gs.memberships[groupID] = append(gs.memberships[groupID], member)
-	gs.memberLookup[memberID+":"+groupID] = member
+	if err := gs.store.SaveMember(gs.ctx(), member); err != nil {
+		return nil, err
+	}
+
 	group.CurrentMembers++
+	if err := gs.store.SaveGroup(gs.ctx(), group); err != nil {
+		return nil, err
+	}
 
 	return member, nil
 }
 
 // GetMember retrieves a group member
 func (gs *GroupService) GetMember(groupID, memberID string) (*GroupMember, error) {
-	key := memberID + ":" + groupID
-	member, exists := gs.memberLookup[key]
-	if !exists {
-		return nil, ErrMemberNotFound
-	}
-	return member, nil
+	return gs.store.GetMember(gs.ctx(), groupID, memberID)
 }
 
 // RemoveMember removes a user from a group
@@ -205,36 +210,14 @@ func (gs *GroupService) RemoveMember(groupID, memberID string) error {
 		return err
 	}
 
-	members, exists := gs.memberships[groupID]
-	if !exists {
-		return ErrGroupNotFound
+	if err := gs.store.DeleteMember(gs.ctx(), groupID, memberID); err != nil {
+		return err
 	}
 
-	// Find and remove member
-	foundIndex := -1
-	for i, m := range members {
-		if m.MemberID == memberID {
-			foundIndex = i
-			break
-		}
+	if group.CurrentMembers > 0 {
+		group.CurrentMembers--
 	}
-
-	if foundIndex == -1 {
-		return ErrMemberNotFound
-	}
-
-	// Remove from slice by creating a new slice without the element
-	newMembers := make([]*GroupMember, 0, len(members)-1)
-	for i, m := range members {
-		if i != foundIndex {
-			newMembers = append(newMembers, m)
-		}
-	}
-	gs.memberships[groupID] = newMembers
-	delete(gs.memberLookup, memberID+":"+groupID)
-	group.CurrentMembers--
-
-	return nil
+	return gs.store.SaveGroup(gs.ctx(), group)
 }
 
 // UpdateMemberRole updates a member's role
@@ -244,25 +227,17 @@ func (gs *GroupService) UpdateMemberRole(groupID, memberID string, newRole Group
 		return nil, err
 	}
 
-	oldRole := member.Role
 	member.Role = newRole
 	member.Permissions = DefaultPermissions(newRole)
-
-	// Update stored reference
-	gs.memberLookup[memberID+":"+groupID] = member
-
-	fmt.Printf("Member %s role changed from %s to %s\n", memberID, oldRole, newRole)
-
+	if err := gs.store.UpdateMember(gs.ctx(), member); err != nil {
+		return nil, err
+	}
 	return member, nil
 }
 
 // GetGroupMembers retrieves all members of a group
 func (gs *GroupService) GetGroupMembers(groupID string) ([]*GroupMember, error) {
-	members, exists := gs.memberships[groupID]
-	if !exists {
-		return nil, ErrGroupNotFound
-	}
-	return members, nil
+	return gs.store.ListMembers(gs.ctx(), groupID)
 }
 
 // GroupMemberDIDs returns active member DIDs for WS group text fan-out (M2).
@@ -320,7 +295,7 @@ func (gs *GroupService) AuthorizeAction(groupID, actorID string, permission Perm
 	ok, err := gs.HasPermission(groupID, actorID, permission)
 	if err != nil {
 		if errors.Is(err, ErrMemberNotFound) {
-			return ErrUnauthorized // not a member → cannot act
+			return ErrUnauthorized
 		}
 		return err
 	}
@@ -341,7 +316,7 @@ func (gs *GroupService) MuteUser(groupID, memberID string, duration time.Duratio
 	mutedUntil := time.Now().Add(duration)
 	member.MutedUntil = &mutedUntil
 
-	return nil
+	return gs.store.UpdateMember(gs.ctx(), member)
 }
 
 // UnmuteUser unmutes a user
@@ -354,7 +329,7 @@ func (gs *GroupService) UnmuteUser(groupID, memberID string) error {
 	member.IsMuted = false
 	member.MutedUntil = nil
 
-	return nil
+	return gs.store.UpdateMember(gs.ctx(), member)
 }
 
 // BanUser bans a user from the group
@@ -365,7 +340,7 @@ func (gs *GroupService) BanUser(groupID, memberID string) error {
 	}
 
 	member.IsBanned = true
-	return nil
+	return gs.store.UpdateMember(gs.ctx(), member)
 }
 
 // RecordWarning adds a warning to a member
@@ -376,5 +351,8 @@ func (gs *GroupService) RecordWarning(groupID, memberID string) (*GroupMember, e
 	}
 
 	member.WarningCount++
+	if err := gs.store.UpdateMember(gs.ctx(), member); err != nil {
+		return nil, err
+	}
 	return member, nil
 }

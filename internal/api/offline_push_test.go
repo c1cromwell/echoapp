@@ -45,6 +45,21 @@ func (f *fakeNotifier) all() []pushRecord {
 	return append([]pushRecord(nil), f.sent...)
 }
 
+func (f *fakeNotifier) missedCount() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return len(f.missed)
+}
+
+func (f *fakeNotifier) firstMissed() (missedCallRecord, bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if len(f.missed) == 0 {
+		return missedCallRecord{}, false
+	}
+	return f.missed[0], true
+}
+
 // waitFor polls until cond() or the deadline; the hub pushes asynchronously.
 func waitFor(t *testing.T, cond func() bool) {
 	t.Helper()

@@ -261,13 +261,20 @@ func (s *Server) Start() error {
 		router.Comply = &api.ComplyHandlers{Comply: complySvc}
 	}
 
+	groupOpts := []groups.GroupServiceOption{}
+	if pgDB != nil {
+		groupOpts = append(groupOpts, groups.WithStore(groups.NewPostgresStore(pgDB.Pool())))
+		log.Println("Groups service backed by PostgreSQL (migration 022_groups)")
+	}
+	groupSvc := groups.NewGroupService(groupOpts...)
+
 	router.V3 = &api.V3Handlers{
 		DB:              db,
 		Contacts:        contactsSvc,
 		Notification:    notifSvc,
 		Media:           mediaSvc,
 		Rewards:         rewardsSvc.NewService(db, emission),
-		Groups:          groups.NewGroupService(),
+		Groups:          groupSvc,
 		Broadcasts:      broadcast_channels.NewChannelService(),
 		RateLimiter:     rateLimiter,
 		IdentityL1:      router.IdentityL1, // D1: anchor @username -> DID on registration
@@ -281,6 +288,7 @@ func (s *Server) Start() error {
 		log.Println("ECHO Comply retention service enabled (WO-250)")
 	}
 	router.WSHub.SetGroupMemberLister(router.V3.Groups)     // M2: group text fan-out to members
+	router.WSHub.SetRateLimiter(rateLimiter)                // WO-44: WS send budget
 	router.WSHub.SetOfflineOverflowStorage(backupBlobStore) // WO-237: queue overflow to encblob
 
 	// WO-53: Start audit log publisher background goroutine.

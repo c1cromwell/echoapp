@@ -1,5 +1,7 @@
 package groups
 
+import "context"
+
 // GroupSummary is a minimal group record for relationship APIs.
 type GroupSummary struct {
 	GroupID     string `json:"groupId"`
@@ -10,24 +12,22 @@ type GroupSummary struct {
 
 // GroupsForMember returns every group the member belongs to.
 func (gs *GroupService) GroupsForMember(memberID string) []GroupSummary {
+	ids, err := gs.store.ListGroupIDsForMember(context.Background(), memberID)
+	if err != nil {
+		return nil
+	}
 	var out []GroupSummary
-	for groupID, members := range gs.memberships {
-		for _, m := range members {
-			if m.MemberID != memberID {
-				continue
-			}
-			g, ok := gs.groups[groupID]
-			if !ok {
-				continue
-			}
-			out = append(out, GroupSummary{
-				GroupID:     g.GroupID,
-				Name:        g.Name,
-				Type:        string(g.Type),
-				MemberCount: g.CurrentMembers,
-			})
-			break
+	for _, groupID := range ids {
+		g, err := gs.GetGroup(groupID)
+		if err != nil {
+			continue
 		}
+		out = append(out, GroupSummary{
+			GroupID:     g.GroupID,
+			Name:        g.Name,
+			Type:        string(g.Type),
+			MemberCount: g.CurrentMembers,
+		})
 	}
 	return out
 }

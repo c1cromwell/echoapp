@@ -32,6 +32,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/services/messaging"
 	"github.com/thechadcromwell/echoapp/internal/services/notification"
 	"github.com/thechadcromwell/echoapp/internal/services/rewards"
+	"github.com/thechadcromwell/echoapp/internal/validation"
 	"github.com/thechadcromwell/echoapp/pkg/didkey"
 	"github.com/thechadcromwell/echoapp/pkg/passport"
 	"github.com/thechadcromwell/echoapp/pkg/storage/encblob"
@@ -1577,6 +1578,13 @@ func (h *V3Handlers) handleGroupCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ownerDID := h.getDID(r)
+	if !h.enforceDIDRateLimit(w, r, ownerDID, "group_mutation") {
+		return
+	}
+	if err := validation.ValidateGroupCreate(req.GroupID, ownerDID, req.GroupType, req.Name, req.Description); err != nil {
+		WriteError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
 	profile := groups.GroupProfile{Name: req.Name, Description: req.Description}
 	group, err := h.Groups.CreateGroup(req.GroupID, ownerDID, req.GroupType, profile, req.Requirements)
 	if err != nil {
@@ -1596,6 +1604,10 @@ func (h *V3Handlers) handleGroupGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	groupID := r.URL.Path[len("/v3/groups/"):]
+	if err := validation.ValidateGroupID(groupID); err != nil {
+		WriteError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
 	group, err := h.Groups.GetGroup(groupID)
 	if err != nil {
 		WriteError(w, http.StatusNotFound, "GROUP_NOT_FOUND", err.Error(), r.Header.Get("X-Request-ID"))
@@ -1622,7 +1634,19 @@ func (h *V3Handlers) handleGroupAddMember(w http.ResponseWriter, r *http.Request
 		return
 	}
 	// Only members with manage-members permission (owner/admin) may add members.
-	if err := h.Groups.AuthorizeAction(req.GroupID, h.getDID(r), groups.PermissionManageMembers); err != nil {
+	actor := h.getDID(r)
+	if !h.enforceDIDRateLimit(w, r, actor, "group_mutation") {
+		return
+	}
+	if err := validation.ValidateGroupID(req.GroupID); err != nil {
+		WriteError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err := validation.ValidateGroupMemberDID(req.MemberDID); err != nil {
+		WriteError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err := h.Groups.AuthorizeAction(req.GroupID, actor, groups.PermissionManageMembers); err != nil {
 		WriteError(w, http.StatusForbidden, "FORBIDDEN", "only group admins can manage members", r.Header.Get("X-Request-ID"))
 		return
 	}
@@ -1654,8 +1678,19 @@ func (h *V3Handlers) handleGroupRemoveMember(w http.ResponseWriter, r *http.Requ
 		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
 		return
 	}
-	// Only members with manage-members permission (owner/admin) may remove members.
-	if err := h.Groups.AuthorizeAction(req.GroupID, h.getDID(r), groups.PermissionManageMembers); err != nil {
+	actor := h.getDID(r)
+	if !h.enforceDIDRateLimit(w, r, actor, "group_mutation") {
+		return
+	}
+	if err := validation.ValidateGroupID(req.GroupID); err != nil {
+		WriteError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err := validation.ValidateGroupMemberDID(req.MemberID); err != nil {
+		WriteError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err := h.Groups.AuthorizeAction(req.GroupID, actor, groups.PermissionManageMembers); err != nil {
 		WriteError(w, http.StatusForbidden, "FORBIDDEN", "only group admins can manage members", r.Header.Get("X-Request-ID"))
 		return
 	}
@@ -1679,6 +1714,10 @@ func (h *V3Handlers) handleGroupMembers(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	groupID := r.URL.Query().Get("groupId")
+	if err := validation.ValidateGroupID(groupID); err != nil {
+		WriteError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
 	members, err := h.Groups.GetGroupMembers(groupID)
 	if err != nil {
 		WriteError(w, http.StatusNotFound, "GROUP_NOT_FOUND", err.Error(), r.Header.Get("X-Request-ID"))

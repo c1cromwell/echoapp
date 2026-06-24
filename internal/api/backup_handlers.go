@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/thechadcromwell/echoapp/internal/validation"
 	"github.com/thechadcromwell/echoapp/pkg/passport"
 )
 
@@ -29,10 +30,24 @@ func (h *V3Handlers) handleBackupPush(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "authentication required", r.Header.Get("X-Request-ID"))
 		return
 	}
+	if !h.enforceDIDRateLimit(w, r, did, "backup_push") {
+		return
+	}
 	var req passport.PushSyncRequest
 	if err := h.readJSON(r, &req); err != nil {
 		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "malformed JSON body", r.Header.Get("X-Request-ID"))
 		return
+	}
+	if req.CiphertextBase64 != "" {
+		ciphertext, decErr := passport.DecodeCiphertextBase64(req.CiphertextBase64)
+		if decErr != nil {
+			WriteError(w, http.StatusBadRequest, "INVALID_BODY", "invalid ciphertext_base64", r.Header.Get("X-Request-ID"))
+			return
+		}
+		if err := validation.ValidateBackupCiphertext(ciphertext); err != nil {
+			WriteError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+			return
+		}
 	}
 	meta, err := h.MessageBackup.Push(r.Context(), did, req)
 	if errors.Is(err, passport.ErrSyncHashMismatch) {

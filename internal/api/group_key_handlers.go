@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/services/groups"
+	"github.com/thechadcromwell/echoapp/internal/validation"
 )
 
 // handleGroupKeyDistribute fans out opaque per-member group key packages over WS.
@@ -41,6 +42,13 @@ func (h *V3Handlers) handleGroupKeyDistribute(w http.ResponseWriter, r *http.Req
 	caller := h.getDID(r)
 	if caller == "" {
 		WriteError(w, http.StatusUnauthorized, "MISSING_AUTH", "authenticated DID required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if !h.enforceDIDRateLimit(w, r, caller, "group_mutation") {
+		return
+	}
+	if err := validation.ValidateGroupID(req.GroupID); err != nil {
+		WriteError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
 	distributor := req.DistributedBy

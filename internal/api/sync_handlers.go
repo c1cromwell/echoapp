@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
+	"github.com/thechadcromwell/echoapp/internal/validation"
 )
 
 // Device history sync (WO-CA3) — content-blind, per-device-addressed streams.
@@ -31,13 +32,20 @@ func (h *V3Handlers) handleSyncPush(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "authentication required", r.Header.Get("X-Request-ID"))
 		return
 	}
+	if !h.enforceDIDRateLimit(w, r, did, "sync_push") {
+		return
+	}
 	var req struct {
 		TargetDeviceID string `json:"target_device_id"`
 		EntryType      string `json:"entry_type"`
 		Ciphertext     []byte `json:"ciphertext"` // JSON base64
 	}
-	if err := h.readJSON(r, &req); err != nil || req.TargetDeviceID == "" || len(req.Ciphertext) == 0 {
-		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "target_device_id and ciphertext are required", r.Header.Get("X-Request-ID"))
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "malformed JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err := validation.ValidateSyncPush(req.TargetDeviceID, req.Ciphertext); err != nil {
+		WriteError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
 	seq, err := h.DB.AppendSyncEntry(r.Context(), &database.SyncEntry{
@@ -72,8 +80,8 @@ func (h *V3Handlers) handleSyncPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	deviceID := r.URL.Query().Get("device_id")
-	if deviceID == "" {
-		WriteError(w, http.StatusBadRequest, "MISSING_DEVICE_ID", "device_id query parameter is required", r.Header.Get("X-Request-ID"))
+	if err := validation.ValidateDeviceID(deviceID); err != nil {
+		WriteError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
 	after := parseInt64(r.URL.Query().Get("after"), 0)
@@ -113,8 +121,8 @@ func (h *V3Handlers) handleSyncHead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	deviceID := r.URL.Query().Get("device_id")
-	if deviceID == "" {
-		WriteError(w, http.StatusBadRequest, "MISSING_DEVICE_ID", "device_id query parameter is required", r.Header.Get("X-Request-ID"))
+	if err := validation.ValidateDeviceID(deviceID); err != nil {
+		WriteError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
 	seq, err := h.DB.SyncHead(r.Context(), did, deviceID)
@@ -141,8 +149,12 @@ func (h *V3Handlers) handleSyncRevoke(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		TargetDeviceID string `json:"target_device_id"`
 	}
-	if err := h.readJSON(r, &req); err != nil || req.TargetDeviceID == "" {
-		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "target_device_id is required", r.Header.Get("X-Request-ID"))
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "malformed JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err := validation.ValidateDeviceID(req.TargetDeviceID); err != nil {
+		WriteError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
 	if err := h.DB.RevokeDeviceStream(r.Context(), did, req.TargetDeviceID); err != nil {

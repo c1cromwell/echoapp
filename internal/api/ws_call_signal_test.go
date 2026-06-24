@@ -110,8 +110,11 @@ func TestCallSignalOfflineOfferMissedCallPush(t *testing.T) {
 	msg := WSMessage{Type: "call_signal", To: "did:bob", Payload: payload}
 	alice.routeInbound(msg)
 
-	waitFor(t, func() bool { return len(notifier.missed) == 1 })
-	got := notifier.missed[0]
+	waitFor(t, func() bool { return notifier.missedCount() == 1 })
+	got, ok := notifier.firstMissed()
+	if !ok {
+		t.Fatal("expected missed-call push")
+	}
 	if got.recipient != "did:bob" || got.sender != "did:alice" || got.callID != "call-missed-1" {
 		t.Fatalf("unexpected missed-call push: %+v", got)
 	}
