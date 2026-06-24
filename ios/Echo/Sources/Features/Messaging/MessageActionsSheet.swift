@@ -5,29 +5,31 @@ import UIKit
 
 /// A message action (spec §5.3). Telegram long-press grid + Signal action list.
 public enum MessageAction: String, Identifiable, CaseIterable {
-    case reply, copy, forward, pin, edit, delete
+    case reply, copy, forward, pin, edit, delete, translate
 
     public var id: String { rawValue }
 
     public var title: String {
         switch self {
-        case .reply:   return "Reply"
-        case .copy:    return "Copy"
-        case .forward: return "Forward"
-        case .pin:     return "Pin"
-        case .edit:    return "Edit"
-        case .delete:  return "Delete"
+        case .reply:     return "Reply"
+        case .copy:      return "Copy"
+        case .forward:   return "Forward"
+        case .pin:       return "Pin"
+        case .edit:      return "Edit"
+        case .delete:    return "Delete"
+        case .translate: return "Translate"
         }
     }
 
     public var icon: String {
         switch self {
-        case .reply:   return "arrowshape.turn.up.left"
-        case .copy:    return "doc.on.doc"
-        case .forward: return "arrowshape.turn.up.right"
-        case .pin:     return "pin"
-        case .edit:    return "pencil"
-        case .delete:  return "trash"
+        case .reply:     return "arrowshape.turn.up.left"
+        case .copy:      return "doc.on.doc"
+        case .forward:   return "arrowshape.turn.up.right"
+        case .pin:       return "pin"
+        case .edit:      return "pencil"
+        case .delete:    return "trash"
+        case .translate: return "character.bubble"
         }
     }
 
@@ -40,26 +42,30 @@ public struct MessageActionsSheet: View {
     let messagePreview: String
     let isOwnMessage: Bool
     let sentWithinEditWindow: Bool
+    var showTranslate: Bool = false
     let onAction: (MessageAction) -> Void
 
     public init(
         messagePreview: String,
         isOwnMessage: Bool,
         sentWithinEditWindow: Bool = false,
+        showTranslate: Bool = false,
         onAction: @escaping (MessageAction) -> Void
     ) {
         self.messagePreview = messagePreview
         self.isOwnMessage = isOwnMessage
         self.sentWithinEditWindow = sentWithinEditWindow
+        self.showTranslate = showTranslate
         self.onAction = onAction
     }
 
     private var actions: [MessageAction] {
         MessageAction.allCases.filter { action in
             switch action {
-            case .edit:   return isOwnMessage && sentWithinEditWindow
-            case .delete: return isOwnMessage
-            default:      return true
+            case .edit:      return isOwnMessage && sentWithinEditWindow
+            case .delete:    return isOwnMessage
+            case .translate: return showTranslate
+            default:         return true
             }
         }
     }

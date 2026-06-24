@@ -33,6 +33,9 @@ struct PrivacyHubView: View {
                         PrivacySettingsStore.save(updated)
                     }
                 }
+                NavigationLink("On-device AI") {
+                    PrivacyAISettingsView()
+                }
                 NavigationLink("Persona privacy") {
                     PersonaPrivacySettingsView(settings: $personaPrivacySettings)
                 }

@@ -20,10 +20,24 @@ final class WebRTCSessionDescriptionTests: XCTestCase {
 }
 
 final class OnDeviceAIServiceTests: XCTestCase {
+    override func tearDown() {
+        PrivacyAIConsentStore.save(.default)
+        PrivacyAIAuditLog.clear()
+        super.tearDown()
+    }
+
     func testSmartReplies_question() async {
         PrivacyAIConsentStore.save(.init(smartRepliesEnabled: true, summariesEnabled: false, translationEnabled: false))
         let replies = await OnDeviceAIService.shared.smartReplies(from: ["Are you free tomorrow?"])
         XCTAssertFalse(replies.isEmpty)
+        XCTAssertEqual(PrivacyAIAuditLog.load().first?.feature, .smartReplies)
+    }
+
+    func testSmartReplies_disabledByConsent() async {
+        PrivacyAIConsentStore.save(.init(smartRepliesEnabled: false, summariesEnabled: false, translationEnabled: false))
+        let replies = await OnDeviceAIService.shared.smartReplies(from: ["Are you free tomorrow?"])
+        XCTAssertTrue(replies.isEmpty)
+        XCTAssertTrue(PrivacyAIAuditLog.load().isEmpty)
     }
 
     func testSummarizeThread() async {
@@ -34,6 +48,18 @@ final class OnDeviceAIServiceTests: XCTestCase {
             "Let me know if 3pm works for you.",
         ])
         XCTAssertNotNil(summary)
+        XCTAssertEqual(PrivacyAIAuditLog.load().first?.feature, .threadSummary)
+    }
+
+    func testAuditLog_neverStoresPlaintext() async {
+        PrivacyAIConsentStore.save(.init(smartRepliesEnabled: true, summariesEnabled: false, translationEnabled: false))
+        _ = await OnDeviceAIService.shared.smartReplies(
+            from: ["Secret message body"],
+            conversationId: "conv-secret"
+        )
+        let encoded = try? JSONEncoder().encode(PrivacyAIAuditLog.load())
+        let json = String(data: encoded ?? Data(), encoding: .utf8) ?? ""
+        XCTAssertFalse(json.contains("Secret message body"))
     }
 }
 #endif

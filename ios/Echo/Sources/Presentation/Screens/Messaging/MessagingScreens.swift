@@ -146,6 +146,8 @@ struct ChatView: View {
     @State private var showAttachmentPicker = false
     @State private var showCreatePoll = false
     @State private var smartReplies: [SmartReplySuggestion] = []
+    @State private var threadSummary: ThreadSummary?
+    @State private var messageTranslations: [String: String] = [:]
     @StateObject private var voiceRecorder = VoiceNoteRecorder()
 
     let contactName: String
@@ -192,6 +194,10 @@ struct ChatView: View {
                 chatNavigationBar
 
                 SecureThreadIndicator()
+
+                if let threadSummary {
+                    ThreadSummaryBanner(summary: threadSummary)
+                }
 
                 if viewModel.peerScreenshotNotice {
                     HStack(spacing: 8) {
@@ -364,7 +370,6 @@ struct ChatView: View {
                 }
                 SmartReplyBar(suggestions: smartReplies) { suggestion in
                     messageText = suggestion
-                    Task { await viewModel.sendMessage(suggestion) }
                 }
                 chatComposerBar
             }
@@ -428,6 +433,7 @@ struct ChatView: View {
                     sentAt: message.sentAt,
                     isOwnMessage: message.isFromCurrentUser
                 ),
+                showTranslate: PrivacyAIConsentStore.load().translationEnabled,
                 onAction: { action in
                     handleMessageAction(action, on: message)
                     actionsTargetMessage = nil
@@ -473,9 +479,13 @@ struct ChatView: View {
             pinnedMessageId = ConversationPinnedMessageStore.pinnedMessageId(conversationId: conversationId)
             #endif
             await refreshSmartReplies()
+            await refreshThreadSummary()
         }
         .onChange(of: viewModel.messages.count) { _, _ in
-            Task { await refreshSmartReplies() }
+            Task {
+                await refreshSmartReplies()
+                await refreshThreadSummary()
+            }
         }
         .sheet(isPresented: $showForwardSheet) {
             ForwardMessageSheet(
@@ -639,7 +649,22 @@ struct ChatView: View {
 
     private func refreshSmartReplies() async {
         let bodies = viewModel.messages.suffix(12).map(\.content)
-        smartReplies = await OnDeviceAIService.shared.smartReplies(from: Array(bodies))
+        smartReplies = await OnDeviceAIService.shared.smartReplies(
+            from: Array(bodies),
+            conversationId: conversationId
+        )
+    }
+
+    private func refreshThreadSummary() async {
+        let bodies = viewModel.messages.map(\.content)
+        threadSummary = await OnDeviceAIService.shared.summarizeThread(
+            messages: bodies,
+            conversationId: conversationId
+        )
+    }
+
+    private var preferredTranslationLanguage: String {
+        Locale.current.language.languageCode?.identifier ?? "en"
     }
 
     private func pinnedMessage(for id: String?) -> ChatDetailMessage? {
@@ -683,6 +708,16 @@ struct ChatView: View {
                 ConversationPinnedMessageStore.setPinnedMessageId(nowPinned ? pinId : nil, conversationId: conversationId)
                 #endif
                 pinnedMessageId = nowPinned ? pinId : nil
+            }
+        case .translate:
+            Task {
+                if let translated = await OnDeviceAIService.shared.translateOnDevice(
+                    text: message.content,
+                    to: preferredTranslationLanguage,
+                    conversationId: conversationId
+                ) {
+                    messageTranslations[message.id] = translated
+                }
             }
         }
     }
@@ -841,13 +876,25 @@ struct ChatView: View {
                 deliveryStatus: peerStatus
             )
         } else {
-            MessageBubble(
-                message: message.content,
-                isSent: message.isFromCurrentUser,
-                status: mapDeliveryStatus(viewModel.displayedDeliveryStatus(message.deliveryStatus)),
-                deliveryStatus: peerStatus,
-                timestamp: message.timestamp
-            )
+            VStack(alignment: message.isFromCurrentUser ? .trailing : .leading, spacing: 4) {
+                MessageBubble(
+                    message: message.content,
+                    isSent: message.isFromCurrentUser,
+                    status: mapDeliveryStatus(viewModel.displayedDeliveryStatus(message.deliveryStatus)),
+                    deliveryStatus: peerStatus,
+                    timestamp: message.timestamp
+                )
+                if let translated = messageTranslations[message.id], translated != message.content {
+                    Text(translated)
+                        .font(.system(size: 12))
+                        .foregroundColor(.echoInk70)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.echoPaperDim)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .frame(maxWidth: 280, alignment: message.isFromCurrentUser ? .trailing : .leading)
+                }
+            }
         }
     }
 

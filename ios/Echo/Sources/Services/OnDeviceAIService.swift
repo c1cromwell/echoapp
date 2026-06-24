@@ -13,11 +13,15 @@ struct ThreadSummary: Sendable, Equatable {
     let generatedAt: Date
 }
 
-/// On-device privacy AI (M7a / WO-CA1). Uses NaturalLanguage only — no server plaintext.
+/// On-device privacy AI (M7 / WO-CA1). NaturalLanguage + Apple Translation — no server plaintext.
 actor OnDeviceAIService {
     static let shared = OnDeviceAIService()
 
-    func smartReplies(from messages: [String], limit: Int = 3) -> [SmartReplySuggestion] {
+    func smartReplies(
+        from messages: [String],
+        conversationId: String? = nil,
+        limit: Int = 3
+    ) -> [SmartReplySuggestion] {
         guard PrivacyAIConsentStore.load().smartRepliesEnabled else { return [] }
         let recent = messages.suffix(12).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
         guard !recent.isEmpty else { return [] }
@@ -37,12 +41,20 @@ actor OnDeviceAIService {
         candidates += ["👍", "On my way", "Got it", "Let me check"]
 
         let deduped = Array(Set(candidates)).prefix(limit)
-        return deduped.enumerated().map { idx, text in
+        let suggestions = deduped.enumerated().map { idx, text in
             SmartReplySuggestion(id: "sr-\(idx)-\(text.hashValue)", text: text)
         }
+        if !suggestions.isEmpty {
+            PrivacyAIAuditLog.record(.smartReplies, conversationId: conversationId)
+        }
+        return suggestions
     }
 
-    func summarizeThread(messages: [String], maxSentences: Int = 2) -> ThreadSummary? {
+    func summarizeThread(
+        messages: [String],
+        conversationId: String? = nil,
+        maxSentences: Int = 2
+    ) -> ThreadSummary? {
         guard PrivacyAIConsentStore.load().summariesEnabled else { return nil }
         let joined = messages.joined(separator: " ")
         guard joined.count >= 40 else { return nil }
@@ -57,14 +69,25 @@ actor OnDeviceAIService {
         }
         let head = sentences.prefix(maxSentences).joined(separator: " ")
         guard !head.isEmpty else { return nil }
+        PrivacyAIAuditLog.record(.threadSummary, conversationId: conversationId)
         return ThreadSummary(sentenceCount: sentences.count, summary: head, generatedAt: Date())
     }
 
-    func translateOnDevice(text: String, to languageCode: String) -> String? {
+    func translateOnDevice(
+        text: String,
+        to languageCode: String,
+        conversationId: String? = nil
+    ) async -> String? {
         guard PrivacyAIConsentStore.load().translationEnabled else { return nil }
         guard !text.isEmpty else { return nil }
-        // Phase 1: identity passthrough until Apple Translation framework is wired in Xcode.
-        _ = languageCode
+
+        if let translated = await OnDeviceTranslationBridge.translate(text, toLanguageCode: languageCode),
+           translated != text {
+            PrivacyAIAuditLog.record(.translation, conversationId: conversationId)
+            return translated
+        }
+        // Languages not installed or API unavailable — safe local fallback.
+        PrivacyAIAuditLog.record(.translation, conversationId: conversationId)
         return text
     }
 }

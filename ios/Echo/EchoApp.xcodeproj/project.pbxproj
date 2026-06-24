@@ -318,6 +318,10 @@
 		M7B001AI00000000000001 /* OnDeviceAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F001AI00000000000001 /* OnDeviceAIService.swift */; };
 		M7B002AI00000000000002 /* PrivacyAIConsentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F002AI00000000000002 /* PrivacyAIConsentStore.swift */; };
 		M7B003AI00000000000003 /* SmartReplyBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F003AI00000000000003 /* SmartReplyBar.swift */; };
+		M7B004AI00000000000004 /* PrivacyAIAuditLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F004AI00000000000004 /* PrivacyAIAuditLog.swift */; };
+		M7B005AI00000000000005 /* OnDeviceTranslationBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F005AI00000000000005 /* OnDeviceTranslationBridge.swift */; };
+		M7B006AI00000000000006 /* ThreadSummaryBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F006AI00000000000006 /* ThreadSummaryBanner.swift */; };
+		M7B007AI00000000000007 /* PrivacyAISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F007AI00000000000007 /* PrivacyAISettingsView.swift */; };
 		P3B001012345678901234002 /* PinnedConversationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234001 /* PinnedConversationsStore.swift */; };
 		P3B001012345678901234004 /* ContactTrustIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234003 /* ContactTrustIndex.swift */; };
 		P3B001012345678901234006 /* PersonaSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234005 /* PersonaSessionStore.swift */; };
@@ -670,6 +674,10 @@
 		M7F001AI00000000000001 /* OnDeviceAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnDeviceAIService.swift; sourceTree = "<group>"; };
 		M7F002AI00000000000002 /* PrivacyAIConsentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyAIConsentStore.swift; sourceTree = "<group>"; };
 		M7F003AI00000000000003 /* SmartReplyBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartReplyBar.swift; sourceTree = "<group>"; };
+		M7F004AI00000000000004 /* PrivacyAIAuditLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyAIAuditLog.swift; sourceTree = "<group>"; };
+		M7F005AI00000000000005 /* OnDeviceTranslationBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnDeviceTranslationBridge.swift; sourceTree = "<group>"; };
+		M7F006AI00000000000006 /* ThreadSummaryBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadSummaryBanner.swift; sourceTree = "<group>"; };
+		M7F007AI00000000000007 /* PrivacyAISettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyAISettingsView.swift; sourceTree = "<group>"; };
 		P3B001012345678901234001 /* PinnedConversationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinnedConversationsStore.swift; sourceTree = "<group>"; };
 		P3B001012345678901234003 /* ContactTrustIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactTrustIndex.swift; sourceTree = "<group>"; };
 		P3B001012345678901234005 /* PersonaSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaSessionStore.swift; sourceTree = "<group>"; };
@@ -940,6 +948,8 @@
 				M6F012SRCH0000000000012 /* OverflowManifestHandler.swift */,
 				M7F001AI00000000000001 /* OnDeviceAIService.swift */,
 				M7F002AI00000000000002 /* PrivacyAIConsentStore.swift */,
+				M7F004AI00000000000004 /* PrivacyAIAuditLog.swift */,
+				M7F005AI00000000000005 /* OnDeviceTranslationBridge.swift */,
 				891F819ACDCBDFF1ADE426F2 /* MessageReceiptsAPI.swift */,
 				W0E001012345678901234009 /* ContactSocialAPIClient.swift */,
 				F1A2B3C40123456789000B3 /* DeviceLinkAPIClient.swift */,
@@ -1129,6 +1139,7 @@
 				3D2F15A32FD305E70020765D /* MessagesHubView.swift */,
 				3D99E73A2FDEBD550094416C /* ChatPollViews.swift */,
 				M7F003AI00000000000003 /* SmartReplyBar.swift */,
+				M7F006AI00000000000006 /* ThreadSummaryBanner.swift */,
 			);
 			path = Messaging;
 			sourceTree = "<group>";
@@ -1656,6 +1667,7 @@
 			isa = PBXGroup;
 			children = (
 				W0E00101234567890123400F /* PrivacyHubView.swift */,
+				M7F007AI00000000000007 /* PrivacyAISettingsView.swift */,
 				VIP001012345678901234001 /* VIPSubscriptionStore.swift */,
 				VIP001012345678901234003 /* VIPSubscriptionView.swift */,
 				P3B00101234567890123400B /* IntegrityExplainerView.swift */,
@@ -1884,6 +1896,10 @@
 				M7B001AI00000000000001 /* OnDeviceAIService.swift in Sources */,
 				M7B002AI00000000000002 /* PrivacyAIConsentStore.swift in Sources */,
 				M7B003AI00000000000003 /* SmartReplyBar.swift in Sources */,
+				M7B004AI00000000000004 /* PrivacyAIAuditLog.swift in Sources */,
+				M7B005AI00000000000005 /* OnDeviceTranslationBridge.swift in Sources */,
+				M7B006AI00000000000006 /* ThreadSummaryBanner.swift in Sources */,
+				M7B007AI00000000000007 /* PrivacyAISettingsView.swift in Sources */,
 				44EEF7274CAF966992DC6C16 /* MessageReceiptsAPI.swift in Sources */,
 				1411B71227274A6D2B383C77 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift in Sources */,
 				438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */,
