@@ -1,3 +1,4 @@
+#if os(iOS)
 import XCTest
 @testable import Echo
 
@@ -281,3 +282,4 @@ final class ChatDetailViewModelTests: XCTestCase {
         XCTAssertEqual(vm.disappearingTTLSeconds, 3600)
     }
 }
+#endif // os(iOS)

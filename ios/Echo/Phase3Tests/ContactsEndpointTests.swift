@@ -1,3 +1,4 @@
+#if os(iOS)
 import XCTest
 @testable import Echo
 
@@ -17,7 +18,6 @@ final class ContactsEndpointTests: XCTestCase {
     }
 }
 
-#if os(iOS)
 final class ContactThreadHelperTests: XCTestCase {
     func testTruncatedDID_shortensLongKey() {
         let did = "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbZEBfALj"
@@ -26,4 +26,4 @@ final class ContactThreadHelperTests: XCTestCase {
         XCTAssertLessThan(short.count, did.count)
     }
 }
-#endif
+#endif // os(iOS)
