@@ -115,7 +115,7 @@ struct ContactDiscoverySettingsView: View {
             } header: {
                 Text("Contact scan")
             } footer: {
-                Text("Manual scans run when you tap Scan. Weekly and monthly scans are saved on your device for now.")
+                Text("Manual scans run when you tap Scan. Weekly and monthly scans run automatically when you open Messages.")
             }
         }
         .navigationTitle("Phone discovery")

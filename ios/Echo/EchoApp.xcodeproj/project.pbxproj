@@ -244,6 +244,7 @@
 		F1A2B3C401234567890000E /* OPRFClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C401234567890000D /* OPRFClient.swift */; };
 		F1A2B3C4012345678900010 /* LiveOPRFClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C401234567890000F /* LiveOPRFClient.swift */; };
 		F1A2B3C40123456789000A2 /* ContactDiscoverySyncPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C40123456789000A1 /* ContactDiscoverySyncPreferences.swift */; };
+		F1A2B3C40123456789000B4 /* ContactDiscoveryScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C40123456789000B3 /* ContactDiscoveryScheduler.swift */; };
 		F1A2B3C40123456789000B2 /* DeviceLinkFlowViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C40123456789000B1 /* DeviceLinkFlowViews.swift */; };
 		F1A2B3C40123456789000B4 /* DeviceLinkAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C40123456789000B3 /* DeviceLinkAPIClient.swift */; };
 		F1A2B3C40123456789000C2 /* PhoneBackupStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C40123456789000C1 /* PhoneBackupStatus.swift */; };
@@ -583,6 +584,7 @@
 		F1A2B3C401234567890000F /* LiveOPRFClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveOPRFClient.swift; sourceTree = "<group>"; };
 		F1A2B3C4012345678900012 /* EchoApp-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "EchoApp-Info.plist"; sourceTree = "<group>"; };
 		F1A2B3C40123456789000A1 /* ContactDiscoverySyncPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDiscoverySyncPreferences.swift; sourceTree = "<group>"; };
+		F1A2B3C40123456789000B3 /* ContactDiscoveryScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDiscoveryScheduler.swift; sourceTree = "<group>"; };
 		F1A2B3C40123456789000B1 /* DeviceLinkFlowViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceLinkFlowViews.swift; sourceTree = "<group>"; };
 		F1A2B3C40123456789000B3 /* DeviceLinkAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceLinkAPIClient.swift; sourceTree = "<group>"; };
 		F1A2B3C40123456789000C1 /* PhoneBackupStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneBackupStatus.swift; sourceTree = "<group>"; };
@@ -1384,6 +1386,7 @@
 				7A0F02E0B74FC3D3CD2E6188 /* ContactDetailViewModel.swift */,
 				F1A2B3C4012345678900005 /* ContactDiscoveryView.swift */,
 				F1A2B3C40123456789000A1 /* ContactDiscoverySyncPreferences.swift */,
+				F1A2B3C40123456789000B3 /* ContactDiscoveryScheduler.swift */,
 				F1A2B3C40123456789000C1 /* PhoneBackupStatus.swift */,
 				D288A001234567890123411 /* EchoDeepLink.swift */,
 				P3S001012345678901234001 /* ContactThreadHelper.swift */,
@@ -2049,6 +2052,7 @@
 				F1A2B3C4012345678900004 /* RegisterWithVerifiableCredentialUseCase.swift in Sources */,
 				F1A2B3C4012345678900006 /* ContactDiscoveryView.swift in Sources */,
 				F1A2B3C40123456789000A2 /* ContactDiscoverySyncPreferences.swift in Sources */,
+				F1A2B3C40123456789000B4 /* ContactDiscoveryScheduler.swift in Sources */,
 				D288A001234567890123401 /* EchoDeepLink.swift in Sources */,
 				D288A004234567890123404 /* ContactFavoritesStore.swift in Sources */,
 				3D9852EE2FD2515C00058340 /* NewContactSheet.swift in Sources */,

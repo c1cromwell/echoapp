@@ -243,6 +243,18 @@ final class DIContainer {
             return UsernameSearchUseCase(client: client)
         }
 
+        registerFactory(ServiceKeys.addContactUseCase) { [weak self] () -> AddContactUseCase in
+            let client: ContactSocialAPIClient = self?.resolve(ServiceKeys.contactSocialAPI)
+                ?? ContactSocialAPIClient(apiClient: APIClient(configuration: .default))
+            return AddContactUseCase(client: client)
+        }
+
+        registerFactory(ServiceKeys.blockContactUseCase) { [weak self] () -> BlockContactUseCase in
+            let client: ContactSocialAPIClient = self?.resolve(ServiceKeys.contactSocialAPI)
+                ?? ContactSocialAPIClient(apiClient: APIClient(configuration: .default))
+            return BlockContactUseCase(client: client)
+        }
+
         registerFactory(ServiceKeys.qrContactExchangeUseCase) {
             QRContactExchangeUseCase()
         }
@@ -349,6 +361,8 @@ enum ServiceKeys {
     static let contactDiscoveryUseCase = "usecase.contactDiscovery"
     static let inviteLinkUseCase = "usecase.inviteLink"
     static let usernameSearchUseCase = "usecase.usernameSearch"
+    static let addContactUseCase = "usecase.addContact"
+    static let blockContactUseCase = "usecase.blockContact"
     static let qrContactExchangeUseCase = "usecase.qrContactExchange"
     static let conversationPreferences = "services.conversationPreferences"
     
@@ -450,6 +464,14 @@ extension DIContainer {
 
     func resolveUsernameSearchUseCase() -> UsernameSearchUseCase? {
         resolve(ServiceKeys.usernameSearchUseCase)
+    }
+
+    func resolveAddContactUseCase() -> AddContactUseCase? {
+        resolve(ServiceKeys.addContactUseCase)
+    }
+
+    func resolveBlockContactUseCase() -> BlockContactUseCase? {
+        resolve(ServiceKeys.blockContactUseCase)
     }
 
     func resolveQRContactExchangeUseCase() -> QRContactExchangeUseCase? {

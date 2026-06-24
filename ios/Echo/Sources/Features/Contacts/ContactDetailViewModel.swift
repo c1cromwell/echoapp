@@ -109,12 +109,16 @@ class ContactDetailViewModel: ObservableObject {
     }
 
     func blockContact() async {
-        guard let socialAPI else {
+        guard socialAPI != nil || DIContainer.shared.resolveBlockContactUseCase() != nil else {
             blockError = "Sign in required"
             return
         }
         do {
-            try await socialAPI.blockContact(did: contactId)
+            if let blockUseCase = DIContainer.shared.resolveBlockContactUseCase() {
+                try await blockUseCase.block(did: contactId)
+            } else if let socialAPI {
+                try await socialAPI.blockContact(did: contactId)
+            }
             isBlocked = true
             showBlockConfirmation = false
         } catch {

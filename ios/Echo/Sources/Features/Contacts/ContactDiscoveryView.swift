@@ -175,9 +175,11 @@ final class ContactDiscoveryViewModel {
         do {
             contacts = try await discoveryUseCase.discoverContacts()
             lastSyncedAt = Date()
+            ContactDiscoverySyncPreferences.markSyncedNow()
         } catch ContactDiscoveryError.noMatches {
             contacts = []
             lastSyncedAt = Date()
+            ContactDiscoverySyncPreferences.markSyncedNow()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -195,7 +197,11 @@ final class ContactDiscoveryViewModel {
         defer { addingDID = nil }
 
         do {
-            _ = try await socialAPI.addContact(did: contact.did, addedVia: "psi_discovery")
+            if let addContact = DIContainer.shared.resolveAddContactUseCase() {
+                try await addContact.add(did: contact.did, addedVia: "psi_discovery")
+            } else {
+                _ = try await socialAPI.addContact(did: contact.did, addedVia: "psi_discovery")
+            }
             addedDIDs.insert(contact.did)
             _ = await ContactThreadHelper.upsertDirectThread(
                 peerDID: contact.did,

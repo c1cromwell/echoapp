@@ -136,6 +136,7 @@ struct MessagesTabView: View {
             }
             DeviceHistorySyncBootstrap.pullIfNeeded()
             SearchIndexSyncBootstrap.pullIfNeeded()
+            ContactDiscoveryScheduler.runIfDue()
             BackupScheduler.runIfDue()
             if let code = appState.pendingInviteCode {
                 pendingInviteCode = code

@@ -11,6 +11,8 @@ public struct ContactsListView: View {
     @State private var showFavoritesOnly = false
     @State private var showAddContact = false
     @State private var showUsernameSearch = false
+    @State private var showContactDiscovery = false
+    @State private var showInviteLink = false
     #if os(iOS)
     @State private var viewModel = ContactsListViewModel()
     @State private var selectedContact: ContactModel?
@@ -149,6 +151,12 @@ public struct ContactsListView: View {
         .navigationDestination(isPresented: $showUsernameSearch) {
             UsernameSearchView()
         }
+        .navigationDestination(isPresented: $showContactDiscovery) {
+            ContactDiscoveryView()
+        }
+        .sheet(isPresented: $showInviteLink) {
+            InviteLinkSheet()
+        }
         #endif
     }
 
@@ -239,6 +247,38 @@ public struct ContactsListView: View {
                 }
 
                 Button {
+                    showContactDiscovery = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "person.2.wave.2.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Find friends on ECHO")
+                            .font(.system(size: 15, weight: .medium))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(Color.echoSignal)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+
+                Button {
+                    showInviteLink = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "link")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Share invite link")
+                            .font(.system(size: 15, weight: .medium))
+                    }
+                    .foregroundColor(.echoSignal)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(Color.echoPaperDim)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+
+                Button {
                     showUsernameSearch = true
                 } label: {
                     HStack(spacing: 8) {
@@ -264,6 +304,23 @@ public struct ContactsListView: View {
     private var contactsList: some View {
         List {
             #if os(iOS)
+            Button {
+                showContactDiscovery = true
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "person.2.wave.2")
+                        .foregroundColor(.echoSignal)
+                    Text("Find friends on ECHO")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.echoSignal)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.echoInk40)
+                }
+            }
+            .listRowBackground(Color.echoSurface)
+
             Button {
                 showUsernameSearch = true
             } label: {

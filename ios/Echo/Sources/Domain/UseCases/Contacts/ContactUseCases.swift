@@ -63,4 +63,30 @@ struct UsernameSearchUseCase: Sendable {
         try await client.searchUsername(handle)
     }
 }
+
+/// Add a contact after PSI / QR / search (WO-39).
+struct AddContactUseCase: Sendable {
+    private let client: ContactSocialAPIClient
+
+    init(client: ContactSocialAPIClient) {
+        self.client = client
+    }
+
+    func add(did: String, addedVia: String) async throws {
+        _ = try await client.addContact(did: did, addedVia: addedVia)
+    }
+}
+
+/// Block a contact (WO-39 / WO-190).
+struct BlockContactUseCase: Sendable {
+    private let client: ContactSocialAPIClient
+
+    init(client: ContactSocialAPIClient) {
+        self.client = client
+    }
+
+    func block(did: String) async throws {
+        try await client.blockContact(did: did)
+    }
+}
 #endif

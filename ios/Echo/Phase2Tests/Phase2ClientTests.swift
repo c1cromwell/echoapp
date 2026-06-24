@@ -127,6 +127,21 @@ final class EchoAPIBaseURLTests: XCTestCase {
 // MARK: - WO-39 contact use cases
 
 final class ContactUseCaseTests: XCTestCase {
+    func testEchoDeepLink_parsesInviteCode() {
+        let url = URL(string: "echo://invite?code=ABC123")!
+        guard case .invite(let code)? = EchoDeepLink.parse(url) else {
+            return XCTFail("expected invite deep link")
+        }
+        XCTAssertEqual(code, "ABC123")
+    }
+
+    func testContactDiscoverySync_manualSkipsAutomatic() {
+        let previous = ContactDiscoverySyncPreferences.cadence
+        ContactDiscoverySyncPreferences.cadence = .manual
+        XCTAssertFalse(ContactDiscoverySyncPreferences.shouldRunAutomaticSync())
+        ContactDiscoverySyncPreferences.cadence = previous
+    }
+
     func testQRContactExchange_parsesEchoProfileURL() {
         let useCase = QRContactExchangeUseCase()
         let parsed = useCase.parseScannedPayload("echo://profile?did=did:key:zPeer&u=alice")

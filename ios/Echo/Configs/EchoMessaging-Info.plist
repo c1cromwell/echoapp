@@ -10,6 +10,8 @@
 	<string>Echo uses the camera for video calls and to scan profile QR codes so you can add contacts.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Echo uses the microphone for voice and video calls.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Echo scans your contacts on your device to find friends who already use ECHO. Phone numbers are hashed before any server lookup — we never upload your address book.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
