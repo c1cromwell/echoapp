@@ -1,13 +1,38 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - Mono font helpers
 // Geist Mono is used for cryptographic content: DIDs, key fingerprints, OTP codes.
-// Falls back to system monospaced if the font isn't bundled.
+// Bundled via UIAppFonts (see Configs/*-Info.plist + ios/Echo/Resources/GeistMono-*.ttf).
+// Falls back to the system monospaced font if the family isn't registered.
 extension Font {
+    /// True once Geist Mono is registered (bundled fonts register at launch). Checked once.
+    private static let geistMonoAvailable: Bool = {
+        #if canImport(UIKit)
+        return UIFont(name: "GeistMono-Regular", size: 12) != nil
+        #else
+        return false
+        #endif
+    }()
+
+    private static func geistMonoName(for weight: Font.Weight) -> String {
+        switch weight {
+        case .bold, .heavy, .black: return "GeistMono-Bold"
+        case .semibold:             return "GeistMono-SemiBold"
+        case .medium:               return "GeistMono-Medium"
+        default:                    return "GeistMono-Regular"
+        }
+    }
+
     /// Monospaced font at a given size.  Use for: DID strings, key fingerprints, OTP codes, timestamps.
+    /// Renders in Geist Mono when bundled; otherwise the system monospaced face.
     public static func echomono(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        .custom("GeistMono-Regular", size: size)
-            .monospaced()
+        guard geistMonoAvailable else {
+            return .system(size: size, weight: weight, design: .monospaced)
+        }
+        return .custom(geistMonoName(for: weight), size: size)
     }
 
     /// 11pt mono label — for "WHAT ECHO STORES", "● E2EE", section headers in privacy UI.

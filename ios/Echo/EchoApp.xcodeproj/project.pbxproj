@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B065AFDE1621C82E56E932D8 /* GeistMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7F81D8C1B8949FC993EC73C9 /* GeistMono-Regular.ttf */; };
+		2CE3BE0652752192805580B2 /* GeistMono-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 992C676D416E8CEC77FB377A /* GeistMono-Medium.ttf */; };
+		CC6DF012449E81DC5BDAFEEF /* GeistMono-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5BFCA73E437CEF5D384BB5B4 /* GeistMono-SemiBold.ttf */; };
+		2D95FEEB0B8CCF25BE8138E0 /* GeistMono-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E2BD3EF315EC147C45E029B1 /* GeistMono-Bold.ttf */; };
+		53095D989D17A71946D9603B /* GeistMono-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = 93191159ABF25B5A49D1FBEB /* GeistMono-OFL.txt */; };
+		CFF3DD48C019A89DC6AA481D /* FontResourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF25E25928AB28828C288662 /* FontResourceTests.swift */; };
 		65AC9600566B2AAEE349E4E8 /* bip39_english.txt in Resources */ = {isa = PBXBuildFile; fileRef = 15A0EDEE224144604791751D /* bip39_english.txt */; };
 		9BF27F59DB120AC25A20CA65 /* BackupCryptoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65D7ADC046E5D7474E11FE3C /* BackupCryptoTests.swift */; };
 		41E4C0AFF44DCACEC0011462 /* CallSignalCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0C67EEC31E72248ADC8A437 /* CallSignalCodecTests.swift */; };
@@ -339,6 +345,12 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		7F81D8C1B8949FC993EC73C9 /* GeistMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = GeistMono-Regular.ttf; sourceTree = "<group>"; };
+		992C676D416E8CEC77FB377A /* GeistMono-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = GeistMono-Medium.ttf; sourceTree = "<group>"; };
+		5BFCA73E437CEF5D384BB5B4 /* GeistMono-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = GeistMono-SemiBold.ttf; sourceTree = "<group>"; };
+		E2BD3EF315EC147C45E029B1 /* GeistMono-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = GeistMono-Bold.ttf; sourceTree = "<group>"; };
+		93191159ABF25B5A49D1FBEB /* GeistMono-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = GeistMono-OFL.txt; sourceTree = "<group>"; };
+		BF25E25928AB28828C288662 /* FontResourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontResourceTests.swift; sourceTree = "<group>"; };
 		15A0EDEE224144604791751D /* bip39_english.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = bip39_english.txt; sourceTree = "<group>"; };
 		65D7ADC046E5D7474E11FE3C /* BackupCryptoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCryptoTests.swift; sourceTree = "<group>"; };
 		F0C67EEC31E72248ADC8A437 /* CallSignalCodecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallSignalCodecTests.swift; sourceTree = "<group>"; };
@@ -677,6 +689,11 @@
 		CF8FBBC5A8A613FEA6825F54 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				7F81D8C1B8949FC993EC73C9 /* GeistMono-Regular.ttf */,
+				992C676D416E8CEC77FB377A /* GeistMono-Medium.ttf */,
+				5BFCA73E437CEF5D384BB5B4 /* GeistMono-SemiBold.ttf */,
+				E2BD3EF315EC147C45E029B1 /* GeistMono-Bold.ttf */,
+				93191159ABF25B5A49D1FBEB /* GeistMono-OFL.txt */,
 				15A0EDEE224144604791751D /* bip39_english.txt */,
 			);
 			path = Resources;
@@ -685,6 +702,7 @@
 		930B0F85E8C631514258FECB /* Phase3Tests */ = {
 			isa = PBXGroup;
 			children = (
+				BF25E25928AB28828C288662 /* FontResourceTests.swift */,
 				65D7ADC046E5D7474E11FE3C /* BackupCryptoTests.swift */,
 				F0C67EEC31E72248ADC8A437 /* CallSignalCodecTests.swift */,
 				018BEDD5C1E44DC876A5A18F /* ChatDetailViewModelTests.swift */,
@@ -1710,6 +1728,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B065AFDE1621C82E56E932D8 /* GeistMono-Regular.ttf in Resources */,
+				2CE3BE0652752192805580B2 /* GeistMono-Medium.ttf in Resources */,
+				CC6DF012449E81DC5BDAFEEF /* GeistMono-SemiBold.ttf in Resources */,
+				2D95FEEB0B8CCF25BE8138E0 /* GeistMono-Bold.ttf in Resources */,
+				53095D989D17A71946D9603B /* GeistMono-OFL.txt in Resources */,
 				65AC9600566B2AAEE349E4E8 /* bip39_english.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1721,6 +1744,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CFF3DD48C019A89DC6AA481D /* FontResourceTests.swift in Sources */,
 				9BF27F59DB120AC25A20CA65 /* BackupCryptoTests.swift in Sources */,
 				41E4C0AFF44DCACEC0011462 /* CallSignalCodecTests.swift in Sources */,
 				C7ACC3AD5DF6E44DEE3CCE32 /* ChatDetailViewModelTests.swift in Sources */,
