@@ -277,11 +277,11 @@ struct MessagesTabView: View {
                 guard let conversation = match else { return }
 
                 let currentDID = await CurrentUserSession.currentDID() ?? ""
-                guard !event.peerDID.isEmpty, event.peerDID != currentDID else { return }
+                guard !resolved.senderDID.isEmpty, resolved.senderDID != currentDID else { return }
 
                 let inbound = ChatDetailMessage(
                     id: event.messageId,
-                    senderDID: event.peerDID,
+                    senderDID: resolved.senderDID.isEmpty ? event.peerDID : resolved.senderDID,
                     currentUserDID: currentDID,
                     content: resolved.body,
                     timestamp: "Now",

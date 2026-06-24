@@ -276,6 +276,8 @@
 		M3C003BACKUP00000000003 /* MessageBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F009BACKUP00000000003 /* MessageBackupService.swift */; };
 		M3C004BACKUP00000000004 /* BackupScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F010BACKUP00000000004 /* BackupScheduler.swift */; };
 		M3C005BACKUP00000000005 /* BackupSessionKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F011BACKUP00000000005 /* BackupSessionKeyStore.swift */; };
+		S5B001HIDDEN000000000001 /* HiddenThreadCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F001HIDDEN000000000001 /* Sources/Core/Security/HiddenThreadCrypto.swift */; };
+		S5B002SEALED000000000002 /* SealedSenderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F002SEALED000000000002 /* Sources/Services/SealedSenderService.swift */; };
 		M4B001CALL00000000000001 /* CallSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F001CALL00000000000001 /* CallSignal.swift */; };
 		M4B002CALL00000000000002 /* CallHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F002CALL00000000000002 /* CallHistoryStore.swift */; };
 		M4B003CALL00000000000003 /* WebRTCCallSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F003CALL00000000000003 /* WebRTCCallSession.swift */; };
@@ -620,6 +622,8 @@
 		M3F009BACKUP00000000003 /* MessageBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageBackupService.swift; sourceTree = "<group>"; };
 		M3F010BACKUP00000000004 /* BackupScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupScheduler.swift; sourceTree = "<group>"; };
 		M3F011BACKUP00000000005 /* BackupSessionKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupSessionKeyStore.swift; sourceTree = "<group>"; };
+		S5F001HIDDEN000000000001 /* Sources/Core/Security/HiddenThreadCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Core/Security/HiddenThreadCrypto.swift; sourceTree = "<group>"; };
+		S5F002SEALED000000000002 /* Sources/Services/SealedSenderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/SealedSenderService.swift; sourceTree = "<group>"; };
 		M4F001CALL00000000000001 /* CallSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallSignal.swift; sourceTree = "<group>"; };
 		M4F002CALL00000000000002 /* CallHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallHistoryStore.swift; sourceTree = "<group>"; };
 		M4F003CALL00000000000003 /* WebRTCCallSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCCallSession.swift; sourceTree = "<group>"; };
@@ -967,6 +971,7 @@
 				36EA8623AE0B5A2F4FBCD41D /* Sources/Features/Contacts/ScannedIdentityParser.swift */,
 				8BEDF0FDB113BA7F8CA28856 /* Sources/Features/Settings/PrivacySettingsStore.swift */,
 				8B2D9B3E64D0D0827FBE804A /* Sources/Services/TextMessageCrypto.swift */,
+				S5F002SEALED000000000002 /* Sources/Services/SealedSenderService.swift */,
 				24BE1DF715DD46161989FCE7 /* Sources/Services/IdentityResolveClient.swift */,
 				EF94E33E9CC502C47205F597 /* Sources/Features/Messaging/ConversationID.swift */,
 				B77A834EA1E7DEEE5FFF163D /* Sources/Features/Trust/TrustDashboardView.swift */,
@@ -977,6 +982,7 @@
 				1878FA1FFD4E9EFD1EFB1AE5 /* Sources/Features/Messaging/ChatFolderFilterView.swift */,
 				DDF6D1C6D0E4EB6697FB6BD1 /* Sources/Services/ConversationPreferencesStore.swift */,
 				3141640DB14B49719F5CD49A /* Sources/Core/Security/StepUpAuthManager.swift */,
+				S5F001HIDDEN000000000001 /* Sources/Core/Security/HiddenThreadCrypto.swift */,
 				3C4FB342BDBA4A46BCB6A489 /* Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift */,
 				C3F638568F074357AEE51CD9 /* Sources/Features/Onboarding/VIP/VIPPathView.swift */,
 				5E6EA147E2FF4D5F80E78EB1 /* Sources/Features/Onboarding/VIP/VIPStandardIDVView.swift */,
@@ -1818,6 +1824,8 @@
 				M3C003BACKUP00000000003 /* MessageBackupService.swift in Sources */,
 				M3C004BACKUP00000000004 /* BackupScheduler.swift in Sources */,
 				M3C005BACKUP00000000005 /* BackupSessionKeyStore.swift in Sources */,
+				S5B001HIDDEN000000000001 /* HiddenThreadCrypto.swift in Sources */,
+				S5B002SEALED000000000002 /* SealedSenderService.swift in Sources */,
 				M4B001CALL00000000000001 /* CallSignal.swift in Sources */,
 				M4B002CALL00000000000002 /* CallHistoryStore.swift in Sources */,
 				M4B003CALL00000000000003 /* WebRTCCallSession.swift in Sources */,

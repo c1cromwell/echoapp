@@ -142,6 +142,19 @@ final class ConversationSignalService: @unchecked Sendable {
         try await transport.send(text: wire)
     }
 
+    func sendSealedTextMessage(
+        conversationId: String,
+        peerDID: String,
+        payload: SealedTextPayload
+    ) async throws {
+        let wire = try ConversationSignalCodec.encodeSealedTextMessage(
+            to: peerDID,
+            conversationId: conversationId,
+            payload: payload
+        )
+        try await transport.send(text: wire)
+    }
+
     func handleIncoming(text: String) {
         #if os(iOS)
         if OverflowManifestHandler.tryHandle(text: text, reprocess: { [weak self] replay in

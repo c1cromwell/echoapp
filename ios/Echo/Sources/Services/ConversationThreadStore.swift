@@ -115,19 +115,30 @@ enum ConversationThreadStore {
     }
 
     private static func loadStored(conversationId: String) -> [StoredThreadMessage] {
-        guard let data = UserDefaults.standard.data(forKey: keyPrefix + conversationId),
-              let decoded = try? JSONDecoder().decode([StoredThreadMessage].self, from: data) else {
-            return []
+        let key = keyPrefix + conversationId
+        guard let data = UserDefaults.standard.data(forKey: key) else { return [] }
+        if let decoded = try? JSONDecoder().decode([StoredThreadMessage].self, from: data) {
+            return decoded
         }
-        return decoded
+        if let decrypted = try? HiddenThreadCrypto.decrypt(data: data, conversationId: conversationId) {
+            return decrypted
+        }
+        return []
     }
 
     private static func persist(conversationId: String, messages: [StoredThreadMessage]) {
+        let key = keyPrefix + conversationId
+        if ConversationPreferencesStore.shared.isHidden(conversationId) {
+            guard let data = try? HiddenThreadCrypto.encrypt(messages: messages, conversationId: conversationId) else { return }
+            UserDefaults.standard.set(data, forKey: key)
+            return
+        }
         guard let data = try? JSONEncoder().encode(messages) else { return }
-        UserDefaults.standard.set(data, forKey: keyPrefix + conversationId)
+        UserDefaults.standard.set(data, forKey: key)
     }
 
     private static func notifySearchIndex(conversationId: String, message: StoredThreadMessage) {
+        guard !ConversationPreferencesStore.shared.isHidden(conversationId) else { return }
         Task {
             await LocalMessageIndexer.shared.indexMessage(
                 conversationId: conversationId,
@@ -161,7 +172,9 @@ enum ConversationThreadStore {
         let existing = Set(stored.map(\.id))
         for msg in incoming where !existing.contains(msg.id) {
             stored.append(msg)
-            notifySearchIndex(conversationId: conversationId, message: msg)
+            if !ConversationPreferencesStore.shared.isHidden(conversationId) {
+                notifySearchIndex(conversationId: conversationId, message: msg)
+            }
         }
         persist(conversationId: conversationId, messages: stored)
     }

@@ -26,6 +26,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/services/contacts"
 	"github.com/thechadcromwell/echoapp/internal/services/groups"
 	"github.com/thechadcromwell/echoapp/internal/services/media"
+	"github.com/thechadcromwell/echoapp/internal/services/messaging"
 	"github.com/thechadcromwell/echoapp/internal/services/notification"
 	"github.com/thechadcromwell/echoapp/internal/services/onboarding"
 	rewardsSvc "github.com/thechadcromwell/echoapp/internal/services/rewards"
@@ -268,6 +269,8 @@ func (s *Server) Start() error {
 	}
 	groupSvc := groups.NewGroupService(groupOpts...)
 
+	sealedTokenStore := messaging.NewSealedTokenStore()
+
 	router.V3 = &api.V3Handlers{
 		DB:              db,
 		Contacts:        contactsSvc,
@@ -283,11 +286,13 @@ func (s *Server) Start() error {
 		MessageBackup:   messageBackupSvc,  // WO-64/CA2: encrypted history backup relay
 		OverflowStorage: backupBlobStore,   // WO-237: overflow blob fetch for reconnect manifest
 		Comply:          complySvc,         // WO-250 retention enforcement hooks
+		SealedTokens:    sealedTokenStore,  // WO-219 sealed-sender delivery tokens
 	}
 	if os.Getenv("COMPLY_SERVICE_TOKEN") != "" {
 		log.Println("ECHO Comply retention service enabled (WO-250)")
 	}
 	router.WSHub.SetGroupMemberLister(router.V3.Groups)     // M2: group text fan-out to members
+	router.WSHub.SetSealedTokenStore(sealedTokenStore)      // WO-219: sealed-sender token validation
 	router.WSHub.SetRateLimiter(rateLimiter)                // WO-44: WS send budget
 	router.WSHub.SetOfflineOverflowStorage(backupBlobStore) // WO-237: queue overflow to encblob
 

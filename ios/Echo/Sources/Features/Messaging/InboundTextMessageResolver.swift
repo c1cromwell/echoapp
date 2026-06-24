@@ -4,6 +4,7 @@ import Foundation
 /// Decrypts inbound WS text payloads for inbox preview + thread persistence.
 enum InboundTextMessageResolver {
     struct ResolvedBody: Sendable {
+        let senderDID: String
         let body: String
         let preview: String
         let replyToMessageId: String?
@@ -13,16 +14,41 @@ enum InboundTextMessageResolver {
     }
 
     static func resolveBody(for event: TextMessageSignalEvent) async -> ResolvedBody {
+        var peerDID = event.peerDID
+        var wirePayload = event.wirePayload
+        if let sealed = event.sealedPayload {
+            let client = await DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
+            let sealedService = SealedSenderService(
+                identityResolve: IdentityResolveClient(apiClient: client),
+                apiClient: client
+            )
+            if let unwrapped = try? await sealedService.unwrap(sealed) {
+                peerDID = unwrapped.senderDID
+                wirePayload = unwrapped.payload
+            } else {
+                return ResolvedBody(
+                    senderDID: peerDID,
+                    body: TextMessagePayload.encryptedPlaceholder,
+                    preview: "Encrypted message",
+                    replyToMessageId: nil,
+                    replyPreview: nil,
+                    forwardedFromMessageId: nil,
+                    forwardedFromConversationId: nil
+                )
+            }
+        }
+
         var body = event.text
         var replyToMessageId: String?
         var replyPreview: String?
         var forwardedFromMessageId: String?
         var forwardedFromConversationId: String?
-        if let wire = event.wirePayload, wire.encrypted != nil {
+        if let wire = wirePayload, wire.encrypted != nil {
             let client = await DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
             let crypto = TextMessageCrypto(identityResolve: IdentityResolveClient(apiClient: client))
-            if await crypto.senderVerification(for: wire, expectedSenderDID: event.peerDID) == .invalid {
+            if await crypto.senderVerification(for: wire, expectedSenderDID: peerDID) == .invalid {
                 return ResolvedBody(
+                    senderDID: peerDID,
                     body: TextMessagePayload.encryptedPlaceholder,
                     preview: "Unverified sender",
                     replyToMessageId: nil,
@@ -45,11 +71,12 @@ enum InboundTextMessageResolver {
             } else {
                 body = TextMessagePayload.encryptedPlaceholder
             }
-        } else if let media = event.wirePayload?.media {
+        } else if let media = wirePayload?.media {
             body = TextMessagePayload.mediaPlaceholder(for: media)
         }
         let preview = body == TextMessagePayload.encryptedPlaceholder ? "Encrypted message" : body
         return ResolvedBody(
+            senderDID: peerDID,
             body: body,
             preview: preview,
             replyToMessageId: replyToMessageId,

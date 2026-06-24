@@ -47,13 +47,14 @@ type V3Handlers struct {
 	Rewards         *rewards.Service
 	Groups          *groups.GroupService
 	Broadcasts      *broadcast_channels.ChannelService
-	RateLimiter     *infra.RateLimiter         // optional; enforces per-DID claim velocity (WO-35)
-	IdentityL1      *metagraph.MetagraphClient // optional; anchors @username -> DID on the Identity Metagraph (D1)
-	Signals         SignalPublisher            // optional; pushes live typing/receipt/reaction signals over WS (WO-10/192)
-	Notifier        OfflineNotifier            // optional; content-blind push when a signal target is offline (WO-57)
-	MessageBackup   *passport.SyncService      // optional; WO-64/CA2 client-encrypted history backup relay
-	OverflowStorage encblob.Storage            // optional; WO-237 overflow blob retrieval
-	Comply          *comply.Service            // optional; WO-250 retention enforcement
+	RateLimiter     *infra.RateLimiter          // optional; enforces per-DID claim velocity (WO-35)
+	IdentityL1      *metagraph.MetagraphClient  // optional; anchors @username -> DID on the Identity Metagraph (D1)
+	Signals         SignalPublisher             // optional; pushes live typing/receipt/reaction signals over WS (WO-10/192)
+	Notifier        OfflineNotifier             // optional; content-blind push when a signal target is offline (WO-57)
+	MessageBackup   *passport.SyncService       // optional; WO-64/CA2 client-encrypted history backup relay
+	OverflowStorage encblob.Storage             // optional; WO-237 overflow blob retrieval
+	Comply          *comply.Service             // optional; WO-250 retention enforcement
+	SealedTokens    *messaging.SealedTokenStore // optional; WO-219 sealed-sender tokens
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.
@@ -96,7 +97,7 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	// Message receipt + ops endpoints (receipt/status/edit/delete/pin/unpin/history)
 	mux.HandleFunc("/v3/messages/react", h.handleMessageReact)
 	mux.HandleFunc("/v3/messages/reactions", h.handleMessageReactions)
-	mux.HandleFunc("/v3/messages/", h.handleMessageReceipt)
+	mux.HandleFunc("/v3/messages/", h.handleMessageSubroute)
 
 	// Conversation-scoped endpoints (pins list, retention flag)
 	mux.HandleFunc("/v3/conversations/", h.handleConversationsSubroute)

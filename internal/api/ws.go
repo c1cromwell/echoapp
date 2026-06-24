@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/websocket"
 
 	"github.com/thechadcromwell/echoapp/internal/infra"
+	"github.com/thechadcromwell/echoapp/internal/services/messaging"
 	"github.com/thechadcromwell/echoapp/pkg/storage/encblob"
 )
 
@@ -162,10 +163,11 @@ type Hub struct {
 	broadcast    chan []byte
 	register     chan *Client
 	unregister   chan *Client
-	notifier     OfflineNotifier    // optional; push for offline recipients (WO-57)
-	groupMembers GroupMemberLister  // optional; fan-out group text to members (M2)
-	offlineQueue *wsOfflineQueue    // directed WS blobs for offline recipients (M2)
-	rateLimiter  *infra.RateLimiter // WO-44 per-DID WS message budget (optional)
+	notifier     OfflineNotifier             // optional; push for offline recipients (WO-57)
+	groupMembers GroupMemberLister           // optional; fan-out group text to members (M2)
+	offlineQueue *wsOfflineQueue             // directed WS blobs for offline recipients (M2)
+	rateLimiter  *infra.RateLimiter          // WO-44 per-DID WS message budget (optional)
+	sealedTokens *messaging.SealedTokenStore // WO-219 sealed-sender delivery tokens
 }
 
 // NewHub creates a new WebSocket hub.
@@ -486,7 +488,9 @@ func (c *Client) readPump() {
 				Timestamp: time.Now().UTC().Format(time.RFC3339),
 			}
 		} else {
-			msg.From = c.userID
+			if msg.Type != "sealed_text" {
+				msg.From = c.userID
+			}
 			if msg.Timestamp == "" {
 				msg.Timestamp = time.Now().UTC().Format(time.RFC3339)
 			}
@@ -510,18 +514,23 @@ func (c *Client) readPump() {
 func (c *Client) routeInbound(msg WSMessage) {
 	if c.hub.rateLimiter != nil && c.userID != "" && msg.Type != "control" {
 		action := "websocket_msg"
-		if msg.Type == "text" {
+		if msg.Type == "text" || msg.Type == "sealed_text" {
 			action = "message_send"
 		}
 		if err := c.hub.rateLimiter.Check(c.userID, action); err != nil {
 			return
 		}
 	}
-	if msg.From == "" {
+	if msg.From == "" && msg.Type != "sealed_text" {
 		msg.From = c.userID
 	}
 	outBytes, err := json.Marshal(msg)
 	if err != nil {
+		return
+	}
+
+	if msg.Type == "sealed_text" {
+		c.routeSealedText(msg)
 		return
 	}
 

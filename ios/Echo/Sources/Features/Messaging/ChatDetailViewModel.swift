@@ -401,11 +401,29 @@ final class ChatDetailViewModel {
                 peerDID: peerDID,
                 messageId: message.id
             )
-            try await signalService.sendTextMessage(
-                conversationId: conversationId,
-                peerDID: peerDID,
-                payload: payload
-            )
+            if SealedSenderPreferences.isEnabled, !conversationId.hasPrefix("group:") {
+                let client = DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
+                let sealedService = SealedSenderService(
+                    identityResolve: IdentityResolveClient(apiClient: client),
+                    apiClient: client
+                )
+                let sealed = try await sealedService.wrap(
+                    payload: payload,
+                    recipientDID: peerDID,
+                    senderDID: currentUserDID
+                )
+                try await signalService.sendSealedTextMessage(
+                    conversationId: conversationId,
+                    peerDID: peerDID,
+                    payload: sealed
+                )
+            } else {
+                try await signalService.sendTextMessage(
+                    conversationId: conversationId,
+                    peerDID: peerDID,
+                    payload: payload
+                )
+            }
             if let replyId {
                 try? await opsAPI?.putMessageRefs(
                     messageId: message.id,
@@ -781,7 +799,7 @@ final class ChatDetailViewModel {
         let body = resolved.body
         let inbound = ChatDetailMessage(
             id: e.messageId,
-            senderDID: e.peerDID,
+            senderDID: resolved.senderDID.isEmpty ? e.peerDID : resolved.senderDID,
             currentUserDID: currentUserDID,
             content: body,
             timestamp: "Now",
