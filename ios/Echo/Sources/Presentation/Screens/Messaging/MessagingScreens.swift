@@ -379,6 +379,9 @@ struct ChatView: View {
                 onChange: { [viewModel] newPrefs in
                     let oldPrefs = ConversationPreferencesStore.shared.preferences(for: conversationId)
                     ConversationPreferencesStore.shared.save(newPrefs, for: conversationId)
+                    if newPrefs.isHidden != oldPrefs.isHidden {
+                        ConversationThreadStore.migrateStorageEncryption(conversationId: conversationId)
+                    }
                     if newPrefs.disappearing != oldPrefs.disappearing {
                         Task { await viewModel.setDisappearing(ttlSeconds: newPrefs.disappearing.seconds) }
                     }

@@ -178,5 +178,13 @@ enum ConversationThreadStore {
         }
         persist(conversationId: conversationId, messages: stored)
     }
+
+    /// Re-write thread storage when hide preference changes (plaintext ↔ encrypted).
+    static func migrateStorageEncryption(conversationId: String) {
+        guard !conversationId.isEmpty else { return }
+        let stored = loadStored(conversationId: conversationId)
+        guard !stored.isEmpty else { return }
+        persist(conversationId: conversationId, messages: stored)
+    }
 }
 #endif

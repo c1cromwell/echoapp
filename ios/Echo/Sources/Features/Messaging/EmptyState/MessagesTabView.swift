@@ -15,8 +15,9 @@ struct MessagesTabView: View {
     @State private var recoveryPromptPresented = false
     @State private var pendingInviteCode: String?
     @State private var chatPath = SwiftUI.NavigationPath()
-    @State private var hiddenUnlocked = false
+    @Bindable private var hiddenSession = HiddenChatsSession.shared
     @State private var showBiometricGate = false
+    @State private var showHiddenSettings = false
     @State private var composeHiddenPresented = false
     @State private var showCreateGroup = false
     @State private var showMessageSearch = false
@@ -52,7 +53,8 @@ struct MessagesTabView: View {
                             return ContactTrustIndex.shared.tier(conversationId: conversationId, peerDID: conv.peerDID)
                         },
                         mutedIDs: mutedConversationIDs,
-                        hiddenUnlocked: hiddenUnlocked,
+                        hiddenUnlocked: hiddenSession.isUnlocked,
+                        isDuressHiddenVault: hiddenSession.isDuressMode,
                         onSelectConversation: { id in
                             if let conversation = conversationStore.conversation(id: id) {
                                 chatPath.append(conversation)
@@ -61,7 +63,8 @@ struct MessagesTabView: View {
                         onCompose: { composeSheetPresented = true },
                         onComposeHidden: { composeHiddenPresented = true },
                         onOpenHidden: { showBiometricGate = true },
-                        onLockHidden: { hiddenUnlocked = false },
+                        onLockHidden: { hiddenSession.lock() },
+                        onOpenHiddenSettings: { showHiddenSettings = true },
                         onSwitchPersona: { appState.switchPersona($0) },
                         onSelectHiddenPersona: { _ in showBiometricGate = true },
                         onToggleArchive: { conversationId, archived in
@@ -148,17 +151,24 @@ struct MessagesTabView: View {
             await refreshContactTrustIndex()
         }
         .onChange(of: scenePhase) { _, phase in
-            guard phase == .active else { return }
-            Task { await connectSharedMessageRelay() }
+            switch phase {
+            case .background:
+                hiddenSession.noteDidEnterBackground()
+            case .active:
+                hiddenSession.refreshForegroundLockIfNeeded()
+                Task { await connectSharedMessageRelay() }
+            default:
+                break
+            }
         }
         .sheet(isPresented: $showBiometricGate) {
-            PersonaGateView(personaID: "hidden-chats") {
-                Color.clear
-                    .onAppear {
-                        hiddenUnlocked = true
-                        showBiometricGate = false
-                    }
-            }
+            HiddenFolderGateSheet(
+                onUnlocked: { showBiometricGate = false },
+                onCancel: { showBiometricGate = false }
+            )
+        }
+        .sheet(isPresented: $showHiddenSettings) {
+            HiddenFolderSettingsView()
         }
         .sheet(isPresented: $composeHiddenPresented) {
             NewConversationSheet(
@@ -246,7 +256,8 @@ struct MessagesTabView: View {
     }
 
     private var hiddenConversations: [StoredConversation] {
-        conversationStore.conversations.filter {
+        guard hiddenSession.isUnlocked, !hiddenSession.isDuressMode else { return [] }
+        return conversationStore.conversations.filter {
             ConversationPreferencesStore.shared.isHidden($0.id)
         }
     }
@@ -288,7 +299,13 @@ struct MessagesTabView: View {
                     deliveryStatus: .delivered
                 )
                 ConversationThreadStore.appendIfNew(conversationId: conversation.id, message: inbound)
-                store.appendMessagePreview(conversationId: conversation.id, preview: resolved.preview)
+                let session = HiddenChatsSession.shared
+                guard session.shouldSurfaceNotification(for: conversation.id) else { return }
+                let preview = session.redactedPreviewIfNeeded(
+                    for: conversation.id,
+                    resolved: resolved.preview
+                )
+                store.appendMessagePreview(conversationId: conversation.id, preview: preview)
                 if ActiveChatRegistry.openConversationId != conversation.id {
                     store.incrementUnread(conversationId: conversation.id)
                 }

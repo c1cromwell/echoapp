@@ -165,5 +165,25 @@ final class ContactUseCaseTests: XCTestCase {
         XCTAssertEqual(parsed?.0, "did:key:zRaw")
         XCTAssertNil(parsed?.1)
     }
+
+    @MainActor
+    func testHiddenFolderSettings_duressPIN() throws {
+        let defaults = UserDefaults(suiteName: "echo.hidden.tests")!
+        defaults.removePersistentDomain(forName: "echo.hidden.tests")
+        let store = HiddenFolderSettingsStore(defaults: defaults)
+        try store.setDuressPIN("1234")
+        XCTAssertTrue(store.matchesDuressPIN("1234"))
+        XCTAssertFalse(store.matchesDuressPIN("9999"))
+    }
+
+    @MainActor
+    func testHiddenChatsSession_duressHidesVaultContents() {
+        let session = HiddenChatsSession.shared
+        session.lock()
+        session.unlock(duress: true)
+        XCTAssertTrue(session.isDuressMode)
+        XCTAssertFalse(session.shouldSurfaceNotification(for: "conv-hidden"))
+        session.lock()
+    }
 }
 #endif

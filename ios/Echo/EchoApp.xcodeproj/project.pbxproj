@@ -278,6 +278,10 @@
 		M3C005BACKUP00000000005 /* BackupSessionKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F011BACKUP00000000005 /* BackupSessionKeyStore.swift */; };
 		S5B001HIDDEN000000000001 /* HiddenThreadCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F001HIDDEN000000000001 /* Sources/Core/Security/HiddenThreadCrypto.swift */; };
 		S5B002SEALED000000000002 /* SealedSenderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F002SEALED000000000002 /* Sources/Services/SealedSenderService.swift */; };
+		S5B003HIDDEN000000000003 /* HiddenFolderSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F003HIDDEN000000000003 /* Sources/Services/HiddenFolderSettingsStore.swift */; };
+		S5B004HIDDEN000000000004 /* HiddenChatsSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F004HIDDEN000000000004 /* Sources/Services/HiddenChatsSession.swift */; };
+		S5B005HIDDEN000000000005 /* HiddenFolderGateSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F005HIDDEN000000000005 /* Sources/Features/Messaging/HiddenFolderGateSheet.swift */; };
+		S5B006HIDDEN000000000006 /* HiddenFolderSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F006HIDDEN000000000006 /* Sources/Features/Messaging/HiddenFolderSettingsView.swift */; };
 		M4B001CALL00000000000001 /* CallSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F001CALL00000000000001 /* CallSignal.swift */; };
 		M4B002CALL00000000000002 /* CallHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F002CALL00000000000002 /* CallHistoryStore.swift */; };
 		M4B003CALL00000000000003 /* WebRTCCallSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = M4F003CALL00000000000003 /* WebRTCCallSession.swift */; };
@@ -624,6 +628,10 @@
 		M3F011BACKUP00000000005 /* BackupSessionKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupSessionKeyStore.swift; sourceTree = "<group>"; };
 		S5F001HIDDEN000000000001 /* Sources/Core/Security/HiddenThreadCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Core/Security/HiddenThreadCrypto.swift; sourceTree = "<group>"; };
 		S5F002SEALED000000000002 /* Sources/Services/SealedSenderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/SealedSenderService.swift; sourceTree = "<group>"; };
+		S5F003HIDDEN000000000003 /* Sources/Services/HiddenFolderSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/HiddenFolderSettingsStore.swift; sourceTree = "<group>"; };
+		S5F004HIDDEN000000000004 /* Sources/Services/HiddenChatsSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/HiddenChatsSession.swift; sourceTree = "<group>"; };
+		S5F005HIDDEN000000000005 /* Sources/Features/Messaging/HiddenFolderGateSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Messaging/HiddenFolderGateSheet.swift; sourceTree = "<group>"; };
+		S5F006HIDDEN000000000006 /* Sources/Features/Messaging/HiddenFolderSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Messaging/HiddenFolderSettingsView.swift; sourceTree = "<group>"; };
 		M4F001CALL00000000000001 /* CallSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallSignal.swift; sourceTree = "<group>"; };
 		M4F002CALL00000000000002 /* CallHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallHistoryStore.swift; sourceTree = "<group>"; };
 		M4F003CALL00000000000003 /* WebRTCCallSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCCallSession.swift; sourceTree = "<group>"; };
@@ -972,6 +980,8 @@
 				8BEDF0FDB113BA7F8CA28856 /* Sources/Features/Settings/PrivacySettingsStore.swift */,
 				8B2D9B3E64D0D0827FBE804A /* Sources/Services/TextMessageCrypto.swift */,
 				S5F002SEALED000000000002 /* Sources/Services/SealedSenderService.swift */,
+				S5F003HIDDEN000000000003 /* Sources/Services/HiddenFolderSettingsStore.swift */,
+				S5F004HIDDEN000000000004 /* Sources/Services/HiddenChatsSession.swift */,
 				24BE1DF715DD46161989FCE7 /* Sources/Services/IdentityResolveClient.swift */,
 				EF94E33E9CC502C47205F597 /* Sources/Features/Messaging/ConversationID.swift */,
 				B77A834EA1E7DEEE5FFF163D /* Sources/Features/Trust/TrustDashboardView.swift */,
@@ -1091,6 +1101,8 @@
 				G2G001M2GROUPS00000000000 /* Groups */,
 				W0E001012345678901234013 /* ChatDetailViewModel.swift */,
 				W0E001012345678901234005 /* ChatDestinationView.swift */,
+				S5F005HIDDEN000000000005 /* Sources/Features/Messaging/HiddenFolderGateSheet.swift */,
+				S5F006HIDDEN000000000006 /* Sources/Features/Messaging/HiddenFolderSettingsView.swift */,
 				W0E001012345678901234015 /* ConversationSignalLogic.swift */,
 				W0E001012345678901234024 /* InboundTextMessageResolver.swift */,
 				W0E001012345678901234026 /* ActiveChatRegistry.swift */,
@@ -1826,6 +1838,10 @@
 				M3C005BACKUP00000000005 /* BackupSessionKeyStore.swift in Sources */,
 				S5B001HIDDEN000000000001 /* HiddenThreadCrypto.swift in Sources */,
 				S5B002SEALED000000000002 /* SealedSenderService.swift in Sources */,
+				S5B003HIDDEN000000000003 /* HiddenFolderSettingsStore.swift in Sources */,
+				S5B004HIDDEN000000000004 /* HiddenChatsSession.swift in Sources */,
+				S5B005HIDDEN000000000005 /* HiddenFolderGateSheet.swift in Sources */,
+				S5B006HIDDEN000000000006 /* HiddenFolderSettingsView.swift in Sources */,
 				M4B001CALL00000000000001 /* CallSignal.swift in Sources */,
 				M4B002CALL00000000000002 /* CallHistoryStore.swift in Sources */,
 				M4B003CALL00000000000003 /* WebRTCCallSession.swift in Sources */,

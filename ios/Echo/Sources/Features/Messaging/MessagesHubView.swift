@@ -29,12 +29,14 @@ struct MessagesHubView: View {
     let trustTier: (String) -> Int
     let mutedIDs: Set<String>
     var hiddenUnlocked: Bool = false
+    var isDuressHiddenVault: Bool = false
 
     let onSelectConversation: (String) -> Void
     let onCompose: () -> Void
     let onComposeHidden: () -> Void
     let onOpenHidden: () -> Void
     let onLockHidden: () -> Void
+    let onOpenHiddenSettings: () -> Void = {}
     let onSwitchPersona: (PersonaSummary) -> Void
     let onSelectHiddenPersona: (PersonaSummary) -> Void
     let onToggleArchive: (String, Bool) -> Void
@@ -168,6 +170,9 @@ struct MessagesHubView: View {
                 Text("Messages")
                     .font(.system(size: 28, weight: .bold))
                     .foregroundColor(.echoInk)
+                    .onLongPressGesture(minimumDuration: 2) {
+                        onOpenHidden()
+                    }
                 Spacer()
 
                 Button {
@@ -522,6 +527,10 @@ struct MessagesHubView: View {
 
     @ViewBuilder
     private var hiddenContent: some View {
+        if hiddenUnlocked {
+            hiddenUnlockedHeader
+        }
+
         Button(action: onComposeHidden) {
             HStack(spacing: 10) {
                 Image(systemName: "plus.circle.fill").font(.system(size: 20))
@@ -537,7 +546,10 @@ struct MessagesHubView: View {
         Divider().background(Color.echoHair).padding(.leading, Spacing.lg.rawValue)
 
         if hiddenConversations.isEmpty {
-            placeholder(icon: "eye.slash", text: "No hidden chats yet.\nUse chat settings to hide a conversation, or tap \"New hidden chat\" above.")
+            let emptyText = isDuressHiddenVault
+                ? "No hidden chats."
+                : "No hidden chats yet.\nUse chat settings to hide a conversation, or tap \"New hidden chat\" above."
+            placeholder(icon: "eye.slash", text: emptyText)
         } else {
             ForEach(hiddenConversations) { conv in
                 conversationRow(conv)
@@ -556,6 +568,30 @@ struct MessagesHubView: View {
                 Divider().background(Color.echoHair).padding(.horizontal, 18)
             }
         }
+    }
+
+    private var hiddenUnlockedHeader: some View {
+        HStack {
+            Text("Vault unlocked")
+                .font(.echomono(11))
+                .foregroundColor(.echoInk55)
+            Spacer()
+            Button(action: onOpenHiddenSettings) {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(.echoInk70)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Hidden chat settings")
+            Button(action: onLockHidden) {
+                Label("Lock", systemImage: "lock.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.echoSignal)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, Spacing.lg.rawValue)
+        .padding(.vertical, Spacing.sm.rawValue)
     }
 
     private func placeholder(icon: String, text: String) -> some View {
