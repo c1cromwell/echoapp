@@ -36,6 +36,10 @@ services:
       - REDIS_PORT=6379
       # NATS
       - NATS_URL=nats://nats:4222
+      # WebRTC TURN (optional — `docker compose --profile webrtc up` + set host-reachable URL)
+      # - ECHO_TURN_URL=turn:192.168.1.100:3478
+      # - ECHO_TURN_USERNAME=echo
+      # - ECHO_TURN_CREDENTIAL=echo_dev_turn
       # Storage (MinIO S3-compatible)
       - STORAGE_BACKEND=s3
       - STORAGE_ENDPOINT=http://minio:9000
@@ -118,6 +122,24 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - echo-network
+
+  # Optional TURN for WebRTC NAT traversal (M4). Start with: docker compose --profile webrtc up
+  coturn:
+    image: coturn/coturn:4.6.2
+    container_name: echo-coturn
+    profiles: ["webrtc"]
+    ports:
+      - "3478:3478/tcp"
+      - "3478:3478/udp"
+    command:
+      - -n
+      - --log-file=stdout
+      - --realm=echo.local
+      - --user=echo:echo_dev_turn
+      - --lt-cred-mech
+      - --fingerprint
     networks:
       - echo-network
 

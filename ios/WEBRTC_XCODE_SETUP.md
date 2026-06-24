@@ -38,6 +38,15 @@ ECHO_TURN_CREDENTIAL=secret
 
 `GET /v3/calls/ice-servers` will include the TURN entry; iOS fetches this before creating the peer connection.
 
+**Local dev:** start optional coturn with `docker compose --profile webrtc up`, then set `ECHO_TURN_URL` to your Mac's LAN IP (simulators/devices cannot reach the Docker service name):
+
+```bash
+# In docker-compose.yml echoapp environment (uncomment and set your LAN IP):
+ECHO_TURN_URL=turn:192.168.1.100:3478
+ECHO_TURN_USERNAME=echo
+ECHO_TURN_CREDENTIAL=echo_dev_turn
+```
+
 ## E2E gate
 
 Run §6.12 in [`E2E_MESSAGING_SIGNOFF_CHECKLIST.md`](../docs/E2E_MESSAGING_SIGNOFF_CHECKLIST.md).

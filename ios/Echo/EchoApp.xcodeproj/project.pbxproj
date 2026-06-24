@@ -1683,6 +1683,7 @@
 			);
 			name = EchoApp;
 			packageProductDependencies = (
+				WEBRTC_PROD_DEP00000001 /* WebRTC */,
 			);
 			productName = Echo;
 			productReference = 3B355D26B7A704237F7ACEEF /* Echo.app */;
@@ -1716,6 +1717,9 @@
 			mainGroup = 7FAD8E9B6523B82CFD5D0E0D;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
+			packageReferences = (
+				WEBRTC_PKG_REF00000001 /* XCRemoteSwiftPackageReference "WebRTC" */,
+			);
 			productRefGroup = 290D02D64F0CB90A283D9880 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -2692,6 +2696,25 @@
 			defaultConfigurationName = "Debug-Messaging";
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		WEBRTC_PKG_REF00000001 /* XCRemoteSwiftPackageReference "WebRTC" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/stasel/WebRTC.git";
+			requirement = {
+				kind = exactVersion;
+				version = 131.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		WEBRTC_PROD_DEP00000001 /* WebRTC */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = WEBRTC_PKG_REF00000001 /* XCRemoteSwiftPackageReference "WebRTC" */;
+			productName = WebRTC;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = ABCD823054ED733DF7C5BE49 /* Project object */;
 }

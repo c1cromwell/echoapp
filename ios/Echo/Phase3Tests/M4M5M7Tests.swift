@@ -2,6 +2,12 @@ import XCTest
 @testable import Echo
 
 #if os(iOS)
+final class CallICEEndpointTests: XCTestCase {
+    func testICEServersPath_matchesBackend() {
+        XCTAssertEqual(CallICEEndpoint.iceServers.path, "/v3/calls/ice-servers")
+    }
+}
+
 final class WebRTCSessionDescriptionTests: XCTestCase {
     func testOfferAnswerRoundTrip() throws {
         let offer = WebRTCSessionDescription.offer(callType: .voice, iceUfrag: "abc12345")
