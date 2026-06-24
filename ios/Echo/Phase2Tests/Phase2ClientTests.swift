@@ -142,6 +142,16 @@ final class ContactUseCaseTests: XCTestCase {
         ContactDiscoverySyncPreferences.cadence = previous
     }
 
+    func testPrivacySettings_encryptionIndicatorPersists() {
+        var settings = EnhancedPrivacySettings()
+        settings.showEncryptionIndicator = false
+        PrivacySettingsStore.save(settings)
+        XCTAssertFalse(PrivacySettingsStore.showsEncryptionIndicator)
+        settings.showEncryptionIndicator = true
+        PrivacySettingsStore.save(settings)
+        XCTAssertTrue(PrivacySettingsStore.showsEncryptionIndicator)
+    }
+
     func testQRContactExchange_parsesEchoProfileURL() {
         let useCase = QRContactExchangeUseCase()
         let parsed = useCase.parseScannedPayload("echo://profile?did=did:key:zPeer&u=alice")

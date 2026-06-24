@@ -213,13 +213,17 @@ struct MessagesHubView: View {
     }
 
     private var secureBar: some View {
-        Button {
-            showIntegrityExplainer = true
-        } label: {
-            SecureThreadIndicatorBar()
+        Group {
+            if PrivacySettingsStore.showsEncryptionIndicator {
+                Button {
+                    showIntegrityExplainer = true
+                } label: {
+                    SecureThreadIndicatorBar()
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Secure thread — learn about integrity")
+            }
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Secure thread — learn about integrity")
     }
 
     private var searchField: some View {

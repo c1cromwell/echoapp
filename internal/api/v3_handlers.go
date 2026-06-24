@@ -165,6 +165,11 @@ func (h *V3Handlers) handleContactsPSI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	did := h.getDID(r)
+	if !h.enforceDIDRateLimit(w, r, did, "psi_discovery") {
+		return
+	}
+
 	// OPRF-PSI (D2): the client sends base64 blinded phone elements; the server
 	// evaluates them under its secret key (learning nothing) and returns the
 	// evaluations plus the {hex(OPRF_k(phone)) -> DID} index. The client finalizes

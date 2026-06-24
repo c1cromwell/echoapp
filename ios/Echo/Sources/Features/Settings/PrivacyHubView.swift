@@ -28,7 +28,10 @@ struct PrivacyHubView: View {
 
             Section("Messaging privacy") {
                 NavigationLink("Privacy & security") {
-                    PrivacySecuritySettingsView(settings: $privacySettings)
+                    PrivacySecuritySettingsView(settings: $privacySettings) { updated in
+                        privacySettings = updated
+                        PrivacySettingsStore.save(updated)
+                    }
                 }
                 NavigationLink("Persona privacy") {
                     PersonaPrivacySettingsView(settings: $personaPrivacySettings)
@@ -57,6 +60,9 @@ struct PrivacyHubView: View {
         .onDisappear {
             PrivacySettingsStore.save(privacySettings)
             PersonaPrivacySettingsStore.save(personaPrivacySettings)
+        }
+        .onChange(of: privacySettings.showEncryptionIndicator) { _, _ in
+            PrivacySettingsStore.save(privacySettings)
         }
         .sheet(isPresented: $showPhoneBackup) {
             if !sessionDID.isEmpty {

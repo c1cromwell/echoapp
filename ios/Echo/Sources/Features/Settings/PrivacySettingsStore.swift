@@ -17,6 +17,11 @@ enum PrivacySettingsStore {
         guard let data = try? JSONEncoder().encode(settings) else { return }
         UserDefaults.standard.set(data, forKey: key)
     }
+
+    /// WO-228: whether chat surfaces show the encrypted-thread bar.
+    static var showsEncryptionIndicator: Bool {
+        load().showEncryptionIndicator
+    }
 }
 
 /// Per-persona messaging privacy (typing / read receipts) for Phase 3 signal merge.

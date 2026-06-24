@@ -9,15 +9,19 @@ public struct SecureThreadIndicator: View {
     @State private var opacity: Double = 0.6
 
     public var body: some View {
-        Rectangle()
-            .fill(Color.echoSignal)
-            .frame(height: 2)
-            .opacity(opacity)
-            .onAppear {
-                withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
-                    opacity = 1.0
-                }
+        Group {
+            if PrivacySettingsStore.showsEncryptionIndicator {
+                Rectangle()
+                    .fill(Color.echoSignal)
+                    .frame(height: 2)
+                    .opacity(opacity)
+                    .onAppear {
+                        withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
+                            opacity = 1.0
+                        }
+                    }
             }
+        }
     }
 }
 

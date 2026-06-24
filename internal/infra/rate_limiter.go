@@ -50,6 +50,7 @@ func DefaultRateLimits() map[string]RateLimitConfig {
 		"sync_push":       {MaxRequests: 120, Window: time.Minute},
 		"backup_push":     {MaxRequests: 20, Window: time.Hour},
 		"group_mutation":  {MaxRequests: 30, Window: time.Minute},
+		"psi_discovery":   {MaxRequests: 20, Window: time.Hour},
 		"reward_claim":    {MaxRequests: 10, Window: 24 * time.Hour},
 		"data_submission": {MaxRequests: 10, Window: time.Minute},
 	}

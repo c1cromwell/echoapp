@@ -135,7 +135,21 @@ class ContactDetailViewModel: ObservableObject {
     }
 
     func shareContact() {
-        // TODO: Share via UIActivityViewController
+        let useCase = QRContactExchangeUseCase()
+        let username = contact.echoHandle.hasPrefix("@")
+            ? String(contact.echoHandle.dropFirst())
+            : contact.name
+        guard let url = useCase.shareURL(did: contact.did, username: username) else { return }
+        #if canImport(UIKit)
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { return }
+        var presenter = root
+        while let presented = presenter.presentedViewController {
+            presenter = presented
+        }
+        let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        presenter.present(activity, animated: true)
+        #endif
     }
 
     private static func trustTier(fromNumeric tier: Int) -> TrustTier {
