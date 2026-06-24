@@ -22,6 +22,7 @@ type GroupStore interface {
 	DeleteMember(ctx context.Context, groupID, memberID string) error
 	ListMembers(ctx context.Context, groupID string) ([]*GroupMember, error)
 	ListGroupIDsForMember(ctx context.Context, memberID string) ([]string, error)
+	CountOwnedGroups(ctx context.Context, ownerID string) (int, error)
 }
 
 type memoryStore struct {
@@ -146,6 +147,18 @@ func (s *memoryStore) ListGroupIDsForMember(_ context.Context, memberID string) 
 		}
 	}
 	return ids, nil
+}
+
+func (s *memoryStore) CountOwnedGroups(_ context.Context, ownerID string) (int, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	n := 0
+	for _, g := range s.groups {
+		if g.OwnerID == ownerID {
+			n++
+		}
+	}
+	return n, nil
 }
 
 func (s *memoryStore) UpdateMember(_ context.Context, m *GroupMember) error {

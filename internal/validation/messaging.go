@@ -110,6 +110,68 @@ func ValidateSyncPush(targetDeviceID string, ciphertext []byte) error {
 	return nil
 }
 
+// ValidateMessageID checks client message identifiers for message-ops endpoints.
+func ValidateMessageID(messageID string) error {
+	messageID = strings.TrimSpace(messageID)
+	if messageID == "" {
+		return errors.New("message id is required")
+	}
+	if len(messageID) > 128 {
+		return fmt.Errorf("message id exceeds %d characters", 128)
+	}
+	for _, r := range messageID {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' || r == ':' {
+			continue
+		}
+		return errors.New("message id contains invalid characters")
+	}
+	return nil
+}
+
+// ValidateConversationID checks dm: or group: conversation identifiers.
+func ValidateConversationID(conversationID string) error {
+	conversationID = strings.TrimSpace(conversationID)
+	if conversationID == "" {
+		return errors.New("conversation id is required")
+	}
+	if len(conversationID) > 256 {
+		return fmt.Errorf("conversation id exceeds %d characters", 256)
+	}
+	if strings.HasPrefix(conversationID, "dm:") || strings.HasPrefix(conversationID, "group:") {
+		return nil
+	}
+	return errors.New("conversation id must start with dm: or group:")
+}
+
+// ValidateMessageRefs validates durable reply/forward metadata (WO-59 / S2).
+func ValidateMessageRefs(messageID, conversationID, replyTo, forwardedFrom, forwardedFromConv string) error {
+	if err := ValidateMessageID(messageID); err != nil {
+		return err
+	}
+	if err := ValidateConversationID(conversationID); err != nil {
+		return err
+	}
+	if replyTo == "" && forwardedFrom == "" {
+		return errors.New("reply_to_message_id or forwarded_from_message_id required")
+	}
+	if replyTo != "" {
+		if err := ValidateMessageID(replyTo); err != nil {
+			return fmt.Errorf("reply_to_message_id: %w", err)
+		}
+	}
+	if forwardedFrom != "" {
+		if err := ValidateMessageID(forwardedFrom); err != nil {
+			return fmt.Errorf("forwarded_from_message_id: %w", err)
+		}
+	}
+	if forwardedFromConv != "" {
+		if err := ValidateConversationID(forwardedFromConv); err != nil {
+			return fmt.Errorf("forwarded_from_conversation_id: %w", err)
+		}
+	}
+	return nil
+}
+
 // ValidateBackupCiphertext caps encrypted backup blob size (WO-64).
 func ValidateBackupCiphertext(ciphertext []byte) error {
 	if len(ciphertext) == 0 {

@@ -142,6 +142,16 @@ func (h *V3Handlers) getDID(r *http.Request) string {
 	return ""
 }
 
+func (h *V3Handlers) ownerTrustLevel(r *http.Request, ownerDID string) groups.TrustLevel {
+	if h.DB != nil {
+		user, err := h.DB.GetUserByDID(r.Context(), ownerDID)
+		if err == nil {
+			return groups.TrustLevelFromTier(user.TrustTier)
+		}
+	}
+	return groups.TrustLevelNewcomer
+}
+
 func (h *V3Handlers) readJSON(r *http.Request, v interface{}) error {
 	defer r.Body.Close()
 	return json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(v)
@@ -1406,18 +1416,27 @@ func (h *V3Handlers) handleMessageRefsPut(w http.ResponseWriter, r *http.Request
 		WriteError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "authentication required", r.Header.Get("X-Request-ID"))
 		return
 	}
+	if !h.enforceDIDRateLimit(w, r, author, "message_send") {
+		return
+	}
 	var req struct {
 		ConversationID              string `json:"conversation_id"`
 		ReplyToMessageID            string `json:"reply_to_message_id"`
 		ForwardedFromMessageID      string `json:"forwarded_from_message_id"`
 		ForwardedFromConversationID string `json:"forwarded_from_conversation_id"`
 	}
-	if err := h.readJSON(r, &req); err != nil || req.ConversationID == "" {
-		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "conversation_id is required", r.Header.Get("X-Request-ID"))
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
 		return
 	}
-	if req.ReplyToMessageID == "" && req.ForwardedFromMessageID == "" {
-		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "reply_to_message_id or forwarded_from_message_id required", r.Header.Get("X-Request-ID"))
+	if err := validation.ValidateMessageRefs(
+		messageID,
+		req.ConversationID,
+		req.ReplyToMessageID,
+		req.ForwardedFromMessageID,
+		req.ForwardedFromConversationID,
+	); err != nil {
+		WriteError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
 	if err := h.DB.PutMessageRefs(r.Context(), &database.MessageRefs{
@@ -1440,6 +1459,10 @@ func (h *V3Handlers) handleMessageRefsPut(w http.ResponseWriter, r *http.Request
 }
 
 func (h *V3Handlers) handleMessageRefsGet(w http.ResponseWriter, r *http.Request, messageID string) {
+	if err := validation.ValidateMessageID(messageID); err != nil {
+		WriteError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
 	refs, err := h.DB.GetMessageRefs(r.Context(), messageID)
 	if errors.Is(err, database.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "NOT_FOUND", "message refs not found", r.Header.Get("X-Request-ID"))
@@ -1649,7 +1672,8 @@ func (h *V3Handlers) handleGroupCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	profile := groups.GroupProfile{Name: req.Name, Description: req.Description}
-	group, err := h.Groups.CreateGroup(req.GroupID, ownerDID, req.GroupType, profile, req.Requirements)
+	ownerTrust := h.ownerTrustLevel(r, ownerDID)
+	group, err := h.Groups.CreateGroup(req.GroupID, ownerDID, req.GroupType, profile, req.Requirements, ownerTrust)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "GROUP_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return

@@ -9,7 +9,7 @@ func TestAuthorizeAction_OnlyAdminsManageMembers(t *testing.T) {
 	gs := NewGroupService()
 	profile := GroupProfile{Name: "Test Group", MaxMembers: 100}
 	requirements := VerificationRequirements{MinimumTrustScore: 0, ApprovalMode: ApprovalModeAuto}
-	gs.CreateGroup("group_1", "owner", GroupTypePublic, profile, requirements)
+	gs.CreateGroup("group_1", "owner", GroupTypePublic, profile, requirements, TrustLevelVerified)
 	// A regular member (no manage-members permission).
 	gs.AddMember("group_1", "member", 50, TrustLevelMember, false)
 
@@ -38,7 +38,7 @@ func TestAuthorizeAction_PromotedAdminCanManage(t *testing.T) {
 	gs := NewGroupService()
 	profile := GroupProfile{Name: "Test Group", MaxMembers: 100}
 	requirements := VerificationRequirements{MinimumTrustScore: 0, ApprovalMode: ApprovalModeAuto}
-	gs.CreateGroup("group_1", "owner", GroupTypePublic, profile, requirements)
+	gs.CreateGroup("group_1", "owner", GroupTypePublic, profile, requirements, TrustLevelVerified)
 	gs.AddMember("group_1", "member", 50, TrustLevelMember, false)
 
 	// Promote to admin → now authorized.

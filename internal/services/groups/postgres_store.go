@@ -232,6 +232,12 @@ func (p *PostgresStore) ListGroupIDsForMember(ctx context.Context, memberID stri
 	return ids, rows.Err()
 }
 
+func (p *PostgresStore) CountOwnedGroups(ctx context.Context, ownerID string) (int, error) {
+	var n int
+	err := p.pool.QueryRow(ctx, `SELECT COUNT(*) FROM echo_groups WHERE owner_id = $1`, ownerID).Scan(&n)
+	return n, err
+}
+
 type scannable interface {
 	Scan(dest ...any) error
 }

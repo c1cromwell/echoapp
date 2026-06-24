@@ -1,3 +1,4 @@
+#if os(iOS)
 import XCTest
 @testable import Echo
 
@@ -72,3 +73,4 @@ final class ConversationSignalServiceTests: XCTestCase {
         XCTAssertTrue(transport.sentTexts.isEmpty)
     }
 }
+#endif

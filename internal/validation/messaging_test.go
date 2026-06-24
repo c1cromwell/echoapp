@@ -67,3 +67,12 @@ func TestValidateSyncPush(t *testing.T) {
 		t.Fatal("missing device")
 	}
 }
+
+func TestValidateMessageRefs(t *testing.T) {
+	if err := ValidateMessageRefs("msg-1", "dm:alice:bob", "msg-0", "", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateMessageRefs("msg-1", "bad-conv", "msg-0", "", ""); err == nil {
+		t.Fatal("bad conversation id")
+	}
+}

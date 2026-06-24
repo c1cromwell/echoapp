@@ -1,3 +1,4 @@
+#if os(iOS)
 import XCTest
 @testable import Echo
 
@@ -14,3 +15,4 @@ final class ScannedIdentityParserTests: XCTestCase {
         XCTAssertEqual(id?.username, "alice")
     }
 }
+#endif

@@ -16,7 +16,7 @@ func TestCreateGroup(t *testing.T) {
 		ApprovalMode:      ApprovalModeAuto,
 	}
 
-	group, err := gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements)
+	group, err := gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements, TrustLevelVerified)
 	if err != nil {
 		t.Fatalf("CreateGroup failed: %v", err)
 	}
@@ -38,7 +38,7 @@ func TestAddMember(t *testing.T) {
 		MinimumTrustScore: 30,
 		ApprovalMode:      ApprovalModeAuto,
 	}
-	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements)
+	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements, TrustLevelVerified)
 
 	member, err := gs.AddMember("group_1", "user_2", 50, TrustLevelMember, false)
 	if err != nil {
@@ -59,7 +59,7 @@ func TestRemoveMember(t *testing.T) {
 		MinimumTrustScore: 0,
 		ApprovalMode:      ApprovalModeAuto,
 	}
-	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements)
+	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements, TrustLevelVerified)
 	gs.AddMember("group_1", "user_2", 50, TrustLevelMember, false)
 
 	err := gs.RemoveMember("group_1", "user_2")
@@ -83,7 +83,7 @@ func TestUpdateMemberRole(t *testing.T) {
 		MinimumTrustScore: 0,
 		ApprovalMode:      ApprovalModeAuto,
 	}
-	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements)
+	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements, TrustLevelVerified)
 	gs.AddMember("group_1", "user_2", 50, TrustLevelMember, false)
 
 	member, err := gs.UpdateMemberRole("group_1", "user_2", GroupRoleAdmin)
@@ -105,7 +105,7 @@ func TestHasPermission(t *testing.T) {
 		MinimumTrustScore: 0,
 		ApprovalMode:      ApprovalModeAuto,
 	}
-	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements)
+	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements, TrustLevelVerified)
 	gs.AddMember("group_1", "user_2", 50, TrustLevelMember, false)
 
 	hasPost, _ := gs.HasPermission("group_1", "user_2", PermissionPost)
@@ -129,7 +129,7 @@ func TestMuteAndUnmuteUser(t *testing.T) {
 		MinimumTrustScore: 0,
 		ApprovalMode:      ApprovalModeAuto,
 	}
-	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements)
+	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements, TrustLevelVerified)
 	gs.AddMember("group_1", "user_2", 50, TrustLevelMember, false)
 
 	gs.MuteUser("group_1", "user_2", 1*time.Hour)
@@ -155,7 +155,7 @@ func TestBanUser(t *testing.T) {
 		MinimumTrustScore: 0,
 		ApprovalMode:      ApprovalModeAuto,
 	}
-	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements)
+	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements, TrustLevelVerified)
 	gs.AddMember("group_1", "user_2", 50, TrustLevelMember, false)
 
 	gs.BanUser("group_1", "user_2")
@@ -175,7 +175,7 @@ func TestRecordWarning(t *testing.T) {
 		MinimumTrustScore: 0,
 		ApprovalMode:      ApprovalModeAuto,
 	}
-	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements)
+	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements, TrustLevelVerified)
 	gs.AddMember("group_1", "user_2", 50, TrustLevelMember, false)
 
 	member, err := gs.RecordWarning("group_1", "user_2")
@@ -197,7 +197,7 @@ func TestGetGroupMembers(t *testing.T) {
 		MinimumTrustScore: 0,
 		ApprovalMode:      ApprovalModeAuto,
 	}
-	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements)
+	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements, TrustLevelVerified)
 	gs.AddMember("group_1", "user_2", 50, TrustLevelMember, false)
 	gs.AddMember("group_1", "user_3", 60, TrustLevelMember, false)
 
@@ -223,6 +223,18 @@ func TestCreationLimits(t *testing.T) {
 	}
 }
 
+func TestCreateGroupEnforcesOwnedLimit(t *testing.T) {
+	gs := NewGroupService()
+	profile := GroupProfile{Name: "G1", MaxMembers: 10}
+	req := VerificationRequirements{MinimumTrustScore: 0, ApprovalMode: ApprovalModeAuto}
+	if _, err := gs.CreateGroup("g1", "user_1", GroupTypePrivate, profile, req, TrustLevelNewcomer); err != nil {
+		t.Fatalf("first group: %v", err)
+	}
+	if _, err := gs.CreateGroup("g2", "user_1", GroupTypePrivate, profile, req, TrustLevelNewcomer); err != ErrExceedsCreationLimit {
+		t.Fatalf("expected ErrExceedsCreationLimit, got %v", err)
+	}
+}
+
 func TestDefaultPermissions(t *testing.T) {
 	ownerPerms := DefaultPermissions(GroupRoleOwner)
 	if len(ownerPerms) == 0 {
@@ -245,7 +257,7 @@ func TestErrorCases(t *testing.T) {
 		MinimumTrustScore: 50,
 		ApprovalMode:      ApprovalModeAuto,
 	}
-	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements)
+	gs.CreateGroup("group_1", "user_1", GroupTypePublic, profile, requirements, TrustLevelVerified)
 
 	// Test adding duplicate member
 	gs.AddMember("group_1", "user_2", 50, TrustLevelMember, false)
@@ -270,7 +282,7 @@ func TestErrorCases(t *testing.T) {
 		MinimumTrustScore: 0,
 		ApprovalMode:      ApprovalModeAuto,
 	}
-	gsSmall.CreateGroup("small_group", "user_1", GroupTypePublic, profileSmall, requirementsSmall)
+	gsSmall.CreateGroup("small_group", "user_1", GroupTypePublic, profileSmall, requirementsSmall, TrustLevelVerified)
 	_, err = gsSmall.AddMember("small_group", "user_2", 50, TrustLevelMember, false)
 	if err != ErrGroupFull {
 		t.Errorf("Expected ErrGroupFull, got %v", err)

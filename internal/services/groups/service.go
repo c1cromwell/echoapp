@@ -61,8 +61,8 @@ func (gs *GroupService) ctx() context.Context {
 	return context.Background()
 }
 
-// CreateGroup creates a new group
-func (gs *GroupService) CreateGroup(groupID, ownerID string, groupType GroupType, profile GroupProfile, requirements VerificationRequirements) (*Group, error) {
+// CreateGroup creates a new group, enforcing per-trust creation limits (M2 / models.go).
+func (gs *GroupService) CreateGroup(groupID, ownerID string, groupType GroupType, profile GroupProfile, requirements VerificationRequirements, ownerTrust TrustLevel) (*Group, error) {
 	exists, err := gs.store.GroupExists(gs.ctx(), groupID)
 	if err != nil {
 		return nil, err
@@ -73,6 +73,24 @@ func (gs *GroupService) CreateGroup(groupID, ownerID string, groupType GroupType
 
 	if groupType != GroupTypePublic && groupType != GroupTypePrivate && groupType != GroupTypeSecret {
 		return nil, ErrInvalidGroupType
+	}
+
+	limits, ok := CreationLimits[ownerTrust]
+	if !ok || limits.MaxGroupsOwned == 0 {
+		return nil, ErrExceedsCreationLimit
+	}
+	if groupType == GroupTypePublic && !limits.CanCreatePublic {
+		return nil, ErrInsufficientTrustLevel
+	}
+	owned, err := gs.store.CountOwnedGroups(gs.ctx(), ownerID)
+	if err != nil {
+		return nil, err
+	}
+	if owned >= limits.MaxGroupsOwned {
+		return nil, ErrExceedsCreationLimit
+	}
+	if profile.MaxMembers <= 0 || profile.MaxMembers > limits.MaxGroupSize {
+		profile.MaxMembers = limits.MaxGroupSize
 	}
 
 	group := &Group{

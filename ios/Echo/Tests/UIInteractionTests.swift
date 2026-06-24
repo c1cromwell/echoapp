@@ -1,3 +1,4 @@
+#if os(iOS)
 import XCTest
 @testable import Echo
 
@@ -335,3 +336,4 @@ final class AuthFlowIntegrationTests: XCTestCase {
         XCTAssertEqual(appCoordinator.navigationPath.count, 1)
     }
 }
+#endif

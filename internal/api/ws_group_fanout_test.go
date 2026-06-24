@@ -26,7 +26,7 @@ func TestRouteGroupText_FansOutToMembers(t *testing.T) {
 	gs := groups.NewGroupService()
 	_, err := gs.CreateGroup("grp-fan", "did:key:alice", groups.GroupTypePrivate, groups.GroupProfile{
 		Name: "Fanout", MaxMembers: 10,
-	}, groups.VerificationRequirements{ApprovalMode: groups.ApprovalModeAuto})
+	}, groups.VerificationRequirements{ApprovalMode: groups.ApprovalModeAuto}, groups.TrustLevelVerified)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func TestRouteGroupText_RejectsNonMember(t *testing.T) {
 	gs := groups.NewGroupService()
 	_, _ = gs.CreateGroup("grp-x", "did:key:admin", groups.GroupTypePrivate, groups.GroupProfile{
 		Name: "X", MaxMembers: 10,
-	}, groups.VerificationRequirements{ApprovalMode: groups.ApprovalModeAuto})
+	}, groups.VerificationRequirements{ApprovalMode: groups.ApprovalModeAuto}, groups.TrustLevelVerified)
 
 	hub := newGroupFanoutHub(gs)
 	outsider := &Client{hub: hub.Hub, userID: "did:key:outsider", send: make(chan []byte, 1)}

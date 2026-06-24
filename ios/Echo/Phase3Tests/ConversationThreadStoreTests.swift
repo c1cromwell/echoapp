@@ -1,3 +1,4 @@
+#if os(iOS)
 import XCTest
 @testable import Echo
 
@@ -38,3 +39,4 @@ final class ConversationThreadStoreTests: XCTestCase {
         XCTAssertEqual(loaded.first?.deliveryStatus, .read)
     }
 }
+#endif

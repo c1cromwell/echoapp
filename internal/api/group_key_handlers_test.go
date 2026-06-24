@@ -24,7 +24,7 @@ func TestGroupKeyDistribute_FansOutToMembers(t *testing.T) {
 	gs := groups.NewGroupService()
 	group, err := gs.CreateGroup("grp-1", "did:key:admin", groups.GroupTypePrivate, groups.GroupProfile{
 		Name: "Test Group", MaxMembers: 10,
-	}, groups.VerificationRequirements{ApprovalMode: groups.ApprovalModeAuto})
+	}, groups.VerificationRequirements{ApprovalMode: groups.ApprovalModeAuto}, groups.TrustLevelVerified)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestGroupKeyDistribute_RequiresAdmin(t *testing.T) {
 	gs := groups.NewGroupService()
 	_, _ = gs.CreateGroup("grp-2", "did:key:admin", groups.GroupTypePrivate, groups.GroupProfile{
 		Name: "Locked", MaxMembers: 10,
-	}, groups.VerificationRequirements{ApprovalMode: groups.ApprovalModeAuto})
+	}, groups.VerificationRequirements{ApprovalMode: groups.ApprovalModeAuto}, groups.TrustLevelVerified)
 	_, _ = gs.AddMember("grp-2", "did:key:member", 5, groups.TrustLevelMember, false)
 
 	h := &V3Handlers{Groups: gs, Signals: &fakeGroupKeyPublisher{}}

@@ -198,6 +198,7 @@ final class BackgroundPurgeTests: XCTestCase {
 
 // MARK: - WO-224: LocalDatabase storage key lifecycle
 
+#if os(iOS)
 final class LocalDatabaseStorageKeyTests: XCTestCase {
 
     func testUnlock_clearsIsLocked() async {
@@ -229,6 +230,7 @@ final class LocalDatabaseStorageKeyTests: XCTestCase {
         XCTAssertTrue(locked)
     }
 }
+#endif
 
 // MARK: - WO-211: BiometricLockState additional edge cases
 

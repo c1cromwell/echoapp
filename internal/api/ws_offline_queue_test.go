@@ -46,7 +46,7 @@ func TestRouteGroupText_QueuesWhenOffline(t *testing.T) {
 	gs := groups.NewGroupService()
 	_, _ = gs.CreateGroup("grp-off", "did:key:alice", groups.GroupTypePrivate, groups.GroupProfile{
 		Name: "Offline", MaxMembers: 10,
-	}, groups.VerificationRequirements{ApprovalMode: groups.ApprovalModeAuto})
+	}, groups.VerificationRequirements{ApprovalMode: groups.ApprovalModeAuto}, groups.TrustLevelVerified)
 	_, _ = gs.AddMember("grp-off", "did:key:bob", 10, groups.TrustLevelMember, true)
 
 	h := NewHub()

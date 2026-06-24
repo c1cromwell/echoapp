@@ -7,8 +7,8 @@ func TestMutualGroups(t *testing.T) {
 	profile := GroupProfile{Name: "Echo Builders", MaxMembers: 50}
 	req := VerificationRequirements{MinimumTrustScore: 0, ApprovalMode: ApprovalModeAuto}
 
-	_, _ = gs.CreateGroup("grp_a", "did:key:alice", GroupTypePublic, profile, req)
-	_, _ = gs.CreateGroup("grp_b", "did:key:bob", GroupTypePrivate, GroupProfile{Name: "VIP Lounge", MaxMembers: 10}, req)
+	_, _ = gs.CreateGroup("grp_a", "did:key:alice", GroupTypePublic, profile, req, TrustLevelVerified)
+	_, _ = gs.CreateGroup("grp_b", "did:key:bob", GroupTypePrivate, GroupProfile{Name: "VIP Lounge", MaxMembers: 10}, req, TrustLevelVerified)
 	_, _ = gs.AddMember("grp_a", "did:key:bob", 50, TrustLevelMember, true)
 	_, _ = gs.AddMember("grp_b", "did:key:alice", 50, TrustLevelMember, true)
 

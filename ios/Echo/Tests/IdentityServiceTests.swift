@@ -1,3 +1,4 @@
+#if os(iOS)
 import XCTest
 @testable import Echo
 
@@ -95,3 +96,4 @@ final class IdentityServiceTests: XCTestCase {
         XCTAssertEqual(retrieved2.phoneHash, "hash2")
     }
 }
+#endif

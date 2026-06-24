@@ -231,6 +231,22 @@ type GroupMember struct {
 	ShowTrustScore    bool
 }
 
+// TrustLevelFromTier maps account trust_tier (0–5) to group policy levels.
+func TrustLevelFromTier(tier int) TrustLevel {
+	switch {
+	case tier <= 0:
+		return TrustLevelUnverified
+	case tier == 1:
+		return TrustLevelNewcomer
+	case tier == 2:
+		return TrustLevelMember
+	case tier == 3:
+		return TrustLevelTrusted
+	default:
+		return TrustLevelVerified
+	}
+}
+
 // CreationLimits defines per-trust-level creation constraints
 var CreationLimits = map[TrustLevel]struct {
 	MaxGroupsOwned  int
