@@ -32,6 +32,18 @@ type PinnedMessage struct {
 	PinnedAt       time.Time `json:"pinnedAt"`
 }
 
+// MessageRefs holds reply/forward thread metadata (WO-59). Preview text stays in
+// client-encrypted payloads; the server persists message-id refs only (T7).
+type MessageRefs struct {
+	MessageID                   string    `json:"messageId"`
+	ConversationID              string    `json:"conversationId"`
+	AuthorDID                   string    `json:"authorDid"`
+	ReplyToMessageID            string    `json:"replyToMessageId,omitempty"`
+	ForwardedFromMessageID      string    `json:"forwardedFromMessageId,omitempty"`
+	ForwardedFromConversationID string    `json:"forwardedFromConversationId,omitempty"`
+	CreatedAt                   time.Time `json:"createdAt"`
+}
+
 // MessageOpsStore backs the M1 message operations: edit history (retention-gated),
 // synchronized-delete tombstones, and pins. Per the hybrid model, edit history is
 // only retained when the conversation is flagged for retention; otherwise edits are
@@ -58,6 +70,10 @@ type MessageOpsStore interface {
 	// the relay expiry both enforce it; this is the synced source of the setting.
 	SetDisappearingTTL(ctx context.Context, conversationID string, ttlSeconds int) error
 	GetDisappearingTTL(ctx context.Context, conversationID string) (int, error)
+
+	// Reply/forward refs (WO-59) — message-id metadata for reconnect / multi-device sync.
+	PutMessageRefs(ctx context.Context, refs *MessageRefs) error
+	GetMessageRefs(ctx context.Context, messageID string) (*MessageRefs, error)
 }
 
 // --- MemoryDB implementation ---
@@ -184,4 +200,29 @@ func (m *MemoryDB) GetDisappearingTTL(_ context.Context, conversationID string) 
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.disappearing[conversationID], nil
+}
+
+func (m *MemoryDB) PutMessageRefs(_ context.Context, refs *MessageRefs) error {
+	if refs == nil || refs.MessageID == "" {
+		return errors.New("message id required")
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	cp := *refs
+	if cp.CreatedAt.IsZero() {
+		cp.CreatedAt = time.Now()
+	}
+	m.messageRefs[refs.MessageID] = &cp
+	return nil
+}
+
+func (m *MemoryDB) GetMessageRefs(_ context.Context, messageID string) (*MessageRefs, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	r, ok := m.messageRefs[messageID]
+	if !ok {
+		return nil, ErrNotFound
+	}
+	cp := *r
+	return &cp, nil
 }

@@ -2,8 +2,11 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // --- PostgresDB implementation of MessageOpsStore (WO-25/84/59) ---
@@ -180,4 +183,65 @@ func (p *PostgresDB) GetPinnedMessages(ctx context.Context, conversationID strin
 		out = append(out, &pm)
 	}
 	return out, rows.Err()
+}
+
+func (p *PostgresDB) PutMessageRefs(ctx context.Context, refs *MessageRefs) error {
+	if refs == nil || refs.MessageID == "" || refs.ConversationID == "" || refs.AuthorDID == "" {
+		return fmt.Errorf("message id, conversation id, and author did required")
+	}
+	createdAt := refs.CreatedAt
+	if createdAt.IsZero() {
+		createdAt = time.Now()
+	}
+	_, err := p.pool.Exec(ctx, `
+		INSERT INTO message_refs (
+			message_id, conversation_id, author_did,
+			reply_to_message_id, forwarded_from_message_id, forwarded_from_conversation_id,
+			created_at
+		) VALUES ($1,$2,$3,$4,$5,$6,$7)
+		ON CONFLICT (message_id) DO UPDATE SET
+			conversation_id = EXCLUDED.conversation_id,
+			author_did = EXCLUDED.author_did,
+			reply_to_message_id = EXCLUDED.reply_to_message_id,
+			forwarded_from_message_id = EXCLUDED.forwarded_from_message_id,
+			forwarded_from_conversation_id = EXCLUDED.forwarded_from_conversation_id`,
+		refs.MessageID, refs.ConversationID, refs.AuthorDID,
+		nullIfEmpty(refs.ReplyToMessageID),
+		nullIfEmpty(refs.ForwardedFromMessageID),
+		nullIfEmpty(refs.ForwardedFromConversationID),
+		createdAt,
+	)
+	if err != nil {
+		return fmt.Errorf("put message refs: %w", err)
+	}
+	return nil
+}
+
+func (p *PostgresDB) GetMessageRefs(ctx context.Context, messageID string) (*MessageRefs, error) {
+	var refs MessageRefs
+	var replyTo, fwdMsg, fwdConv *string
+	err := p.pool.QueryRow(ctx, `
+		SELECT message_id, conversation_id, author_did,
+		       reply_to_message_id, forwarded_from_message_id, forwarded_from_conversation_id,
+		       created_at
+		FROM message_refs WHERE message_id = $1`, messageID).Scan(
+		&refs.MessageID, &refs.ConversationID, &refs.AuthorDID,
+		&replyTo, &fwdMsg, &fwdConv, &refs.CreatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get message refs: %w", err)
+	}
+	if replyTo != nil {
+		refs.ReplyToMessageID = *replyTo
+	}
+	if fwdMsg != nil {
+		refs.ForwardedFromMessageID = *fwdMsg
+	}
+	if fwdConv != nil {
+		refs.ForwardedFromConversationID = *fwdConv
+	}
+	return &refs, nil
 }

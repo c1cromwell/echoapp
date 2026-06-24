@@ -141,6 +141,8 @@ struct ChatView: View {
     @State private var pinnedMessageId: String?
     @State private var showForwardSheet = false
     @State private var forwardPreview = ""
+    @State private var forwardSourceMessageId: String?
+    @State private var forwardSourceConversationId: String?
     @State private var showAttachmentPicker = false
     @State private var showCreatePoll = false
     @State private var smartReplies: [SmartReplySuggestion] = []
@@ -475,8 +477,14 @@ struct ChatView: View {
         .sheet(isPresented: $showForwardSheet) {
             ForwardMessageSheet(
                 messagePreview: forwardPreview,
+                sourceMessageId: forwardSourceMessageId,
+                sourceConversationId: forwardSourceConversationId,
                 excludingConversationId: conversationId,
-                onForwarded: { forwardPreview = "" }
+                onForwarded: {
+                    forwardPreview = ""
+                    forwardSourceMessageId = nil
+                    forwardSourceConversationId = nil
+                }
             )
         }
         .onDisappear {
@@ -656,6 +664,8 @@ struct ChatView: View {
             messageText = message.content
         case .forward:
             forwardPreview = message.content
+            forwardSourceMessageId = message.id
+            forwardSourceConversationId = conversationId
             showForwardSheet = true
         case .pin:
             let pinId = message.id

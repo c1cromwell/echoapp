@@ -261,3 +261,32 @@ func TestDisappearing_BlockedByComplyPermanentPolicy(t *testing.T) {
 		t.Fatalf("disappearing under permanent policy want 403, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
+
+func TestMessageRefsPutGetRoundTrip(t *testing.T) {
+	db := database.NewMemoryDB()
+	mux := v3Mux(signalsRouter(db, &fakeSignalPublisher{}))
+
+	rec := postJSON(mux, "/v3/messages/m-ref/refs", "did:alice", map[string]any{
+		"conversation_id":                "dm:alice-bob",
+		"reply_to_message_id":            "m-parent",
+		"forwarded_from_message_id":      "",
+		"forwarded_from_conversation_id": "",
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("put refs want 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	req := withDID(httptest.NewRequest(http.MethodGet, "/v3/messages/m-ref/refs", nil), "did:bob")
+	grec := httptest.NewRecorder()
+	mux.ServeHTTP(grec, req)
+	if grec.Code != http.StatusOK {
+		t.Fatalf("get refs want 200, got %d: %s", grec.Code, grec.Body.String())
+	}
+	var got database.MessageRefs
+	if err := json.Unmarshal(grec.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.ReplyToMessageID != "m-parent" || got.ConversationID != "dm:alice-bob" {
+		t.Fatalf("unexpected refs: %+v", got)
+	}
+}

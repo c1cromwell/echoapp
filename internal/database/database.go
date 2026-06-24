@@ -338,6 +338,7 @@ type MemoryDB struct {
 	pins         map[string][]*PinnedMessage // conversationID → pinned messages (max 5)
 	retained     map[string]bool             // conversationID → retention/litigation-hold flag
 	disappearing map[string]int              // conversationID → disappearing TTL seconds (0 = off)
+	messageRefs  map[string]*MessageRefs     // messageID → reply/forward refs (WO-59)
 	archived     map[string]bool             // conversationID → archived (WO-198)
 
 	// WO-250 Comply policy metadata (no message content).
@@ -385,6 +386,7 @@ func NewMemoryDB() *MemoryDB {
 		pins:                make(map[string][]*PinnedMessage),
 		retained:            make(map[string]bool),
 		disappearing:        make(map[string]int),
+		messageRefs:         make(map[string]*MessageRefs),
 		archived:            make(map[string]bool),
 		complyPolicies:      make(map[string]*RetentionPolicy),
 		complyBindings:      make(map[string]*ConversationPolicyBinding),

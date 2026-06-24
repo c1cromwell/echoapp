@@ -386,12 +386,18 @@ final class ChatDetailViewModel {
         onSend(trimmed)
 
         do {
-            // Fail closed: never fall back to plaintext on the wire. If encryption
-            // fails (e.g. the peer's key can't be resolved), let it propagate to the
-            // outer catch, which marks the message .failed — mirroring the group
-            // send path in GroupChatViewModel rather than silently leaking plaintext.
+            let wirePlain: String
+            if replyId != nil || replyPreview != nil {
+                wirePlain = try ChatMessageEnvelope(
+                    body: trimmed,
+                    replyToMessageId: replyId,
+                    replyPreview: replyPreview
+                ).serialized()
+            } else {
+                wirePlain = trimmed
+            }
             let payload = try await textCrypto.encryptPayload(
-                plaintext: trimmed,
+                plaintext: wirePlain,
                 peerDID: peerDID,
                 messageId: message.id
             )
@@ -400,6 +406,15 @@ final class ChatDetailViewModel {
                 peerDID: peerDID,
                 payload: payload
             )
+            if let replyId {
+                try? await opsAPI?.putMessageRefs(
+                    messageId: message.id,
+                    conversationId: conversationId,
+                    replyToMessageId: replyId,
+                    forwardedFromMessageId: nil,
+                    forwardedFromConversationId: nil
+                )
+            }
             if let idx = messages.firstIndex(where: { $0.id == message.id }) {
                 messages[idx].deliveryStatus = .sent
                 syncThreadMessage(messages[idx])
@@ -766,7 +781,9 @@ final class ChatDetailViewModel {
             currentUserDID: currentUserDID,
             content: body,
             timestamp: "Now",
-            deliveryStatus: .delivered
+            deliveryStatus: .delivered,
+            replyToMessageId: resolved.replyToMessageId,
+            replyPreview: resolved.replyPreview
         )
         guard !messages.contains(where: { $0.id == e.messageId }) else { return }
         messages.append(inbound)

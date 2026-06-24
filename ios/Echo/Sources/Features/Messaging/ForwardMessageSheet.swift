@@ -4,6 +4,8 @@ import SwiftUI
 /// Pick a conversation to forward message text into (local thread + WS send).
 struct ForwardMessageSheet: View {
     let messagePreview: String
+    let sourceMessageId: String?
+    let sourceConversationId: String?
     let excludingConversationId: String
     let onForwarded: () -> Void
 
@@ -33,7 +35,9 @@ struct ForwardMessageSheet: View {
                             Task {
                                 await MessageForwarder.forward(
                                     content: messagePreview,
-                                    to: conversation
+                                    to: conversation,
+                                    fromMessageId: sourceMessageId,
+                                    fromConversationId: sourceConversationId
                                 )
                                 onForwarded()
                                 dismiss()

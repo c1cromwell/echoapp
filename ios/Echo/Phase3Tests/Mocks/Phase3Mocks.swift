@@ -111,4 +111,25 @@ final class MockMessageOpsAPIClient: MessageOpsAPIClient, @unchecked Sendable {
         disappearingCalls.append((conversationId, ttlSeconds))
         return DisappearingConfigResult(conversationId: conversationId, ttlSeconds: ttlSeconds)
     }
+
+    @discardableResult
+    func putMessageRefs(
+        messageId: String,
+        conversationId: String,
+        replyToMessageId: String?,
+        forwardedFromMessageId: String?,
+        forwardedFromConversationId: String?
+    ) async throws -> MessageRefsStoredResult {
+        MessageRefsStoredResult(messageId: messageId, conversationId: conversationId, stored: true)
+    }
+
+    func getMessageRefs(messageId: String) async throws -> MessageRefsResult {
+        MessageRefsResult(
+            messageId: messageId,
+            conversationId: "c1",
+            replyToMessageId: nil,
+            forwardedFromMessageId: nil,
+            forwardedFromConversationId: nil
+        )
+    }
 }

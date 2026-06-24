@@ -26,4 +26,19 @@ final class MessageComposerLogicTests: XCTestCase {
         XCTAssertTrue(p.contains("Alex"))
         XCTAssertTrue(p.contains("Hello"))
     }
+
+    func testChatMessageEnvelopeRoundTrip() throws {
+        let env = ChatMessageEnvelope(body: "Hi", replyToMessageId: "m1", replyPreview: "Alex: Hi")
+        let json = try env.serialized()
+        let parsed = ChatMessageEnvelope.parseDecrypted(json)
+        XCTAssertEqual(parsed.body, "Hi")
+        XCTAssertEqual(parsed.envelope?.replyToMessageId, "m1")
+        XCTAssertEqual(parsed.envelope?.replyPreview, "Alex: Hi")
+    }
+
+    func testChatMessageEnvelopeLegacyPlaintext() {
+        let parsed = ChatMessageEnvelope.parseDecrypted("plain text")
+        XCTAssertEqual(parsed.body, "plain text")
+        XCTAssertNil(parsed.envelope)
+    }
 }

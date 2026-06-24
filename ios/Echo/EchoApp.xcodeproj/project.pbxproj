@@ -340,6 +340,7 @@
 		W0E001012345678901234025 /* InboundTextMessageResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E001012345678901234024 /* InboundTextMessageResolver.swift */; };
 		W0E001012345678901234027 /* ActiveChatRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E001012345678901234026 /* ActiveChatRegistry.swift */; };
 		W0E001012345678901234029 /* MessageComposerLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E001012345678901234028 /* MessageComposerLogic.swift */; };
+		W0E001012345678901234031 /* ChatMessageEnvelope.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E001012345678901234030 /* ChatMessageEnvelope.swift */; };
 		W0E00101234567890123402B /* ForwardMessageSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E00101234567890123402A /* ForwardMessageSheet.swift */; };
 		W0E00101234567890123402D /* ChatComposerBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E00101234567890123402C /* ChatComposerBanner.swift */; };
 /* End PBXBuildFile section */
@@ -681,6 +682,7 @@
 		W0E001012345678901234024 /* InboundTextMessageResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboundTextMessageResolver.swift; sourceTree = "<group>"; };
 		W0E001012345678901234026 /* ActiveChatRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveChatRegistry.swift; sourceTree = "<group>"; };
 		W0E001012345678901234028 /* MessageComposerLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageComposerLogic.swift; sourceTree = "<group>"; };
+		W0E001012345678901234030 /* ChatMessageEnvelope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessageEnvelope.swift; sourceTree = "<group>"; };
 		W0E00101234567890123402A /* ForwardMessageSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForwardMessageSheet.swift; sourceTree = "<group>"; };
 		W0E00101234567890123402C /* ChatComposerBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatComposerBanner.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -1083,6 +1085,7 @@
 				W0E001012345678901234024 /* InboundTextMessageResolver.swift */,
 				W0E001012345678901234026 /* ActiveChatRegistry.swift */,
 				W0E001012345678901234028 /* MessageComposerLogic.swift */,
+				W0E001012345678901234030 /* ChatMessageEnvelope.swift */,
 				W0E00101234567890123402A /* ForwardMessageSheet.swift */,
 				W0E00101234567890123402C /* ChatComposerBanner.swift */,
 				P3B001012345678901234009 /* EditPinnedSheet.swift */,
@@ -2076,6 +2079,7 @@
 				W0E001012345678901234025 /* InboundTextMessageResolver.swift in Sources */,
 				W0E001012345678901234027 /* ActiveChatRegistry.swift in Sources */,
 				W0E001012345678901234029 /* MessageComposerLogic.swift in Sources */,
+				W0E001012345678901234031 /* ChatMessageEnvelope.swift in Sources */,
 				W0E00101234567890123402B /* ForwardMessageSheet.swift in Sources */,
 				W0E00101234567890123402D /* ChatComposerBanner.swift in Sources */,
 				TF001A2B3C4D5E6F7890002 /* EchoAPIBaseURL.swift in Sources */,

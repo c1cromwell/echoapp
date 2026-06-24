@@ -72,6 +72,48 @@ struct DisappearingConfigResult: Codable, Sendable, Equatable {
     }
 }
 
+struct MessageRefsRequest: Codable, Sendable {
+    let conversationId: String
+    let replyToMessageId: String?
+    let forwardedFromMessageId: String?
+    let forwardedFromConversationId: String?
+
+    enum CodingKeys: String, CodingKey {
+        case conversationId = "conversation_id"
+        case replyToMessageId = "reply_to_message_id"
+        case forwardedFromMessageId = "forwarded_from_message_id"
+        case forwardedFromConversationId = "forwarded_from_conversation_id"
+    }
+}
+
+struct MessageRefsResult: Codable, Sendable, Equatable {
+    let messageId: String
+    let conversationId: String
+    let replyToMessageId: String?
+    let forwardedFromMessageId: String?
+    let forwardedFromConversationId: String?
+
+    enum CodingKeys: String, CodingKey {
+        case messageId = "message_id"
+        case conversationId = "conversation_id"
+        case replyToMessageId = "reply_to_message_id"
+        case forwardedFromMessageId = "forwarded_from_message_id"
+        case forwardedFromConversationId = "forwarded_from_conversation_id"
+    }
+}
+
+struct MessageRefsStoredResult: Codable, Sendable, Equatable {
+    let messageId: String
+    let conversationId: String
+    let stored: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case messageId = "message_id"
+        case conversationId = "conversation_id"
+        case stored
+    }
+}
+
 // MARK: - Client protocol (mock in tests)
 
 protocol MessageOpsAPIClient: Sendable {
@@ -85,6 +127,15 @@ protocol MessageOpsAPIClient: Sendable {
     func unpinMessage(messageId: String, conversationId: String) async throws -> MessagePinResult
     @discardableResult
     func setDisappearing(conversationId: String, ttlSeconds: Int, peerDID: String?) async throws -> DisappearingConfigResult
+    @discardableResult
+    func putMessageRefs(
+        messageId: String,
+        conversationId: String,
+        replyToMessageId: String?,
+        forwardedFromMessageId: String?,
+        forwardedFromConversationId: String?
+    ) async throws -> MessageRefsStoredResult
+    func getMessageRefs(messageId: String) async throws -> MessageRefsResult
 }
 
 #if os(iOS)
@@ -95,6 +146,7 @@ enum MessageOpsEndpoint: APIEndpoint {
     case pin(messageId: String)
     case unpin(messageId: String)
     case disappearing(conversationId: String)
+    case refs(messageId: String)
 
     private static func enc(_ s: String) -> String {
         s.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? s
@@ -107,6 +159,7 @@ enum MessageOpsEndpoint: APIEndpoint {
         case .pin(let id):    return "/v3/messages/\(Self.enc(id))/pin"
         case .unpin(let id):  return "/v3/messages/\(Self.enc(id))/unpin"
         case .disappearing(let id): return "/v3/conversations/\(Self.enc(id))/disappearing"
+        case .refs(let id): return "/v3/messages/\(Self.enc(id))/refs"
         }
     }
 }
@@ -158,6 +211,29 @@ actor MessageOpsAPI: MessageOpsAPIClient {
             endpoint: MessageOpsEndpoint.disappearing(conversationId: conversationId),
             body: DisappearingConfigRequest(ttlSeconds: ttlSeconds, peerDID: peerDID)
         )
+    }
+
+    @discardableResult
+    func putMessageRefs(
+        messageId: String,
+        conversationId: String,
+        replyToMessageId: String? = nil,
+        forwardedFromMessageId: String? = nil,
+        forwardedFromConversationId: String? = nil
+    ) async throws -> MessageRefsStoredResult {
+        try await apiClient.post(
+            endpoint: MessageOpsEndpoint.refs(messageId: messageId),
+            body: MessageRefsRequest(
+                conversationId: conversationId,
+                replyToMessageId: replyToMessageId,
+                forwardedFromMessageId: forwardedFromMessageId,
+                forwardedFromConversationId: forwardedFromConversationId
+            )
+        )
+    }
+
+    func getMessageRefs(messageId: String) async throws -> MessageRefsResult {
+        try await apiClient.get(endpoint: MessageOpsEndpoint.refs(messageId: messageId))
     }
 }
 

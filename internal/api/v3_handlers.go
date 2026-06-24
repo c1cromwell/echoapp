@@ -1065,6 +1065,15 @@ func (h *V3Handlers) handleMessageReceipt(w http.ResponseWriter, r *http.Request
 	case "history":
 		h.handleMessageEditHistory(w, r, messageID)
 		return
+	case "refs":
+		if r.Method == http.MethodGet {
+			h.handleMessageRefsGet(w, r, messageID)
+		} else if r.Method == http.MethodPost {
+			h.handleMessageRefsPut(w, r, messageID)
+		} else {
+			WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "GET or POST required", r.Header.Get("X-Request-ID"))
+		}
+		return
 	}
 
 	// GET .../status — return durable delivery state so a reconnecting client syncs.
@@ -1387,6 +1396,60 @@ func (h *V3Handlers) handleMessageEditHistory(w http.ResponseWriter, r *http.Req
 		"message_id": messageID,
 		"versions":   versions,
 	})
+}
+
+// handleMessageRefsPut stores reply/forward thread metadata (WO-59). Preview text
+// must stay inside client-encrypted payloads; only message-id refs are persisted.
+func (h *V3Handlers) handleMessageRefsPut(w http.ResponseWriter, r *http.Request, messageID string) {
+	author := h.getDID(r)
+	if author == "" {
+		WriteError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "authentication required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		ConversationID              string `json:"conversation_id"`
+		ReplyToMessageID            string `json:"reply_to_message_id"`
+		ForwardedFromMessageID      string `json:"forwarded_from_message_id"`
+		ForwardedFromConversationID string `json:"forwarded_from_conversation_id"`
+	}
+	if err := h.readJSON(r, &req); err != nil || req.ConversationID == "" {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "conversation_id is required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if req.ReplyToMessageID == "" && req.ForwardedFromMessageID == "" {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "reply_to_message_id or forwarded_from_message_id required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err := h.DB.PutMessageRefs(r.Context(), &database.MessageRefs{
+		MessageID:                   messageID,
+		ConversationID:              req.ConversationID,
+		AuthorDID:                   author,
+		ReplyToMessageID:            req.ReplyToMessageID,
+		ForwardedFromMessageID:      req.ForwardedFromMessageID,
+		ForwardedFromConversationID: req.ForwardedFromConversationID,
+		CreatedAt:                   time.Now(),
+	}); err != nil {
+		WriteError(w, http.StatusInternalServerError, "REFS_PUT_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"message_id":      messageID,
+		"conversation_id": req.ConversationID,
+		"stored":          true,
+	})
+}
+
+func (h *V3Handlers) handleMessageRefsGet(w http.ResponseWriter, r *http.Request, messageID string) {
+	refs, err := h.DB.GetMessageRefs(r.Context(), messageID)
+	if errors.Is(err, database.ErrNotFound) {
+		WriteError(w, http.StatusNotFound, "NOT_FOUND", "message refs not found", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "REFS_GET_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, refs)
 }
 
 // handleConversationsSubroute serves conversation-scoped endpoints:

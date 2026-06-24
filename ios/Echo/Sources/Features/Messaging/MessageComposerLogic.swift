@@ -57,7 +57,9 @@ enum ConversationPinnedMessageStore {
 enum MessageForwarder {
     static func forward(
         content: String,
-        to conversation: StoredConversation
+        to conversation: StoredConversation,
+        fromMessageId: String? = nil,
+        fromConversationId: String? = nil
     ) async {
         let body = MessageComposerLogic.forwardBody(content)
         guard !body.isEmpty,
@@ -83,10 +85,15 @@ enum MessageForwarder {
             try await service.connect(accessToken: token)
             let client = DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
             let crypto = TextMessageCrypto(identityResolve: IdentityResolveClient(apiClient: client))
+            let wirePlain = try ChatMessageEnvelope(
+                body: body,
+                forwardedFromMessageId: fromMessageId,
+                forwardedFromConversationId: fromConversationId
+            ).serialized()
             let payload: TextMessagePayload
             do {
                 payload = try await crypto.encryptPayload(
-                    plaintext: body,
+                    plaintext: wirePlain,
                     peerDID: conversation.peerDID,
                     messageId: message.id
                 )
@@ -98,6 +105,16 @@ enum MessageForwarder {
                 peerDID: conversation.peerDID,
                 payload: payload
             )
+            if fromMessageId != nil {
+                let ops = DIContainer.shared.resolveMessageOpsAPI()
+                try? await ops?.putMessageRefs(
+                    messageId: message.id,
+                    conversationId: conversation.id,
+                    replyToMessageId: nil,
+                    forwardedFromMessageId: fromMessageId,
+                    forwardedFromConversationId: fromConversationId
+                )
+            }
         } catch {
             // Forward still visible locally if relay fails.
         }
