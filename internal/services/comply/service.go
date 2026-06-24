@@ -98,7 +98,7 @@ func (s *Service) CreateRetentionPolicy(ctx context.Context, in CreatePolicyInpu
 		ScopeLabel:     in.ScopeLabel,
 		EffectiveAt:    time.Now().UTC(),
 		ExpiresAt:      in.ExpiresAt,
-		DataL1Ref: s.complianceAnchor(ctx, in.OrgDID, string(in.PolicyType), in.ConversationID, in.ScopeLabel),
+		DataL1Ref:      s.complianceAnchor(ctx, in.OrgDID, string(in.PolicyType), in.ConversationID, in.ScopeLabel),
 		Active:         true,
 		CreatedByDID:   in.CreatedByDID,
 		CreatedAt:      time.Now().UTC(),

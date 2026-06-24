@@ -16,13 +16,13 @@ import (
 type NotificationType string
 
 const (
-	TypeMessage  NotificationType = "message"
+	TypeMessage    NotificationType = "message"
 	TypeMissedCall NotificationType = "missed_call"
-	TypeGroup    NotificationType = "group"
-	TypeChannel  NotificationType = "channel"
-	TypeSystem   NotificationType = "system"
-	TypeReward   NotificationType = "reward"
-	TypeIdentity NotificationType = "identity"
+	TypeGroup      NotificationType = "group"
+	TypeChannel    NotificationType = "channel"
+	TypeSystem     NotificationType = "system"
+	TypeReward     NotificationType = "reward"
+	TypeIdentity   NotificationType = "identity"
 )
 
 var (

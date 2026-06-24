@@ -23,9 +23,9 @@ type AnchorHealth interface {
 
 // MetagraphAnchor submits TrustCommitmentUpdate payloads via the metagraph client.
 type MetagraphAnchor struct {
-	client *metagraph.MetagraphClient
-	mu     sync.Mutex
-	lastOK *time.Time
+	client  *metagraph.MetagraphClient
+	mu      sync.Mutex
+	lastOK  *time.Time
 	lastErr error
 }
 

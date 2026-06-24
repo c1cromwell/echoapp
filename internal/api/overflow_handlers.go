@@ -35,8 +35,8 @@ func (h *V3Handlers) handleOverflowBlob(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"storage_uri":         uri,
-		"ciphertext_base64":   base64.StdEncoding.EncodeToString(blob),
-		"byte_size":           len(blob),
+		"storage_uri":       uri,
+		"ciphertext_base64": base64.StdEncoding.EncodeToString(blob),
+		"byte_size":         len(blob),
 	})
 }

@@ -200,11 +200,11 @@ type GroupStatistics struct {
 
 // GroupMember represents a user's membership in a group
 type GroupMember struct {
-	MemberID    string    `json:"memberId"`
-	GroupID     string    `json:"groupId"`
-	DisplayName string    `json:"displayName,omitempty"`
-	Avatar      string    `json:"avatar,omitempty"`
-	PersonaID   string    `json:"personaId,omitempty"`
+	MemberID    string `json:"memberId"`
+	GroupID     string `json:"groupId"`
+	DisplayName string `json:"displayName,omitempty"`
+	Avatar      string `json:"avatar,omitempty"`
+	PersonaID   string `json:"personaId,omitempty"`
 
 	// Role and permissions
 	Role        GroupRole    `json:"role"`

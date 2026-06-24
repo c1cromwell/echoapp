@@ -12,9 +12,9 @@ import (
 
 // IntegrationConfig holds optional Data L1 and Digital Evidence wiring (Priority 2).
 type IntegrationConfig struct {
-	DataL1          DataL1Submitter
-	Evidence        evidence.EvidenceSubmitter
-	EvidenceConfig  *evidence.ClientConfig
+	DataL1         DataL1Submitter
+	Evidence       evidence.EvidenceSubmitter
+	EvidenceConfig *evidence.ClientConfig
 }
 
 // LoadIntegrationFromEnv wires metagraph Data L1 and Digital Evidence clients from env.
