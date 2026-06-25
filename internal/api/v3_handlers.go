@@ -60,6 +60,7 @@ type V3Handlers struct {
 	Bots            *bots.InstallStore                            // optional; Stage 4 bot installs
 	BotTokens       *bots.TokenValidator                          // optional; WO-11 bot API tokens
 	BotRateLimiter  *bots.RateLimiter                             // optional; WO-11 bot send velocity
+	BotWebhooks     *bots.WebhookRegistry                         // optional; WO-11 inbound webhooks
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.

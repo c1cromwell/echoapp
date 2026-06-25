@@ -149,6 +149,8 @@ struct ChatView: View {
     @State private var threadSummary: ThreadSummary?
     @State private var messageTranslations: [String: String] = [:]
     @StateObject private var voiceRecorder = VoiceNoteRecorder()
+    @State private var showVoiceCall = false
+    @State private var showVideoCall = false
 
     let contactName: String
     let conversationId: String
@@ -184,6 +186,10 @@ struct ChatView: View {
 
     private var trustTier: Int {
         ContactTrustIndex.shared.tier(conversationId: conversationId, peerDID: peerDID)
+    }
+
+    private var trustLevelLabel: String {
+        ContactTrustIndex.trustLevelLabel(tier: trustTier)
     }
 
     var body: some View {
@@ -250,6 +256,11 @@ struct ChatView: View {
                                         .background(Color.echoPaperDim)
                                         .clipShape(RoundedRectangle(cornerRadius: 8))
                                         .frame(maxWidth: 280, alignment: message.isFromCurrentUser ? .trailing : .leading)
+                                }
+                                if message.forwardedFromMessageId != nil {
+                                    Text("Forwarded")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundColor(.echoInk40)
                                 }
                                 messageBubbleContent(for: message)
                                 .onAppear {
@@ -500,6 +511,12 @@ struct ChatView: View {
                 }
             )
         }
+        .fullScreenCover(isPresented: $showVoiceCall) {
+            CallView(peerDID: peerDID, callType: .voice, contactName: contactName)
+        }
+        .fullScreenCover(isPresented: $showVideoCall) {
+            CallView(peerDID: peerDID, callType: .video, contactName: contactName)
+        }
         .onDisappear {
             if ActiveChatRegistry.openConversationId == conversationId {
                 ActiveChatRegistry.openConversationId = nil
@@ -542,23 +559,21 @@ struct ChatView: View {
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.echoInk)
                     .lineLimit(1)
-                if trustTier >= 2 {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 14))
-                        .foregroundColor(.echoTrustGreen)
+                if trustTier >= 1 {
+                    TrustBadge(level: trustLevelLabel, size: .small)
                 }
             }
 
             Spacer()
 
-            Button {} label: {
+            Button { showVideoCall = true } label: {
                 Image(systemName: "video")
                     .font(.system(size: 18))
                     .foregroundColor(.echoInk70)
             }
             .buttonStyle(.plain)
 
-            Button {} label: {
+            Button { showVoiceCall = true } label: {
                 Image(systemName: "phone")
                     .font(.system(size: 18))
                     .foregroundColor(.echoInk70)

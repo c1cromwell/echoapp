@@ -194,6 +194,8 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
     /// `(messageId, ciphertext)`. Optional for backward compatibility; see `MessageSenderAuth`.
     let senderDID: String?
     let signature: Data?
+    /// SHA-256 hex over opaque ciphertext for relay commitment anchoring.
+    let commitmentHash: String?
 
     enum CodingKeys: String, CodingKey {
         case messageId = "message_id"
@@ -204,6 +206,7 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
         case media
         case senderDID = "sender_did"
         case signature
+        case commitmentHash = "commitment_hash"
     }
 
     init(
@@ -214,7 +217,8 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
         groupKeyVersion: Int? = nil,
         media: MediaAttachmentRef? = nil,
         senderDID: String? = nil,
-        signature: Data? = nil
+        signature: Data? = nil,
+        commitmentHash: String? = nil
     ) {
         self.messageId = messageId
         self.text = text
@@ -224,6 +228,7 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
         self.media = media
         self.senderDID = senderDID
         self.signature = signature
+        self.commitmentHash = commitmentHash
     }
 }
 

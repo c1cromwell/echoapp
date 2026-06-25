@@ -37,10 +37,20 @@ actor TextMessageCrypto {
         let signature = try? MessageSenderAuth.sign(
             messageId: messageId, encrypted: encrypted, signingKeyRaw: signingKey.rawRepresentation
         )
+        let commitment = Self.commitmentHex(messageId: messageId, encrypted: encrypted)
         return TextMessagePayload(
             messageId: messageId, text: nil, encrypted: encrypted,
-            senderDID: senderDID, signature: signature
+            senderDID: senderDID, signature: signature, commitmentHash: commitment
         )
+    }
+
+    private static func commitmentHex(messageId: String, encrypted: EncryptedMessageWithPublicKey) -> String {
+        var data = Data(messageId.utf8)
+        if let enc = try? JSONEncoder().encode(encrypted) {
+            data.append(enc)
+        }
+        let digest = SHA256.hash(data: data)
+        return digest.map { String(format: "%02x", $0) }.joined()
     }
 
     /// Result of checking an inbound payload's sender-authentication signature.

@@ -10,7 +10,10 @@ struct StoredThreadMessage: Codable, Equatable, Sendable, Identifiable {
     var deliveryStatus: DeliveryStatus?
     var replyToMessageId: String?
     var replyPreview: String?
+    var forwardedFromMessageId: String?
+    var forwardedFromConversationId: String?
     var sentAtISO: String?
+    var expiresAtISO: String?
 
     func asChatDetailMessage(currentUserDID: String) -> ChatDetailMessage {
         ChatDetailMessage(
@@ -22,7 +25,10 @@ struct StoredThreadMessage: Codable, Equatable, Sendable, Identifiable {
             deliveryStatus: deliveryStatus,
             replyToMessageId: replyToMessageId,
             replyPreview: replyPreview,
-            sentAt: StoredThreadMessage.parseSentAt(sentAtISO)
+            forwardedFromMessageId: forwardedFromMessageId,
+            forwardedFromConversationId: forwardedFromConversationId,
+            sentAt: StoredThreadMessage.parseSentAt(sentAtISO),
+            expiresAt: StoredThreadMessage.parseSentAt(expiresAtISO)
         )
     }
 
@@ -34,7 +40,10 @@ struct StoredThreadMessage: Codable, Equatable, Sendable, Identifiable {
         deliveryStatus: DeliveryStatus? = nil,
         replyToMessageId: String? = nil,
         replyPreview: String? = nil,
-        sentAtISO: String? = nil
+        forwardedFromMessageId: String? = nil,
+        forwardedFromConversationId: String? = nil,
+        sentAtISO: String? = nil,
+        expiresAtISO: String? = nil
     ) {
         self.id = id
         self.senderDID = senderDID
@@ -43,7 +52,10 @@ struct StoredThreadMessage: Codable, Equatable, Sendable, Identifiable {
         self.deliveryStatus = deliveryStatus
         self.replyToMessageId = replyToMessageId
         self.replyPreview = replyPreview
+        self.forwardedFromMessageId = forwardedFromMessageId
+        self.forwardedFromConversationId = forwardedFromConversationId
         self.sentAtISO = sentAtISO
+        self.expiresAtISO = expiresAtISO
     }
 
     init(from message: ChatDetailMessage) {
@@ -54,7 +66,10 @@ struct StoredThreadMessage: Codable, Equatable, Sendable, Identifiable {
         deliveryStatus = message.deliveryStatus
         replyToMessageId = message.replyToMessageId
         replyPreview = message.replyPreview
+        forwardedFromMessageId = message.forwardedFromMessageId
+        forwardedFromConversationId = message.forwardedFromConversationId
         sentAtISO = StoredThreadMessage.formatSentAt(message.sentAt)
+        expiresAtISO = StoredThreadMessage.formatSentAt(message.expiresAt)
     }
 
     private static let sentAtFormatter: ISO8601DateFormatter = {
@@ -93,12 +108,18 @@ enum ConversationThreadStore {
     }
 
     static func appendIfNew(conversationId: String, message: ChatDetailMessage) {
+        appendStoredIfNew(conversationId: conversationId, message: StoredThreadMessage(from: message))
+    }
+
+    static func appendStoredIfNew(conversationId: String, message: StoredThreadMessage) {
         guard !conversationId.isEmpty else { return }
         var stored = loadStored(conversationId: conversationId)
         guard !stored.contains(where: { $0.id == message.id }) else { return }
-        stored.append(StoredThreadMessage(from: message))
+        stored.append(message)
+        if !ConversationPreferencesStore.shared.isHidden(conversationId) {
+            notifySearchIndex(conversationId: conversationId, message: message)
+        }
         persist(conversationId: conversationId, messages: stored)
-        notifySearchIndex(conversationId: conversationId, message: stored.last!)
     }
 
     static func updateDeliveryStatus(
@@ -163,6 +184,10 @@ enum ConversationThreadStore {
 
     static func exportMessages(conversationId: String) -> [StoredThreadMessage] {
         loadStored(conversationId: conversationId)
+    }
+
+    static func replaceStored(conversationId: String, messages: [StoredThreadMessage]) {
+        persist(conversationId: conversationId, messages: messages)
     }
 
     /// Idempotent merge: skip message ids already present locally.

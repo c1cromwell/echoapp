@@ -42,6 +42,7 @@ struct MessagingKeyRegistrar {
             // 2xx = registered now; 409 = the key is already on file (idempotent success).
             if (200...299).contains(http.statusCode) || http.statusCode == 409 {
                 UserDefaults.standard.set(true, forKey: Self.registeredFlag)
+                await DeviceIdentityStore.pinLocalPublicKey(hex: pubHex)
             }
         } catch {
             // Best-effort: a failure here leaves the flag unset so the next call retries.

@@ -1,6 +1,5 @@
 #if os(iOS)
 import Foundation
-import UIKit
 
 /// Caches identity-registered device pubkeys for incremental sync (M3b).
 actor LinkedDevicesRegistry {
@@ -12,10 +11,10 @@ actor LinkedDevicesRegistry {
 
     func linkedDevices() async -> [DeviceLinkAPIClient.RegisteredDevice] {
         if let lastRefresh, Date().timeIntervalSince(lastRefresh) < refreshInterval, !cached.isEmpty {
-            return filter(cached)
+            return await filter(cached)
         }
         await refresh()
-        return filter(cached)
+        return await filter(cached)
     }
 
     func invalidate() {
@@ -34,9 +33,19 @@ actor LinkedDevicesRegistry {
         lastRefresh = Date()
     }
 
-    private func filter(_ devices: [DeviceLinkAPIClient.RegisteredDevice]) -> [DeviceLinkAPIClient.RegisteredDevice] {
-        let myLabel = UIDevice.current.name.lowercased()
-        return devices.filter { ($0.deviceLabel ?? "").lowercased() != myLabel }
+    private func filter(_ devices: [DeviceLinkAPIClient.RegisteredDevice]) async -> [DeviceLinkAPIClient.RegisteredDevice] {
+        let myStreamId = await DeviceIdentityStore.currentDeviceId()
+        var out: [DeviceLinkAPIClient.RegisteredDevice] = []
+        for device in devices {
+            if await DeviceIdentityStore.isLocalDevice(publicKeyHex: device.publicKeyHex) {
+                continue
+            }
+            if DeviceIdentityStore.syncDeviceId(fromPublicKeyHex: device.publicKeyHex) == myStreamId {
+                continue
+            }
+            out.append(device)
+        }
+        return out
     }
 }
 #endif

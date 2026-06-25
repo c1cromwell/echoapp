@@ -21,13 +21,14 @@ type MessageContent struct {
 	Ciphertext     []byte `json:"ciphertext,omitempty"`
 }
 
-// PaymentRequest is returned when a bot requests an in-chat payment (stub).
+// PaymentRequest is returned when a bot requests an in-chat payment.
 type PaymentRequest struct {
 	ID        string    `json:"id"`
 	UserDID   string    `json:"user_did"`
 	Amount    string    `json:"amount"`
 	Reason    string    `json:"reason"`
 	CreatedAt time.Time `json:"created_at"`
+	Status    string    `json:"status,omitempty"`
 }
 
 // ChainQuery is a read-only metagraph query stub.

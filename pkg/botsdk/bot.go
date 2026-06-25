@@ -45,7 +45,7 @@ func (b *EchoBot) SendMessage(ctx context.Context, recipientDID string, content 
 	return err
 }
 
-// OnMessage registers an inbound handler (local stub — webhook transport is out of scope for M3).
+// OnMessage registers an inbound handler (local; pair with RegisterWebhook).
 func (b *EchoBot) OnMessage(handler MessageHandler) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -53,17 +53,34 @@ func (b *EchoBot) OnMessage(handler MessageHandler) error {
 	return nil
 }
 
-// RequestPayment triggers a user authorization prompt (stub).
-func (b *EchoBot) RequestPayment(_ context.Context, userDID, amount, reason string) (*PaymentRequest, error) {
-	return nil, newBotError(CodeInvalidRequest, "payment relay not implemented in this SDK slice", 0)
+// RegisterWebhook registers the bot's inbound message webhook URL with Echo.
+func (b *EchoBot) RegisterWebhook(ctx context.Context, url string) error {
+	if url == "" {
+		return newBotError(CodeInvalidRequest, "url required", 0)
+	}
+	return b.client.registerWebhook(ctx, url)
 }
 
-// UploadFile stores an opaque blob (stub).
-func (b *EchoBot) UploadFile(_ context.Context, _ []byte, _ string) (string, error) {
-	return "", newBotError(CodeInvalidRequest, "file relay not implemented in this SDK slice", 0)
+// RequestPayment triggers a user authorization prompt via the relay.
+func (b *EchoBot) RequestPayment(ctx context.Context, userDID, amount, reason string) (*PaymentRequest, error) {
+	if userDID == "" || amount == "" {
+		return nil, newBotError(CodeInvalidRequest, "user_did and amount required", 0)
+	}
+	return b.client.requestPayment(ctx, userDID, amount, reason)
 }
 
-// ReadChainState queries public metagraph state (stub).
-func (b *EchoBot) ReadChainState(_ context.Context, _ ChainQuery) (any, error) {
-	return nil, newBotError(CodeInvalidRequest, "chain read not implemented in this SDK slice", 0)
+// UploadFile stores an opaque ciphertext blob via the media relay.
+func (b *EchoBot) UploadFile(ctx context.Context, userDID string, data []byte, mimeType string) (string, error) {
+	if userDID == "" || len(data) == 0 {
+		return "", newBotError(CodeInvalidRequest, "user_did and data required", 0)
+	}
+	return b.client.uploadFile(ctx, userDID, data, mimeType)
+}
+
+// ReadChainState queries public metagraph state (stub when L1 unavailable).
+func (b *EchoBot) ReadChainState(ctx context.Context, userDID string, query ChainQuery) (any, error) {
+	if userDID == "" {
+		return nil, newBotError(CodeInvalidRequest, "user_did required", 0)
+	}
+	return b.client.readChainState(ctx, userDID, query)
 }

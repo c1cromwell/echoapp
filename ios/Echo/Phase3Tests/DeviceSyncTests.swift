@@ -131,6 +131,24 @@ final class DeviceIdentityStoreTests: XCTestCase {
     }
 }
 
+final class DisappearingMessageEnforcerTests: XCTestCase {
+    func testExpiryAndPurge() {
+        let sent = Date().addingTimeInterval(-120)
+        let msg = StoredThreadMessage(
+            id: "exp1",
+            senderDID: "did:key:a",
+            content: "bye",
+            timestamp: "Now",
+            sentAtISO: StoredThreadMessage.formatSentAt(sent),
+            expiresAtISO: StoredThreadMessage.formatSentAt(sent.addingTimeInterval(60))
+        )
+        ConversationThreadStore.replaceStored(conversationId: "dm:exp", messages: [msg])
+        let removed = DisappearingMessageEnforcer.purgeExpired(conversationId: "dm:exp", ttlSeconds: 3600)
+        XCTAssertEqual(removed, ["exp1"])
+        XCTAssertTrue(ConversationThreadStore.exportMessages(conversationId: "dm:exp").isEmpty)
+    }
+}
+
 final class DeviceSyncMessageEnvelopeTests: XCTestCase {
     func testUpsertTombstoneRoundTrip() throws {
         let message = StoredThreadMessage(

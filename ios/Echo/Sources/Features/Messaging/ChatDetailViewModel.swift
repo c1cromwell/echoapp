@@ -124,6 +124,25 @@ final class ChatDetailViewModel {
         for id in ids {
             await reconcileReactions(messageId: id)
         }
+        purgeDisappearingMessages()
+    }
+
+    /// Removes locally expired disappearing messages and syncs tombstones to linked devices.
+    func purgeDisappearingMessages() {
+        guard disappearingTTLSeconds > 0 else { return }
+        let removed = DisappearingMessageEnforcer.purgeExpired(
+            conversationId: conversationId,
+            ttlSeconds: disappearingTTLSeconds
+        )
+        guard !removed.isEmpty else { return }
+        let removedSet = Set(removed)
+        messages.removeAll { removedSet.contains($0.id) }
+        for messageId in removed {
+            DeviceSyncOutboundCoordinator.notifyMessageDeleted(
+                conversationId: conversationId,
+                messageId: messageId
+            )
+        }
     }
 
     func connect(accessToken: String) async {
@@ -379,7 +398,7 @@ final class ChatDetailViewModel {
             MessageComposerLogic.replyPreview(authorName: peerDisplayNameForReply($0), content: $0.content)
         }
 
-        let message = ChatDetailMessage(
+        var message = ChatDetailMessage(
             id: UUID().uuidString,
             senderDID: currentUserDID,
             currentUserDID: currentUserDID,
@@ -390,13 +409,22 @@ final class ChatDetailViewModel {
             replyPreview: replyPreview,
             sentAt: Date()
         )
+        if let expires = DisappearingMessageEnforcer.expiryDate(
+            sentAt: message.sentAt,
+            ttlSeconds: disappearingTTLSeconds
+        ) {
+            message.expiresAt = expires
+        }
         messages.append(message)
-        ConversationThreadStore.appendIfNew(conversationId: conversationId, message: message)
+        var stored = StoredThreadMessage(from: message)
+        DisappearingMessageEnforcer.stampExpiry(on: &stored, ttlSeconds: disappearingTTLSeconds)
+        ConversationThreadStore.appendStoredIfNew(conversationId: conversationId, message: stored)
+        onSend(trimmed)
+
         DeviceSyncOutboundCoordinator.notifyMessageSaved(
             conversationId: conversationId,
-            message: StoredThreadMessage(from: message)
+            message: stored
         )
-        onSend(trimmed)
 
         do {
             let wirePlain: String
@@ -822,11 +850,20 @@ final class ChatDetailViewModel {
             timestamp: "Now",
             deliveryStatus: .delivered,
             replyToMessageId: resolved.replyToMessageId,
-            replyPreview: resolved.replyPreview
+            replyPreview: resolved.replyPreview,
+            forwardedFromMessageId: resolved.forwardedFromMessageId,
+            forwardedFromConversationId: resolved.forwardedFromConversationId,
+            sentAt: Date(),
+            expiresAt: DisappearingMessageEnforcer.expiryDate(
+                sentAt: Date(),
+                ttlSeconds: disappearingTTLSeconds
+            )
         )
         guard !messages.contains(where: { $0.id == e.messageId }) else { return }
         messages.append(inbound)
-        ConversationThreadStore.appendIfNew(conversationId: conversationId, message: inbound)
+        var stored = StoredThreadMessage(from: inbound)
+        DisappearingMessageEnforcer.stampExpiry(on: &stored, ttlSeconds: disappearingTTLSeconds)
+        ConversationThreadStore.appendStoredIfNew(conversationId: conversationId, message: stored)
         ConversationStore.shared.appendMessagePreview(conversationId: conversationId, preview: resolved.preview)
     }
 
@@ -869,7 +906,10 @@ struct ChatDetailMessage: Identifiable, Equatable {
     var isRead: Bool
     var replyToMessageId: String?
     var replyPreview: String?
+    var forwardedFromMessageId: String?
+    var forwardedFromConversationId: String?
     var sentAt: Date?
+    var expiresAt: Date?
     var mediaRef: MediaAttachmentRef?
     var pollId: String?
 
@@ -884,7 +924,10 @@ struct ChatDetailMessage: Identifiable, Equatable {
         isRead: Bool = false,
         replyToMessageId: String? = nil,
         replyPreview: String? = nil,
+        forwardedFromMessageId: String? = nil,
+        forwardedFromConversationId: String? = nil,
         sentAt: Date? = nil,
+        expiresAt: Date? = nil,
         mediaRef: MediaAttachmentRef? = nil,
         pollId: String? = nil
     ) {
@@ -898,7 +941,10 @@ struct ChatDetailMessage: Identifiable, Equatable {
         self.isRead = isRead
         self.replyToMessageId = replyToMessageId
         self.replyPreview = replyPreview
+        self.forwardedFromMessageId = forwardedFromMessageId
+        self.forwardedFromConversationId = forwardedFromConversationId
         self.sentAt = sentAt
+        self.expiresAt = expiresAt
         self.mediaRef = mediaRef
         self.pollId = pollId
     }

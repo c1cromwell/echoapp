@@ -5,6 +5,7 @@ import CryptoKit
 /// Stable per-install device id for WO-CA3 sync streams (`target_device_id` / pull `device_id`).
 enum DeviceIdentityStore {
     private static let keychainKey = "echo.sync.deviceId"
+    private static let localPubKeyKey = "echo.sync.localPubKeyHex"
 
     /// Deterministic sync stream id from a device's registered P-256 public key hex.
     static func syncDeviceId(fromPublicKeyHex hex: String) -> String {
@@ -19,6 +20,27 @@ enum DeviceIdentityStore {
     static func assignSyncDeviceId(fromPublicKeyHex hex: String) async {
         let id = syncDeviceId(fromPublicKeyHex: hex)
         try? await KeychainManager.shared.store(value: id, key: keychainKey)
+    }
+
+    /// Records this install's registered device pubkey and pins the matching sync stream id.
+    static func pinLocalPublicKey(hex: String) async {
+        var cleaned = hex.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if cleaned.hasPrefix("0x") { cleaned = String(cleaned.dropFirst(2)) }
+        guard !cleaned.isEmpty else { return }
+        try? await KeychainManager.shared.store(value: cleaned, key: localPubKeyKey)
+        await assignSyncDeviceId(fromPublicKeyHex: cleaned)
+    }
+
+    static func localPublicKeyHex() async -> String? {
+        try? await KeychainManager.shared.retrieve(key: localPubKeyKey)
+    }
+
+    /// True when `publicKeyHex` belongs to this install (identity-registered device key).
+    static func isLocalDevice(publicKeyHex: String) async -> Bool {
+        guard let mine = await localPublicKeyHex(), !mine.isEmpty else { return false }
+        var other = publicKeyHex.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if other.hasPrefix("0x") { other = String(other.dropFirst(2)) }
+        return mine == other
     }
 
     /// Returns a durable device id, creating and persisting one on first access.

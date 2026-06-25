@@ -11,7 +11,9 @@ import (
 	"github.com/gorilla/websocket"
 
 	"github.com/thechadcromwell/echoapp/internal/infra"
+	"github.com/thechadcromwell/echoapp/internal/services/bots"
 	"github.com/thechadcromwell/echoapp/internal/services/messaging"
+	"github.com/thechadcromwell/echoapp/internal/services/relay"
 	"github.com/thechadcromwell/echoapp/pkg/storage/encblob"
 )
 
@@ -170,6 +172,8 @@ type Hub struct {
 	rateLimiter    *infra.RateLimiter                            // WO-44 per-DID WS message budget (optional)
 	sealedTokens   *messaging.SealedTokenStore                   // WO-219 sealed-sender delivery tokens
 	convNotifPrefs *messaging.ConversationNotificationPrefsStore // WO-56 mute → silent push
+	commitments    *relay.CommitmentBatch                        // message integrity commitments (Data L1 prep)
+	botWebhooks    *bots.WebhookRegistry                         // WO-11 inbound bot webhooks
 }
 
 // NewHub creates a new WebSocket hub.
@@ -180,7 +184,29 @@ func NewHub() *Hub {
 		register:     make(chan *Client),
 		unregister:   make(chan *Client),
 		offlineQueue: newWSOfflineQueue(),
+		commitments:  relay.NewCommitmentBatch(),
 	}
+}
+
+// SetCommitmentBatch replaces the hub's commitment collector (optional).
+func (h *Hub) SetCommitmentBatch(cb *relay.CommitmentBatch) {
+	h.commitments = cb
+}
+
+// PendingCommitments returns unflushed commitment count.
+func (h *Hub) PendingCommitments() int {
+	if h.commitments == nil {
+		return 0
+	}
+	return h.commitments.Len()
+}
+
+// FlushCommitments drains pending commitments for Merkle anchoring.
+func (h *Hub) FlushCommitments() []relay.CommitmentEntry {
+	if h.commitments == nil {
+		return nil
+	}
+	return h.commitments.Flush()
 }
 
 // SetRateLimiter enables per-DID WebSocket send rate limits (WO-44).
@@ -330,6 +356,13 @@ func (h *Hub) SetOfflineNotifier(n OfflineNotifier) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.notifier = n
+}
+
+// SetBotWebhooks enables inbound user→bot webhook dispatch (WO-11).
+func (h *Hub) SetBotWebhooks(registry *bots.WebhookRegistry) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.botWebhooks = registry
 }
 
 // SetGroupMemberLister configures group membership lookup for group text fan-out (M2).
@@ -535,6 +568,16 @@ func (c *Client) routeInbound(msg WSMessage) {
 	if msg.From == "" && msg.Type != "sealed_text" {
 		msg.From = c.userID
 	}
+
+	if c.hub.commitments != nil && (msg.Type == "text" || msg.Type == "sealed_text") {
+		if messageID, hash, ok := commitmentFromWSMessage(msg); ok && len(hash) > 0 {
+			if messageID == "" {
+				messageID = msg.ConversationID + ":" + msg.Timestamp
+			}
+			c.hub.commitments.Add(messageID, hash)
+		}
+	}
+
 	outBytes, err := json.Marshal(msg)
 	if err != nil {
 		return
@@ -579,11 +622,32 @@ func (c *Client) routeInbound(msg WSMessage) {
 	}
 
 	if msg.To != "" {
+		if msg.Type == "text" && c.hub.botWebhooks != nil && bots.IsCatalogBot(msg.To) {
+			c.hub.dispatchBotInbound(msg)
+		}
 		// Directed message: deliver live, queue for reconnect, or push (WO-57).
 		c.hub.deliverOrQueue(msg.To, outBytes, c.userID, msg.ConversationID, msg.Silent)
 	} else {
 		c.hub.broadcast <- outBytes
 	}
+}
+
+func (h *Hub) dispatchBotInbound(msg WSMessage) {
+	if h == nil || h.botWebhooks == nil || msg.To == "" {
+		return
+	}
+	var wire struct {
+		Text       string `json:"text"`
+		Ciphertext []byte `json:"ciphertext"`
+	}
+	_ = json.Unmarshal(msg.Payload, &wire)
+	go bots.DispatchInbound(h.botWebhooks, msg.To, bots.InboundPayload{
+		FromDID:        msg.From,
+		ConversationID: msg.ConversationID,
+		Text:           wire.Text,
+		Ciphertext:     wire.Ciphertext,
+		ReceivedAt:     time.Now().UTC().Format(time.RFC3339),
+	})
 }
 
 // routeGroupText delivers an opaque group text blob to every group member except the sender.

@@ -275,6 +275,7 @@ func (s *Server) Start() error {
 	botInstalls := bots.NewInstallStore()
 	botTokens := bots.NewTokenValidatorFromEnv()
 	botRateLimiter := bots.NewRateLimiter(100, time.Minute)
+	botWebhooks := bots.NewWebhookRegistry()
 
 	router.V3 = &api.V3Handlers{
 		DB:              db,
@@ -296,6 +297,7 @@ func (s *Server) Start() error {
 		Bots:            botInstalls,       // Stage 4 bot install grants
 		BotTokens:       botTokens,         // WO-11 bot relay auth
 		BotRateLimiter:  botRateLimiter,    // WO-11 ~100 msg/min per bot
+		BotWebhooks:     botWebhooks,       // WO-11 inbound bot webhooks
 	}
 	if os.Getenv("COMPLY_SERVICE_TOKEN") != "" {
 		log.Println("ECHO Comply retention service enabled (WO-250)")
@@ -305,6 +307,9 @@ func (s *Server) Start() error {
 	router.WSHub.SetConversationNotificationPrefs(convNotifPrefs) // WO-56: mute → push suppression
 	router.WSHub.SetRateLimiter(rateLimiter)                      // WO-44: WS send budget
 	router.WSHub.SetOfflineOverflowStorage(backupBlobStore)       // WO-237: queue overflow to encblob
+	router.WSHub.SetBotWebhooks(botWebhooks)                      // WO-11 user→bot webhook dispatch
+
+	go startBackgroundMaintenance(db, router.WSHub)
 
 	// WO-53: Start audit log publisher background goroutine.
 	// Uses FallbackIPFSStorage (Pinata→Storj) when env vars are set;
@@ -348,6 +353,26 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		return nil
 	}
 	return s.server.Shutdown(ctx)
+}
+
+// startBackgroundMaintenance runs periodic offline-queue purge and commitment flush.
+func startBackgroundMaintenance(db database.DB, hub *api.Hub) {
+	ticker := time.NewTicker(5 * time.Minute)
+	go func() {
+		for range ticker.C {
+			ctx := context.Background()
+			if db != nil {
+				if n, err := db.PurgeExpired(ctx); err == nil && n > 0 {
+					log.Printf("purged %d expired offline queue entries", n)
+				}
+			}
+			if hub != nil {
+				if batch := hub.FlushCommitments(); len(batch) > 0 {
+					log.Printf("flushed %d message commitments for anchoring", len(batch))
+				}
+			}
+		}
+	}()
 }
 
 // startLogPublisher initialises the WO-53 audit log publisher and starts the

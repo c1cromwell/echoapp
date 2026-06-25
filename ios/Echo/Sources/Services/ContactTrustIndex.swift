@@ -55,6 +55,15 @@ public final class ContactTrustIndex {
         }
     }
 
+    public static func trustLevelLabel(tier: Int) -> String {
+        switch min(4, max(0, tier)) {
+        case 4: return "HighlyTrusted"
+        case 3: return "Trusted"
+        case 2: return "Verified"
+        default: return "Basic"
+        }
+    }
+
     private func persist() {
         UserDefaults.standard.set(tierByDID, forKey: storageKey)
     }

@@ -102,3 +102,66 @@ func (c *relayClient) sendMessage(ctx context.Context, recipientDID string, cont
 	}
 	return resp.Delivered, nil
 }
+
+func (c *relayClient) registerWebhook(ctx context.Context, url string) error {
+	return c.postJSON(ctx, "/v3/bots/relay/webhook", map[string]string{"url": url}, nil)
+}
+
+func (c *relayClient) requestPayment(ctx context.Context, userDID, amount, reason string) (*PaymentRequest, error) {
+	var resp struct {
+		Payment PaymentRequest `json:"payment"`
+	}
+	err := c.postJSON(ctx, "/v3/bots/relay/payment", map[string]string{
+		"user_did": userDID,
+		"amount":   amount,
+		"reason":   reason,
+	}, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Payment, nil
+}
+
+func (c *relayClient) uploadFile(ctx context.Context, userDID string, ciphertext []byte, mimeType string) (string, error) {
+	var resp struct {
+		MediaID string `json:"media_id"`
+	}
+	err := c.postJSON(ctx, "/v3/bots/relay/upload", map[string]any{
+		"user_did":   userDID,
+		"ciphertext": ciphertext,
+		"mime_type":  mimeType,
+	}, &resp)
+	if err != nil {
+		return "", err
+	}
+	return resp.MediaID, nil
+}
+
+func (c *relayClient) readChainState(ctx context.Context, userDID string, query ChainQuery) (any, error) {
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		fmt.Sprintf("%s/v3/bots/relay/chain?user_did=%s&module=%s&key=%s",
+			c.baseURL, userDID, query.Module, query.Key),
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-Bot-DID", c.botDID)
+	req.Header.Set("X-Bot-Token", c.token)
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if resp.StatusCode >= 400 {
+		return nil, newBotError(CodeRelayFailed, string(raw), 0)
+	}
+	var out map[string]any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, err
+	}
+	return out["state"], nil
+}
