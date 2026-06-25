@@ -83,6 +83,16 @@ enum CredentialEnrollmentTailService {
         UserDefaults.standard.set(tier, forKey: "echo.trustTier")
         UserDefaults.standard.set(true, forKey: "echo.hasCompletedFirstRun")
 
+        // Reaching the enrollment tail means a real IDV + selfie/liveness flow completed (document
+        // scan + liveness), unlike a paid VIP tier which is granted via a separate path and never
+        // sets these. Features gated on "verified human" (e.g. verified mesh) read these flags
+        // rather than `echo.trustTier`, which a VIP subscription alone would also raise.
+        UserDefaults.standard.set(true, forKey: "echo.idvVerified")
+        UserDefaults.standard.set(
+            bundle.assuranceLevel == .ial1 ? "standard_idv" : "digital_id",
+            forKey: "echo.evidenceType"
+        )
+
         try await KeychainManager.shared.store(key: "echo.did.current", value: did)
         if let name = displayName(from: bundle).nonEmpty {
             try await KeychainManager.shared.store(key: "echo.username.current", value: name)

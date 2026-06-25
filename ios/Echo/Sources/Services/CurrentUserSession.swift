@@ -31,6 +31,18 @@ enum CurrentUserSession {
         UserDefaults.standard.integer(forKey: "echo.trustTier")
     }
 
+    /// True once the user has completed a government-ID + selfie/liveness verification (IDV or
+    /// digital-ID). Set only by the enrollment tail — NOT by a paid VIP tier — so features that
+    /// require a verified human (e.g. verified BLE mesh) should gate on this, not `trustTier()`.
+    static func isIdentityVerified() -> Bool {
+        UserDefaults.standard.bool(forKey: "echo.idvVerified")
+    }
+
+    /// The kind of verification completed: `"standard_idv"` or `"digital_id"` (nil if unverified).
+    static func identityEvidenceType() -> String? {
+        UserDefaults.standard.string(forKey: "echo.evidenceType")
+    }
+
     /// Deep link payload for identity sharing (B.2 growth loop).
     static func identityShareURL(did: String, username: String) -> URL? {
         var components = URLComponents()

@@ -28,5 +28,12 @@
 		<string>GeistMono-SemiBold.ttf</string>
 		<string>GeistMono-Bold.ttf</string>
 	</array>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Echo uses Bluetooth to send and relay messages directly to nearby people over an offline mesh, with no internet or servers.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>bluetooth-central</string>
+		<string>bluetooth-peripheral</string>
+	</array>
 </dict>
 </plist>
