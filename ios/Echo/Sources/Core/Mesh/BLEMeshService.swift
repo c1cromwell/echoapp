@@ -15,7 +15,7 @@
 import Foundation
 import CoreBluetooth
 
-public final class BLEMeshService: NSObject {
+public final class BLEMeshService: NSObject, MeshNode {
     /// Delivered when a fully-reassembled payload addressed to us (or broadcast) arrives.
     public var onMessage: ((_ payload: Data, _ fromPeer: Data) -> Void)?
     /// Observability: peer-count changes (for UI "N people nearby").

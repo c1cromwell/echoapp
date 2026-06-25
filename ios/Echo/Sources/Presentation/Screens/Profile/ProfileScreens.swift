@@ -2807,6 +2807,14 @@ public struct AboutView: View {
                             SettingsNavRow(icon: "questionmark.circle.fill", title: "Help & Support", action: onHelpSupport)
                             Divider().padding(.leading, 52)
                             SettingsNavRow(icon: "info.circle.fill", title: "About Echo", action: onAbout)
+                            #if DEBUG
+                            Divider().padding(.leading, 52)
+                            NavigationLink {
+                                MeshDebugView()
+                            } label: {
+                                SettingsNavLinkLabel(icon: "dot.radiowaves.left.and.right", title: "Mesh debug (dev)")
+                            }
+                            #endif
                         }
                         .background(Color.echoSurface)
                         .cornerRadius(12)
