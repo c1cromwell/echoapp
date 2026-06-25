@@ -43,3 +43,23 @@ mesh.send(Data("ping from A".utf8), to: MeshPacket.broadcast)
   `maximumWriteValueLength` per peer and raise it.
 - **Battery:** add duty-cycled scanning (bitchat's adaptive modes).
 - **Reconnect storms / dedup memory:** validate the bounded `seen` set under sustained flooding.
+
+## Live integration status (compile-checked; runtime pending)
+
+`MeshMessagingStack` assembles the path opt-in (does NOT replace the WebSocket default):
+- `BLEMeshService` + `MeshPeerCache` (fed by key announces) + `MeshSignalTransport` + `OfflineMessageQueue`.
+- `stack.combined(with: websocketTransport)` → a `TransportRouter` that runs relay + mesh in parallel.
+- `stack.start()` broadcasts our key-announce cert (via a `MeshCertProvider`) so peers resolve our key offline.
+
+**Remaining on-device hooks (need hardware to verify):**
+1. **Secure-Enclave cert provider.** `SoftwareMeshCertProvider` works in sim/tests; on device, sign
+   `(did ‖ kaPublicKey)` with `SecureEnclaveManager.sign(keyId: "echo-identity-signing")` and convert its
+   DER signature to raw r‖s before storing in `MeshKeyCert.signature`.
+2. **Switch the transport.** When the user enables mesh (verified lane, `isIdentityVerified()`), construct
+   `ConversationSignalService(transport: stack.combined(with: ws))` in the DI instead of the WS-only default.
+3. **Queue on no-peers.** Enqueue outbound frames into `OfflineMessageQueue` when `onPeerCountChange == 0`;
+   `markDelivered` on the recipient's ack.
+
+**Groups over mesh:** no new mesh code needed — a flood mesh delivers the group envelope to everyone in
+range, and only members decrypt it with the existing `GroupKeyManager` E2E key. Send the normal group
+envelope over `stack.transport`; `OfflineMessageQueue` covers store-and-forward for groups too.

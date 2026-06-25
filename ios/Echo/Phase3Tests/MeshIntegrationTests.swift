@@ -124,3 +124,39 @@ final class OfflineMessageQueueTests: XCTestCase {
         XCTAssertTrue(q.pending.isEmpty)
     }
 }
+
+#if os(iOS)
+final class MeshMessagingStackTests: XCTestCase {
+    private func makeCert() throws -> MeshKeyCert {
+        let id = P256.Signing.PrivateKey()
+        let did = try DidKeyDeriver.deriveFromPublicKeyBytes(id.publicKey.x963Representation)
+        let ka = P256.KeyAgreement.PrivateKey().publicKey.x963Representation
+        return try MeshPeerDirectory.makeCert(did: did, identityKey: id, kaPublicKey: ka)
+    }
+
+    func testSoftwareCertProviderProducesVerifiableCert() async throws {
+        let id = P256.Signing.PrivateKey()
+        let did = try DidKeyDeriver.deriveFromPublicKeyBytes(id.publicKey.x963Representation)
+        let ka = P256.KeyAgreement.PrivateKey().publicKey.x963Representation
+        let provider = SoftwareMeshCertProvider(did: did, identityKey: .init(id), kaPublicKey: ka)
+        let cert = try await provider.currentCert()
+        XCTAssertNotNil(MeshPeerDirectory.verify(cert))
+    }
+
+    @MainActor
+    func testKeyAnnounceWiringPopulatesPeerCache() throws {
+        let stack = MeshMessagingStack(localPeerID: MeshPacket.peerID(from: Data("me".utf8)))
+        let cert = try makeCert()
+        stack.mesh.onKeyAnnounce?(MeshKeyAnnounce.encode(cert), MeshPacket.broadcast)
+        XCTAssertEqual(stack.peerCache.kaPublicKey(forDID: cert.did), cert.kaPublicKey)
+    }
+
+    func testCombinedTransportFansOutToRelay() async throws {
+        let stack = MeshMessagingStack(localPeerID: MeshPacket.peerID(from: Data("me".utf8)))
+        let relay = MockTransport()
+        let combined = stack.combined(with: relay)
+        try await combined.send(text: "hi")
+        XCTAssertEqual(relay.sent, ["hi"])
+    }
+}
+#endif

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7E554935B0F45882A8EB5183 /* MeshMessagingStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E94F9DDFE3A761B39285CF5 /* MeshMessagingStack.swift */; };
 		1C67EA700695983A2DBE053E /* MeshKeyAnnounce.swift in Sources */ = {isa = PBXBuildFile; fileRef = D159F295063A2717C9EE720B /* MeshKeyAnnounce.swift */; };
 		37AF7B41058221CA691A714C /* TransportRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 590E5C459BD411F3F6F85B72 /* TransportRouter.swift */; };
 		8037675082B40E14C0324B16 /* OfflineMessageQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6486A8E989FC16A6FC78024E /* OfflineMessageQueue.swift */; };
@@ -384,6 +385,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		8E94F9DDFE3A761B39285CF5 /* MeshMessagingStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshMessagingStack.swift; sourceTree = "<group>"; };
 		D159F295063A2717C9EE720B /* MeshKeyAnnounce.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshKeyAnnounce.swift; sourceTree = "<group>"; };
 		590E5C459BD411F3F6F85B72 /* TransportRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportRouter.swift; sourceTree = "<group>"; };
 		6486A8E989FC16A6FC78024E /* OfflineMessageQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineMessageQueue.swift; sourceTree = "<group>"; };
@@ -767,6 +769,7 @@
 		D38F8737830CD95A95E82D6D /* Mesh */ = {
 			isa = PBXGroup;
 			children = (
+				8E94F9DDFE3A761B39285CF5 /* MeshMessagingStack.swift */,
 				D159F295063A2717C9EE720B /* MeshKeyAnnounce.swift */,
 				590E5C459BD411F3F6F85B72 /* TransportRouter.swift */,
 				6486A8E989FC16A6FC78024E /* OfflineMessageQueue.swift */,
@@ -1911,6 +1914,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7E554935B0F45882A8EB5183 /* MeshMessagingStack.swift in Sources */,
 				1C67EA700695983A2DBE053E /* MeshKeyAnnounce.swift in Sources */,
 				37AF7B41058221CA691A714C /* TransportRouter.swift in Sources */,
 				8037675082B40E14C0324B16 /* OfflineMessageQueue.swift in Sources */,
