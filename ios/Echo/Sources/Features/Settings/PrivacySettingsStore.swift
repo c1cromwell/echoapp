@@ -18,6 +18,14 @@ enum PrivacySettingsStore {
         UserDefaults.standard.set(data, forKey: key)
     }
 
+    /// Persists locally and best-effort syncs profile privacy to the server (WO-187).
+    static func saveAndSync(_ settings: EnhancedPrivacySettings) async {
+        save(settings)
+        if let useCase = DIContainer.shared.resolveSyncProfilePrivacyUseCase() {
+            try? await useCase.sync(settings)
+        }
+    }
+
     /// WO-228: whether chat surfaces show the encrypted-thread bar.
     static var showsEncryptionIndicator: Bool {
         load().showEncryptionIndicator

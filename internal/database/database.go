@@ -201,6 +201,7 @@ type ContactStore interface {
 	GetContacts(ctx context.Context, ownerDID string) ([]*Contact, error)
 	RemoveContact(ctx context.Context, ownerDID, contactDID string) error
 	SetBlocked(ctx context.Context, ownerDID, contactDID string, blocked bool) error
+	IsContactBlocked(ctx context.Context, ownerDID, contactDID string) (bool, error)
 	GetContactCount(ctx context.Context, ownerDID string) (int, error)
 }
 
@@ -842,7 +843,29 @@ func (m *MemoryDB) SetBlocked(ctx context.Context, ownerDID, contactDID string, 
 			return nil
 		}
 	}
-	return ErrNotFound
+	if !blocked {
+		return ErrNotFound
+	}
+	m.contacts[ownerDID] = append(m.contacts[ownerDID], &Contact{
+		OwnerDID:   ownerDID,
+		ContactDID: contactDID,
+		AddedVia:   "manual",
+		Blocked:    true,
+		CreatedAt:  time.Now(),
+	})
+	return nil
+}
+
+func (m *MemoryDB) IsContactBlocked(ctx context.Context, ownerDID, contactDID string) (bool, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	for _, c := range m.contacts[ownerDID] {
+		if c.ContactDID == contactDID {
+			return c.Blocked, nil
+		}
+	}
+	return false, nil
 }
 
 func (m *MemoryDB) GetContactCount(ctx context.Context, ownerDID string) (int, error) {

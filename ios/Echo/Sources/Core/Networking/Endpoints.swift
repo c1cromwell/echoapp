@@ -772,6 +772,9 @@ enum ContactsEndpoint: APIEndpoint {
     case list
     case add
     case block
+    case unblock
+    case blocked
+    case contactPrivacy
     case relationship(peerDID: String)
 
     var path: String {
@@ -796,9 +799,35 @@ enum ContactsEndpoint: APIEndpoint {
             return "/v3/contacts/add"
         case .block:
             return "/v3/contacts/block"
+        case .unblock:
+            return "/v3/contacts/unblock"
+        case .blocked:
+            return "/v3/contacts/blocked"
+        case .contactPrivacy:
+            return "/v3/contacts/privacy"
         case .relationship(let peerDID):
             let encoded = peerDID.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? peerDID
             return "/v3/contacts/relationship?peer_did=\(encoded)"
+        }
+    }
+}
+
+// MARK: - Profile (WO-187)
+
+enum ProfileEndpoint: APIEndpoint {
+    case own
+    case privacy
+    case view(did: String)
+
+    var path: String {
+        switch self {
+        case .own:
+            return "/v3/profile"
+        case .privacy:
+            return "/v3/profile/privacy"
+        case .view(let did):
+            let encoded = did.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? did
+            return "/v3/profile/view?did=\(encoded)"
         }
     }
 }

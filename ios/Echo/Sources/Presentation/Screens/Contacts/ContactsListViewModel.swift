@@ -42,6 +42,7 @@ final class ContactsListViewModel {
             var models: [ContactModel] = []
             for row in remote {
                 guard let did = row.contactDid, !did.isEmpty else { continue }
+                if row.blocked == true { continue }
                 let badge = row.trustBadge?.capitalized ?? "Contact"
                 var name = ContactThreadHelper.truncatedDID(did)
                 var username = ContactThreadHelper.truncatedDID(did)

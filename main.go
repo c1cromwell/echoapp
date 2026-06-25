@@ -303,6 +303,7 @@ func (s *Server) Start() error {
 		log.Println("ECHO Comply retention service enabled (WO-250)")
 	}
 	router.WSHub.SetGroupMemberLister(router.V3.Groups)           // M2: group text fan-out to members
+	router.WSHub.SetContactBlockChecker(contactsSvc)              // WO-190: block-list relay enforcement
 	router.WSHub.SetSealedTokenStore(sealedTokenStore)            // WO-219: sealed-sender token validation
 	router.WSHub.SetConversationNotificationPrefs(convNotifPrefs) // WO-56: mute → push suppression
 	router.WSHub.SetRateLimiter(rateLimiter)                      // WO-44: WS send budget

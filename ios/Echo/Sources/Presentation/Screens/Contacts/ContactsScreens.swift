@@ -13,6 +13,7 @@ public struct ContactsListView: View {
     @State private var showUsernameSearch = false
     @State private var showContactDiscovery = false
     @State private var showInviteLink = false
+    @State private var showBlockedList = false
     #if os(iOS)
     @State private var viewModel = ContactsListViewModel()
     @State private var selectedContact: ContactModel?
@@ -63,6 +64,14 @@ public struct ContactsListView: View {
             if lf != rf { return lf && !rf }
             return lhs.name < rhs.name
         }
+    }
+
+    private var favoriteContacts: [ContactModel] {
+        filteredContacts.filter { ContactFavoritesStore.isFavorite(did: $0.id) }
+    }
+
+    private var regularContacts: [ContactModel] {
+        filteredContacts.filter { !ContactFavoritesStore.isFavorite(did: $0.id) }
     }
 
     public var body: some View {
@@ -153,6 +162,9 @@ public struct ContactsListView: View {
         }
         .navigationDestination(isPresented: $showContactDiscovery) {
             ContactDiscoveryView()
+        }
+        .navigationDestination(isPresented: $showBlockedList) {
+            BlockedContactsView()
         }
         .sheet(isPresented: $showInviteLink) {
             InviteLinkSheet()
@@ -337,60 +349,102 @@ public struct ContactsListView: View {
                 }
             }
             .listRowBackground(Color.echoSurface)
+
+            Button {
+                showBlockedList = true
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "hand.raised.fill")
+                        .foregroundColor(.echoInk55)
+                    Text("Blocked contacts")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.echoInk)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.echoInk40)
+                }
+            }
+            .listRowBackground(Color.echoSurface)
             #endif
 
-            ForEach(filteredContacts) { contact in
-                ContactListItem(
-                    name: contact.name,
-                    username: contact.username,
-                    trustLevel: contact.trustLevel,
-                    isFavorite: ContactFavoritesStore.isFavorite(did: contact.id),
-                    onTap: { selectedContact = contact }
-                )
-                .listRowSeparator(.hidden)
-                .listRowInsets(.init())
-                .listRowBackground(Color.clear)
-                .padding(.vertical, Spacing.xs.rawValue)
-                .contextMenu {
-                    Button {
-                        ContactFavoritesStore.toggle(did: contact.id)
-                    } label: {
-                        Label(
-                            ContactFavoritesStore.isFavorite(did: contact.id) ? "Remove favorite" : "Add favorite",
-                            systemImage: "star"
-                        )
+            if !favoriteContacts.isEmpty {
+                Section {
+                    ForEach(favoriteContacts) { contact in
+                        contactRow(contact)
                     }
-                    Button {
-                        Task { await openChat(with: contact) }
-                    } label: {
-                        Label("Message", systemImage: "message")
-                    }
-                    Button {
-                        selectedContact = contact
-                    } label: {
-                        Label("View profile", systemImage: "person.crop.circle")
-                    }
+                } header: {
+                    Text("Favorites")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.echoInk55)
                 }
-                .swipeActions(edge: .leading) {
-                    Button {
-                        ContactFavoritesStore.toggle(did: contact.id)
-                    } label: {
-                        Label("Favorite", systemImage: "star.fill")
-                    }
-                    .tint(.yellow)
+            }
+
+            Section {
+                ForEach(favoriteContacts.isEmpty ? filteredContacts : regularContacts) { contact in
+                    contactRow(contact)
                 }
-                .swipeActions(edge: .trailing) {
-                    Button {
-                        Task { await openChat(with: contact) }
-                    } label: {
-                        Label("Message", systemImage: "message.fill")
-                    }
-                    .tint(.blue)
+            } header: {
+                if !favoriteContacts.isEmpty {
+                    Text("All contacts")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.echoInk55)
                 }
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+    }
+
+    @ViewBuilder
+    private func contactRow(_ contact: ContactModel) -> some View {
+        ContactListItem(
+            name: contact.name,
+            username: contact.username,
+            trustLevel: contact.trustLevel,
+            isFavorite: ContactFavoritesStore.isFavorite(did: contact.id),
+            onTap: { selectedContact = contact }
+        )
+        .listRowSeparator(.hidden)
+        .listRowInsets(.init())
+        .listRowBackground(Color.clear)
+        .padding(.vertical, Spacing.xs.rawValue)
+        .contextMenu {
+            Button {
+                ContactFavoritesStore.toggle(did: contact.id)
+            } label: {
+                Label(
+                    ContactFavoritesStore.isFavorite(did: contact.id) ? "Remove favorite" : "Add favorite",
+                    systemImage: "star"
+                )
+            }
+            Button {
+                Task { await openChat(with: contact) }
+            } label: {
+                Label("Message", systemImage: "message")
+            }
+            Button {
+                selectedContact = contact
+            } label: {
+                Label("View profile", systemImage: "person.crop.circle")
+            }
+        }
+        .swipeActions(edge: .leading) {
+            Button {
+                ContactFavoritesStore.toggle(did: contact.id)
+            } label: {
+                Label("Favorite", systemImage: "star.fill")
+            }
+            .tint(.yellow)
+        }
+        .swipeActions(edge: .trailing) {
+            Button {
+                Task { await openChat(with: contact) }
+            } label: {
+                Label("Message", systemImage: "message.fill")
+            }
+            .tint(.blue)
+        }
     }
 }
 
@@ -399,6 +453,72 @@ struct ContactModel: Identifiable, Hashable, Sendable {
     let name: String
     let username: String
     let trustLevel: String
+}
+
+/// Blocked contacts list with unblock action (WO-39 / WO-190).
+struct BlockedContactsView: View {
+    @State private var blocked: [RemoteContact] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        List {
+            if isLoading && blocked.isEmpty {
+                ProgressView("Loading…")
+            } else if blocked.isEmpty {
+                Text("No blocked contacts")
+                    .foregroundColor(.echoInk55)
+            } else {
+                ForEach(blocked) { contact in
+                    if let did = contact.contactDid {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(ContactThreadHelper.truncatedDID(did))
+                                    .font(.system(size: 15, weight: .medium))
+                            }
+                            Spacer()
+                            Button("Unblock") {
+                                Task { await unblock(did: did) }
+                            }
+                            .font(.system(size: 14, weight: .semibold))
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Blocked")
+        .task { await refresh() }
+        .refreshable { await refresh() }
+        .alert("Error", isPresented: .constant(errorMessage != nil)) {
+            Button("OK") { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
+        }
+    }
+
+    private func refresh() async {
+        guard let useCase = DIContainer.shared.resolveListBlockedContactsUseCase() else {
+            errorMessage = "Sign in required"
+            return
+        }
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            blocked = try await useCase.list()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func unblock(did: String) async {
+        guard let useCase = DIContainer.shared.resolveUnblockContactUseCase() else { return }
+        do {
+            try await useCase.unblock(did: did)
+            blocked.removeAll { $0.contactDid == did }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
 }
 
 #if DEBUG

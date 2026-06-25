@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/argon2"
@@ -41,6 +42,9 @@ type Service struct {
 	// database.ContactDiscoveryStore; raw phone numbers are never stored.
 	// Nil oprf disables discovery.
 	oprf *OPRFService
+
+	profileMuPtr *sync.RWMutex
+	profiles     map[string]*profileRecord
 }
 
 // NewService creates a contacts service.
@@ -159,6 +163,10 @@ func (s *Service) SearchByUsername(ctx context.Context, callerDID, handle string
 
 	user, err := s.db.GetUserByUsername(ctx, handle)
 	if err == nil && user.DID != callerDID {
+		blocked, berr := s.IsEitherBlocked(ctx, callerDID, user.DID)
+		if berr == nil && blocked {
+			return results, nil
+		}
 		results = append(results, map[string]interface{}{
 			"did":      user.DID,
 			"username": user.Username,
@@ -221,16 +229,6 @@ func (s *Service) GetContacts(ctx context.Context, callerDID string) ([]*databas
 		}
 	}
 	return contacts, nil
-}
-
-// BlockContact blocks a contact.
-func (s *Service) BlockContact(ctx context.Context, callerDID, contactDID string) error {
-	return s.db.SetBlocked(ctx, callerDID, contactDID, true)
-}
-
-// UnblockContact unblocks a contact.
-func (s *Service) UnblockContact(ctx context.Context, callerDID, contactDID string) error {
-	return s.db.SetBlocked(ctx, callerDID, contactDID, false)
 }
 
 // RemoveContact removes a contact.

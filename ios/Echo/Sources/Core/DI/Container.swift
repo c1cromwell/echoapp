@@ -263,6 +263,30 @@ final class DIContainer {
             return BlockContactUseCase(client: client)
         }
 
+        registerFactory(ServiceKeys.unblockContactUseCase) { [weak self] () -> UnblockContactUseCase in
+            let client: ContactSocialAPIClient = self?.resolve(ServiceKeys.contactSocialAPI)
+                ?? ContactSocialAPIClient(apiClient: APIClient(configuration: .default))
+            return UnblockContactUseCase(client: client)
+        }
+
+        registerFactory(ServiceKeys.listBlockedContactsUseCase) { [weak self] () -> ListBlockedContactsUseCase in
+            let client: ContactSocialAPIClient = self?.resolve(ServiceKeys.contactSocialAPI)
+                ?? ContactSocialAPIClient(apiClient: APIClient(configuration: .default))
+            return ListBlockedContactsUseCase(client: client)
+        }
+
+        registerFactory(ServiceKeys.syncProfilePrivacyUseCase) { [weak self] () -> SyncProfilePrivacyUseCase in
+            let client: ContactSocialAPIClient = self?.resolve(ServiceKeys.contactSocialAPI)
+                ?? ContactSocialAPIClient(apiClient: APIClient(configuration: .default))
+            return SyncProfilePrivacyUseCase(client: client)
+        }
+
+        registerFactory(ServiceKeys.updateContactPrivacyUseCase) { [weak self] () -> UpdateContactPrivacyUseCase in
+            let client: ContactSocialAPIClient = self?.resolve(ServiceKeys.contactSocialAPI)
+                ?? ContactSocialAPIClient(apiClient: APIClient(configuration: .default))
+            return UpdateContactPrivacyUseCase(client: client)
+        }
+
         registerFactory(ServiceKeys.qrContactExchangeUseCase) {
             QRContactExchangeUseCase()
         }
@@ -372,6 +396,10 @@ enum ServiceKeys {
     static let usernameSearchUseCase = "usecase.usernameSearch"
     static let addContactUseCase = "usecase.addContact"
     static let blockContactUseCase = "usecase.blockContact"
+    static let unblockContactUseCase = "usecase.unblockContact"
+    static let listBlockedContactsUseCase = "usecase.listBlockedContacts"
+    static let syncProfilePrivacyUseCase = "usecase.syncProfilePrivacy"
+    static let updateContactPrivacyUseCase = "usecase.updateContactPrivacy"
     static let qrContactExchangeUseCase = "usecase.qrContactExchange"
     static let conversationPreferences = "services.conversationPreferences"
     
@@ -481,6 +509,22 @@ extension DIContainer {
 
     func resolveBlockContactUseCase() -> BlockContactUseCase? {
         resolve(ServiceKeys.blockContactUseCase)
+    }
+
+    func resolveUnblockContactUseCase() -> UnblockContactUseCase? {
+        resolve(ServiceKeys.unblockContactUseCase)
+    }
+
+    func resolveListBlockedContactsUseCase() -> ListBlockedContactsUseCase? {
+        resolve(ServiceKeys.listBlockedContactsUseCase)
+    }
+
+    func resolveSyncProfilePrivacyUseCase() -> SyncProfilePrivacyUseCase? {
+        resolve(ServiceKeys.syncProfilePrivacyUseCase)
+    }
+
+    func resolveUpdateContactPrivacyUseCase() -> UpdateContactPrivacyUseCase? {
+        resolve(ServiceKeys.updateContactPrivacyUseCase)
     }
 
     func resolveQRContactExchangeUseCase() -> QRContactExchangeUseCase? {

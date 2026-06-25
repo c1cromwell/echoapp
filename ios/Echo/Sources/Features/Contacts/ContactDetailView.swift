@@ -161,6 +161,16 @@ public struct ContactDetailView: View {
                     }
                     .font(.system(size: 14)).fontWeight(.semibold)
                     .foregroundStyle(Color.Echo.error)
+                    .opacity(viewModel.isBlocked ? 0.4 : 1)
+                    .disabled(viewModel.isBlocked)
+
+                    if viewModel.isBlocked {
+                        Button("Unblock Contact") {
+                            Task { await viewModel.unblockContact() }
+                        }
+                        .font(.system(size: 14)).fontWeight(.semibold)
+                        .foregroundStyle(Color.Echo.onSurface)
+                    }
 
                     Button("Report Contact") {
                         viewModel.showReportSheet = true

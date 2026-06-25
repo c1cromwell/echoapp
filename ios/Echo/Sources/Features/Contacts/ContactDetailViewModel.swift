@@ -57,6 +57,15 @@ class ContactDetailViewModel: ObservableObject {
                     }
                 }
             }
+            let social = ContactSocialAPIClient(apiClient: client)
+            if let remote = try? await social.fetchProfile(did: contactId) {
+                if let display = remote.displayName, !display.isEmpty, preferredDisplayName == nil {
+                    name = display
+                }
+                if remote.isBlocked == true {
+                    isBlocked = true
+                }
+            }
         }
 
         contact = ContactDetail(
@@ -87,6 +96,7 @@ class ContactDetailViewModel: ObservableObject {
             let rel = try await socialAPI.fetchRelationship(peerDID: contactId)
             mutualGroups = rel.mutual_groups ?? []
             mutualContacts = rel.mutual_contacts ?? []
+            isBlocked = rel.is_blocked ?? rel.blocked_by_me ?? false
             contact = ContactDetail(
                 id: contact.id,
                 name: contact.name,
@@ -124,6 +134,28 @@ class ContactDetailViewModel: ObservableObject {
         } catch {
             blockError = error.localizedDescription
         }
+    }
+
+    func unblockContact() async {
+        do {
+            if let useCase = DIContainer.shared.resolveUnblockContactUseCase() {
+                try await useCase.unblock(did: contactId)
+            } else if let socialAPI {
+                try await socialAPI.unblockContact(did: contactId)
+            }
+            isBlocked = false
+        } catch {
+            blockError = error.localizedDescription
+        }
+    }
+
+    func syncContactPrivacy() async {
+        guard let useCase = DIContainer.shared.resolveUpdateContactPrivacyUseCase() else { return }
+        try? await useCase.update(
+            peerDID: contactId,
+            notificationsEnabled: notificationsEnabled,
+            disappearingEnabled: disappearingEnabled
+        )
     }
 
     func copyDID() {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -440,6 +441,10 @@ func (p *PostgresDB) RemoveContact(ctx context.Context, ownerDID, contactDID str
 	return nil
 }
 
+func contactRowID(ownerDID, contactDID string) string {
+	return "ct_" + uuid.NewSHA1(uuid.NameSpaceURL, []byte(ownerDID+":"+contactDID)).String()
+}
+
 func (p *PostgresDB) SetBlocked(ctx context.Context, ownerDID, contactDID string, blocked bool) error {
 	status := "active"
 	if blocked {
@@ -451,10 +456,35 @@ func (p *PostgresDB) SetBlocked(ctx context.Context, ownerDID, contactDID string
 	if err != nil {
 		return fmt.Errorf("set blocked: %w", err)
 	}
-	if tag.RowsAffected() == 0 {
+	if tag.RowsAffected() > 0 {
+		return nil
+	}
+	if !blocked {
 		return ErrNotFound
 	}
+	_, err = p.pool.Exec(ctx,
+		`INSERT INTO contacts (id, owner_did, contact_did, added_via, status, created_at, updated_at)
+		 VALUES ($1, $2, $3, 'manual', $4, NOW(), NOW())
+		 ON CONFLICT (owner_did, contact_did) DO UPDATE SET status = EXCLUDED.status, updated_at = NOW()`,
+		contactRowID(ownerDID, contactDID), ownerDID, contactDID, status)
+	if err != nil {
+		return fmt.Errorf("upsert blocked contact: %w", err)
+	}
 	return nil
+}
+
+func (p *PostgresDB) IsContactBlocked(ctx context.Context, ownerDID, contactDID string) (bool, error) {
+	var status string
+	err := p.pool.QueryRow(ctx,
+		`SELECT status FROM contacts WHERE owner_did = $1 AND contact_did = $2`,
+		ownerDID, contactDID).Scan(&status)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("is contact blocked: %w", err)
+	}
+	return status == "blocked", nil
 }
 
 func (p *PostgresDB) GetContactCount(ctx context.Context, ownerDID string) (int, error) {

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -16,6 +17,11 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/services/relay"
 	"github.com/thechadcromwell/echoapp/pkg/storage/encblob"
 )
+
+// ContactBlockChecker reports whether a directed relay should be dropped (WO-190).
+type ContactBlockChecker interface {
+	IsEitherBlocked(ctx context.Context, a, b string) (bool, error)
+}
 
 // WSMessage represents a message sent over WebSocket.
 type WSMessage struct {
@@ -174,6 +180,7 @@ type Hub struct {
 	convNotifPrefs *messaging.ConversationNotificationPrefsStore // WO-56 mute → silent push
 	commitments    *relay.CommitmentBatch                        // message integrity commitments (Data L1 prep)
 	botWebhooks    *bots.WebhookRegistry                         // WO-11 inbound bot webhooks
+	blockChecker   ContactBlockChecker                           // WO-190: drop relay when either party blocked
 }
 
 // NewHub creates a new WebSocket hub.
@@ -348,6 +355,19 @@ func (h *Hub) SendToUser(userID string, data []byte) bool {
 	default:
 		return false
 	}
+}
+
+// SetContactBlockChecker configures block-list enforcement on directed relay (WO-190).
+func (h *Hub) SetContactBlockChecker(c ContactBlockChecker) {
+	h.blockChecker = c
+}
+
+func (h *Hub) shouldDropBlocked(recipient, sender string) bool {
+	if h == nil || h.blockChecker == nil || recipient == "" || sender == "" || recipient == sender {
+		return false
+	}
+	blocked, err := h.blockChecker.IsEitherBlocked(context.Background(), recipient, sender)
+	return err == nil && blocked
 }
 
 // SetOfflineNotifier configures the push notifier used when a directed message's
@@ -584,6 +604,9 @@ func (c *Client) routeInbound(msg WSMessage) {
 	}
 
 	if msg.Type == "sealed_text" {
+		if msg.To != "" && c.hub.shouldDropBlocked(msg.To, c.userID) {
+			return
+		}
 		c.routeSealedText(msg)
 		return
 	}
@@ -602,6 +625,9 @@ func (c *Client) routeInbound(msg WSMessage) {
 		if msg.To == "" || msg.To == c.userID {
 			return
 		}
+		if c.hub.shouldDropBlocked(msg.To, c.userID) {
+			return
+		}
 		c.hub.deliverOrQueue(msg.To, outBytes, c.userID, msg.ConversationID, msg.Silent)
 		return
 	}
@@ -609,6 +635,9 @@ func (c *Client) routeInbound(msg WSMessage) {
 	// WebRTC call signaling (M4): directed only; queue offline + content-blind push.
 	if msg.Type == "call_signal" {
 		if msg.To == "" || msg.To == c.userID {
+			return
+		}
+		if c.hub.shouldDropBlocked(msg.To, c.userID) {
 			return
 		}
 		c.hub.deliverOrQueueCall(msg.To, outBytes, c.userID, msg.Payload)
@@ -624,6 +653,9 @@ func (c *Client) routeInbound(msg WSMessage) {
 	if msg.To != "" {
 		if msg.Type == "text" && c.hub.botWebhooks != nil && bots.IsCatalogBot(msg.To) {
 			c.hub.dispatchBotInbound(msg)
+		}
+		if c.hub.shouldDropBlocked(msg.To, c.userID) {
+			return
 		}
 		// Directed message: deliver live, queue for reconnect, or push (WO-57).
 		c.hub.deliverOrQueue(msg.To, outBytes, c.userID, msg.ConversationID, msg.Silent)

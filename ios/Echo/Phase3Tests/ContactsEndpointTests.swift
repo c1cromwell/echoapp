@@ -13,6 +13,18 @@ final class ContactsEndpointTests: XCTestCase {
         XCTAssertTrue(path.contains("did:key"))
     }
 
+    func testBlockedContactsPaths() {
+        XCTAssertEqual(ContactsEndpoint.blocked.path, "/v3/contacts/blocked")
+        XCTAssertEqual(ContactsEndpoint.unblock.path, "/v3/contacts/unblock")
+        XCTAssertEqual(ContactsEndpoint.contactPrivacy.path, "/v3/contacts/privacy")
+    }
+
+    func testProfilePaths() {
+        XCTAssertEqual(ProfileEndpoint.own.path, "/v3/profile")
+        XCTAssertEqual(ProfileEndpoint.privacy.path, "/v3/profile/privacy")
+        XCTAssertTrue(ProfileEndpoint.view(did: "did:key:zPeer").path.contains("/v3/profile/view?did="))
+    }
+
     func testLogoutPath_matchesBackendRevoke() {
         XCTAssertEqual(AuthEndpoint.logout.path, "/v3/auth/revoke")
     }

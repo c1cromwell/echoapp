@@ -1,8 +1,8 @@
 # Phase 7: Advanced Platform Features
 
-**Total Work Orders:** 86  
-**Status Summary:** 86 Backlog  
-**Last synced with Software Factory:** 2026-05-26
+**Total Work Orders:** 102  
+**Status Summary:** 39 Completed, 1 In Progress, 62 Backlog  
+**Last synced with Software Factory:** 2026-05-29
 
 ---
 
@@ -4570,6 +4570,9 @@ Optional enhancement: unlinkable predicate proofs (BBS+) so a holder proves "res
 >
 > **Sequencing:** WO-309 + WO-313 are the low-coupling **wedge** — they can ship in parallel with
 > messaging core, ahead of the heavier admin console (WO-310–312/314).
+>
+> **Software Factory IDs (2026-05-29):** Portal WOs created as **WO-308–313** (SF auto-numbering).
+> Map: doc WO-309→SF **308**, WO-310→**311**, WO-311→**310**, WO-312→**309**, WO-313→**312**, WO-314→**313**.
 
 ### WO-309: Echo Comply — Web Portal Shell + Auth + SCIM
 

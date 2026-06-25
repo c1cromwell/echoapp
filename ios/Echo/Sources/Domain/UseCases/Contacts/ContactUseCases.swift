@@ -89,4 +89,69 @@ struct BlockContactUseCase: Sendable {
         try await client.blockContact(did: did)
     }
 }
+
+/// Unblock a contact (WO-190).
+struct UnblockContactUseCase: Sendable {
+    private let client: ContactSocialAPIClient
+
+    init(client: ContactSocialAPIClient) {
+        self.client = client
+    }
+
+    func unblock(did: String) async throws {
+        try await client.unblockContact(did: did)
+    }
+}
+
+/// List blocked contacts (WO-39 / WO-190).
+struct ListBlockedContactsUseCase: Sendable {
+    private let client: ContactSocialAPIClient
+
+    init(client: ContactSocialAPIClient) {
+        self.client = client
+    }
+
+    func list() async throws -> [RemoteContact] {
+        try await client.listBlockedContacts()
+    }
+}
+
+/// Sync profile privacy to the server (WO-187 / WO-190).
+struct SyncProfilePrivacyUseCase: Sendable {
+    private let client: ContactSocialAPIClient
+
+    init(client: ContactSocialAPIClient) {
+        self.client = client
+    }
+
+    func sync(_ settings: EnhancedPrivacySettings) async throws {
+        let payload = ContactSocialAPIClient.ProfilePrivacySettings(
+            showLastSeen: settings.showLastSeen ? "everyone" : "nobody",
+            showOnlineStatus: settings.showOnlineStatus,
+            showProfilePicture: settings.showProfilePicture ? "everyone" : "nobody",
+            showStatusMessage: settings.showStatusMessage ? "contacts" : "nobody",
+            allowGroupInvites: settings.whoCanMessage == "everyone" ? "everyone" : "contacts",
+            allowCalls: settings.whoCanCall == "everyone" ? "everyone" : "contacts",
+            showTrustScore: settings.showTrustScore
+        )
+        _ = try await client.updatePrivacy(payload)
+    }
+}
+
+/// Per-contact privacy overrides (WO-39).
+struct UpdateContactPrivacyUseCase: Sendable {
+    private let client: ContactSocialAPIClient
+
+    init(client: ContactSocialAPIClient) {
+        self.client = client
+    }
+
+    func update(peerDID: String, notificationsEnabled: Bool, disappearingEnabled: Bool) async throws {
+        try await client.updateContactPrivacy(
+            peerDID: peerDID,
+            notificationsEnabled: notificationsEnabled,
+            disappearingEnabled: disappearingEnabled
+        )
+    }
+}
 #endif

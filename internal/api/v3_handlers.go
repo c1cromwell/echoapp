@@ -82,8 +82,15 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/v3/contacts/verify", h.handleContactsVerify)
 	mux.HandleFunc("/v3/contacts/list", h.handleContactsList)
 	mux.HandleFunc("/v3/contacts/block", h.handleContactsBlock)
+	mux.HandleFunc("/v3/contacts/unblock", h.handleContactsUnblock)
+	mux.HandleFunc("/v3/contacts/blocked", h.handleContactsBlocked)
+	mux.HandleFunc("/v3/contacts/privacy", h.handleContactsPrivacy)
 	mux.HandleFunc("/v3/contacts/add", h.handleContactsAdd)
 	mux.HandleFunc("/v3/contacts/relationship", h.handleContactsRelationship)
+
+	// Profile endpoints (WO-187 / WO-190)
+	mux.HandleFunc("/v3/profile", h.handleProfile)
+	mux.HandleFunc("/v3/profile/", h.handleProfile)
 
 	// Rewards endpoints
 	mux.HandleFunc("/v3/rewards/claim", h.handleRewardsClaim)
@@ -330,9 +337,16 @@ func (h *V3Handlers) handleContactsList(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	active := make([]*database.Contact, 0, len(contactsList))
+	for _, c := range contactsList {
+		if !c.Blocked {
+			active = append(active, c)
+		}
+	}
+
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"contacts":  contactsList,
-		"count":     len(contactsList),
+		"contacts":  active,
+		"count":     len(active),
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	})
 }
@@ -357,6 +371,46 @@ func (h *V3Handlers) handleContactsBlock(w http.ResponseWriter, r *http.Request)
 	}
 
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "blocked"})
+}
+
+func (h *V3Handlers) handleContactsUnblock(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	var req struct {
+		ContactDID string `json:"contactDid"`
+	}
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	if err := h.Contacts.UnblockContact(r.Context(), h.getDID(r), req.ContactDID); err != nil {
+		WriteError(w, http.StatusBadRequest, "UNBLOCK_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "unblocked"})
+}
+
+func (h *V3Handlers) handleContactsBlocked(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	blocked, err := h.Contacts.GetBlockedContacts(r.Context(), h.getDID(r))
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "BLOCKED_LIST_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"contacts": blocked,
+		"count":    len(blocked),
+	})
 }
 
 func (h *V3Handlers) handleContactsAdd(w http.ResponseWriter, r *http.Request) {
@@ -433,12 +487,18 @@ func (h *V3Handlers) handleContactsRelationship(w http.ResponseWriter, r *http.R
 		contactsPayload = append(contactsPayload, entry)
 	}
 
+	blockedByMe, _ := h.Contacts.IsBlocked(r.Context(), caller, peer)
+	blockedMe, _ := h.Contacts.IsBlocked(r.Context(), peer, caller)
+
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"peer_did":              peer,
 		"mutual_groups":         mutualGroups,
 		"mutual_groups_count":   len(mutualGroups),
 		"mutual_contacts":       contactsPayload,
 		"mutual_contacts_count": len(contactsPayload),
+		"blocked_by_me":         blockedByMe,
+		"blocked_me":            blockedMe,
+		"is_blocked":            blockedByMe || blockedMe,
 		"request_id":            r.Header.Get("X-Request-ID"),
 	})
 }
