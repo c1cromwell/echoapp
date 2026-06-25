@@ -32,7 +32,10 @@ jobs:
         run: swift package resolve
 
       - name: Build library
-        # swift build must succeed — this is the hard gate.
+        # swift build is a macOS SPM SMOKE CHECK, NOT the iOS gate: it builds for macOS,
+        # so it cannot catch iOS-only failures (actor isolation, SwiftUI type-checker
+        # timeouts, #if os(iOS) code, pbxproj membership/ID collisions, bundled resources).
+        # The real gate is `xcodebuild test -scheme EchoMessaging` (see ios-products-ci.yml).
         # macOS SPM build requires .macOS(.v14) in Package.swift and #if os(iOS)
         # guards on UIKit/NFC-only files (added 2026-05-08 WO-208).
         run: swift build

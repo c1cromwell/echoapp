@@ -49,3 +49,28 @@ jobs:
             -configuration "${{ matrix.configuration }}" \
             -destination 'generic/platform=iOS' \
             CODE_SIGNING_ALLOWED=NO
+
+  # THE iOS gate: compiles the whole app AND runs the unit suite (EchoUnitTests) on a
+  # simulator. This is what catches what `swift build` (macOS SPM) cannot — iOS actor
+  # isolation, SwiftUI type-checker timeouts, pbxproj membership/ID collisions, missing
+  # bundled resources, etc. Run `xcodebuild test -scheme EchoMessaging` locally before merging.
+  messaging-tests:
+    name: Test EchoMessaging (iOS simulator gate)
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: ios/Echo
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+
+      - name: Run xcodebuild test (EchoMessaging)
+        run: |
+          xcodebuild test \
+            -project EchoApp.xcodeproj \
+            -scheme EchoMessaging \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -resultBundlePath /tmp/EchoMessaging.xcresult \
+            CODE_SIGNING_ALLOWED=NO
