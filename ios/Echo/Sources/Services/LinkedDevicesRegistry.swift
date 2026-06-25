@@ -24,7 +24,7 @@ actor LinkedDevicesRegistry {
 
     private func refresh() async {
         guard let did = await CurrentUserSession.currentDID(),
-              let client = DIContainer.shared.resolveAPIClient() else {
+              let client = await DIContainer.shared.resolveAPIClient() else {
             cached = []
             return
         }

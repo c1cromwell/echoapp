@@ -70,7 +70,7 @@ final class DeviceHistorySyncService {
                 case DeviceSyncEntryType.searchIndex:
                     let plaintext = try await crypto.unwrapWithLocalKey(ciphertext: entry.ciphertext)
                     let snapshot = try JSONDecoder().decode(SearchIndexSnapshot.self, from: plaintext)
-                    try indexStore.save(snapshot)
+                    try await indexStore.save(snapshot)
                     await LocalMessageIndexer.shared.importSnapshot(snapshot)
                     appliedEntries += 1
                 default:

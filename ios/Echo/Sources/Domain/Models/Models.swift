@@ -761,6 +761,8 @@ public struct EnhancedPrivacySettings: Codable {
     public var screenLockTimeout: String = "immediately"
     public var hideMessagePreviews: Bool = true
     public var screenshotNotifications: Bool = true
+    /// When true, outbound messages are delivered silently (no recipient notification). WO-187.
+    public var silentMessages: Bool = true
     // WO-208 additions
     public var showLastSeen: Bool = true
     public var showProfilePicture: Bool = true

@@ -243,102 +243,7 @@ struct ChatView: View {
                                 .listRowBackground(Color.clear)
                         }
                         ForEach(viewModel.messages) { message in
-                            VStack(
-                                alignment: message.isFromCurrentUser ? .trailing : .leading,
-                                spacing: 4
-                            ) {
-                                if let quote = message.replyPreview, !quote.isEmpty {
-                                    Text(quote)
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.echoInk55)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 6)
-                                        .background(Color.echoPaperDim)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        .frame(maxWidth: 280, alignment: message.isFromCurrentUser ? .trailing : .leading)
-                                }
-                                if message.forwardedFromMessageId != nil {
-                                    Text("Forwarded")
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .foregroundColor(.echoInk40)
-                                }
-                                messageBubbleContent(for: message)
-                                .onAppear {
-                                    if !message.isFromCurrentUser {
-                                        Task {
-                                            await viewModel.onMessageAppeared(
-                                                messageId: message.id,
-                                                senderDID: message.senderDID
-                                            )
-                                        }
-                                    }
-                                }
-                                .onLongPressGesture {
-                                    withAnimation(.glacialPress) {
-                                        reactionTargetId = reactionTargetId == message.id ? nil : message.id
-                                    }
-                                }
-
-                                if !message.reactions.isEmpty {
-                                    ReactionChipsView(
-                                        reactions: message.reactions,
-                                        currentUserDID: viewModel.currentUserDID,
-                                        onTap: { emoji in
-                                            Task {
-                                                await viewModel.toggleReaction(
-                                                    messageId: message.id,
-                                                    emoji: emoji
-                                                )
-                                            }
-                                        },
-                                        onShowReactors: { emoji, reactors in
-                                            reactorDetail = (emoji, reactors)
-                                        }
-                                    )
-                                }
-                            }
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(.init())
-                            .listRowBackground(Color.clear)
-                            .id(message.id)
-                            .overlay(alignment: message.isFromCurrentUser ? .bottomTrailing : .bottomLeading) {
-                                if reactionTargetId == message.id {
-                                    HStack(spacing: 6) {
-                                        ReactionPickerView(
-                                            onSelect: { emoji in
-                                                Task {
-                                                    await viewModel.toggleReaction(
-                                                        messageId: message.id,
-                                                        emoji: emoji
-                                                    )
-                                                }
-                                                withAnimation(.glacialPress) { reactionTargetId = nil }
-                                            },
-                                            onDismiss: {
-                                                withAnimation(.glacialPress) { reactionTargetId = nil }
-                                            }
-                                        )
-
-                                        // "More" → full Telegram-style action grid (§5.3)
-                                        Button {
-                                            withAnimation(.glacialPress) { reactionTargetId = nil }
-                                            actionsTargetMessage = message
-                                        } label: {
-                                            Image(systemName: "ellipsis")
-                                                .font(.system(size: 17, weight: .semibold))
-                                                .foregroundColor(.echoInk70)
-                                                .frame(width: 40, height: 40)
-                                                .background(Color.echoPaper)
-                                                .clipShape(Circle())
-                                                .overlay(Circle().stroke(Color.echoHair, lineWidth: 1))
-                                        }
-                                        .buttonStyle(.plain)
-                                        .accessibilityLabel("More actions")
-                                    }
-                                    .transition(.scale.combined(with: .opacity))
-                                    .offset(y: -44)
-                                }
-                            }
+                            messageRow(for: message)
                         }
                     }
                     .listStyle(.plain)
@@ -533,7 +438,7 @@ struct ChatView: View {
         }
         #if os(iOS)
         .screenCaptureGuard(
-            enabled: ConversationPreferencesStore.shared.isHidden(conversationId: conversationId)
+            enabled: ConversationPreferencesStore.shared.isHidden(conversationId)
         )
         #endif
     }
@@ -864,6 +769,112 @@ struct ChatView: View {
         let minutes = total / 60
         let seconds = total % 60
         return String(format: "%d:%02d", minutes, seconds)
+    }
+
+
+
+    @ViewBuilder
+    private func messageRow(for message: ChatDetailMessage) -> some View {
+        let rowAlignment: HorizontalAlignment = message.isFromCurrentUser ? .trailing : .leading
+        VStack(alignment: rowAlignment, spacing: 4) {
+            if let quote = message.replyPreview, !quote.isEmpty {
+                replyQuoteBubble(quote, isFromCurrentUser: message.isFromCurrentUser)
+            }
+            if message.forwardedFromMessageId != nil {
+                Text("Forwarded")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.echoInk40)
+            }
+            messageBubbleContent(for: message)
+            .onAppear {
+                if !message.isFromCurrentUser {
+                    Task {
+                        await viewModel.onMessageAppeared(
+                            messageId: message.id,
+                            senderDID: message.senderDID
+                        )
+                    }
+                }
+            }
+            .onLongPressGesture {
+                withAnimation(.glacialPress) {
+                    reactionTargetId = reactionTargetId == message.id ? nil : message.id
+                }
+            }
+            if !message.reactions.isEmpty {
+                ReactionChipsView(
+                    reactions: message.reactions,
+                    currentUserDID: viewModel.currentUserDID,
+                    onTap: { emoji in
+                        Task {
+                            await viewModel.toggleReaction(
+                                messageId: message.id,
+                                emoji: emoji
+                            )
+                        }
+                    },
+                    onShowReactors: { emoji, reactors in
+                        reactorDetail = (emoji, reactors)
+                    }
+                )
+            }
+        }
+        .listRowSeparator(.hidden)
+        .listRowInsets(.init())
+        .listRowBackground(Color.clear)
+        .id(message.id)
+        .overlay(alignment: message.isFromCurrentUser ? .bottomTrailing : .bottomLeading) {
+            if reactionTargetId == message.id {
+                reactionQuickBar(for: message)
+                .transition(.scale.combined(with: .opacity))
+                .offset(y: -44)
+            }
+        }
+    }
+    @ViewBuilder
+    private func reactionQuickBar(for message: ChatDetailMessage) -> some View {
+    HStack(spacing: 6) {
+        ReactionPickerView(
+            onSelect: { emoji in
+                Task {
+                    await viewModel.toggleReaction(
+                        messageId: message.id,
+                        emoji: emoji
+                    )
+                }
+                withAnimation(.glacialPress) { reactionTargetId = nil }
+            },
+            onDismiss: {
+                withAnimation(.glacialPress) { reactionTargetId = nil }
+            }
+        )
+        // "More" → full Telegram-style action grid (§5.3)
+        Button {
+            withAnimation(.glacialPress) { reactionTargetId = nil }
+            actionsTargetMessage = message
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.echoInk70)
+                .frame(width: 40, height: 40)
+                .background(Color.echoPaper)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.echoHair, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("More actions")
+    }
+    }
+    @ViewBuilder
+    private func replyQuoteBubble(_ quote: String, isFromCurrentUser: Bool) -> some View {
+        Text(quote)
+            .font(.system(size: 12))
+            .foregroundColor(.echoInk55)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.echoPaperDim)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .frame(maxWidth: 280, alignment: isFromCurrentUser ? .trailing : .leading)
     }
 
     @ViewBuilder

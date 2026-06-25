@@ -227,17 +227,9 @@ struct SearchUsersUseCase {
 
 // MARK: - Add Contact UseCase
 
-struct AddContactUseCase {
-    private let repository: UserRepository
-    
-    init(repository: UserRepository) {
-        self.repository = repository
-    }
-    
-    func execute(userId: String) async throws {
-        return try await repository.addContact(userId: userId)
-    }
-}
+// (AddContactUseCase moved to UseCases/Contacts/ContactUseCases.swift — the client-based
+// version is canonical; the old repository-based duplicate was unused and removed to fix an
+// ambiguous-type-lookup build error.)
 
 // MARK: - Get Contacts UseCase
 

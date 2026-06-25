@@ -419,5 +419,4 @@ class BotManagementViewModel: ObservableObject {
     }
 }
 
-extension BotManifestDTO: Identifiable {}
 #endif

@@ -43,8 +43,8 @@ final class ScreenshotAlertService {
 
     private func handleScreenshot() async {
         guard PrivacySettingsStore.load().screenshotNotifications,
-              !ConversationPreferencesStore.shared.isHidden(conversationId),
               let conversationId = activeConversationId,
+              !ConversationPreferencesStore.shared.isHidden(conversationId),
               let peerDID = activePeerDID,
               let signalService else { return }
         do {

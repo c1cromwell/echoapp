@@ -158,6 +158,7 @@ struct EchoRootView: View {
                     }
             }
         }
+        .echoTranslationHost()
     }
 }
 

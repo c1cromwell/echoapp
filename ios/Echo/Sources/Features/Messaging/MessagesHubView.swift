@@ -36,7 +36,7 @@ struct MessagesHubView: View {
     let onComposeHidden: () -> Void
     let onOpenHidden: () -> Void
     let onLockHidden: () -> Void
-    let onOpenHiddenSettings: () -> Void = {}
+    var onOpenHiddenSettings: () -> Void = {}
     let onSwitchPersona: (PersonaSummary) -> Void
     let onSelectHiddenPersona: (PersonaSummary) -> Void
     let onToggleArchive: (String, Bool) -> Void

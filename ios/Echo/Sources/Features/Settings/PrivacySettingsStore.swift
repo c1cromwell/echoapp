@@ -21,7 +21,7 @@ enum PrivacySettingsStore {
     /// Persists locally and best-effort syncs profile privacy to the server (WO-187).
     static func saveAndSync(_ settings: EnhancedPrivacySettings) async {
         save(settings)
-        if let useCase = DIContainer.shared.resolveSyncProfilePrivacyUseCase() {
+        if let useCase = await DIContainer.shared.resolveSyncProfilePrivacyUseCase() {
             try? await useCase.sync(settings)
         }
     }

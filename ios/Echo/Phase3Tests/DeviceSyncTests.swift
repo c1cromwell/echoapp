@@ -132,6 +132,7 @@ final class DeviceIdentityStoreTests: XCTestCase {
 }
 
 final class DisappearingMessageEnforcerTests: XCTestCase {
+    @MainActor
     func testExpiryAndPurge() {
         let sent = Date().addingTimeInterval(-120)
         let msg = StoredThreadMessage(

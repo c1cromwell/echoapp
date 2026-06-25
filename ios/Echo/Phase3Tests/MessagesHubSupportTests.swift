@@ -49,7 +49,7 @@ final class ContactTrustIndexTests: XCTestCase {
     func testIngestRemoteContacts_mapsBadge() {
         let index = ContactTrustIndex.shared
         index.ingestRemoteContacts([
-            RemoteContact(contactDid: "did:key:bob", ownerDid: nil, addedVia: nil, trustBadge: "verified"),
+            RemoteContact(contactDid: "did:key:bob", ownerDid: nil, addedVia: nil, trustBadge: "verified", blocked: false),
         ])
         XCTAssertEqual(index.tier(peerDID: "did:key:bob"), 2)
     }
