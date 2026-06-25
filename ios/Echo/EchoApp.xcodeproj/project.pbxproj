@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3AD2DC71871AA797D5BF5FA2 /* MeshPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2731784B7A2F631BB1935E7 /* MeshPacket.swift */; };
+		2184D896695DCBD3BC90FA23 /* MeshFragmenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A38C5B6BCCFF4040ED1C0C3 /* MeshFragmenter.swift */; };
+		2701819F741F46A6EF37C794 /* MeshRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D36546847539C0E4411930 /* MeshRouter.swift */; };
+		710CB0159E90285F82C491C3 /* BLEMeshConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C56C30C8FBC2E5FF666D3B /* BLEMeshConstants.swift */; };
+		AE17FB76B45A201BB4C9B721 /* BLEMeshService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92188D0521874B5D7AF386CE /* BLEMeshService.swift */; };
+		5D2E7D0EC45BBDBEC6189EC6 /* MeshCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33DE3CE2A654D3190D75E2EC /* MeshCoreTests.swift */; };
 		A9827FE91B606F3CB247B64D /* MeshEntitlements.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30D588998D99882A1943146B /* MeshEntitlements.swift */; };
 		E5CCAA6273C276DC9187C8F4 /* MeshFoundationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27FD3AB602586E43E0B075BA /* MeshFoundationsTests.swift */; };
 		B065AFDE1621C82E56E932D8 /* GeistMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7F81D8C1B8949FC993EC73C9 /* GeistMono-Regular.ttf */; };
@@ -369,6 +375,12 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		F2731784B7A2F631BB1935E7 /* MeshPacket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshPacket.swift; sourceTree = "<group>"; };
+		2A38C5B6BCCFF4040ED1C0C3 /* MeshFragmenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshFragmenter.swift; sourceTree = "<group>"; };
+		D4D36546847539C0E4411930 /* MeshRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshRouter.swift; sourceTree = "<group>"; };
+		50C56C30C8FBC2E5FF666D3B /* BLEMeshConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEMeshConstants.swift; sourceTree = "<group>"; };
+		92188D0521874B5D7AF386CE /* BLEMeshService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEMeshService.swift; sourceTree = "<group>"; };
+		33DE3CE2A654D3190D75E2EC /* MeshCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshCoreTests.swift; sourceTree = "<group>"; };
 		30D588998D99882A1943146B /* MeshEntitlements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshEntitlements.swift; sourceTree = "<group>"; };
 		27FD3AB602586E43E0B075BA /* MeshFoundationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshFoundationsTests.swift; sourceTree = "<group>"; };
 		7F81D8C1B8949FC993EC73C9 /* GeistMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = GeistMono-Regular.ttf; sourceTree = "<group>"; };
@@ -737,6 +749,11 @@
 		D38F8737830CD95A95E82D6D /* Mesh */ = {
 			isa = PBXGroup;
 			children = (
+				F2731784B7A2F631BB1935E7 /* MeshPacket.swift */,
+				2A38C5B6BCCFF4040ED1C0C3 /* MeshFragmenter.swift */,
+				D4D36546847539C0E4411930 /* MeshRouter.swift */,
+				50C56C30C8FBC2E5FF666D3B /* BLEMeshConstants.swift */,
+				92188D0521874B5D7AF386CE /* BLEMeshService.swift */,
 				30D588998D99882A1943146B /* MeshEntitlements.swift */,
 			);
 			path = Mesh;
@@ -758,6 +775,7 @@
 		930B0F85E8C631514258FECB /* Phase3Tests */ = {
 			isa = PBXGroup;
 			children = (
+				33DE3CE2A654D3190D75E2EC /* MeshCoreTests.swift */,
 				27FD3AB602586E43E0B075BA /* MeshFoundationsTests.swift */,
 				BF25E25928AB28828C288662 /* FontResourceTests.swift */,
 				65D7ADC046E5D7474E11FE3C /* BackupCryptoTests.swift */,
@@ -1828,6 +1846,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5D2E7D0EC45BBDBEC6189EC6 /* MeshCoreTests.swift in Sources */,
 				E5CCAA6273C276DC9187C8F4 /* MeshFoundationsTests.swift in Sources */,
 				CFF3DD48C019A89DC6AA481D /* FontResourceTests.swift in Sources */,
 				9BF27F59DB120AC25A20CA65 /* BackupCryptoTests.swift in Sources */,
@@ -1863,6 +1882,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3AD2DC71871AA797D5BF5FA2 /* MeshPacket.swift in Sources */,
+				2184D896695DCBD3BC90FA23 /* MeshFragmenter.swift in Sources */,
+				2701819F741F46A6EF37C794 /* MeshRouter.swift in Sources */,
+				710CB0159E90285F82C491C3 /* BLEMeshConstants.swift in Sources */,
+				AE17FB76B45A201BB4C9B721 /* BLEMeshService.swift in Sources */,
 				A9827FE91B606F3CB247B64D /* MeshEntitlements.swift in Sources */,
 				DF3DFD35E2A4DEC1094AF448 /* ProvisioningStatusBanner.swift in Sources */,
 				330C3013B78988D940B9F66A /* MessagingKeyRegistrar.swift in Sources */,

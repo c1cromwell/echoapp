@@ -1,0 +1,15 @@
+ECHO BLE mesh (Sources/Core/Mesh)
+=================================
+
+The design of this mesh layer — TTL-bounded flooding with per-message dedup,
+store-and-forward relay, payload fragmentation/reassembly, and a GATT
+write/notify transport — is derived from bitchat by permissionless.tech
+(https://github.com/permissionlesstech/bitchat), which is released into the
+public domain under The Unlicense.
+
+bitchat is public domain; no attribution is required. This NOTICE is provided
+as a courtesy to record provenance. ECHO-specific identity, end-to-end crypto,
+trust/verification gating, and UI are original to this project.
+
+Mesh constants (service/characteristic UUIDs) are ECHO's own and are NOT
+interoperable with the bitchat network.
