@@ -9,7 +9,9 @@ import Foundation
 
 public protocol MeshRouterDelegate: AnyObject {
     /// A fully-reassembled payload addressed to us (or broadcast) is ready for the app.
-    func meshRouter(_ router: MeshRouter, didReceive payload: Data, from sender: Data, messageID: Data)
+    /// `type` lets the consumer split application messages from key-announce certs etc.
+    func meshRouter(_ router: MeshRouter, didReceive payload: Data, from sender: Data,
+                    type: MeshPacketType, messageID: Data)
     /// Push this frame out to every connected peer (origination and relay both use this).
     func meshRouter(_ router: MeshRouter, broadcast packet: MeshPacket)
 }
@@ -43,17 +45,17 @@ public final class MeshRouter {
     /// Originate a message from this node: fragment if needed, mark seen (so we don't relay
     /// our own echoes), and broadcast each frame. Returns the frames sent (for tests/inspection).
     @discardableResult
-    public func send(payload: Data, to recipient: Data, ttl: UInt8? = nil) -> [MeshPacket] {
+    public func send(payload: Data, to recipient: Data, type: MeshPacketType = .message, ttl: UInt8? = nil) -> [MeshPacket] {
         let hops = min(ttl ?? maxHops, maxHops)
         let maxChunk = max(1, maxPacketSize - MeshPacket.headerSize)
         let packets: [MeshPacket]
         if payload.count <= maxChunk {
-            packets = [MeshPacket(type: .message, ttl: hops, messageID: MeshPacket.randomMessageID(),
+            packets = [MeshPacket(type: type, ttl: hops, messageID: MeshPacket.randomMessageID(),
                                   sender: localID, recipient: recipient, payload: payload)]
         } else {
             let groupID = MeshPacket.randomMessageID()
             packets = MeshFragmenter.fragment(payload, groupID: groupID, maxChunk: maxChunk).map { frag in
-                MeshPacket(type: .message, ttl: hops, flags: .fragmented,
+                MeshPacket(type: type, ttl: hops, flags: .fragmented,
                            messageID: MeshPacket.randomMessageID(),
                            sender: localID, recipient: recipient, payload: frag)
             }
@@ -82,10 +84,10 @@ public final class MeshRouter {
         if forMe {
             if packet.flags.contains(.fragmented) {
                 if let full = reassembler.add(packet.payload) {
-                    delegate?.meshRouter(self, didReceive: full, from: packet.sender, messageID: packet.messageID)
+                    delegate?.meshRouter(self, didReceive: full, from: packet.sender, type: packet.type, messageID: packet.messageID)
                 }
             } else {
-                delegate?.meshRouter(self, didReceive: packet.payload, from: packet.sender, messageID: packet.messageID)
+                delegate?.meshRouter(self, didReceive: packet.payload, from: packet.sender, type: packet.type, messageID: packet.messageID)
             }
         }
 

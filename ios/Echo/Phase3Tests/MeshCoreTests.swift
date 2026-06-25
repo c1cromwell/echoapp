@@ -61,10 +61,11 @@ final class MeshFragmenterTests: XCTestCase {
 }
 
 private final class CapturingDelegate: MeshRouterDelegate {
-    var delivered: [(payload: Data, sender: Data)] = []
+    var delivered: [(payload: Data, sender: Data, type: MeshPacketType)] = []
     var broadcasts: [MeshPacket] = []
-    func meshRouter(_ router: MeshRouter, didReceive payload: Data, from sender: Data, messageID: Data) {
-        delivered.append((payload, sender))
+    func meshRouter(_ router: MeshRouter, didReceive payload: Data, from sender: Data,
+                    type: MeshPacketType, messageID: Data) {
+        delivered.append((payload, sender, type))
     }
     func meshRouter(_ router: MeshRouter, broadcast packet: MeshPacket) { broadcasts.append(packet) }
 }

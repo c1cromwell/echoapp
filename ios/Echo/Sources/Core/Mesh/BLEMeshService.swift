@@ -16,8 +16,11 @@ import Foundation
 import CoreBluetooth
 
 public final class BLEMeshService: NSObject, MeshNode {
-    /// Delivered when a fully-reassembled payload addressed to us (or broadcast) arrives.
+    /// Delivered when an application payload (`.message`) addressed to us (or broadcast) arrives.
     public var onMessage: ((_ payload: Data, _ fromPeer: Data) -> Void)?
+    /// Delivered when a key-announce cert (`.keyAnnounce`) arrives — feed it to MeshPeerCache for
+    /// offline verified-peer key resolution.
+    public var onKeyAnnounce: ((_ certData: Data, _ fromPeer: Data) -> Void)?
     /// Observability: peer-count changes (for UI "N people nearby").
     public var onPeerCountChange: ((Int) -> Void)?
 
@@ -58,7 +61,14 @@ public final class BLEMeshService: NSObject, MeshNode {
     /// Originate an application payload to a peer id (or `MeshPacket.broadcast`).
     public func send(_ payload: Data, to recipient: Data) {
         queue.async { [weak self] in
-            self?.router.send(payload: payload, to: recipient)
+            self?.router.send(payload: payload, to: recipient, type: .message)
+        }
+    }
+
+    /// Broadcast our signed messaging-key cert so nearby peers can resolve our key offline.
+    public func announce(_ certData: Data) {
+        queue.async { [weak self] in
+            self?.router.send(payload: certData, to: MeshPacket.broadcast, type: .keyAnnounce)
         }
     }
 
@@ -87,8 +97,14 @@ public final class BLEMeshService: NSObject, MeshNode {
 // MARK: - MeshRouterDelegate
 
 extension BLEMeshService: MeshRouterDelegate {
-    public func meshRouter(_ router: MeshRouter, didReceive payload: Data, from sender: Data, messageID: Data) {
-        DispatchQueue.main.async { [weak self] in self?.onMessage?(payload, sender) }
+    public func meshRouter(_ router: MeshRouter, didReceive payload: Data, from sender: Data,
+                           type: MeshPacketType, messageID: Data) {
+        DispatchQueue.main.async { [weak self] in
+            switch type {
+            case .keyAnnounce: self?.onKeyAnnounce?(payload, sender)
+            default:           self?.onMessage?(payload, sender)
+            }
+        }
     }
     public func meshRouter(_ router: MeshRouter, broadcast packet: MeshPacket) {
         transmit(packet.encoded())

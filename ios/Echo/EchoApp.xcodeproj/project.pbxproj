@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1C67EA700695983A2DBE053E /* MeshKeyAnnounce.swift in Sources */ = {isa = PBXBuildFile; fileRef = D159F295063A2717C9EE720B /* MeshKeyAnnounce.swift */; };
+		37AF7B41058221CA691A714C /* TransportRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 590E5C459BD411F3F6F85B72 /* TransportRouter.swift */; };
+		8037675082B40E14C0324B16 /* OfflineMessageQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6486A8E989FC16A6FC78024E /* OfflineMessageQueue.swift */; };
+		A2066877D86860D5771B8027 /* MeshIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA73E9D5AA5F5C1D1DF86F18 /* MeshIntegrationTests.swift */; };
 		C446A4228C617A46825E1F1A /* MeshSignalTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E7598EA31F9A7195FF5880 /* MeshSignalTransport.swift */; };
 		6EAB819B23A69ED088C15315 /* MeshPeerDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A743A63C9E92DAE453E8C8 /* MeshPeerDirectory.swift */; };
 		B8A5DE1C04FEAD5C0DDB2785 /* MeshGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2048633A1ADD352B6D1A239D /* MeshGateView.swift */; };
@@ -380,6 +384,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		D159F295063A2717C9EE720B /* MeshKeyAnnounce.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshKeyAnnounce.swift; sourceTree = "<group>"; };
+		590E5C459BD411F3F6F85B72 /* TransportRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportRouter.swift; sourceTree = "<group>"; };
+		6486A8E989FC16A6FC78024E /* OfflineMessageQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineMessageQueue.swift; sourceTree = "<group>"; };
+		FA73E9D5AA5F5C1D1DF86F18 /* MeshIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshIntegrationTests.swift; sourceTree = "<group>"; };
 		D1E7598EA31F9A7195FF5880 /* MeshSignalTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshSignalTransport.swift; sourceTree = "<group>"; };
 		E2A743A63C9E92DAE453E8C8 /* MeshPeerDirectory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshPeerDirectory.swift; sourceTree = "<group>"; };
 		2048633A1ADD352B6D1A239D /* MeshGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshGateView.swift; sourceTree = "<group>"; };
@@ -759,6 +767,9 @@
 		D38F8737830CD95A95E82D6D /* Mesh */ = {
 			isa = PBXGroup;
 			children = (
+				D159F295063A2717C9EE720B /* MeshKeyAnnounce.swift */,
+				590E5C459BD411F3F6F85B72 /* TransportRouter.swift */,
+				6486A8E989FC16A6FC78024E /* OfflineMessageQueue.swift */,
 				D1E7598EA31F9A7195FF5880 /* MeshSignalTransport.swift */,
 				E2A743A63C9E92DAE453E8C8 /* MeshPeerDirectory.swift */,
 				2048633A1ADD352B6D1A239D /* MeshGateView.swift */,
@@ -789,6 +800,7 @@
 		930B0F85E8C631514258FECB /* Phase3Tests */ = {
 			isa = PBXGroup;
 			children = (
+				FA73E9D5AA5F5C1D1DF86F18 /* MeshIntegrationTests.swift */,
 				4517F2AB8F38C6D11E9E3D30 /* MeshTransportTests.swift */,
 				33DE3CE2A654D3190D75E2EC /* MeshCoreTests.swift */,
 				27FD3AB602586E43E0B075BA /* MeshFoundationsTests.swift */,
@@ -1861,6 +1873,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A2066877D86860D5771B8027 /* MeshIntegrationTests.swift in Sources */,
 				C5DDE1D6F1D4460C62003E2B /* MeshTransportTests.swift in Sources */,
 				5D2E7D0EC45BBDBEC6189EC6 /* MeshCoreTests.swift in Sources */,
 				E5CCAA6273C276DC9187C8F4 /* MeshFoundationsTests.swift in Sources */,
@@ -1898,6 +1911,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1C67EA700695983A2DBE053E /* MeshKeyAnnounce.swift in Sources */,
+				37AF7B41058221CA691A714C /* TransportRouter.swift in Sources */,
+				8037675082B40E14C0324B16 /* OfflineMessageQueue.swift in Sources */,
 				C446A4228C617A46825E1F1A /* MeshSignalTransport.swift in Sources */,
 				6EAB819B23A69ED088C15315 /* MeshPeerDirectory.swift in Sources */,
 				B8A5DE1C04FEAD5C0DDB2785 /* MeshGateView.swift in Sources */,
