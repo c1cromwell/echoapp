@@ -62,6 +62,11 @@ final class DeviceHistorySyncService {
                     let bundle = try HistorySyncBundle.decode(from: plaintext)
                     HistorySyncBundleMerger.apply(bundle, to: conversationStore)
                     appliedEntries += 1
+                case DeviceSyncEntryType.message, DeviceSyncEntryType.tombstone:
+                    let plaintext = try await crypto.unwrapWithLocalKey(ciphertext: entry.ciphertext)
+                    let envelope = try JSONDecoder().decode(DeviceSyncMessageEnvelope.self, from: plaintext)
+                    applyIncremental(envelope)
+                    appliedEntries += 1
                 case DeviceSyncEntryType.searchIndex:
                     let plaintext = try await crypto.unwrapWithLocalKey(ciphertext: entry.ciphertext)
                     let snapshot = try JSONDecoder().decode(SearchIndexSnapshot.self, from: plaintext)
@@ -79,6 +84,17 @@ final class DeviceHistorySyncService {
         }
 
         return appliedEntries
+    }
+
+    private func applyIncremental(_ envelope: DeviceSyncMessageEnvelope) {
+        switch envelope.operation {
+        case .upsert:
+            guard let message = envelope.message else { return }
+            ConversationThreadStore.upsertMessage(conversationId: envelope.conversationId, message: message)
+        case .tombstone:
+            guard let messageId = envelope.messageId else { return }
+            ConversationThreadStore.removeMessage(conversationId: envelope.conversationId, messageId: messageId)
+        }
     }
 
     /// Revoke a linked device's sync stream (e.g. when removing the device).

@@ -273,6 +273,9 @@
 		M3B004SYNC00000000000004 /* DeviceSyncCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F004SYNC00000000000004 /* DeviceSyncCrypto.swift */; };
 		M3B005SYNC00000000000005 /* SyncCursorStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F005SYNC00000000000005 /* SyncCursorStore.swift */; };
 		M3B006SYNC00000000000006 /* DeviceHistorySyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F006SYNC00000000000006 /* DeviceHistorySyncService.swift */; };
+		M3B007SYNC00000000000007 /* DeviceSyncMessageEnvelope.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F007SYNC00000000000007 /* DeviceSyncMessageEnvelope.swift */; };
+		M3B008SYNC00000000000008 /* LinkedDevicesRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F008SYNC00000000000008 /* LinkedDevicesRegistry.swift */; };
+		M3B009SYNC00000000000009 /* DeviceIncrementalSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F009SYNC00000000000009 /* DeviceIncrementalSyncService.swift */; };
 		M3C001BACKUP00000000001 /* BackupCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F007BACKUP00000000001 /* BackupCrypto.swift */; };
 		M3C002BACKUP00000000002 /* BackupAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F008BACKUP00000000002 /* BackupAPIClient.swift */; };
 		M3C003BACKUP00000000003 /* MessageBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F009BACKUP00000000003 /* MessageBackupService.swift */; };
@@ -631,6 +634,9 @@
 		M3F004SYNC00000000000004 /* DeviceSyncCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceSyncCrypto.swift; sourceTree = "<group>"; };
 		M3F005SYNC00000000000005 /* SyncCursorStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncCursorStore.swift; sourceTree = "<group>"; };
 		M3F006SYNC00000000000006 /* DeviceHistorySyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceHistorySyncService.swift; sourceTree = "<group>"; };
+		M3F007SYNC00000000000007 /* DeviceSyncMessageEnvelope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceSyncMessageEnvelope.swift; sourceTree = "<group>"; };
+		M3F008SYNC00000000000008 /* LinkedDevicesRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkedDevicesRegistry.swift; sourceTree = "<group>"; };
+		M3F009SYNC00000000000009 /* DeviceIncrementalSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIncrementalSyncService.swift; sourceTree = "<group>"; };
 		M3F007BACKUP00000000001 /* BackupCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCrypto.swift; sourceTree = "<group>"; };
 		M3F008BACKUP00000000002 /* BackupAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupAPIClient.swift; sourceTree = "<group>"; };
 		M3F009BACKUP00000000003 /* MessageBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageBackupService.swift; sourceTree = "<group>"; };
@@ -927,6 +933,9 @@
 				M3F004SYNC00000000000004 /* DeviceSyncCrypto.swift */,
 				M3F005SYNC00000000000005 /* SyncCursorStore.swift */,
 				M3F006SYNC00000000000006 /* DeviceHistorySyncService.swift */,
+				M3F007SYNC00000000000007 /* DeviceSyncMessageEnvelope.swift */,
+				M3F008SYNC00000000000008 /* LinkedDevicesRegistry.swift */,
+				M3F009SYNC00000000000009 /* DeviceIncrementalSyncService.swift */,
 				M3F007BACKUP00000000001 /* BackupCrypto.swift */,
 				M3F008BACKUP00000000002 /* BackupAPIClient.swift */,
 				M3F009BACKUP00000000003 /* MessageBackupService.swift */,
@@ -1855,6 +1864,9 @@
 				M3B004SYNC00000000000004 /* DeviceSyncCrypto.swift in Sources */,
 				M3B005SYNC00000000000005 /* SyncCursorStore.swift in Sources */,
 				M3B006SYNC00000000000006 /* DeviceHistorySyncService.swift in Sources */,
+				M3B007SYNC00000000000007 /* DeviceSyncMessageEnvelope.swift in Sources */,
+				M3B008SYNC00000000000008 /* LinkedDevicesRegistry.swift in Sources */,
+				M3B009SYNC00000000000009 /* DeviceIncrementalSyncService.swift in Sources */,
 				M3C001BACKUP00000000001 /* BackupCrypto.swift in Sources */,
 				M3C002BACKUP00000000002 /* BackupAPIClient.swift in Sources */,
 				M3C003BACKUP00000000003 /* MessageBackupService.swift in Sources */,

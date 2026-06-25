@@ -239,6 +239,7 @@ final class ChatDetailViewModel {
         messages.removeAll { $0.id == messageId }
         pinnedMessageIDs.remove(messageId)
         ConversationThreadStore.replace(conversationId: conversationId, messages: messages)
+        DeviceSyncOutboundCoordinator.notifyMessageDeleted(conversationId: conversationId, messageId: messageId)
         if let opsAPI {
             _ = try? await opsAPI.deleteMessage(messageId: messageId, conversationId: conversationId)
         }
@@ -391,6 +392,10 @@ final class ChatDetailViewModel {
         )
         messages.append(message)
         ConversationThreadStore.appendIfNew(conversationId: conversationId, message: message)
+        DeviceSyncOutboundCoordinator.notifyMessageSaved(
+            conversationId: conversationId,
+            message: StoredThreadMessage(from: message)
+        )
         onSend(trimmed)
 
         do {
@@ -827,6 +832,10 @@ final class ChatDetailViewModel {
 
     private func syncThreadMessage(_ message: ChatDetailMessage) {
         ConversationThreadStore.replace(conversationId: conversationId, messages: messages)
+        DeviceSyncOutboundCoordinator.notifyMessageSaved(
+            conversationId: conversationId,
+            message: StoredThreadMessage(from: message)
+        )
     }
 
     private func schedulePeerTypingSafetyClear() {

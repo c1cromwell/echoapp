@@ -24,6 +24,8 @@ func (h *V3Handlers) handleBotsSubroute(w http.ResponseWriter, r *http.Request) 
 		h.handleBotsInstalled(w, r)
 	case path == "install" && r.Method == http.MethodPost:
 		h.handleBotsInstall(w, r)
+	case strings.HasPrefix(path, "relay/"):
+		h.handleBotsRelaySubroute(w, r, strings.TrimPrefix(path, "relay/"))
 	default:
 		if strings.HasSuffix(path, "/install") {
 			botDID, err := url.PathUnescape(strings.TrimSuffix(path, "/install"))

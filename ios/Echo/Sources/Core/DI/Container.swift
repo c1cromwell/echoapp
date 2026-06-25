@@ -170,6 +170,14 @@ final class DIContainer {
             return DeviceHistorySyncService(syncAPI: syncAPI, crypto: crypto)
         }
 
+        registerFactory(ServiceKeys.deviceIncrementalSync) { [weak self] () -> DeviceIncrementalSyncService in
+            let syncAPI: LiveDeviceSyncAPIClient = self?.resolve(ServiceKeys.deviceSyncAPI)
+                ?? LiveDeviceSyncAPIClient(apiClient: APIClient(configuration: .default))
+            let crypto: DeviceSyncCrypto = self?.resolve(ServiceKeys.deviceSyncCrypto)
+                ?? DeviceSyncCrypto()
+            return DeviceIncrementalSyncService(syncAPI: syncAPI, crypto: crypto)
+        }
+
         registerFactory(ServiceKeys.backupAPI) { [weak self] () -> LiveBackupAPIClient in
             let client: APIClient = self?.resolve(ServiceKeys.apiClient)
                 ?? APIClient(configuration: .default)
@@ -352,6 +360,7 @@ enum ServiceKeys {
     static let deviceSyncAPI = "networking.deviceSyncAPI"
     static let deviceSyncCrypto = "services.deviceSyncCrypto"
     static let deviceHistorySync = "services.deviceHistorySync"
+    static let deviceIncrementalSync = "services.deviceIncrementalSync"
     static let backupAPI = "networking.backupAPI"
     static let messageBackup = "services.messageBackup"
     static let callSignaling = "services.callSignaling"
@@ -500,6 +509,10 @@ extension DIContainer {
 
     func resolveDeviceHistorySync() -> DeviceHistorySyncService? {
         resolve(ServiceKeys.deviceHistorySync)
+    }
+
+    func resolveDeviceIncrementalSync() -> DeviceIncrementalSyncService? {
+        resolve(ServiceKeys.deviceIncrementalSync)
     }
 
     func resolveMessageBackup() -> MessageBackupService? {

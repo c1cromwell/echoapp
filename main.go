@@ -273,6 +273,8 @@ func (s *Server) Start() error {
 	sealedTokenStore := messaging.NewSealedTokenStore()
 	convNotifPrefs := messaging.NewConversationNotificationPrefsStore()
 	botInstalls := bots.NewInstallStore()
+	botTokens := bots.NewTokenValidatorFromEnv()
+	botRateLimiter := bots.NewRateLimiter(100, time.Minute)
 
 	router.V3 = &api.V3Handlers{
 		DB:              db,
@@ -292,6 +294,8 @@ func (s *Server) Start() error {
 		SealedTokens:    sealedTokenStore,  // WO-219 sealed-sender delivery tokens
 		ConvNotifPrefs:  convNotifPrefs,    // WO-56 per-conversation mute prefs
 		Bots:            botInstalls,       // Stage 4 bot install grants
+		BotTokens:       botTokens,         // WO-11 bot relay auth
+		BotRateLimiter:  botRateLimiter,    // WO-11 ~100 msg/min per bot
 	}
 	if os.Getenv("COMPLY_SERVICE_TOKEN") != "" {
 		log.Println("ECHO Comply retention service enabled (WO-250)")

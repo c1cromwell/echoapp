@@ -103,6 +103,7 @@ struct LinkNewDeviceQRView: View {
                 for device in fresh {
                     do {
                         try await sync.seedAllToDevice(publicKeyHex: device.publicKeyHex)
+                        await LinkedDevicesRegistry.shared.invalidate()
                         knownPublicKeys.insert(device.publicKeyHex.lowercased())
                         syncStatus = "History and search index sent to \(device.deviceLabel ?? "new device")."
                     } catch {

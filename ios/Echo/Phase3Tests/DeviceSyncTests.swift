@@ -131,6 +131,39 @@ final class DeviceIdentityStoreTests: XCTestCase {
     }
 }
 
+final class DeviceSyncMessageEnvelopeTests: XCTestCase {
+    func testUpsertTombstoneRoundTrip() throws {
+        let message = StoredThreadMessage(
+            id: "m-sync",
+            senderDID: "did:key:alice",
+            content: "incremental",
+            timestamp: "Now"
+        )
+        let upsert = DeviceSyncMessageEnvelope.upsert(conversationId: "dm:1", message: message)
+        let tombstone = DeviceSyncMessageEnvelope.tombstone(conversationId: "dm:1", messageId: "m-sync")
+
+        let upsertData = try JSONEncoder().encode(upsert)
+        let decodedUpsert = try JSONDecoder().decode(DeviceSyncMessageEnvelope.self, from: upsertData)
+        XCTAssertEqual(decodedUpsert, upsert)
+        XCTAssertEqual(decodedUpsert.message?.content, "incremental")
+
+        let tombData = try JSONEncoder().encode(tombstone)
+        let decodedTomb = try JSONDecoder().decode(DeviceSyncMessageEnvelope.self, from: tombData)
+        XCTAssertEqual(decodedTomb.operation, .tombstone)
+        XCTAssertEqual(decodedTomb.messageId, "m-sync")
+    }
+
+    @MainActor
+    func testUpsertAndRemoveInThreadStore() {
+        let msg = StoredThreadMessage(id: "m2", senderDID: "did:key:b", content: "synced", timestamp: "Now")
+        ConversationThreadStore.upsertMessage(conversationId: "dm:2", message: msg)
+        XCTAssertEqual(ConversationThreadStore.exportMessages(conversationId: "dm:2").count, 1)
+
+        ConversationThreadStore.removeMessage(conversationId: "dm:2", messageId: "m2")
+        XCTAssertTrue(ConversationThreadStore.exportMessages(conversationId: "dm:2").isEmpty)
+    }
+}
+
 final class SyncCursorStoreTests: XCTestCase {
     func testCursorPersistence() {
         SyncCursorStore.reset(deviceId: "dev-test")

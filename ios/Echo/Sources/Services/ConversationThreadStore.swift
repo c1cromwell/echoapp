@@ -179,6 +179,30 @@ enum ConversationThreadStore {
         persist(conversationId: conversationId, messages: stored)
     }
 
+    /// Upsert a single message for incremental device sync (updates in place when id matches).
+    static func upsertMessage(conversationId: String, message: StoredThreadMessage) {
+        guard !conversationId.isEmpty else { return }
+        var stored = loadStored(conversationId: conversationId)
+        if let idx = stored.firstIndex(where: { $0.id == message.id }) {
+            stored[idx] = message
+        } else {
+            stored.append(message)
+            if !ConversationPreferencesStore.shared.isHidden(conversationId) {
+                notifySearchIndex(conversationId: conversationId, message: message)
+            }
+        }
+        persist(conversationId: conversationId, messages: stored)
+    }
+
+    static func removeMessage(conversationId: String, messageId: String) {
+        guard !conversationId.isEmpty else { return }
+        var stored = loadStored(conversationId: conversationId)
+        let before = stored.count
+        stored.removeAll { $0.id == messageId }
+        guard stored.count != before else { return }
+        persist(conversationId: conversationId, messages: stored)
+    }
+
     /// Re-write thread storage when hide preference changes (plaintext ↔ encrypted).
     static func migrateStorageEncryption(conversationId: String) {
         guard !conversationId.isEmpty else { return }

@@ -58,6 +58,8 @@ type V3Handlers struct {
 	SealedTokens    *messaging.SealedTokenStore                   // optional; WO-219 sealed-sender tokens
 	ConvNotifPrefs  *messaging.ConversationNotificationPrefsStore // optional; WO-56 mute prefs
 	Bots            *bots.InstallStore                            // optional; Stage 4 bot installs
+	BotTokens       *bots.TokenValidator                          // optional; WO-11 bot API tokens
+	BotRateLimiter  *bots.RateLimiter                             // optional; WO-11 bot send velocity
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.
