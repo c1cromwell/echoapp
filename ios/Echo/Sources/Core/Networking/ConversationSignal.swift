@@ -18,6 +18,8 @@ enum ConversationSignalType {
     static let groupKey = "group_key"
     static let poll = "poll"
     static let screenshotAlert = "screenshot_alert"
+    /// Ratchet bootstrap pre-key publish (WO-SX1).
+    static let ratchetPrekey = "ratchet_prekey"
 }
 
 enum TypingState: String, Codable, Sendable {
@@ -170,6 +172,14 @@ struct PollPayload: Codable, Sendable, Equatable {
     }
 }
 
+struct RatchetPreKeyPayload: Codable, Sendable, Equatable {
+    let ratchetPublicKey: String
+
+    enum CodingKeys: String, CodingKey {
+        case ratchetPublicKey = "ratchet_public_key"
+    }
+}
+
 struct ScreenshotAlertPayload: Codable, Sendable, Equatable {
     let conversationId: String
     let alertedAt: String
@@ -196,6 +206,8 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
     let signature: Data?
     /// SHA-256 hex over opaque ciphertext for relay commitment anchoring.
     let commitmentHash: String?
+    /// Double Ratchet envelope (WO-SX1) — preferred over static Kinnami when set.
+    let ratchet: DoubleRatchet.WireMessage?
 
     enum CodingKeys: String, CodingKey {
         case messageId = "message_id"
@@ -207,6 +219,7 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
         case senderDID = "sender_did"
         case signature
         case commitmentHash = "commitment_hash"
+        case ratchet
     }
 
     init(
@@ -218,7 +231,8 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
         media: MediaAttachmentRef? = nil,
         senderDID: String? = nil,
         signature: Data? = nil,
-        commitmentHash: String? = nil
+        commitmentHash: String? = nil,
+        ratchet: DoubleRatchet.WireMessage? = nil
     ) {
         self.messageId = messageId
         self.text = text
@@ -229,6 +243,7 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
         self.senderDID = senderDID
         self.signature = signature
         self.commitmentHash = commitmentHash
+        self.ratchet = ratchet
     }
 }
 
@@ -435,6 +450,22 @@ enum ConversationSignalCodec {
         let d = JSONDecoder()
         return d
     }()
+
+    static func encodeRatchetPreKey(to peerDID: String, conversationId: String, ratchetPublicKeyB64: String) throws -> String {
+        let envelope = WSEnvelope(
+            type: ConversationSignalType.ratchetPrekey,
+            to: peerDID,
+            from: nil,
+            conversationId: conversationId,
+            payload: RatchetPreKeyPayload(ratchetPublicKey: ratchetPublicKeyB64),
+            timestamp: isoTimestamp()
+        )
+        let data = try encoder.encode(envelope)
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw ConversationSignalError.encodingFailed
+        }
+        return text
+    }
 
     static func encodeTyping(to peerDID: String, conversationId: String, state: TypingState) throws -> String {
         let envelope = WSEnvelope(
@@ -695,7 +726,7 @@ enum ConversationSignalCodec {
                     preview = TextMessagePayload.mediaPlaceholder(for: media)
                 } else if envelope.payload.groupCiphertext != nil {
                     preview = TextMessagePayload.groupEncryptedPlaceholder
-                } else if envelope.payload.encrypted != nil {
+                } else if envelope.payload.encrypted != nil || envelope.payload.ratchet != nil {
                     preview = TextMessagePayload.encryptedPlaceholder
                 } else {
                     return nil

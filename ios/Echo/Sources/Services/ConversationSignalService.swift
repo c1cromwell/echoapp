@@ -79,6 +79,15 @@ final class ConversationSignalService: @unchecked Sendable {
         lock.unlock()
     }
 
+    func sendRatchetPreKey(conversationId: String, peerDID: String, ratchetPublicKeyB64: String) async throws {
+        let text = try ConversationSignalCodec.encodeRatchetPreKey(
+            to: peerDID,
+            conversationId: conversationId,
+            ratchetPublicKeyB64: ratchetPublicKeyB64
+        )
+        try await transport.send(text: text)
+    }
+
     func sendTyping(conversationId: String, peerDID: String, state: TypingState) async throws {
         let text = try ConversationSignalCodec.encodeTyping(
             to: peerDID,
@@ -171,6 +180,15 @@ final class ConversationSignalService: @unchecked Sendable {
             let handler = onCallSignal
             lock.unlock()
             handler?(callEvent)
+            return
+        }
+        if let data = text.data(using: .utf8),
+           let header = try? JSONDecoder().decode(WSEnvelopeHeader.self, from: data),
+           header.type == ConversationSignalType.ratchetPrekey,
+           let envelope = try? JSONDecoder().decode(WSEnvelope<RatchetPreKeyPayload>.self, from: data),
+           let raw = Data(base64Encoded: envelope.payload.ratchetPublicKey),
+           let from = header.from, !from.isEmpty {
+            Task { await DoubleRatchetCoordinator.shared.cachePeerPreKey(peerDID: from, ratchetPubRaw: raw) }
             return
         }
         #endif

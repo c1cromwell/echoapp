@@ -43,10 +43,11 @@ enum InboundTextMessageResolver {
         var replyPreview: String?
         var forwardedFromMessageId: String?
         var forwardedFromConversationId: String?
-        if let wire = wirePayload, wire.encrypted != nil {
+        if let wire = wirePayload, wire.encrypted != nil || wire.ratchet != nil {
             let client = await DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
             let crypto = TextMessageCrypto(identityResolve: IdentityResolveClient(apiClient: client))
-            if await crypto.senderVerification(for: wire, expectedSenderDID: peerDID) == .invalid {
+            if wire.encrypted != nil,
+               await crypto.senderVerification(for: wire, expectedSenderDID: peerDID) == .invalid {
                 return ResolvedBody(
                     senderDID: peerDID,
                     body: TextMessagePayload.encryptedPlaceholder,
@@ -57,7 +58,7 @@ enum InboundTextMessageResolver {
                     forwardedFromConversationId: nil
                 )
             }
-            if let decrypted = try? await crypto.decryptPayload(wire) {
+            if let decrypted = try? await crypto.decryptPayload(wire, peerDID: peerDID) {
                 let parsed = ChatMessageEnvelope.parseDecrypted(decrypted)
                 replyToMessageId = parsed.envelope?.replyToMessageId
                 replyPreview = parsed.envelope?.replyPreview

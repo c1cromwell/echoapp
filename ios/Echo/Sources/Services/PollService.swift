@@ -262,7 +262,7 @@ actor PollService {
     private func decode(ciphertext: Data, peerDID: String, pollId: String) async throws -> PollWireBody {
         if let encrypted = try? JSONDecoder().decode(EncryptedMessageWithPublicKey.self, from: ciphertext) {
             let payload = TextMessagePayload(messageId: pollId, encrypted: encrypted)
-            let plain = try await textCrypto.decryptPayload(payload)
+            let plain = try await textCrypto.decryptPayload(payload, peerDID: peerDID)
             return try JSONDecoder().decode(PollWireBody.self, from: Data(plain.utf8))
         }
         return try JSONDecoder().decode(PollWireBody.self, from: ciphertext)

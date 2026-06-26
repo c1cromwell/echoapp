@@ -19,6 +19,32 @@ actor TextMessageCrypto {
     func encryptPayload(plaintext: String, peerDID: String, messageId: String) async throws -> TextMessagePayload {
         let hex = try await cachedPeerKeyHex(peerDID: peerDID)
         let pubData = try Self.dataFromPublicKeyHex(hex)
+
+        if DoubleRatchetPreferences.isEnabled {
+            do {
+                let wire = try await DoubleRatchetCoordinator.shared.encrypt(
+                    plaintext: plaintext,
+                    peerDID: peerDID,
+                    peerMessagingPub: pubData
+                )
+                let senderDID = await CurrentUserSession.currentDID()
+                if let did = senderDID {
+                    await MessagingKeyRegistrar().ensureRegistered(did: did)
+                }
+                return TextMessagePayload(
+                    messageId: messageId,
+                    text: nil,
+                    encrypted: nil,
+                    senderDID: senderDID,
+                    signature: nil,
+                    commitmentHash: Self.commitmentHexRatchet(messageId: messageId, wire: wire),
+                    ratchet: wire
+                )
+            } catch {
+                // Bootstrap not ready (e.g. peer pre-key not yet received) — fall through to Kinnami.
+            }
+        }
+
         let kinnami = KinnamiEncryption()
         let encrypted = try await kinnami.encryptWithKeyAgreement(
             plaintext: plaintext,
@@ -42,6 +68,15 @@ actor TextMessageCrypto {
             messageId: messageId, text: nil, encrypted: encrypted,
             senderDID: senderDID, signature: signature, commitmentHash: commitment
         )
+    }
+
+    private static func commitmentHexRatchet(messageId: String, wire: DoubleRatchet.WireMessage) -> String {
+        var data = Data(messageId.utf8)
+        if let enc = try? JSONEncoder().encode(wire) {
+            data.append(enc)
+        }
+        let digest = SHA256.hash(data: data)
+        return digest.map { String(format: "%02x", $0) }.joined()
     }
 
     private static func commitmentHex(messageId: String, encrypted: EncryptedMessageWithPublicKey) -> String {
@@ -79,7 +114,16 @@ actor TextMessageCrypto {
         return ok ? .verified : .invalid
     }
 
-    func decryptPayload(_ payload: TextMessagePayload) async throws -> String {
+    func decryptPayload(_ payload: TextMessagePayload, peerDID: String) async throws -> String {
+        if let wire = payload.ratchet {
+            let hex = try await cachedPeerKeyHex(peerDID: peerDID)
+            let pubData = try Self.dataFromPublicKeyHex(hex)
+            return try await DoubleRatchetCoordinator.shared.decrypt(
+                wire,
+                peerDID: peerDID,
+                peerMessagingPub: pubData
+            )
+        }
         // Fail closed on receive: a private 1:1 payload must be encrypted. A
         // plaintext-only payload (no ciphertext) is rejected rather than displayed,
         // so a malicious or misconfigured relay can't downgrade a chat to cleartext.

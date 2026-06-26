@@ -115,6 +115,17 @@ final class ChatDetailViewModel {
                 self?.handleSignal(event)
             }
         }
+
+        if DoubleRatchetPreferences.isEnabled, !conversationId.hasPrefix("group:"), !peerDID.isEmpty {
+            Task {
+                guard let raw = try? await DoubleRatchetCoordinator.shared.publishedPreKeyRaw() else { return }
+                try? await signalService.sendRatchetPreKey(
+                    conversationId: conversationId,
+                    peerDID: peerDID,
+                    ratchetPublicKeyB64: raw.base64EncodedString()
+                )
+            }
+        }
     }
 
     /// Bulk GET for messages that may have reactions while offline.
