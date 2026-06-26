@@ -10,6 +10,13 @@ const PUBLIC_PATHS = ["/login", "/auth/callback"];
  * Unauthenticated operators are redirected to /login (except SCIM + public paths).
  */
 export async function updateSession(request: NextRequest) {
+  // Public marketing pages (launch landing + waitlist) are independent of portal auth and
+  // Supabase — short-circuit before touching the Supabase client so they work standalone.
+  const path = request.nextUrl.pathname;
+  if (path.startsWith("/join") || path.startsWith("/api/waitlist")) {
+    return NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
