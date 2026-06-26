@@ -1,19 +1,6 @@
 #if os(iOS)
 import Foundation
 
-/// Client preference for sealed-sender relay (WO-219). Enabled by default for 1:1 chats.
-enum SealedSenderPreferences {
-    private static let key = "echo.sealed_sender.enabled"
-
-    static var isEnabled: Bool {
-        get {
-            if UserDefaults.standard.object(forKey: key) == nil { return true }
-            return UserDefaults.standard.bool(forKey: key)
-        }
-        set { UserDefaults.standard.set(newValue, forKey: key) }
-    }
-}
-
 private struct SealedSenderInner: Codable, Sendable {
     let senderDID: String
     let message: TextMessagePayload

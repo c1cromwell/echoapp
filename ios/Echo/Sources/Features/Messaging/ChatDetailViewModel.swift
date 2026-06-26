@@ -454,7 +454,8 @@ final class ChatDetailViewModel {
                 messageId: message.id
             )
             let deliverSilent = outboundSilentDelivery
-            if SealedSenderPreferences.isEnabled, !conversationId.hasPrefix("group:") {
+            if SealedSenderPolicy.shouldUseSealed(peerDID: peerDID, conversationId: conversationId),
+               !conversationId.hasPrefix("group:") {
                 let client = DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
                 let sealedService = SealedSenderService(
                     identityResolve: IdentityResolveClient(apiClient: client),

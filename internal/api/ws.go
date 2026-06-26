@@ -293,14 +293,31 @@ func (h *Hub) SetConversationNotificationPrefs(s *messaging.ConversationNotifica
 
 // deliverOrQueue sends live or enqueues for reconnect replay (M2 offline group + signals).
 func (h *Hub) deliverOrQueue(recipient string, data []byte, senderID, conversationID string, silent bool) bool {
-	if h.SendToUser(recipient, data) {
+	queueData := scrubRelayMetadataForQueue(data)
+	if h.SendToUser(recipient, queueData) {
 		return true
 	}
 	if h.offlineQueue != nil {
-		h.offlineQueue.Enqueue(recipient, data, wsOfflineRetention)
+		h.offlineQueue.Enqueue(recipient, queueData, wsOfflineRetention)
 	}
 	h.notifyUndelivered(recipient, senderID, conversationID, silent)
 	return false
+}
+
+// scrubRelayMetadataForQueue strips sender `from` on sealed payloads before offline
+// persistence (WO-SX3 metadata minimization).
+func scrubRelayMetadataForQueue(data []byte) []byte {
+	var msg WSMessage
+	if err := json.Unmarshal(data, &msg); err != nil {
+		return data
+	}
+	if msg.Type == "sealed_text" {
+		msg.From = ""
+		if out, err := json.Marshal(msg); err == nil {
+			return out
+		}
+	}
+	return data
 }
 
 // flushOffline replays queued directed WS payloads when a client reconnects.
