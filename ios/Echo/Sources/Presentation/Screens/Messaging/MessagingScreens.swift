@@ -151,6 +151,8 @@ struct ChatView: View {
     @State private var safetyAssessment: SafetyAssessment?
     @State private var safetyDismissed = false
     @State private var safetyEvaluated = false
+    @State private var showPaymentSheet = false
+    @State private var pendingPayRequest: PaymentPayload?
     @StateObject private var voiceRecorder = VoiceNoteRecorder()
     @State private var showVoiceCall = false
     @State private var showVideoCall = false
@@ -347,6 +349,27 @@ struct ChatView: View {
                 Task { await viewModel.createPoll(question: question, optionTexts: options) }
             }
             .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showPaymentSheet) {
+            PaymentRequestSheet(
+                onSubmit: { kind, amount, memo in
+                    showPaymentSheet = false
+                    handlePaymentCompose(kind: kind, amount: amount, memo: memo)
+                },
+                onCancel: { showPaymentSheet = false }
+            )
+            .presentationDetents([.medium])
+        }
+        .alert("Pay an unverified contact?", isPresented: Binding(
+            get: { pendingPayRequest != nil },
+            set: { if !$0 { pendingPayRequest = nil } }
+        )) {
+            Button("Cancel", role: .cancel) { pendingPayRequest = nil }
+            Button("Pay anyway") {
+                if let request = pendingPayRequest { pendingPayRequest = nil; Task { await finalizePay(request) } }
+            }
+        } message: {
+            Text("This person hasn't verified their identity. Only send money to people you trust.")
         }
         .sheet(item: Binding(
             get: {
@@ -687,6 +710,10 @@ struct ChatView: View {
                     onPollTapped: {
                         showAttachmentPicker = false
                         showCreatePoll = true
+                    },
+                    onPaymentTapped: {
+                        showAttachmentPicker = false
+                        showPaymentSheet = true
                     }
                 )
                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -905,6 +932,36 @@ struct ChatView: View {
         #endif
     }
 
+    // MARK: - Payments
+
+    private func handlePaymentCompose(kind: PaymentPayload.Kind, amount: Decimal, memo: String?) {
+        let coordinator = PaymentCoordinator(transfer: MockWalletTransfer())
+        guard let request = try? coordinator.makeRequest(amount: amount, memo: memo) else { return }
+        if kind == .request {
+            Task { await viewModel.sendMessage(PaymentMessageEncoding.encode(request)) }
+        } else {
+            attemptPay(request)
+        }
+    }
+
+    /// Pay-guard: paying an unverified/low-trust contact prompts an extra confirmation first.
+    private func attemptPay(_ request: PaymentPayload) {
+        #if os(iOS)
+        let tier = ContactTrustIndex.shared.tier(conversationId: conversationId, peerDID: peerDID)
+        if PaymentCoordinator(transfer: MockWalletTransfer()).needsExtraConfirmation(peerTier: tier) {
+            pendingPayRequest = request
+            return
+        }
+        #endif
+        Task { await finalizePay(request) }
+    }
+
+    private func finalizePay(_ request: PaymentPayload) async {
+        let coordinator = PaymentCoordinator(transfer: MockWalletTransfer())
+        guard let sent = try? await coordinator.pay(request, toDID: peerDID) else { return }
+        await viewModel.sendMessage(PaymentMessageEncoding.encode(sent))
+    }
+
     @ViewBuilder
     private func replyQuoteBubble(_ quote: String, isFromCurrentUser: Bool) -> some View {
         Text(quote)
@@ -919,6 +976,19 @@ struct ChatView: View {
 
     @ViewBuilder
     private func messageBubbleContent(for message: ChatDetailMessage) -> some View {
+        if let payment = PaymentMessageEncoding.decode(message.content) {
+            PaymentBubbleView(
+                payment: payment,
+                isIncoming: !message.isFromCurrentUser,
+                onPay: { attemptPay(payment) }
+            )
+        } else {
+            textBubbleContent(for: message)
+        }
+    }
+
+    @ViewBuilder
+    private func textBubbleContent(for message: ChatDetailMessage) -> some View {
         let peerStatus: DeliveryStatus? = message.isFromCurrentUser
             ? viewModel.displayedDeliveryStatus(message.deliveryStatus)
             : nil

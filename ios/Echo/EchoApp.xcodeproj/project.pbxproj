@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AB1AED091A1EA1A5973BBAFD /* PaymentMessageEncoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF2243BF5FF765085588057F /* PaymentMessageEncoding.swift */; };
+		D1EB2BB624ECCF36FB1642E9 /* PaymentMessageEncodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94B8F7F637DE0A9253BF3F08 /* PaymentMessageEncodingTests.swift */; };
 		466C2ED52AF9C4D5EAD61E02 /* ContactSafetyBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BF95F84926E64437DD553AC /* ContactSafetyBanner.swift */; };
 		E2C1CB34F272D4E64AEAB2C8 /* PaymentRequestSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8403545ADEBAC56D2BBA2D78 /* PaymentRequestSheet.swift */; };
 		C7F94CFF2E2AD8FC40405FFC /* PaymentBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C921CC99CDF5EFD8C56DC17A /* PaymentBubbleView.swift */; };
@@ -401,6 +403,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		EF2243BF5FF765085588057F /* PaymentMessageEncoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentMessageEncoding.swift; sourceTree = "<group>"; };
+		94B8F7F637DE0A9253BF3F08 /* PaymentMessageEncodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentMessageEncodingTests.swift; sourceTree = "<group>"; };
 		4BF95F84926E64437DD553AC /* ContactSafetyBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactSafetyBanner.swift; sourceTree = "<group>"; };
 		8403545ADEBAC56D2BBA2D78 /* PaymentRequestSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentRequestSheet.swift; sourceTree = "<group>"; };
 		C921CC99CDF5EFD8C56DC17A /* PaymentBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentBubbleView.swift; sourceTree = "<group>"; };
@@ -801,6 +805,7 @@
 		817DC7F4B099C6084757A89C /* Payments */ = {
 			isa = PBXGroup;
 			children = (
+				EF2243BF5FF765085588057F /* PaymentMessageEncoding.swift */,
 				8403545ADEBAC56D2BBA2D78 /* PaymentRequestSheet.swift */,
 				C921CC99CDF5EFD8C56DC17A /* PaymentBubbleView.swift */,
 				095F952F7F16A9F7C053AF7E /* WalletTransfer.swift */,
@@ -862,6 +867,7 @@
 		930B0F85E8C631514258FECB /* Phase3Tests */ = {
 			isa = PBXGroup;
 			children = (
+				94B8F7F637DE0A9253BF3F08 /* PaymentMessageEncodingTests.swift */,
 				5A287F924C2D1E73426BFCFE /* PaymentsTests.swift */,
 				6020E4701A71F113C72F7F82 /* ContactSafetyTests.swift */,
 				D56E3D6FBEC1D4354DE43BE5 /* MeshP34Tests.swift */,
@@ -1940,6 +1946,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D1EB2BB624ECCF36FB1642E9 /* PaymentMessageEncodingTests.swift in Sources */,
 				2224DC7BDCB2C4B92C44FCF0 /* PaymentsTests.swift in Sources */,
 				82CC0CF623E4E2117529ACD4 /* ContactSafetyTests.swift in Sources */,
 				C43FBF00D0BE2A526583DC6A /* MeshP34Tests.swift in Sources */,
@@ -1981,6 +1988,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB1AED091A1EA1A5973BBAFD /* PaymentMessageEncoding.swift in Sources */,
 				466C2ED52AF9C4D5EAD61E02 /* ContactSafetyBanner.swift in Sources */,
 				E2C1CB34F272D4E64AEAB2C8 /* PaymentRequestSheet.swift in Sources */,
 				C7F94CFF2E2AD8FC40405FFC /* PaymentBubbleView.swift in Sources */,

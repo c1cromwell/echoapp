@@ -9,6 +9,7 @@ struct AttachmentPickerView: View {
     var onFileSelected: (Data, String) -> Void
     var onVoiceNoteTapped: () -> Void
     var onPollTapped: (() -> Void)?
+    var onPaymentTapped: (() -> Void)?
 
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showPhotoPicker = false
@@ -31,6 +32,12 @@ struct AttachmentPickerView: View {
                     attachmentButton(icon: "chart.bar", label: "Poll") {
                         isPresented = false
                         onPollTapped()
+                    }
+                }
+                if let onPaymentTapped {
+                    attachmentButton(icon: "dollarsign.circle.fill", label: "Pay") {
+                        isPresented = false
+                        onPaymentTapped()
                     }
                 }
             }
