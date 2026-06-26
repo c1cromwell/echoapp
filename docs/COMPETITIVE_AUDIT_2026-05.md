@@ -6,6 +6,8 @@
 
 **Implementation plan:** [`COMPETITIVE_AUDIT_IMPLEMENTATION_PLAN.md`](COMPETITIVE_AUDIT_IMPLEMENTATION_PLAN.md) — prioritized waves, dependencies, and 90-day sprint mapping.
 
+**See also:** [`COMPETITIVE_AUDIT_SIMPLEX_2026-06.md`](COMPETITIVE_AUDIT_SIMPLEX_2026-06.md) — a follow-up audit of **SimpleX Chat** (the identity-free privacy messenger), covering the crypto/metadata gaps this audit didn't: Double Ratchet forward secrecy, PQ-hybrid, metadata minimization / sealed-sender, private routing/Tor (provisional WO-SX1…SX7).
+
 ---
 
 ## 1. Competitor snapshots (2025–2026)
