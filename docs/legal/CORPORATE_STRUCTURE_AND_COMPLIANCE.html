@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Echo — Corporate Structure &amp; US Compliance Master Plan</title>
+<style>
+@page { size: Letter; margin: 20mm 16mm; }
+* { box-sizing: border-box; }
+body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 10.5pt;
+       line-height: 1.5; color: #1a1f29; max-width: 100%; margin: 0; }
+h1 { font-size: 22pt; color: #0b2a4a; border-bottom: 3px solid #2563eb; padding-bottom: 6px;
+     margin-top: 0.4em; }
+h2 { font-size: 15pt; color: #0b2a4a; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px;
+     margin-top: 1.4em; page-break-after: avoid; }
+h3 { font-size: 12pt; color: #1e3a5f; margin-top: 1.1em; page-break-after: avoid; }
+h2, h3, h4 { page-break-after: avoid; }
+table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 9pt;
+        page-break-inside: avoid; }
+th, td { border: 1px solid #cbd5e1; padding: 5px 7px; text-align: left; vertical-align: top; }
+th { background: #eff4fb; color: #0b2a4a; font-weight: 600; }
+tr:nth-child(even) td { background: #f8fafc; }
+code { background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 9pt;
+       font-family: 'SF Mono', Menlo, monospace; }
+pre { background: #0f172a; color: #e2e8f0; padding: 12px 14px; border-radius: 6px;
+      overflow-x: auto; font-size: 8.2pt; line-height: 1.35; page-break-inside: avoid; }
+pre code { background: none; color: inherit; padding: 0; }
+blockquote { border-left: 4px solid #2563eb; background: #f0f6ff; margin: 12px 0;
+             padding: 8px 14px; border-radius: 0 6px 6px 0; }
+blockquote blockquote { border-left-color: #f59e0b; background: #fff8ec; }
+a { color: #2563eb; text-decoration: none; }
+hr { border: none; border-top: 1px solid #e2e8f0; margin: 18px 0; }
+ul, ol { padding-left: 20px; }
+li { margin: 2px 0; }
+strong { color: #0b2a4a; }
+.cover { text-align: center; padding-top: 32mm; page-break-after: always; }
+.cover h1 { border: none; font-size: 30pt; }
+.cover .sub { font-size: 13pt; color: #475569; margin-top: 8px; }
+.cover .meta { margin-top: 26mm; font-size: 10pt; color: #64748b; }
+.cover .warn { margin: 30mm auto 0; max-width: 80%; border: 1.5px solid #f59e0b;
+               background: #fff8ec; border-radius: 8px; padding: 12px 16px; font-size: 9pt;
+               text-align: left; color: #7c4a03; }
+</style></head>
+<body>
+<div class="cover">
+  <h1>Echo</h1>
+  <div class="sub">Corporate Structure &amp; US Compliance Master Plan</div>
+  <div class="sub" style="font-size:11pt;margin-top:18px;">
+    Echo Message &middot; Echo Comply &middot; Echo Passport<br>
+    + the ECHO token / Network State / Foundation layer
+  </div>
+  <div class="meta">Version 1.0 &middot; 2026-06-26 &middot; Prepared for the Founder</div>
+  <div class="warn"><strong>&#9888; Informational planning document &mdash; NOT legal or tax
+    advice.</strong> No attorney&ndash;client relationship is created. Engage the licensed
+    professionals named in &sect;12 before acting on the token, payments, HIPAA, or any
+    cross-border step. Verify all rules and dates before relying on them.</div>
+</div>
+<h1 id="echo-corporate-structure-us-compliance-master-plan">Echo — Corporate Structure &amp; US Compliance Master Plan</h1>
+<p><strong>Prepared for:</strong> Founder, Echo (the "you" throughout)
+<strong>Version:</strong> 1.0 · <strong>Date:</strong> 2026-06-26
+<strong>Covers:</strong> Echo Message · Echo Comply · Echo Passport · the ECHO token / Network State / Foundation layer</p>
+<hr />
+<blockquote>
+<h2 id="read-this-first-important-disclaimer">⚠️ Read this first — important disclaimer</h2>
+<p><strong>This is an informational planning document. It is NOT legal advice or tax advice, and no
+attorney–client or accountant–client relationship is created by it.</strong> It was prepared to organize
+your decisions and give you a concrete, sequenced plan — <em>not</em> to replace licensed counsel. Several
+things you are building (a token with staking and rewards, in-app payments, enterprise/health-data
+compliance, identity/biometric verification) sit on top of <strong>securities, money-transmission, and
+privacy law</strong> where the penalties for getting it wrong are severe. <strong>Before you act on the
+token, payments, HIPAA, or any cross-border step, engage the specific licensed professionals named
+in §12.</strong> Where this document says "do X now," it means the <em>low-risk formation and hygiene</em> steps;
+everything carrying real regulatory risk is explicitly routed to counsel.</p>
+<p>Laws change and some items below (notably the federal beneficial-ownership reporting rules) were in
+active flux as of mid-2026 — treat every date and rule as "verify before relying."</p>
+</blockquote>
+<hr />
+<h2 id="how-to-use-this-document">How to use this document</h2>
+<ol>
+<li><strong>Read §2 (Executive summary)</strong> for the whole picture in one page.</li>
+<li><strong>Do §5 (Formation checklist) now</strong> — that's the part you can safely execute this month. A
+   stripped-down version lives in <code>FORMATION_CHECKLIST.md</code> for printing.</li>
+<li><strong>Skim §6</strong> for the per-product to-do lists and <strong>§7</strong> for what to <em>defer</em> (token/Foundation).</li>
+<li><strong>Take §12 to your first attorney/CPA meeting</strong> — it's the list of who to hire and what to ask.</li>
+<li>Fill in the values in the <strong>"Fill these in" box at the end of §5</strong> once, and they flow everywhere.</li>
+</ol>
+<hr />
+<h2 id="table-of-contents">Table of contents</h2>
+<ol>
+<li><a href="#1-where-you-are-today">Where you are today</a></li>
+<li><a href="#2-executive-summary">Executive summary</a></li>
+<li><a href="#3-recommended-entity-architecture">Recommended entity architecture</a></li>
+<li><a href="#4-your-four-questions-answered">Your four questions, answered</a></li>
+<li><a href="#5-step-by-step-formation-checklist-do-now">Step-by-step formation checklist (DO NOW)</a></li>
+<li><a href="#6-per-product-compliance-packets">Per-product compliance packets</a></li>
+<li><a href="#7-token--foundation-track-deferred-pre-architected">Token + Foundation track (DEFERRED, pre-architected)</a></li>
+<li><a href="#8-anonymity--privacy-operations-playbook">Anonymity &amp; privacy operations playbook</a></li>
+<li><a href="#9-tax-overview">Tax overview</a></li>
+<li><a href="#10-compliance-calendar--document-register">Compliance calendar + document register</a></li>
+<li><a href="#11-informational-ideas-appendix">Informational ideas (appendix)</a></li>
+<li><a href="#12-who-to-hire--what-to-ask">Who to hire &amp; what to ask</a></li>
+<li><a href="#13-glossary--sources">Glossary + sources</a></li>
+</ol>
+<hr />
+<h2 id="1-where-you-are-today">1. Where you are today</h2>
+<ul>
+<li>You run <strong>one privacy protocol with three products</strong>: <strong>Echo Message</strong> (consumer E2E messaging),
+  <strong>Echo Comply</strong> (enterprise compliance messaging / audit / eDiscovery), and <strong>Echo Passport</strong>
+  (credential wallet + selective disclosure + in-chat payments).</li>
+<li>You have a <strong>token economy on paper</strong> — ECHO, hard-capped at 1B, with validator staking, per-message
+  and referral rewards, trust-tier multipliers, and a proposed transparent fee-split — plus a
+  <strong>"Network State"</strong> vision in which users own a piece of the network. Your own docs already name an
+  <strong>"Echo Protocol Foundation (Wyoming DUNA)"</strong> as the protocol steward.</li>
+<li><strong>Legally, almost nothing is formed yet.</strong> The only legal artifacts in the repo are <em>draft</em> Terms of
+  Service and Privacy Policy (<code>docs/legal/</code>) with <code>[LEGAL ENTITY NAME]</code> placeholders. There is no
+  entity, no EIN, no bank account, no IP assignment, no trademark.</li>
+<li><strong>Your stated goals:</strong> (a) a real, bankable, tax-filing entity now; (b) stay as anonymous as legally
+  possible; (c) keep the non-profit / token / Network State path open without triggering it early;
+  (d) a clear per-product compliance plan; (e) a Wyoming LLC as the base.</li>
+<li><strong>Your decisions (captured 2026-06-26):</strong> home base is a <strong>no-income-tax state</strong>; token timing is
+  <strong>undecided/exploring</strong>; you want <strong>minimal structure now, scale later</strong>; deliverable is <strong>one
+  master doc + checklists</strong>.</li>
+</ul>
+<hr />
+<h2 id="2-executive-summary">2. Executive summary</h2>
+<p><strong>The recommendation in one line:</strong> <em>Form a single anonymous </em><em>Wyoming holding LLC</em><em> now, run all
+three products inside it as divisions/DBAs, and stand up product subsidiaries and the non-profit
+Foundation only when specific triggers fire.</em></p>
+<p>This gives you the "real name and entity" a bank and the IRS require, with the least cost and admin,
+while preserving Wyoming's strong owner-anonymity and asset protection — and it keeps the token /
+Network State path fully open without prematurely creating securities, money-transmission, or
+tax-exempt obligations you're not ready to carry.</p>
+<table>
+<thead>
+<tr>
+<th>Your question</th>
+<th>Short answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wyoming LLC?</td>
+<td><strong>Yes.</strong> It's the right base for anonymity + asset protection.</td>
+</tr>
+<tr>
+<td>Holding company in my son's (23) name?</td>
+<td><strong>No</strong> — not as a privacy device. It's not real anonymity, it can void liability protection / edge into fraud, and it creates gift-tax + his-creditor risk. Gift him a stake <em>transparently</em> instead, or use a trust.</td>
+</tr>
+<tr>
+<td>Can I stay anonymous?</td>
+<td><strong>Yes on the public record; no to your bank and the IRS.</strong> The <em>entity</em> is the public face; your name is disclosed only to your bank (KYC) and the IRS (EIN).</td>
+</tr>
+<tr>
+<td>Make it a non-profit (for Network State)?</td>
+<td><strong>Not the whole thing.</strong> Keep the products for-profit; create a <em>separate</em> non-profit Foundation later, only when the token actually moves.</td>
+</tr>
+<tr>
+<td>What do I create now?</td>
+<td>One WY LLC + EIN + operating agreement + bank account + <strong>IP assignment</strong> + ToS/Privacy filled in + trademark filings + insurance. See §5.</td>
+</tr>
+<tr>
+<td>What do I defer?</td>
+<td>Product subsidiaries, the Foundation, any token sale/listing, any custodial payment feature. See §7.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<h3 id="do-this-now-box">▶ Do-this-now box</h3>
+<ol>
+<li>Pick a name; check Wyoming availability.</li>
+<li>Hire a <strong>commercial registered agent</strong> in Wyoming.</li>
+<li>File <strong>Articles of Organization</strong> (manager-managed, for privacy).</li>
+<li>Sign an <strong>Operating Agreement</strong>.</li>
+<li>Get an <strong>EIN</strong> (you are the "responsible party").</li>
+<li><strong>Assign all existing code + brand into the LLC</strong> (don't skip this).</li>
+<li>Open a <strong>business bank account</strong>.</li>
+<li>Fill ToS/Privacy with the entity name; file <strong>trademarks</strong>; get <strong>insurance</strong>; set up <strong>bookkeeping</strong>.</li>
+</ol>
+<p>Everything token-, payment-, or HIPAA-related: <strong>talk to counsel first (§12).</strong></p>
+</blockquote>
+<hr />
+<h2 id="3-recommended-entity-architecture">3. Recommended entity architecture</h2>
+<h3 id="31-the-structure">3.1 The structure</h3>
+<pre><code>        YOU  (true owner / control person)
+         │   — disclosed to your BANK (KYC) and the IRS (EIN) only, not to the public
+         │   — optionally hold your membership interest through a REVOCABLE LIVING TRUST
+         │     (adds privacy + clean estate transfer to your son; see §11)
+         ▼
+   ┌──────────────────────────────────────────────┐
+   │  ECHO HOLDINGS, LLC   (Wyoming)               │   ◀── FORM NOW
+   │  • owns ALL IP, the ECHO brand, the contracts │
+   │  • holds the bank account; files the taxes    │
+   │  • anonymous on the public WY record          │
+   │  • commercial registered agent is the only    │
+   │    public-facing name                         │
+   │  • tax: single-member → disregarded entity;   │
+   │    elect S-corp later when profit warrants    │
+   └───────────────┬───────────────────────────────┘
+                   │  products run as DBAs / internal divisions for now
+        ┌──────────┼───────────────┬──────────────────────┐
+        ▼          ▼               ▼                      │
+  Echo Message  Echo Comply   Echo Passport               │  ◀── spin each into a wholly-owned
+  (consumer)    (enterprise)  (credentials + pay)          │      subsidiary LLC WHEN a trigger fires
+                   ▲ highest liability                     │      (see §3.3)
+                   │ → first to spin out
+                   │
+   ┌───────────────┴────────────────────────────────┐
+   │  ECHO PROTOCOL FOUNDATION        [LATER]        │   ◀── form ONLY when the token actually
+   │  • non-profit steward of the protocol + token  │      moves toward distribution
+   │  • Network State governance + Privacy Commons   │      (Wyoming DUNA is the lead-fit vehicle;
+   │    Treasury (public goods)                      │       alternatives: 501(c)(4) / offshore)
+   │  • separate from the for-profit HoldCo          │
+   └─────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="32-why-this-shape">3.2 Why this shape</h3>
+<ul>
+<li><strong>One entity now = fastest path to "bankable + tax-filing."</strong> A bank needs a single legal entity,
+  an EIN, formation docs, and an operating agreement. You get all of that with one filing.</li>
+<li><strong>Holding-company framing protects the valuable thing — the IP.</strong> The LLC <em>owns the code, the brand,
+  and the contracts</em>. Later, operating subsidiaries license the IP from the HoldCo, so a lawsuit
+  against an operating product can't easily reach the crown-jewel IP.</li>
+<li><strong>Wyoming gives anonymity + charging-order protection</strong> that most states don't. Members and managers
+  are not listed on the public Articles, and Wyoming's charging-order rules make it hard for a
+  member's personal creditor to seize the company.</li>
+<li><strong>Divisions now, subsidiaries later</strong> avoids paying for and maintaining four sets of filings,
+  registered agents, bank accounts, and tax returns before there's revenue to justify them.</li>
+<li><strong>For-profit + non-profit two-track</strong> is the standard, battle-tested crypto pattern (operating
+  company ships the product; a separate foundation stewards the token and protocol). It also keeps the
+  commercial revenue out of any tax-exempt entity, which is required, not optional (see §4 and §7).</li>
+</ul>
+<h3 id="33-spin-out-triggers-when-a-division-becomes-its-own-subsidiary">3.3 Spin-out triggers (when a division becomes its own subsidiary)</h3>
+<p>Create a wholly-owned subsidiary LLC for a product when <strong>any</strong> of these is true for it:</p>
+<ul>
+<li>It signs <strong>enterprise contracts</strong> that demand a dedicated counterparty, indemnities, or a BAA
+  (<strong>Echo Comply</strong> will hit this first — enterprise + potential health data = highest liability).</li>
+<li>It takes <strong>outside investment</strong> earmarked for that product line.</li>
+<li>It introduces a materially different <strong>liability or regulatory profile</strong> (e.g. <strong>Echo Passport</strong>
+  turning on real money movement, or custody of financial credentials).</li>
+<li>It generates <strong>standalone revenue</strong> large enough that you want separate books / a separate sale or
+  spin-off path.</li>
+</ul>
+<p>Until a trigger fires, run the product as a <strong>registered DBA / trade name</strong> under Echo Holdings, LLC.</p>
+<hr />
+<h2 id="4-your-four-questions-answered">4. Your four questions, answered</h2>
+<h3 id="41-should-i-put-the-holding-company-in-my-sons-23-name-no-not-to-stay-anonymous">4.1 "Should I put the holding company in my son's (23) name?" → <strong>No — not to stay anonymous.</strong></h3>
+<p>Using your adult son as the owner-of-record to hide your involvement is a <strong>nominee arrangement</strong>, and
+it backfires on every axis:</p>
+<ul>
+<li><strong>It isn't real anonymity.</strong> Banks must identify the <strong>beneficial owner</strong> and the <strong>control person</strong>
+  under their Customer Identification Program (CIP) / KYC rules, and beneficial-ownership rules look
+  through nominal title to whoever actually <em>controls or economically benefits</em>. If you run it and earn
+  from it, <strong>you are a beneficial owner regardless of whose name is on the certificate</strong> — so you'd
+  have to disclose yourself to the bank anyway, defeating the purpose.</li>
+<li><strong>It can destroy the liability shield.</strong> A company used as an "alter ego," or where ownership is a
+  fiction, is exactly what lets a court <strong>pierce the veil</strong> and reach the real operator personally.</li>
+<li><strong>Done to mislead a bank or regulator, it can be a crime.</strong> Putting a straw owner on bank/CIP
+  paperwork to conceal the true owner can be <strong>bank fraud / false statements</strong>. Don't.</li>
+<li><strong>It creates tax and family-law exposure.</strong> If he truly owns it, the income is taxed to <em>him</em> (or
+  your funding it is a <strong>taxable gift</strong> with gift-tax-return consequences). And because the asset is
+  legally <em>his</em>, it's exposed to <strong>his</strong> creditors, lawsuits, divorce, or simply his choice to sell or
+  encumber it.</li>
+</ul>
+<p><strong>What to do instead</strong> (covered in §8 and §11):
+- Own it yourself, and get practical anonymity from <strong>Wyoming's privacy + a commercial registered
+  agent + an organizer service</strong> so your name never appears on a public filing.
+- If your real goal is <strong>estate planning / passing it to your son</strong>, do that <em>transparently</em>: grant him
+  a documented <strong>membership interest</strong>, or place your interest in a <strong>revocable living trust</strong> that
+  names him as beneficiary. Both are legitimate, both keep your name off the public record, and a CPA
+  handles the gift/valuation mechanics correctly.</p>
+<h3 id="42-can-i-stay-anonymous-yes-on-the-public-record-no-to-your-bank-and-the-irs">4.2 "Can I stay anonymous?" → <strong>Yes on the public record. No to your bank and the IRS.</strong></h3>
+<table>
+<thead>
+<tr>
+<th>Anonymous from…</th>
+<th>Achievable?</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Public formation record</td>
+<td><strong>Yes</strong></td>
+<td>Wyoming doesn't list members/managers on the Articles. With a commercial registered agent + organizer service, your name appears nowhere public.</td>
+</tr>
+<tr>
+<td>App users / ToS / App Store</td>
+<td><strong>Yes (your name)</strong></td>
+<td>The <strong>entity</strong> is named as operator everywhere; <em>you</em> are not. (Apple does require the entity's legal name + a D-U-N-S number — that's the entity, not you.)</td>
+</tr>
+<tr>
+<td>Your bank</td>
+<td><strong>No</strong></td>
+<td>CIP/KYC requires the bank to identify and verify the true beneficial owner + control person. You give the bank your real identity. Non-negotiable.</td>
+</tr>
+<tr>
+<td>The IRS</td>
+<td><strong>No</strong></td>
+<td>The EIN application (Form SS-4) names a <strong>responsible party</strong> — a real human (you). Taxes flow to real people.</td>
+</tr>
+<tr>
+<td>FinCEN (CTA / beneficial-ownership)</td>
+<td><strong>Status in flux</strong></td>
+<td>A March 2025 FinCEN interim rule generally <strong>exempted US-formed companies</strong> from beneficial-ownership (BOI) reporting (leaving only certain foreign companies). So a Wyoming LLC likely has <strong>no federal BOI filing today</strong> — but this has been litigated and changed repeatedly; <strong>verify current status before relying</strong> (§8).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Bottom line:</strong> you can be invisible to the public and to your users, but you cannot — and must not
+try to — be invisible to your bank or the IRS. The strategy is <em>"the company is the public face; my
+name lives only where the law requires it."</em></p>
+<h3 id="43-should-it-be-a-non-profit-for-the-network-state-not-the-whole-thing-use-a-dual-structure">4.3 "Should it be a non-profit (for the Network State)?" → <strong>Not the whole thing — use a dual structure.</strong></h3>
+<ul>
+<li><strong>The commercial products must stay for-profit.</strong> Echo Message subscriptions/VIP, Echo Comply
+  enterprise revenue, and Echo Passport rails are commercial income that <em>benefits you</em>. A U.S.
+  charity (501(c)(3)) is barred from <strong>private inurement</strong> — it cannot exist to enrich its founder, so
+  it's the wrong wrapper for your products and your income.</li>
+<li><strong>The Network State / token / public-goods layer is where a non-profit fits.</strong> A <strong>separate</strong>
+  foundation can legitimately steward the protocol, hold and distribute the token under governance,
+  and run the <strong>Privacy Commons Treasury</strong> (legal defense of surveilled users, grants, research).
+  Keeping it separate is exactly what prevents "user-owned" from quietly becoming "owned by whoever
+  buys the company," which is the credibility of your whole ownership thesis.</li>
+<li><strong>This two-track model is the industry norm</strong> (operating company + protocol foundation). Your own
+  docs already assume it.</li>
+<li><strong>Form it later, on a trigger</strong> (token moving toward distribution). Vehicle options are compared in
+  §7; the lead candidate from your docs — a <strong>Wyoming DUNA</strong> — is purpose-built for a token/DAO
+  steward.</li>
+</ul>
+<h3 id="44-wyoming-llc-yes-plus-one-nuance-for-your-no-tax-home-base">4.4 "Wyoming LLC?" → <strong>Yes.</strong> Plus one nuance for your no-tax home base.</h3>
+<p>Wyoming is the right base: <strong>no state income tax, strong privacy (no public member list), strong
+charging-order protection, low fees, mature LLC case law.</strong> The one decision to make with your
+attorney:</p>
+<ul>
+<li><strong>You operate from a different no-income-tax state.</strong> When you actively run the business from your
+  home state, that state generally considers the LLC to be <strong>"doing business"</strong> there, which means you
+  either (a) <strong>form in Wyoming and foreign-qualify</strong> the LLC in your home state, or (b) <strong>form directly
+  in your home state</strong>.</li>
+<li><em>Form in WY + foreign-qualify at home</em> → keeps Wyoming as the legal home (privacy/protection) but
+    adds a second registration + registered agent, and your home state's public record may show more.</li>
+<li><em>Form directly at home</em> → simpler/cheaper, but you may lose some of Wyoming's specific privacy and
+    charging-order advantages depending on the state.</li>
+<li>Because your home state has <strong>no income tax</strong>, the usual "Wyoming saves me state tax" argument is
+    weak — the real reason to still choose Wyoming here is <strong>privacy + asset protection</strong>, not tax. Have
+    your attorney weigh those against the cost of dual registration for <em>your specific home state</em>
+    (some no-tax states, e.g. FL, publish more owner/manager detail than others).</li>
+</ul>
+<hr />
+<h2 id="5-step-by-step-formation-checklist-do-now">5. Step-by-step formation checklist (DO NOW)</h2>
+<p>Do these in order. Costs are rough 2026 ballparks; confirm current figures.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Step</th>
+<th>Who does it</th>
+<th>Est. cost</th>
+<th>Est. time</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Choose entity name</strong> + check Wyoming availability; reserve if needed</td>
+<td>You / registered agent</td>
+<td>$0–60</td>
+<td>1 day</td>
+<td>Pick a name that <em>doesn't</em> tie to you personally. Suggested operating entity: <strong>"Echo Holdings, LLC"</strong> (final name is yours to choose). Confirm the matching <code>.com</code> + app handles are free.</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Engage a Wyoming commercial registered agent</strong></td>
+<td>You</td>
+<td>~$50–200/yr</td>
+<td>1 day</td>
+<td>The agent's address (not yours) is the public contact. Many offer an <strong>organizer + mail/virtual-address</strong> bundle so even the organizer isn't you.</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>File Articles of Organization</strong> (choose <strong>manager-managed</strong>)</td>
+<td>Registered agent / attorney</td>
+<td>$100–150 state fee</td>
+<td>1–3 days</td>
+<td>Manager-managed keeps members off the doc and lets a manager (you, or a manager entity) be the operational face. WY does not list members.</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Adopt an Operating Agreement</strong></td>
+<td>Attorney (recommended)</td>
+<td>$0 (template) – $1,500 (drafted)</td>
+<td>1–5 days</td>
+<td>The internal rulebook: ownership %, management, transfer restrictions, what happens on death (ties to your son/estate plan). Banks ask for it. <strong>Don't rely on a free template for a multi-product, token-bearing company — have counsel draft it.</strong></td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Get an EIN</strong> (Form SS-4)</td>
+<td>You (free, IRS)</td>
+<td>$0</td>
+<td>Same day online</td>
+<td>You are the <strong>responsible party</strong>. Needed for banking + taxes. Don't pay a service for this — it's free.</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Assign ALL existing IP into the LLC</strong></td>
+<td>Attorney</td>
+<td>included in §4 or ~$500</td>
+<td>1–3 days</td>
+<td><strong>Critical and easy to forget.</strong> A signed <strong>IP assignment</strong> moving the codebase, the ECHO brand/logos, the domains, and any prior contractor work <em>from you personally into Echo Holdings, LLC</em>. Without this, the company doesn't actually own what it's built on, which breaks future investment, sale, or licensing.</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Open a business bank account</strong></td>
+<td>You</td>
+<td>$0–25/mo</td>
+<td>1–3 days</td>
+<td>Bring: Articles, EIN letter, Operating Agreement, your ID. <strong>You will disclose yourself as beneficial owner — that's normal.</strong> Consider a crypto-friendly / tech-friendly bank given the token roadmap.</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Fill in ToS + Privacy</strong> with the entity name</td>
+<td>You + privacy counsel</td>
+<td>reuse existing drafts</td>
+<td>1 day</td>
+<td>Replace <code>[LEGAL ENTITY NAME]</code> → <strong>Echo Holdings, LLC</strong> in <code>docs/legal/TERMS_OF_SERVICE_DRAFT.md</code> and <code>PRIVACY_POLICY_DRAFT.md</code>; have privacy counsel finalize before publishing.</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>Set up bookkeeping + engage a CPA</strong></td>
+<td>You + CPA</td>
+<td>~$50–300/mo</td>
+<td>ongoing</td>
+<td>Separate books from day one (commingling is the #1 way to lose the liability shield). The CPA also advises the S-corp election timing (§9) and token-tax issues.</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>File trademarks</strong> (ECHO word mark + logos)</td>
+<td>Trademark attorney</td>
+<td>~$250–350/class gov + counsel</td>
+<td>filing now, ~8–12 mo to register</td>
+<td>Protect "ECHO," "Echo Message," "Echo Comply," "Echo Passport," and the ripple logo. File in the right classes (software, financial/messaging services).</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>Get insurance</strong> (general liability + tech E&amp;O / cyber)</td>
+<td>Broker</td>
+<td>~$1–5k/yr to start</td>
+<td>1–2 weeks</td>
+<td>Tech E&amp;O / cyber matters a lot for a messaging + identity + payments product.</td>
+</tr>
+<tr>
+<td>12</td>
+<td><strong>Stand up privacy-ops hygiene</strong></td>
+<td>You</td>
+<td>low</td>
+<td>1 week</td>
+<td>Virtual business address, business phone/VoIP, role-based emails (legal@, privacy@, security@), DMCA agent registration. See §8.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<h3 id="fill-these-in-box-set-once-they-flow-into-every-doc">📝 Fill-these-in box (set once; they flow into every doc)</h3>
+<ul>
+<li><strong>Final entity name:</strong> <strong><em>_</em></strong><strong><em>_</em></strong><strong><em>_</em></strong>___ (default: <em>Echo Holdings, LLC</em>)</li>
+<li><strong>Formation state:</strong> Wyoming  ·  <strong>Home/operating state:</strong> <strong><em>_</em></strong>_____ (your no-tax state)</li>
+<li><strong>Responsible party (EIN) / control person:</strong> <strong><em>_</em></strong><strong><em>_</em></strong>_ (you)</li>
+<li><strong>Registered agent:</strong> <strong><em>_</em></strong><strong><em>_</em></strong><em>  ·  <strong>Virtual business address:</strong> <strong><em>_</em></strong><strong><em>_</em></strong></em></li>
+<li><strong>Legal contact email:</strong> legal@<strong><em>_</em></strong><strong><em>  ·  <strong>Privacy contact:</strong> privacy@</em></strong><strong><em>_</em></strong></li>
+<li><strong>Public website:</strong> <strong><em>_</em></strong>___</li>
+</ul>
+</blockquote>
+<hr />
+<h2 id="6-per-product-compliance-packets">6. Per-product compliance packets</h2>
+<p>Each product lists <strong>Now</strong> (do during/just after formation), <strong>Near-term</strong> (before broad launch), and
+<strong>Trigger-based</strong> (only when a condition fires).</p>
+<h3 id="60-cross-cutting-applies-to-all-three">6.0 Cross-cutting (applies to all three)</h3>
+<ul>
+<li><strong>Now:</strong> entity-named <strong>ToS + Privacy Policy</strong> (fill the existing drafts); <strong>Data Processing
+  Addenda (DPAs)</strong> with every processor (cloud, IDV, analytics, APNs); <strong>IP assignment</strong> (§5 step 6);
+  <strong>trademark</strong> filings; <strong>App Store</strong> setup (entity legal name + D-U-N-S; app privacy "nutrition
+  labels"); <strong>OFAC/sanctions screening</strong> posture (don't serve embargoed jurisdictions/persons);
+  <strong>insurance</strong>.</li>
+<li><strong>Near-term:</strong> <strong>CCPA/CPRA</strong> (California) + other US state privacy laws (Virginia, Colorado, Texas,
+  etc.) readiness — privacy rights request flow, "do not sell/share" (you already don't sell);
+  <strong>GDPR/UK GDPR</strong> if you take EU/UK users (legal bases, DPA, possibly an EU representative);
+  <strong>accessibility</strong> (ADA/WCAG) for the web surfaces; a <strong>vulnerability disclosure / security</strong> policy.</li>
+<li><strong>Trigger-based:</strong> <strong>SOC 2</strong> once enterprise buyers ask (Comply will drive this).</li>
+</ul>
+<h3 id="61-echo-message-consumer-e2e-messaging">6.1 Echo Message (consumer E2E messaging)</h3>
+<ul>
+<li><strong>Now:</strong></li>
+<li><strong>Age gating / COPPA:</strong> your ToS draft sets 18+; enforce it (under-13 data triggers COPPA, and
+    teen-privacy rules are tightening). Keep the floor explicit.</li>
+<li><strong>Law-enforcement response policy:</strong> a written process for subpoenas/warrants. Because messages are
+    <strong>E2E encrypted and content-blind</strong>, you <em>can't</em> produce content — but you can receive and must
+    handle legal process for the limited metadata you hold. Document what you have and don't have.</li>
+<li><strong>CSAM / NCMEC reporting:</strong> US providers of messaging services have <strong>mandatory reporting duties</strong>
+    to NCMEC for known child-sexual-abuse material. E2E encryption doesn't remove the legal duty to
+    report what you <em>do</em> become aware of — build the reporting path and policy. <strong>This is a hard legal
+    obligation, not optional.</strong> Get counsel on how it interacts with your encryption model.</li>
+<li><strong>Abuse / acceptable-use policy</strong> + reporting/blocking flow (you already have trust-tier + report
+    primitives); <strong>DMCA agent</strong> registration for any user-generated/shared content.</li>
+<li><strong>Near-term:</strong> transparency-report posture; retention schedule for the minimal metadata you keep;
+  jurisdiction/age verification for any region that mandates it.</li>
+<li><strong>Trigger-based:</strong> if you add <strong>broadcast channels / large groups</strong>, revisit platform-liability and
+  content-moderation obligations.</li>
+</ul>
+<h3 id="62-echo-comply-enterprise-compliance-audit-ediscovery">6.2 Echo Comply (enterprise compliance / audit / eDiscovery)</h3>
+<blockquote>
+<p>This is your <strong>highest-liability product</strong> and the <strong>first spin-out candidate</strong> (§3.3).</p>
+</blockquote>
+<ul>
+<li><strong>Now:</strong></li>
+<li><strong>Enterprise contract templates:</strong> MSA, order form, <strong>DPA</strong>, SLA, mutual NDA, <strong>indemnification</strong>
+    and limitation-of-liability terms sized for enterprise risk.</li>
+<li>Position the audit/evidence backend's guarantees carefully in writing (you store hashes/CIDs and
+    aggregate metrics, <strong>never message content</strong> — make that contractual, since it's also your defense).</li>
+<li><strong>Near-term:</strong></li>
+<li><strong>HIPAA capability:</strong> if any customer handles PHI, you become a <strong>Business Associate</strong> and must be
+    able to sign a <strong>BAA</strong> and meet the Security Rule. Decide deliberately whether you're "HIPAA-ready"
+    or explicitly out of scope — don't drift into it.</li>
+<li><strong>SOC 2 Type II</strong> roadmap (enterprise buyers will require it); vendor security questionnaires.</li>
+<li><strong>eDiscovery / litigation-hold / retention</strong> contractual terms and the matching product controls
+    (these are the core value and the core obligation).</li>
+<li><strong>Trigger-based:</strong></li>
+<li><strong>Spin into <code>Echo Comply, LLC</code></strong> at the first enterprise BAA or material enterprise contract.</li>
+<li>Sector add-ons as you sell into them: <strong>FOIA</strong> workflows (gov), <strong>FINRA/SEC 17a-4</strong> WORM-retention
+    (finance), legal-hold standards (law firms).</li>
+</ul>
+<h3 id="63-echo-passport-credential-wallet-selective-disclosure-payments">6.3 Echo Passport (credential wallet + selective disclosure + payments)</h3>
+<ul>
+<li><strong>Now:</strong></li>
+<li><strong>Biometric-privacy laws</strong> for selfie/liveness/IDV: <strong>Illinois BIPA</strong> (private right of action —
+    real class-action risk), <strong>Texas CUBI</strong>, <strong>Washington</strong>, and a growing list. You need <strong>explicit
+    biometric consent</strong>, a retention/destruction schedule, and ideally to keep raw biometrics with the
+    <strong>IDV vendor</strong>, not yourself (your design already does this — document it).</li>
+<li><strong>IDV vendor contract + DPA</strong>; surface the vendor's role in your Privacy Policy (the draft already
+    has the placeholder).</li>
+<li><strong>Near-term:</strong></li>
+<li><strong>GLBA</strong> considerations if Passport touches financial-account credentials.</li>
+<li><strong>Document the non-custodial invariant</strong> as a hard rule (see §7): Echo is the <em>identity + consent</em>
+    layer, never the holder of funds or raw card data.</li>
+<li><strong>Trigger-based (get counsel BEFORE building, not after):</strong></li>
+<li><strong>Any real money movement</strong> → <strong>money-transmission analysis</strong> (federal FinCEN MSB + state
+    money-transmitter licensing). Native non-custodial P2P and licensed-partner rails are the design
+    that <em>avoids</em> this — but the line is fact-specific and must be cleared by money-transmission
+    counsel <strong>before</strong> the feature ships.</li>
+<li><strong>Custody of credentials/keys/funds</strong> → KYC/AML program obligations.</li>
+<li>Spin into <strong><code>Echo Passport, LLC</code></strong> when payments turn on.</li>
+</ul>
+<hr />
+<h2 id="7-token-foundation-track-deferred-pre-architected">7. Token + Foundation track (DEFERRED, pre-architected)</h2>
+<p>This is the <strong>highest-regulatory-risk</strong> part of Echo. Because your token timing is <em>undecided</em>, the
+plan is: <strong>architect it, but don't trigger it.</strong> Here's how to stay clean until you're ready.</p>
+<h3 id="71-securities-risk-the-thing-to-respect-most">7.1 Securities risk — the thing to respect most</h3>
+<p>A token that people <strong>stake for "5–15% APY,"</strong> earn as <strong>rewards</strong>, and that pays a <strong>fee-split</strong> has
+several hallmarks of an <strong>investment contract</strong> under the <strong>Howey</strong> test (money invested in a common
+enterprise with an expectation of profit from others' efforts). If ECHO is deemed a security and you
+distributed/sold it without registration or an exemption, the consequences are severe.</p>
+<p><strong>What NOT to do now (until securities counsel clears a path):</strong>
+- ❌ <strong>Don't sell, list, or publicly distribute the token.</strong>
+- ❌ <strong>Don't advertise "APY," yield, returns, or price appreciation</strong> — drop "5–15% APY" language from
+  any public-facing material; describe rewards as <strong>functional/usage-based</strong>, not investment yield.
+- ❌ <strong>Don't let rewards be freely transferable/tradeable</strong> before clearance — the closer it looks to a
+  tradeable yield-bearing asset, the more it looks like a security.
+- ❌ <strong>Don't presell, do a SAFT, or take "investment" for tokens</strong> without securities counsel.</p>
+<p><strong>What you CAN do now:</strong> keep building the <em>functional</em> mechanics (rewards accounting, trust tiers)
+internally, framed as product features, ideally <strong>non-transferable / closed-loop</strong> until cleared.</p>
+<h3 id="72-money-transmission-msb-posture-payments">7.2 Money-transmission / MSB posture (payments)</h3>
+<p>Your design intent is exactly right and should be locked as a <strong>hard invariant</strong>:</p>
+<blockquote>
+<p><strong>Echo is the identity + consent layer, never the money transmitter.</strong> Users self-custody
+(Echo never controls their keys or funds); merchant/fiat flows route through <strong>licensed partners</strong>
+(card-network tokenization / Open-Banking PISP); Echo never touches a raw PAN or holds customer
+funds.</p>
+</blockquote>
+<p>If Echo <em>did</em> control or transmit user funds, it would likely be a <strong>FinCEN-registered MSB</strong> and need
+<strong>state money-transmitter licenses</strong> (a very expensive, multi-state, bonded undertaking). The
+non-custodial + licensed-partner design is what keeps you out of that — but <strong>get a money-transmission
+legal opinion before any pay feature ships</strong>, because the analysis is fact-specific.</p>
+<h3 id="73-the-foundation-when-and-which-vehicle">7.3 The Foundation — when and which vehicle</h3>
+<p><strong>Form the Foundation only when a trigger fires:</strong> you decide to actually distribute the token, launch
+public staking, or hand protocol governance to the community. Until then, leave it as a documented
+plan (this section).</p>
+<table>
+<thead>
+<tr>
+<th>Vehicle</th>
+<th>What it is</th>
+<th>Pros</th>
+<th>Cons / watch-outs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Wyoming DUNA</strong> <em>(lead fit; your docs assume it)</em></td>
+<td>Decentralized Unincorporated Nonprofit Association — Wyoming statute purpose-built for DAOs/token stewards</td>
+<td>Legal personhood (can hold assets, contract, sue/be sued); limited liability for members; designed for token governance; can be tax-transparent</td>
+<td>Newer law, less precedent; needs careful governance docs; tax treatment needs CPA</td>
+</tr>
+<tr>
+<td><strong>501(c)(4) social welfare</strong></td>
+<td>Federal tax-exempt non-profit for social-welfare/advocacy</td>
+<td>Tax-exempt; broad advocacy latitude; fits a "public good" mission</td>
+<td>Donations <strong>not</strong> tax-deductible; can't primarily benefit private parties; IRS scrutiny</td>
+</tr>
+<tr>
+<td><strong>501(c)(3) charity</strong></td>
+<td>Federal charitable non-profit</td>
+<td>Donations deductible; strong public-trust signal</td>
+<td>Very restrictive; <strong>no private inurement</strong>; poor fit for a token-stewarding org; slow to obtain</td>
+</tr>
+<tr>
+<td><strong>Offshore foundation</strong> (e.g. Cayman, Zug, Panama)</td>
+<td>Foundation company / Stiftung used widely by crypto protocols</td>
+<td>Jurisdiction-neutral; established token-foundation playbook; can isolate token from US operating co</td>
+<td>Cost + complexity; cross-border tax (CFC/PFIC) issues; US-person reporting; needs specialized counsel</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation:</strong> plan for the <strong>Wyoming DUNA</strong> as primary (it matches your stack and keeps things
+onshore/simple), and have <strong>crypto/securities counsel</strong> pressure-test DUNA-vs-offshore at the moment
+the token actually moves — the right answer depends on where your users and validators are and how the
+token is distributed.</p>
+<h3 id="74-token-tax-flag-for-the-cpa">7.4 Token tax (flag for the CPA)</h3>
+<p>Token issuance, treasury holdings, rewards, and staking each have <strong>income-recognition, basis, and
+timing</strong> consequences for both the entity and recipients. Don't move tokens — even internally — without
+the CPA modeling the tax. (More in §9.)</p>
+<hr />
+<h2 id="8-anonymity-privacy-operations-playbook">8. Anonymity &amp; privacy operations playbook</h2>
+<p>Goal: <strong>the entity is the public face; your name appears only where the law requires (bank, IRS).</strong></p>
+<ol>
+<li><strong>Commercial registered agent</strong> — their WY address is the public contact, not yours.</li>
+<li><strong>Organizer service</strong> — have the agent/attorney act as "organizer" so even the formation filer
+   isn't you.</li>
+<li><strong>Manager-managed LLC</strong> — members aren't named; if you want extra distance, a separate manager
+   entity can be the operational signatory.</li>
+<li><strong>Virtual business address</strong> (not your home) on every public surface, app store listing, WHOIS,
+   ToS/Privacy contact.</li>
+<li><strong>Domain privacy / WHOIS protection</strong> on all domains; register them in the <strong>entity's</strong> name.</li>
+<li><strong>Role-based emails</strong> (legal@, privacy@, security@) — never your personal email on public docs.</li>
+<li><strong>The entity, not you, signs everything</strong> — contracts, app store, vendor agreements.</li>
+<li><strong>EIN responsible party</strong> — this is you, disclosed to the IRS only. Normal and required.</li>
+<li><strong>Bank KYC</strong> — you disclose yourself as beneficial owner + control person. Normal and required.
+   <em>Do not attempt to hide this — that's where anonymity stops being legal.</em></li>
+<li><strong>FinCEN CTA / beneficial-ownership (BOI):</strong> as of mid-2026 a March-2025 interim rule generally
+    <strong>exempted US-formed companies</strong> from BOI reporting. <strong>This area has flipped repeatedly in
+    litigation — re-verify the current rule with counsel at formation</strong>, and if reporting is required,
+    file it (it goes to FinCEN, not the public).</li>
+<li><strong>Optional: hold your interest through a revocable living trust</strong> — adds a privacy layer and gives
+    you a clean estate path to your son without a nominee (§11).</li>
+</ol>
+<hr />
+<h2 id="9-tax-overview">9. Tax overview</h2>
+<blockquote>
+<p>Confirm everything here with your CPA — this is orientation, not a return.</p>
+</blockquote>
+<ul>
+<li><strong>Default entity tax (single-member LLC):</strong> a <strong>disregarded entity</strong> — profit/loss flows onto your
+  personal return (Schedule C). Simple to start.</li>
+<li><strong>S-corp election (Form 2553) — later trigger:</strong> once the business throws off meaningful profit,
+  electing <strong>S-corp</strong> treatment can cut self-employment tax (you pay yourself a "reasonable salary,"
+  the rest is a distribution). Your CPA models the breakeven (often around the point where net profit
+  comfortably exceeds a reasonable salary). <strong>Don't elect prematurely</strong> — it adds payroll + filing
+  overhead.</li>
+<li><strong>C-corp — only if you raise VC.</strong> If you take institutional venture money, investors usually want a
+  <strong>Delaware C-corp</strong> (QSBS, preferred stock, option pools). That's a <em>conversion</em> decision for later,
+  not now. The WY-LLC-now path doesn't block it.</li>
+<li><strong>State tax:</strong> your home state has <strong>no income tax</strong>, so there's no personal state income tax on the
+  pass-through — a real simplification. Watch for: <strong>foreign-qualification fees/annual reports</strong> if you
+  WY-form + home-qualify; sales/use tax if you sell taxable goods/services; any <strong>gross-receipts</strong>
+  quirks of your specific state.</li>
+<li><strong>Wyoming:</strong> no state income tax; an <strong>annual report + license-tax</strong> (small, asset-based) is due
+  yearly to keep the LLC in good standing.</li>
+<li><strong>Token tax (flag, not advice):</strong> tokens received as rewards are generally <strong>income at fair value
+  when received</strong>, establishing basis; later disposal is gain/loss; a treasury holding tokens has its
+  own accounting. <strong>Model this with the CPA before any token moves.</strong></li>
+<li><strong>Son / gifting (only if you pursue it transparently):</strong> granting your son a membership interest is a
+  <strong>gift</strong> — track the annual exclusion + lifetime exemption, file a <strong>gift-tax return (Form 709)</strong> if
+  required, and get a <strong>valuation</strong>. A trust changes the mechanics. CPA + estate attorney territory.</li>
+<li><strong>R&amp;D:</strong> software development costs and the <strong>R&amp;D credit</strong> may apply — keep clean records so the CPA
+  can capture them.</li>
+<li><strong>Recordkeeping discipline:</strong> separate bank account, no commingling, contemporaneous books,
+  board/member resolutions for big decisions. This is also what <em>preserves the liability shield.</em></li>
+</ul>
+<hr />
+<h2 id="10-compliance-calendar-document-register">10. Compliance calendar + document register</h2>
+<h3 id="101-recurring-obligations">10.1 Recurring obligations</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Frequency</th>
+<th>Owner</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wyoming annual report + license tax</td>
+<td>Annual (on formation anniversary)</td>
+<td>Registered agent / you</td>
+<td>Keeps LLC in good standing</td>
+</tr>
+<tr>
+<td>Registered-agent renewal</td>
+<td>Annual</td>
+<td>You</td>
+<td>Don't lapse — it's your legal-service address</td>
+</tr>
+<tr>
+<td>Home-state foreign-qual annual report (if applicable)</td>
+<td>Annual</td>
+<td>You</td>
+<td>Only if you WY-form + home-qualify</td>
+</tr>
+<tr>
+<td>Federal + state tax filings</td>
+<td>Annual / quarterly estimates</td>
+<td>CPA</td>
+<td>Estimated taxes quarterly</td>
+</tr>
+<tr>
+<td>Trademark maintenance</td>
+<td>Per USPTO deadlines (≈ yrs 5–6, 9–10)</td>
+<td>TM attorney</td>
+<td>Don't miss declarations of use</td>
+</tr>
+<tr>
+<td>Insurance renewal</td>
+<td>Annual</td>
+<td>Broker</td>
+<td>Re-scope as products grow</td>
+</tr>
+<tr>
+<td>Privacy policy / ToS review</td>
+<td>Annual or on feature change</td>
+<td>Privacy counsel</td>
+<td>Update when payments/token go live</td>
+</tr>
+<tr>
+<td>FinCEN BOI status check</td>
+<td>Re-verify periodically</td>
+<td>Counsel</td>
+<td>Rule has changed repeatedly</td>
+</tr>
+<tr>
+<td>DPA / vendor review</td>
+<td>Annual</td>
+<td>You</td>
+<td>Especially IDV + cloud</td>
+</tr>
+</tbody>
+</table>
+<h3 id="102-document-register-keep-originals-safe-a-digital-set">10.2 Document register (keep originals safe + a digital set)</h3>
+<p>Formation: Articles of Organization · Operating Agreement · EIN letter (CP-575) · registered-agent
+agreement · DBA/trade-name registrations.
+IP: <strong>IP assignment(s)</strong> · trademark filings/registrations · domain records · open-source license
+inventory.
+Commercial: ToS · Privacy Policy · DPAs · enterprise MSA/DPA/SLA templates (Comply) · IDV vendor
+contract (Passport).
+Financial: bank records · bookkeeping · tax returns · cap table / member ledger.
+Deferred (when triggered): Foundation governing docs · token legal opinion · money-transmission
+opinion · BAA template (Comply) · SOC 2 reports.</p>
+<hr />
+<h2 id="11-informational-ideas-appendix">11. Informational ideas (appendix)</h2>
+<p>A few extra ideas you asked for — optional, but worth knowing:</p>
+<ol>
+<li><strong>Separate IP-holding subsidiary.</strong> Once there's value, an <code>Echo IP, LLC</code> that <em>owns</em> the IP and
+   licenses it to the operating entities further isolates the crown jewels from operating liability.
+   (Overkill today; revisit at the first subsidiary spin-out.)</li>
+<li><strong>Revocable living trust as the LLC member.</strong> Hold your membership interest in a trust: keeps your
+   name off the public record, lets the company pass to your son <strong>without probate</strong>, and avoids the
+   nominee problems of §4.1. Pair with the Operating Agreement's transfer-on-death terms.</li>
+<li><strong>Transparent equity for your son.</strong> If you want him involved, give him a <em>real, documented</em>
+   minority interest with a vesting schedule, or make him a beneficiary of the trust — legitimate,
+   and a far better story than a hidden nominee if anyone ever looks.</li>
+<li><strong>Trademark + brand defense early.</strong> File the marks <em>before</em> launch noise; secure social handles +
+   defensive domains in the entity's name.</li>
+<li><strong>DUNA timing.</strong> Stand up the Foundation in the <em>same window</em> you finalize token mechanics, so
+   governance and treasury exist before the first public distribution — not after.</li>
+<li><strong>Onshore vs offshore Foundation.</strong> If your validator/user base becomes heavily non-US, revisit an
+   offshore foundation with counsel; if it stays US-centric, the Wyoming DUNA is simpler and cleaner.</li>
+<li><strong>Privacy Commons Treasury as a public-goods flywheel.</strong> Funding legal defense/research from
+   protocol fees is a strong differentiator <em>and</em> a credibility anchor for the "un-ruggable" ownership
+   thesis — but it lives in the Foundation, not the for-profit.</li>
+<li><strong>Insurance stack as you grow:</strong> add D&amp;O once you have a board/outside money; raise cyber/E&amp;O limits
+   as Comply enterprise deals land.</li>
+<li><strong>Data-residency / sub-processor map.</strong> Keep a living list of where data sits and who processes it;
+   enterprise (Comply) buyers and EU users will both ask.</li>
+</ol>
+<hr />
+<h2 id="12-who-to-hire-what-to-ask">12. Who to hire &amp; what to ask</h2>
+<p>Bring this list to each. Rough budgets are early-stage ballparks.</p>
+<table>
+<thead>
+<tr>
+<th>Specialist</th>
+<th>Why</th>
+<th>Ask them</th>
+<th>Rough budget</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Wyoming business-formation attorney</strong></td>
+<td>Form the LLC correctly; draft the Operating Agreement; advise WY-vs-home formation + foreign qualification</td>
+<td>"WY-form + foreign-qualify in [my state], or form directly? Manager-managed for privacy? Operating Agreement with transfer-on-death to my son/trust? IP assignment from me to the LLC?"</td>
+<td>$1.5–4k formation package</td>
+</tr>
+<tr>
+<td><strong>Crypto / securities counsel</strong></td>
+<td>The token. Whether ECHO is a security; how/whether to distribute; Foundation vehicle (DUNA vs offshore)</td>
+<td>"Is our reward/staking model a security? What can we say publicly? What's a compliant distribution path? DUNA vs offshore foundation for our user base?"</td>
+<td>$10k+ for an analysis/opinion</td>
+</tr>
+<tr>
+<td><strong>Money-transmission counsel</strong></td>
+<td>Before any payment feature ships</td>
+<td>"Does our non-custodial + licensed-partner design avoid MSB/state MTL? What triggers licensing? Review the pay-in-chat flow."</td>
+<td>$5–15k for an opinion</td>
+</tr>
+<tr>
+<td><strong>Privacy / data counsel</strong></td>
+<td>Finalize ToS + Privacy; CCPA/CPRA/GDPR; biometric (BIPA) for Passport; DPAs</td>
+<td>"Finalize our drafts for the entity; biometric-consent flow for IDV; state-privacy + GDPR readiness; processor DPAs."</td>
+<td>$3–10k initial</td>
+</tr>
+<tr>
+<td><strong>CPA (with crypto experience)</strong></td>
+<td>Entity tax election timing; books; token tax; gift/estate if you involve your son</td>
+<td>"Disregarded vs S-corp election timing? Token-reward and treasury accounting? Quarterly estimates? Gift mechanics if I grant my son an interest?"</td>
+<td>$50–300/mo + returns</td>
+</tr>
+<tr>
+<td><strong>Trademark attorney</strong></td>
+<td>File ECHO marks + logos in the right classes</td>
+<td>"File word + logo marks for ECHO and the three products in the correct classes; clearance search first."</td>
+<td>~$1.5–3k for the set</td>
+</tr>
+<tr>
+<td><em>(Later)</em> <strong>Estate attorney</strong></td>
+<td>The revocable trust + clean transfer to your son</td>
+<td>"Set up a revocable living trust to hold my LLC interest and pass it to my son without probate."</td>
+<td>$1.5–4k</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="13-glossary-sources">13. Glossary + sources</h2>
+<p><strong>Glossary</strong></p>
+<ul>
+<li><strong>Beneficial owner</strong> — the real person(s) who own/control/benefit from an entity, regardless of whose
+  name is on paper. Disclosed to banks (KYC) and, when required, FinCEN.</li>
+<li><strong>BOI / CTA</strong> — Beneficial Ownership Information reporting under the Corporate Transparency Act
+  (status in flux as of 2026; US-formed companies largely exempted by a March-2025 interim rule).</li>
+<li><strong>Charging-order protection</strong> — limits a member's personal creditor to a "charging order" against
+  distributions rather than seizing the LLC; strong in Wyoming.</li>
+<li><strong>CIP / KYC</strong> — Customer Identification Program / Know-Your-Customer; banks must verify who you are.</li>
+<li><strong>DUNA</strong> — Decentralized Unincorporated Nonprofit Association; Wyoming statute for DAO/token stewards.</li>
+<li><strong>Disregarded entity</strong> — a single-member LLC taxed on the owner's personal return by default.</li>
+<li><strong>Howey test</strong> — the US test for whether something is an "investment contract" (a security).</li>
+<li><strong>MSB / money transmitter</strong> — a regulated money-services business; federal FinCEN registration +
+  state licenses; triggered by controlling/transmitting customer funds.</li>
+<li><strong>Nominee / straw owner</strong> — putting someone else's name on ownership to hide the real owner; legally
+  risky and, if used to deceive, potentially fraudulent.</li>
+<li><strong>Private inurement</strong> — a charity benefiting a private individual (e.g. the founder); prohibited for
+  501(c)(3).</li>
+<li><strong>Veil piercing / alter ego</strong> — when courts disregard the LLC's liability shield because it wasn't
+  respected as a separate entity.</li>
+</ul>
+<p><strong>Internal sources used (this repo)</strong></p>
+<ul>
+<li><code>docs/NETWORK_STATE_OWNERSHIP_THESIS.md</code> — token, validators, Foundation, Privacy Commons Treasury.</li>
+<li><code>docs/ECHO_PASSPORT_PLAN.md</code> — custody/non-custodial invariant, payments routing, "Echo stays the
+  identity + consent layer, never the money transmitter."</li>
+<li><code>docs/CROSS_PRODUCT_GAP_REVIEW.md</code> — the three products + Passport; Comply enterprise surface.</li>
+<li><code>docs/PRD.md</code> — token rewards / staking "5–15% APY," success metrics, roadmap.</li>
+<li><code>docs/legal/TERMS_OF_SERVICE_DRAFT.md</code>, <code>docs/legal/PRIVACY_POLICY_DRAFT.md</code> — existing drafts to
+  fill with the entity name.</li>
+</ul>
+<p><strong>External topics to verify with counsel (not legal citations — confirmation prompts):</strong> Wyoming LLC
+Act + DUNA statute; FinCEN CTA/BOI current status; FinCEN MSB / state money-transmitter licensing; SEC
+Howey/investment-contract guidance; Illinois BIPA / Texas CUBI / Washington biometric laws; HIPAA
+Business Associate rules; CCPA/CPRA + state privacy laws; GDPR/UK GDPR; NCMEC/CSAM reporting duties for
+messaging providers; USPTO trademark classes.</p>
+<hr />
+<p><em>End of document. This is an informational planning aid, not legal or tax advice. Engage the licensed
+professionals in §12 before acting on the token, payments, HIPAA, or cross-border items.</em></p></body></html>
