@@ -2,7 +2,7 @@
 import AVFoundation
 import Foundation
 
-/// Voice-note encoding preferences (M5 / WO-194). iOS records AAC in an MPEG-4 container;
+/// Voice-note encoding (WO-SX5 / M5). AAC in MPEG-4 container via `VoiceNoteRecorder`.
 /// Opus would require a third-party encoder — wire format stays `audio/mp4` until linked.
 enum VoiceNoteCodec {
     static let wireMimeType = "audio/mp4"

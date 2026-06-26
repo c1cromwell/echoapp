@@ -1007,6 +1007,7 @@ struct ChatView: View {
         } else if let mediaRef = message.mediaRef {
             MediaBubbleView(
                 mediaRef: mediaRef,
+                peerDID: peerDID,
                 isSent: message.isFromCurrentUser,
                 timestamp: message.timestamp,
                 deliveryStatus: peerStatus

@@ -16,6 +16,7 @@ struct GroupChatView: View {
                             if let mediaRef = msg.mediaRef {
                                 MediaBubbleView(
                                     mediaRef: mediaRef,
+                                    peerDID: "",
                                     isSent: msg.isOutgoing,
                                     timestamp: "Now",
                                     deliveryStatus: nil

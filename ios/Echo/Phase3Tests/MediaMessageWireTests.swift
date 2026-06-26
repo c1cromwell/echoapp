@@ -28,16 +28,18 @@ final class MediaMessageWireTests: XCTestCase {
         XCTAssertEqual(parsed, wire)
     }
 
-    func testMediaPlaceholder() {
+    func testVoiceNoteWireKind() {
         let ref = MediaAttachmentRef(
-            fileId: "f1",
-            mimeType: "audio/mp4",
+            fileId: "voice-1",
+            mimeType: VoiceNoteCodec.wireMimeType,
             mediaKind: MediaKind.audio.rawValue,
-            byteSize: 100,
+            byteSize: 4096,
             chunkCount: 1,
-            caption: nil
+            caption: "Note",
+            waveformBars: [0.2, 0.8, 0.5]
         )
-        XCTAssertEqual(TextMessagePayload.mediaPlaceholder(for: ref), "🎤 Voice note")
+        XCTAssertEqual(ref.mediaKind, "audio")
+        XCTAssertEqual(ref.waveformBars?.count, 3)
     }
 }
 #endif

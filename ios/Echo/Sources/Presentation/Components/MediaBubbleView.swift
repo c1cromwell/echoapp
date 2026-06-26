@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MediaBubbleView: View {
     let mediaRef: MediaAttachmentRef
+    let peerDID: String
     let isSent: Bool
     let timestamp: String
     let deliveryStatus: DeliveryStatus?
@@ -166,7 +167,7 @@ struct MediaBubbleView: View {
             return
         }
         do {
-            let data = try await mediaService.downloadAndDecrypt(ref: mediaRef, peerDID: "")
+            let data = try await mediaService.downloadAndDecrypt(ref: mediaRef, peerDID: peerDID)
             switch mediaKind {
             case .image, .video:
                 imageData = data
