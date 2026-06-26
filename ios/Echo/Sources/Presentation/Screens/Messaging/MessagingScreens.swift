@@ -148,6 +148,9 @@ struct ChatView: View {
     @State private var smartReplies: [SmartReplySuggestion] = []
     @State private var threadSummary: ThreadSummary?
     @State private var messageTranslations: [String: String] = [:]
+    @State private var safetyAssessment: SafetyAssessment?
+    @State private var safetyDismissed = false
+    @State private var safetyEvaluated = false
     @StateObject private var voiceRecorder = VoiceNoteRecorder()
     @State private var showVoiceCall = false
     @State private var showVideoCall = false
@@ -235,6 +238,22 @@ struct ChatView: View {
                         )
                     }
 
+                    if let assessment = safetyAssessment, !safetyDismissed {
+                        ContactSafetyBanner(
+                            assessment: assessment,
+                            onVerify: { showChatSettings = true },
+                            onBlock: {
+                                safetyDismissed = true
+                                Task { @MainActor in
+                                    try? await DIContainer.shared.resolveBlockContactUseCase()?.block(did: peerDID)
+                                }
+                            },
+                            onDismiss: { safetyDismissed = true }
+                        )
+                        .padding(.horizontal, 12)
+                        .padding(.bottom, 6)
+                    }
+
                     List {
                         if viewModel.messages.isEmpty {
                             contactProfileCard
@@ -255,6 +274,7 @@ struct ChatView: View {
                             }
                         }
                     }
+                    .task { evaluateSafety() }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -865,6 +885,26 @@ struct ChatView: View {
         .accessibilityLabel("More actions")
     }
     }
+    /// Trust-aware scam/impersonation check, run once when the thread opens. Shows the safety
+    /// banner on a risky first contact (unverified/low-trust, or name-impersonation of a contact).
+    private func evaluateSafety() {
+        guard !safetyEvaluated else { return }
+        safetyEvaluated = true
+        #if os(iOS)
+        let tier = ContactTrustIndex.shared.tier(conversationId: conversationId, peerDID: peerDID)
+        let isFirst = FirstContactStore.isFirstContact(peerDID)
+        let assessment = ContactSafetyEvaluator().evaluate(
+            peerDID: peerDID,
+            peerName: contactName,
+            peerTier: tier,
+            isFirstContact: isFirst,
+            knownContacts: []   // TODO: pass verified contacts to enable impersonation detection
+        )
+        if assessment.level != .ok { safetyAssessment = assessment }
+        FirstContactStore.markSeen(peerDID)
+        #endif
+    }
+
     @ViewBuilder
     private func replyQuoteBubble(_ quote: String, isFromCurrentUser: Bool) -> some View {
         Text(quote)
