@@ -31,6 +31,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/services/notification"
 	"github.com/thechadcromwell/echoapp/internal/services/onboarding"
 	rewardsSvc "github.com/thechadcromwell/echoapp/internal/services/rewards"
+	"github.com/thechadcromwell/echoapp/internal/wallet"
 	"github.com/thechadcromwell/echoapp/pkg/credentials"
 	"github.com/thechadcromwell/echoapp/pkg/credentials/oidc4vc"
 	"github.com/thechadcromwell/echoapp/pkg/passport"
@@ -147,6 +148,20 @@ func (s *Server) Start() error {
 			cfg.IdentitySigner = signer
 		}
 		router.DataL1 = metagraph.NewMetagraphClient(cfg)
+	}
+	var currencyL1 *metagraph.MetagraphClient
+	if c1 := os.Getenv("CURRENCY_L1_URL"); c1 != "" {
+		cfg := metagraph.MetagraphConfig{
+			CurrencyL1URL: c1,
+			Timeout:       30 * time.Second,
+		}
+		if signer, err := loadIdentitySigningConfig(); err != nil {
+			log.Printf("Currency L1 signing disabled: %v", err)
+		} else if signer != nil {
+			cfg.IdentitySigner = signer
+		}
+		currencyL1 = metagraph.NewMetagraphClient(cfg)
+		log.Println("Currency L1 submissions enabled (CURRENCY_L1_URL)")
 	}
 
 	credCfg := credentials.LoadConfig()
@@ -277,12 +292,23 @@ func (s *Server) Start() error {
 	botRateLimiter := bots.NewRateLimiter(100, time.Minute)
 	botWebhooks := bots.NewWebhookRegistry()
 
+	rewardsService := rewardsSvc.NewService(db, emission)
+
+	var walletHandlers *api.WalletHandlers
+	if pgDB != nil {
+		walletStore := wallet.NewPGStore(pgDB.Pool())
+		ledger := wallet.NewLedgerQuerier(walletStore, currencyL1)
+		walletSvc := wallet.NewWalletService(ledger, wallet.NewRewardsAdapter(rewardsService))
+		walletHandlers = &api.WalletHandlers{Service: walletSvc, Store: walletStore}
+		log.Println("Wallet + staking API enabled (/v3/wallet/*)")
+	}
+
 	router.V3 = &api.V3Handlers{
 		DB:              db,
 		Contacts:        contactsSvc,
 		Notification:    notifSvc,
 		Media:           mediaSvc,
-		Rewards:         rewardsSvc.NewService(db, emission),
+		Rewards:         rewardsService,
 		Groups:          groupSvc,
 		Broadcasts:      broadcast_channels.NewChannelService(),
 		RateLimiter:     rateLimiter,
@@ -298,6 +324,7 @@ func (s *Server) Start() error {
 		BotTokens:       botTokens,         // WO-11 bot relay auth
 		BotRateLimiter:  botRateLimiter,    // WO-11 ~100 msg/min per bot
 		BotWebhooks:     botWebhooks,       // WO-11 inbound bot webhooks
+		Wallet:          walletHandlers,    // Currency L1 wallet + staking
 	}
 	if os.Getenv("COMPLY_SERVICE_TOKEN") != "" {
 		log.Println("ECHO Comply retention service enabled (WO-250)")

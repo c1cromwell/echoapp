@@ -61,6 +61,7 @@ type V3Handlers struct {
 	BotTokens       *bots.TokenValidator                          // optional; WO-11 bot API tokens
 	BotRateLimiter  *bots.RateLimiter                             // optional; WO-11 bot send velocity
 	BotWebhooks     *bots.WebhookRegistry                         // optional; WO-11 inbound webhooks
+	Wallet          *WalletHandlers                               // optional; Currency L1 wallet + staking
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.
@@ -97,6 +98,17 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/v3/rewards/pending/", h.handleRewardsPending)
 	mux.HandleFunc("/v3/rewards/daily-stats", h.handleRewardsDailyStats)
 	mux.HandleFunc("/v3/rewards/auto-scale-rate", h.handleRewardsAutoScaleRate)
+
+	// Wallet + staking (Currency L1 ledger)
+	if h.Wallet != nil {
+		mux.HandleFunc("/v3/wallet", h.Wallet.handleWalletRoot)
+		mux.HandleFunc("/v3/wallet/stake", h.Wallet.handleWalletStake)
+		mux.HandleFunc("/v3/wallet/unstake", h.Wallet.handleWalletUnstake)
+		mux.HandleFunc("/v3/wallet/delegate", h.Wallet.handleWalletDelegate)
+		mux.HandleFunc("/v3/wallet/claim", h.Wallet.handleWalletClaim)
+		mux.HandleFunc("/v3/wallet/validators", h.Wallet.handleWalletValidators)
+		mux.HandleFunc("/v3/wallet/link", h.Wallet.handleWalletLink)
+	}
 
 	// Notification endpoints
 	mux.HandleFunc("/v3/notifications/register", h.handleNotificationsRegister)
