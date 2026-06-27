@@ -1,7 +1,7 @@
 # Phase 7: Advanced Platform Features
 
-**Total Work Orders:** 102  
-**Status Summary:** 39 Completed, 1 In Progress, 62 Backlog  
+**Total Work Orders:** 103  
+**Status Summary:** 40 Completed, 1 In Progress, 62 Backlog  
 **Last synced with Software Factory:** 2026-05-29
 
 ---
@@ -4750,3 +4750,14 @@ or standing authority. This is the concrete form of WO-307, bound to x402 + Allo
 - Every agent-initiated payment requires a fresh per-action confirmation; no blanket approval exists.
 - The GNAP grant is least-privilege and revocable; a revoked grant blocks further presentation/spend.
 - Payment settles as `SpendTransaction` on Currency L1 with a valid x402 proof; no PAN/PII on the wire.
+
+---
+
+## SimpleX Audit Additions (2026-05-29)
+
+From [`docs/COMPETITIVE_AUDIT_SIMPLEX_2026-06.md`](COMPETITIVE_AUDIT_SIMPLEX_2026-06.md). Synced to Software Factory 2026-05-29.
+
+### WO-315: SimpleX SX2 — PQ-hybrid ratchet bootstrap (ML-KEM-768 + P-256)
+**Status:** ✅ Completed (bootstrap handshake) · **Commits:** `3bc5e4a` (Go), `bed4e76` + this push (iOS ML-KEM)  
+**Evidence:** `internal/crypto/pqhybrid.go`, `PQHybridCrypto.swift`, `MLKEMNativeSwift`, `PrivacyHubView` PQ settings  
+**Remaining (future):** per-ratchet-step PQ on every DH step

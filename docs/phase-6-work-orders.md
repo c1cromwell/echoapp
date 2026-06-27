@@ -1,7 +1,7 @@
 # Phase 6: Calls & File Sharing
 
-**Total Work Orders:** 31  
-**Status Summary:** 3 Completed, 28 Backlog  
+**Total Work Orders:** 32  
+**Status Summary:** 4 Completed, 28 Backlog  
 **Last synced with Software Factory:** 2026-05-29
 
 ---
@@ -1745,3 +1745,11 @@ From the Frontend blueprint (VIP Subscription Management section):
 - ECHO Token Economics and Founder Allocation — Defines `AllowSpend` primitive for time-limited subscription payment authorization
 
 ---
+
+## SimpleX Audit Additions (2026-05-29)
+
+From [`docs/COMPETITIVE_AUDIT_SIMPLEX_2026-06.md`](COMPETITIVE_AUDIT_SIMPLEX_2026-06.md). Synced to Software Factory 2026-05-29.
+
+### WO-316: SimpleX SX5 — Voice messages (recorded notes)
+**Status:** ✅ Completed · **Commit:** `0259024`  
+**Evidence:** `ios/Echo/Sources/Services/VoiceNoteService.swift`, `ChatDetailViewModel.sendVoiceNote`, `MediaBubbleView`

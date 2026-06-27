@@ -1,7 +1,7 @@
 # Phase 5: Hidden Folders & Privacy Features
 
-**Total Work Orders:** 43  
-**Status Summary:** 11 Completed, 32 Backlog  
+**Total Work Orders:** 46  
+**Status Summary:** 14 Completed, 32 Backlog  
 **Last synced with Software Factory:** 2026-05-29
 
 ---
@@ -2459,3 +2459,22 @@ tokenization / Open Banking PISP partner). Echo orchestrates consent and passes 
 **Acceptance Criteria:**
 - A merchant payment completes via the licensed rail with only a tokenized instrument reference.
 - No raw PAN/account number enters any VC, blob, chain payload, or x402 message (T0–T7 gate green).
+
+---
+
+## SimpleX Audit Additions (2026-05-29)
+
+From [`docs/COMPETITIVE_AUDIT_SIMPLEX_2026-06.md`](COMPETITIVE_AUDIT_SIMPLEX_2026-06.md). Synced to Software Factory 2026-05-29.
+
+### WO-317: SimpleX SX3 — Metadata minimization + sealed-sender default
+**Status:** ✅ Completed · **Commit:** `e15e5e8`  
+**Evidence:** `SealedSenderPolicy.swift`, `ConversationQueueAliasStore.swift`, `internal/api/ws.go` scrub
+
+### WO-319: SimpleX SX4 — Optional Tor/SOCKS transport proxy
+**Status:** ✅ Completed  
+**Evidence:** `TransportProxySettings.swift`, `APIClient`, `WebSocketClient`, `TransportProxySettingsView` in `PrivacyHubView`  
+**Remaining (future):** 2-hop routing; proxy on ancillary `URLSession.shared` clients
+
+### WO-318: SimpleX SX6 — Per-contact minimal-disclosure persona
+**Status:** ✅ Completed · **Commit:** `9fcc7af`  
+**Evidence:** `ContactPersonaStore.swift`, `ContactDetailView`, `ContactThreadHelper`

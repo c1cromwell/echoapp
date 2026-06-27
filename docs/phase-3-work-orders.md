@@ -1,7 +1,7 @@
 # Phase 3: Messaging Core
 
-**Total Work Orders:** 36  
-**Status Summary:** 23 Completed, 13 Backlog  
+**Total Work Orders:** 37  
+**Status Summary:** 24 Completed, 13 Backlog  
 **Last synced with Software Factory:** 2026-05-29
 
 ---
@@ -2419,3 +2419,13 @@ Proposed from `docs/COMPETITIVE_AUDIT_2026-05.md` (Tier 1). Provisional IDs — 
 ### WO-CA3: did:key-scoped multi-device message sync
 **Source:** competitive audit (Signal multi-device sync). **Extends:** WO-73 (cross-device search-index sync).
 Sync message history across a user's registered devices keyed by `did:key` (controller pattern), E2E re-encrypted per device; no plaintext server copy.
+
+---
+
+## SimpleX Audit Additions (2026-05-29)
+
+From [`docs/COMPETITIVE_AUDIT_SIMPLEX_2026-06.md`](COMPETITIVE_AUDIT_SIMPLEX_2026-06.md). Synced to Software Factory 2026-05-29.
+
+### WO-314: SimpleX SX1 — Double Ratchet forward secrecy over Kinnami
+**Status:** ✅ Completed · **Commits:** `e7797dc` (Go), `3cfcc2d` (iOS)  
+**Evidence:** `internal/crypto/ratchet.go`, `ios/Echo/Sources/Core/Security/DoubleRatchet.swift`, `DoubleRatchetCoordinator.swift`

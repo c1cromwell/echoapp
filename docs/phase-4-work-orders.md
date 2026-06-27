@@ -1,7 +1,7 @@
 # Phase 4: Blockchain & Trust Infrastructure
 
-**Total Work Orders:** 31  
-**Status Summary:** 5 Completed, 1 In Progress, 22 Backlog, 3 Blocked  
+**Total Work Orders:** 32  
+**Status Summary:** 5 Completed, 1 In Progress, 23 Backlog, 3 Blocked  
 **Last synced with Software Factory:** 2026-05-29
 
 ---
@@ -2003,3 +2003,11 @@ sheet showing recipient identity (verified DID), amount, and fee before signing.
 - `swift build` library + security-test targets pass.
 
 ---
+
+## SimpleX Audit Additions (2026-05-29)
+
+From [`docs/COMPETITIVE_AUDIT_SIMPLEX_2026-06.md`](COMPETITIVE_AUDIT_SIMPLEX_2026-06.md). Synced to Software Factory 2026-05-29.
+
+### WO-320: SimpleX SX7 — Federation design principles for relay kit
+**Status:** 📋 Backlog · **Depends:** community relay kit / federation milestone  
+**Scope:** Relays don't gossip, hold messages transiently, open interop protocol, no server-side social graph; preserve integrity anchoring.

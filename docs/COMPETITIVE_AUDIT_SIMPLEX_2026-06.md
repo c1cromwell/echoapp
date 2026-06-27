@@ -189,15 +189,15 @@ there is no transport anonymity. SimpleX defaults to 2-hop private routing + opt
 > were stubbed by [`COMPETITIVE_AUDIT_2026-05.md`](COMPETITIVE_AUDIT_2026-05.md). Each should be
 > mirrored as a "SimpleX Audit Additions" note in its phase doc.
 
-| ID | Phase | Title | Extends / depends on | Scope summary |
-|----|-------|-------|----------------------|---------------|
-| **WO-SX1** | 3/4 (Messaging Core / Crypto) | **Double Ratchet forward secrecy** over Kinnami | `internal/crypto/kinnami.go`; **device-decrypt fix** (`MESSAGING_SR_REVIEW_2026-06.md`) | X3DH-style init on existing did:key identity keys + per-message DH+symmetric ratchet; forward secrecy + break-in recovery. **Do with the device-decrypt fix.** |
-| **WO-SX2** | 7 (Advanced) | **PQ-hybrid ratchet step** | WO-SX1 | ML-KEM(Kyber)+X25519 hybrid option in the ratchet DH step; hybrid only, never PQ-only. Matches Phase 7 post-quantum intent. |
-| **WO-SX3** | 5 (Privacy) | **Metadata minimization + sealed-sender default** | sealed-sender `WO-219`; `migrations/002_messaging.sql`, relay/ws | Sealed-sender default for trusted contacts; drop sender side on delivery; per-conversation queue aliases/rotation; minimize persisted sender→recipient rows. |
-| **WO-SX4** | 5 (Privacy) | **Private routing / optional Tor transport** | client transport; relay | Optional Tor/SOCKS first; 2-hop private routing as federation matures. Protects client IP from relay. Supports sovereign/edge relays. |
-| **WO-SX5** | 6 (Calls & Media) | **Voice messages** (recorded notes) | media pipeline (`internal/services/media/service.go`) | Record/encrypt/transfer voice notes via the existing chunked media service; chat UI affordance. |
-| **WO-SX6** | 5 (Privacy) | **Per-contact minimal-disclosure persona** | existing personas / hidden personas | "Incognito" analog: per-contact reduced-disclosure persona instead of random identity; verifiability stays optional. |
-| **WO-SX7** | 4+ (Infra / Network State) | **Federation design principles for the relay kit** | community relay kit / federation milestone (`NETWORK_STATE_OWNERSHIP_THESIS.md`) | Bake in: relays don't gossip, hold messages transiently, open interop protocol, no server-side social graph; preserve integrity anchoring. |
+| ID | SF WO | Phase | Title | Status (2026-05-29) |
+|----|-------|-------|-------|---------------------|
+| **WO-SX1** | **WO-314** | 3 | **Double Ratchet forward secrecy** over Kinnami | ✅ Completed (`e7797dc`, `3cfcc2d`) |
+| **WO-SX2** | **WO-315** | 7 | **PQ-hybrid ratchet bootstrap** | ✅ Completed (bootstrap; per-step PQ future) |
+| **WO-SX3** | **WO-317** | 5 | **Metadata minimization + sealed-sender default** | ✅ Completed (`e15e5e8`) |
+| **WO-SX4** | **WO-319** | 5 | **Private routing / optional Tor transport** | ✅ Completed (SOCKS + settings UI; 2-hop routing backlog) |
+| **WO-SX5** | **WO-316** | 6 | **Voice messages** (recorded notes) | ✅ Completed (`0259024`) |
+| **WO-SX6** | **WO-318** | 5 | **Per-contact minimal-disclosure persona** | ✅ Completed (`9fcc7af`) |
+| **WO-SX7** | **WO-320** | 4 | **Federation design principles for the relay kit** | 📋 Backlog |
 
 **Sequencing / dependencies:**
 - **WO-SX1 is the keystone** and is gated by the device-decrypt fix — do them as one effort.
@@ -223,3 +223,23 @@ there is no transport anonymity. SimpleX defaults to 2-hop private routing + opt
 - Related ECHO docs: [`COMPETITIVE_AUDIT_2026-05.md`](COMPETITIVE_AUDIT_2026-05.md),
   [`MESSAGING_SR_REVIEW_2026-06.md`](MESSAGING_SR_REVIEW_2026-06.md),
   [`NETWORK_STATE_OWNERSHIP_THESIS.md`](NETWORK_STATE_OWNERSHIP_THESIS.md).
+
+---
+
+## 8. Software Factory sync (2026-05-29)
+
+Provisional `WO-SX*` IDs are now tracked in Software Factory. **Last synced:** 2026-05-29.
+
+| Provisional | Software Factory | Status |
+|-------------|------------------|--------|
+| WO-SX1 | WO-314 | completed |
+| WO-SX2 | WO-315 (child of WO-314) | completed |
+| WO-SX3 | WO-317 | completed |
+| WO-SX4 | WO-319 | completed |
+| WO-SX5 | WO-316 | completed |
+| WO-SX6 | WO-318 | completed |
+| WO-SX7 | WO-320 | backlog |
+
+**Commits on `main`:** `e7797dc` SX1 Go · `3cfcc2d` SX1 iOS · `3bc5e4a` SX2 Go PQ · `bed4e76` SX2 iOS hook · `e15e5e8` SX3 · `0259024` SX5 · `9fcc7af` SX6 · `671729f` SX4 transport · *(this push)* SX2 iOS ML-KEM + SX4 Privacy Hub UI.
+
+**Out of scope (tracked on WO-315 / WO-319 descriptions):** per-ratchet-step PQ; 2-hop private routing; proxy on ancillary `URLSession.shared` clients.
