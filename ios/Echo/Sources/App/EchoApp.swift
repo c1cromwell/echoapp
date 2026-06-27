@@ -13,7 +13,7 @@ struct EchoApp: App {
         let provisionService = SilentProvisionService(
             secureEnclave: RealProvisionSecureEnclave(),
             api: RealProvisionAPI(),
-            stargazer: StubProvisionStargazer(),
+            stargazer: RealProvisionStargazer(),
             passkeyProvider: StubProvisionPasskey()
         )
         _appState = State(initialValue: AppState(provisionService: provisionService))

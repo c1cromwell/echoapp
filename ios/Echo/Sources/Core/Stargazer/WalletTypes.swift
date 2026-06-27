@@ -5,6 +5,10 @@ import Foundation
 
 // MARK: - Wallet Info
 
+enum WalletKeychain {
+    static let dagAddressKey = "echo.wallet.dagAddress"
+}
+
 struct WalletInfo {
     let address: String
     let publicKey: String

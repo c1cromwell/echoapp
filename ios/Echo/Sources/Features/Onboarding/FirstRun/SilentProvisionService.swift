@@ -245,14 +245,7 @@ final class RealProvisionAPI: ProvisionAPIProtocol, @unchecked Sendable {
     }
 
     func linkWalletToDID(did: String, walletAddress: String) async throws {
-        let body: [String: String] = ["did": did, "wallet_address": walletAddress]
-        var req = URLRequest(url: EchoAPIBaseURL.url(path: "/v1/identity/link-wallet"))
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        req.timeoutInterval = 10
-        // Best-effort — ignore failures
-        _ = try? await URLSession.shared.data(for: req)
+        try? await KeychainManager.shared.store(key: WalletKeychain.dagAddressKey, value: walletAddress)
     }
 
     func updateTrustTier(did: String, trustTier: Int, evidenceType: String) async throws {

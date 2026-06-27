@@ -83,6 +83,7 @@ actor StargazerBridge: StargazerBridgeProtocol {
 // MARK: - Wallet API Client Protocol
 
 protocol WalletAPIClient {
+    func fetchWalletState() async throws -> WalletState
     func createWallet() async throws -> WalletInfo
     func importWallet(mnemonic: String) async throws -> WalletInfo
     func getBalance() async throws -> BalanceInfo
@@ -97,7 +98,7 @@ protocol WalletAPIClient {
 
 // MARK: - Mock for Testing
 
-#if DEBUG
+#if os(iOS)
 final class MockWalletAPIClient: WalletAPIClient {
     var balance = BalanceInfo(total: 1250, available: 750)
     var locks: [TokenLockPosition] = []
@@ -105,6 +106,20 @@ final class MockWalletAPIClient: WalletAPIClient {
     var validators: [ValidatorInfo] = []
     var txHash = "mock_tx_hash"
     var shouldError = false
+
+    func fetchWalletState() async throws -> WalletState {
+        if shouldError { throw StargazerError.notInitialized }
+        return WalletState(
+            totalBalance: balance.total,
+            available: balance.available,
+            staked: balance.staked,
+            pendingRewards: 0,
+            locks: locks,
+            delegations: delegations,
+            dailyRewards: nil,
+            vesting: nil
+        )
+    }
 
     func createWallet() async throws -> WalletInfo {
         WalletInfo(address: "DAG_mock_address", publicKey: "mock_pubkey")
