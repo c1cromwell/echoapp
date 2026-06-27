@@ -81,6 +81,9 @@ struct MessagesTabView: View {
                         onOpenMessageSearch: { query in
                             messageSearchSeed = query
                             showMessageSearch = true
+                        },
+                        onGroupCreated: { groupId, name in
+                            openGroupConversation(groupId: groupId, name: name)
                         }
                     )
                 }
@@ -187,17 +190,7 @@ struct MessagesTabView: View {
         }
         .sheet(isPresented: $showCreateGroup) {
             GroupCreateSheet { groupId, name in
-                let conversation = StoredConversation(
-                    id: "group:\(groupId)",
-                    contactName: name,
-                    peerDID: groupId,
-                    personaId: appState.activePersona.id
-                )
-                ConversationStore.shared.upsert(conversation)
-                chatPath.append(conversation)
-                if !UserDefaults.standard.bool(forKey: "echo.hasSentFirstMessage") {
-                    UserDefaults.standard.set(true, forKey: "echo.hasSentFirstMessage")
-                }
+                openGroupConversation(groupId: groupId, name: name)
             }
         }
         .fullScreenCover(item: Binding(
@@ -265,6 +258,20 @@ struct MessagesTabView: View {
     private var mutedConversationIDs: Set<String> {
         let store = ConversationPreferencesStore.shared
         return Set(conversationStore.conversations.map(\.id).filter { store.isMuted($0) })
+    }
+
+    private func openGroupConversation(groupId: String, name: String) {
+        let conversation = StoredConversation(
+            id: "group:\(groupId)",
+            contactName: name,
+            peerDID: groupId,
+            personaId: appState.activePersona.id
+        )
+        ConversationStore.shared.upsert(conversation)
+        chatPath.append(conversation)
+        if !UserDefaults.standard.bool(forKey: "echo.hasSentFirstMessage") {
+            UserDefaults.standard.set(true, forKey: "echo.hasSentFirstMessage")
+        }
     }
 
     private func refreshContactTrustIndex() async {

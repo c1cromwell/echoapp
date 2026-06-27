@@ -25,3 +25,14 @@ public struct MockWalletTransfer: WalletTransfer {
         return "mocktx-" + UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(12)
     }
 }
+
+/// In-chat pay/request UI is off until a live `WalletTransfer` ships (Passport Wave B / WO-299).
+public enum WalletTransferAvailability {
+    public static var inChatPaymentsEnabled: Bool {
+        ProcessInfo.processInfo.environment["ECHO_IN_CHAT_PAYMENTS"] == "1"
+    }
+
+    public static func makeTransfer() -> WalletTransfer {
+        MockWalletTransfer()
+    }
+}

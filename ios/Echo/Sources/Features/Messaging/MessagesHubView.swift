@@ -19,7 +19,7 @@ struct MessagesHubView: View {
             case .archived: return "Archived"
             }
         }
-        static let standard: [Segment] = [.chats, .groups, .channels]
+        static let standard: [Segment] = [.chats, .groups]
     }
 
     let conversations: [StoredConversation]
@@ -41,6 +41,7 @@ struct MessagesHubView: View {
     let onSelectHiddenPersona: (PersonaSummary) -> Void
     let onToggleArchive: (String, Bool) -> Void
     let onOpenMessageSearch: (String) -> Void
+    let onGroupCreated: (String, String) -> Void
 
     @Bindable private var pinnedStore = PinnedConversationsStore.shared
     @State private var searchText = ""
@@ -110,24 +111,10 @@ struct MessagesHubView: View {
             EditPinnedSheet(conversations: conversations)
         }
         .sheet(isPresented: $showCreateGroup) {
-            NavigationStack {
-                VStack(spacing: 14) {
-                    Image(systemName: "person.3.fill").font(.system(size: 40)).foregroundColor(.echoInk40)
-                    Text("Create a group").font(.system(size: 20, weight: .semibold)).foregroundColor(.echoInk)
-                    Text("Name your group and add the people you trust. Group chats are coming soon.")
-                        .font(.system(size: 14)).foregroundColor(.echoInk55)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(Spacing.xl.rawValue)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.echoPaper)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Done") { showCreateGroup = false }
-                    }
-                }
+            GroupCreateSheet { groupId, name in
+                showCreateGroup = false
+                onGroupCreated(groupId, name)
             }
-            .presentationDetents([.medium])
         }
         .sheet(isPresented: $showIntegrityExplainer) {
             NavigationStack {
@@ -148,9 +135,21 @@ struct MessagesHubView: View {
         }
     }
 
+    private var directConversations: [StoredConversation] {
+        conversations.filter { !Self.isGroupConversation($0) }
+    }
+
+    private var groupConversations: [StoredConversation] {
+        conversations.filter { Self.isGroupConversation($0) }
+    }
+
+    private static func isGroupConversation(_ conv: StoredConversation) -> Bool {
+        conv.id.hasPrefix("group:") || conv.peerDID.hasPrefix("grp-")
+    }
+
     private var filtered: [StoredConversation] {
         let archived = ConversationArchiveStore.archivedIds()
-        let unpinned = conversations.filter { !pinnedStore.isPinned($0.id) && !archived.contains($0.id) }
+        let unpinned = directConversations.filter { !pinnedStore.isPinned($0.id) && !archived.contains($0.id) }
         return unpinned.filter { conv in
             let matchesSearch = searchText.isEmpty
                 || conv.contactName.localizedCaseInsensitiveContains(searchText)
@@ -381,7 +380,7 @@ struct MessagesHubView: View {
     }
 
     private var pinnedConversations: [StoredConversation] {
-        pinnedStore.orderedIDs.compactMap { id in conversations.first { $0.id == id } }
+        pinnedStore.orderedIDs.compactMap { id in directConversations.first { $0.id == id } }
     }
 
     private func trustBadgeCircle(_ color: Color) -> some View {
@@ -525,7 +524,27 @@ struct MessagesHubView: View {
 
         Divider().background(Color.echoHair).padding(.leading, Spacing.lg.rawValue)
 
-        placeholder(icon: "person.3", text: "You\u{2019}re not in any groups yet.\nTap \u{201C}New group\u{201D} to start one.")
+        let groups = filteredGroupConversations
+        if groups.isEmpty {
+            placeholder(icon: "person.3", text: "You\u{2019}re not in any groups yet.\nTap \u{201C}New group\u{201D} to start one.")
+        } else {
+            ForEach(groups) { conv in
+                conversationRow(conv)
+                Divider().background(Color.echoHair).padding(.horizontal, 18)
+            }
+        }
+    }
+
+    private var filteredGroupConversations: [StoredConversation] {
+        let archived = ConversationArchiveStore.archivedIds()
+        return groupConversations
+            .filter { !archived.contains($0.id) }
+            .filter { conv in
+                searchText.isEmpty
+                    || conv.contactName.localizedCaseInsensitiveContains(searchText)
+                    || conv.lastMessage.localizedCaseInsensitiveContains(searchText)
+            }
+            .sorted { ($0.unreadCount > 0) && ($1.unreadCount == 0) }
     }
 
     @ViewBuilder
@@ -640,7 +659,8 @@ struct MessagesHubView_Previews: PreviewProvider {
             onSwitchPersona: { _ in },
             onSelectHiddenPersona: { _ in },
             onToggleArchive: { _, _ in },
-            onOpenMessageSearch: { _ in }
+            onOpenMessageSearch: { _ in },
+            onGroupCreated: { _, _ in }
         )
     }
 }

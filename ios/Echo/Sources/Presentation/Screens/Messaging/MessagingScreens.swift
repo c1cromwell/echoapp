@@ -711,10 +711,10 @@ struct ChatView: View {
                         showAttachmentPicker = false
                         showCreatePoll = true
                     },
-                    onPaymentTapped: {
+                    onPaymentTapped: WalletTransferAvailability.inChatPaymentsEnabled ? {
                         showAttachmentPicker = false
                         showPaymentSheet = true
-                    }
+                    } : nil
                 )
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -935,7 +935,8 @@ struct ChatView: View {
     // MARK: - Payments
 
     private func handlePaymentCompose(kind: PaymentPayload.Kind, amount: Decimal, memo: String?) {
-        let coordinator = PaymentCoordinator(transfer: MockWalletTransfer())
+        guard WalletTransferAvailability.inChatPaymentsEnabled else { return }
+        let coordinator = PaymentCoordinator(transfer: WalletTransferAvailability.makeTransfer())
         guard let request = try? coordinator.makeRequest(amount: amount, memo: memo) else { return }
         if kind == .request {
             Task { await viewModel.sendMessage(PaymentMessageEncoding.encode(request)) }
@@ -946,9 +947,10 @@ struct ChatView: View {
 
     /// Pay-guard: paying an unverified/low-trust contact prompts an extra confirmation first.
     private func attemptPay(_ request: PaymentPayload) {
+        guard WalletTransferAvailability.inChatPaymentsEnabled else { return }
         #if os(iOS)
         let tier = ContactTrustIndex.shared.tier(conversationId: conversationId, peerDID: peerDID)
-        if PaymentCoordinator(transfer: MockWalletTransfer()).needsExtraConfirmation(peerTier: tier) {
+        if PaymentCoordinator(transfer: WalletTransferAvailability.makeTransfer()).needsExtraConfirmation(peerTier: tier) {
             pendingPayRequest = request
             return
         }
@@ -957,7 +959,8 @@ struct ChatView: View {
     }
 
     private func finalizePay(_ request: PaymentPayload) async {
-        let coordinator = PaymentCoordinator(transfer: MockWalletTransfer())
+        guard WalletTransferAvailability.inChatPaymentsEnabled else { return }
+        let coordinator = PaymentCoordinator(transfer: WalletTransferAvailability.makeTransfer())
         guard let sent = try? await coordinator.pay(request, toDID: peerDID) else { return }
         await viewModel.sendMessage(PaymentMessageEncoding.encode(sent))
     }
@@ -980,6 +983,7 @@ struct ChatView: View {
             PaymentBubbleView(
                 payment: payment,
                 isIncoming: !message.isFromCurrentUser,
+                payActionsEnabled: WalletTransferAvailability.inChatPaymentsEnabled,
                 onPay: { attemptPay(payment) }
             )
         } else {

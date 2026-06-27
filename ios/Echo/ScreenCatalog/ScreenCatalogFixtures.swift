@@ -91,4 +91,181 @@ struct CatalogChatThreadPreview: View {
         .background(Color.Echo.surfaceContainerLow)
     }
 }
+
+// MARK: - Privacy catalog composites (Form/List do not rasterize in ImageRenderer)
+
+struct CatalogSOCKSProxyPreview: View {
+    var body: some View {
+        CatalogSettingsScaffold(title: "SOCKS proxy") {
+            CatalogToggleRow(title: "Route traffic through SOCKS5", isOn: true)
+            CatalogFieldRow(label: "Host", value: "127.0.0.1")
+            CatalogFieldRow(label: "Port", value: "9050")
+            Text("Compatible with Tor (default port 9050). Reconnect chats after changing proxy settings.")
+                .font(.footnote)
+                .foregroundStyle(Color.Echo.onSurfaceVariant)
+            CatalogPrimaryButton(title: "Save")
+        }
+    }
+}
+
+struct CatalogPQHybridPreview: View {
+    var body: some View {
+        CatalogSettingsScaffold(title: "Post-quantum") {
+            CatalogToggleRow(title: "Post-quantum handshake", isOn: true)
+            Text("Uses ML-KEM-768 plus P-256 for new 1:1 ratchet sessions. Hybrid only — never PQ-only.")
+                .font(.footnote)
+                .foregroundStyle(Color.Echo.onSurfaceVariant)
+            HStack {
+                Text("Device support")
+                Spacer()
+                Text("Available").foregroundStyle(Color.Echo.onSurfaceVariant)
+            }
+            .font(.body)
+        }
+    }
+}
+
+struct CatalogHiddenFolderPreview: View {
+    var body: some View {
+        CatalogSettingsScaffold(title: "Hidden folder") {
+            CatalogPickerRow(label: "Lock after", value: "2 minutes")
+            CatalogToggleRow(title: "Lock on screenshot", isOn: true)
+            CatalogPickerRow(label: "Notifications", value: "Suppressed")
+            Text("Hidden chats stay on this device and require biometrics to open.")
+                .font(.footnote)
+                .foregroundStyle(Color.Echo.onSurfaceVariant)
+        }
+    }
+}
+
+struct CatalogPrivacyHubPreview: View {
+    var body: some View {
+        CatalogSettingsScaffold(title: "Privacy") {
+            CatalogNavRow(title: "Privacy & security", subtitle: "Typing, read receipts")
+            CatalogNavRow(title: "On-device AI", subtitle: "Translation & summaries")
+            CatalogNavRow(title: "SOCKS proxy (Tor)", subtitle: "Optional transport")
+            CatalogNavRow(title: "Post-quantum encryption", subtitle: "ML-KEM hybrid handshake")
+            CatalogNavRow(title: "Data & deletion", subtitle: "Account controls")
+        }
+    }
+}
+
+private struct CatalogSettingsScaffold<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(title)
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(Color.Echo.onSurface)
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 12)
+            VStack(alignment: .leading, spacing: 16) {
+                content()
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.Echo.surfaceContainerLow)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal, 16)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color.Echo.surface)
+    }
+}
+
+private struct CatalogToggleRow: View {
+    let title: String
+    let isOn: Bool
+
+    var body: some View {
+        Toggle(isOn: .constant(isOn)) {
+            Text(title).foregroundStyle(Color.Echo.onSurface)
+        }
+        .tint(Color.echoSignal)
+    }
+}
+
+private struct CatalogFieldRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label).foregroundStyle(Color.Echo.onSurfaceVariant)
+            Spacer()
+            Text(value).foregroundStyle(Color.Echo.onSurface)
+        }
+    }
+}
+
+private struct CatalogPickerRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label).foregroundStyle(Color.Echo.onSurface)
+            Spacer()
+            Text(value).foregroundStyle(Color.echoSignal)
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.Echo.onSurfaceVariant)
+        }
+    }
+}
+
+private struct CatalogNavRow: View {
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.body.weight(.medium)).foregroundStyle(Color.Echo.onSurface)
+                Text(subtitle).font(.caption).foregroundStyle(Color.Echo.onSurfaceVariant)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.Echo.onSurfaceVariant)
+        }
+    }
+}
+
+private struct CatalogPrimaryButton: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.body.weight(.semibold))
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(Color.echoSignal)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+struct CatalogInviteAcceptPreview: View {
+    let inviteCode: String
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Accept contact invite?")
+                .font(.headline)
+                .foregroundStyle(Color.Echo.onSurface)
+            Text("Code: \(inviteCode)")
+                .font(.caption.monospaced())
+                .foregroundStyle(Color.Echo.onSurfaceVariant)
+            CatalogPrimaryButton(title: "Accept invite")
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.Echo.surface)
+    }
+}
 #endif

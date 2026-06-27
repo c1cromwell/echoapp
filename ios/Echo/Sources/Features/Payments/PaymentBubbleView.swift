@@ -11,10 +11,17 @@ public struct PaymentBubbleView: View {
     let payment: PaymentPayload
     let isIncoming: Bool
     let onPay: () -> Void
+    private let payActionsEnabled: Bool
 
-    public init(payment: PaymentPayload, isIncoming: Bool, onPay: @escaping () -> Void = {}) {
+    public init(
+        payment: PaymentPayload,
+        isIncoming: Bool,
+        payActionsEnabled: Bool = true,
+        onPay: @escaping () -> Void = {}
+    ) {
         self.payment = payment
         self.isIncoming = isIncoming
+        self.payActionsEnabled = payActionsEnabled
         self.onPay = onPay
     }
 
@@ -54,7 +61,9 @@ public struct PaymentBubbleView: View {
     }
 
     /// Only an incoming, still-pending request can be paid.
-    private var showPayButton: Bool { isIncoming && payment.kind == .request && payment.status == .pending }
+    private var showPayButton: Bool {
+        payActionsEnabled && isIncoming && payment.kind == .request && payment.status == .pending
+    }
 
     private var statusText: String {
         switch payment.status {

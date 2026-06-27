@@ -86,10 +86,14 @@ enum ScreenCatalogRenderer {
     @MainActor
     static func resetCatalog() throws {
         let fm = FileManager.default
-        if fm.fileExists(atPath: catalogRoot.path) {
-            try fm.removeItem(at: catalogRoot)
-        }
         try fm.createDirectory(at: catalogRoot, withIntermediateDirectories: true)
+        guard let children = try? fm.contentsOfDirectory(
+            at: catalogRoot,
+            includingPropertiesForKeys: nil
+        ) else { return }
+        for url in children where url.lastPathComponent != "README.md" {
+            try fm.removeItem(at: url)
+        }
     }
 
     enum ScreenCatalogError: Error, CustomStringConvertible {

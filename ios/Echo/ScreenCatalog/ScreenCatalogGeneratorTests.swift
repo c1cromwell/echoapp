@@ -93,29 +93,36 @@ final class ScreenCatalogGeneratorTests: XCTestCase {
         )
 
         try ScreenCatalogRenderer.render(
-            TransportProxySettingsView(),
+            CatalogSOCKSProxyPreview(),
             journey: "privacy",
             stepId: "01-socks-proxy",
             title: "SOCKS proxy settings",
             e2eRef: "WO-SX4 / Privacy Hub"
         )
         try ScreenCatalogRenderer.render(
-            PQHybridSettingsView(),
+            CatalogPQHybridPreview(),
             journey: "privacy",
             stepId: "02-post-quantum",
             title: "Post-quantum handshake",
             e2eRef: "WO-SX2 / Privacy Hub"
         )
         try ScreenCatalogRenderer.render(
-            HiddenFolderSettingsView(),
+            CatalogHiddenFolderPreview(),
             journey: "privacy",
             stepId: "03-hidden-folder",
             title: "Hidden folder settings",
             e2eRef: "Phase 5 privacy"
         )
+        try ScreenCatalogRenderer.render(
+            CatalogPrivacyHubPreview(),
+            journey: "privacy",
+            stepId: "04-privacy-hub",
+            title: "Privacy hub",
+            e2eRef: "WO-228 / Settings"
+        )
 
         try ScreenCatalogRenderer.render(
-            AcceptInviteSheet(inviteCode: "DEMO-ECHO", onAccepted: nil),
+            CatalogInviteAcceptPreview(inviteCode: "DEMO-ECHO"),
             journey: "contacts",
             stepId: "01-invite-accept",
             title: "Accept invite sheet",
