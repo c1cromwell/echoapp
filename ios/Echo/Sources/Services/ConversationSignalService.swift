@@ -79,13 +79,20 @@ final class ConversationSignalService: @unchecked Sendable {
         lock.unlock()
     }
 
-    func sendRatchetPreKey(conversationId: String, peerDID: String, ratchetPublicKeyB64: String) async throws {
-        let hybrid = await PQHybridBootstrap.outboundHybridBundle()
+    func sendRatchetPreKey(
+        conversationId: String,
+        peerDID: String,
+        ratchetPublicKeyB64: String,
+        hybridPublicBundle: HybridPublicBundleWire? = nil,
+        hybridCiphertext: HybridCiphertextWire? = nil
+    ) async throws {
+        let bundle = hybridPublicBundle ?? await PQHybridBootstrap.outboundHybridBundle()
         let text = try ConversationSignalCodec.encodeRatchetPreKey(
             to: peerDID,
             conversationId: conversationId,
             ratchetPublicKeyB64: ratchetPublicKeyB64,
-            hybridPublicBundle: hybrid
+            hybridPublicBundle: bundle,
+            hybridCiphertext: hybridCiphertext
         )
         try await transport.send(text: text)
     }
@@ -191,7 +198,34 @@ final class ConversationSignalService: @unchecked Sendable {
            let raw = Data(base64Encoded: envelope.payload.ratchetPublicKey),
            let from = header.from, !from.isEmpty {
             PQHybridBootstrap.cachePeerHybridBundle(peerDID: from, bundle: envelope.payload.hybridPublicBundle)
+            if let ct = envelope.payload.hybridCiphertext {
+                Task {
+                    try? await PQHybridBootstrap.decapsulateFromPeer(peerDID: from, ciphertext: ct)
+                }
+            }
             Task { await DoubleRatchetCoordinator.shared.cachePeerPreKey(peerDID: from, ratchetPubRaw: raw) }
+            if PQHybridBootstrap.isActive,
+               envelope.payload.hybridPublicBundle != nil,
+               let conversationId = header.conversationId ?? envelope.conversationId,
+               !conversationId.isEmpty,
+               PQHybridBootstrap.cachedBootstrapSecret(peerDID: from) == nil {
+                Task { [weak self] in
+                    let selfDID = await CurrentUserSession.currentDID() ?? ""
+                    guard selfDID > from,
+                          let peerBundle = PQHybridBootstrap.cachedPeerHybridBundle(peerDID: from),
+                          let localRaw = try? await DoubleRatchetCoordinator.shared.publishedPreKeyRaw(),
+                          let encapsulated = try? PQHybridBootstrap.encapsulateForPeer(
+                              peerDID: from,
+                              remoteBundle: peerBundle
+                          ) else { return }
+                    try? await self?.sendRatchetPreKey(
+                        conversationId: conversationId,
+                        peerDID: from,
+                        ratchetPublicKeyB64: localRaw.base64EncodedString(),
+                        hybridCiphertext: encapsulated.ciphertext
+                    )
+                }
+            }
             return
         }
         #endif

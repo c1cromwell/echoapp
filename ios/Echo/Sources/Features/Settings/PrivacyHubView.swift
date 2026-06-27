@@ -48,6 +48,14 @@ struct PrivacyHubView: View {
                     ContactDiscoverySettingsView()
                 }
             }
+            Section("Advanced network") {
+                NavigationLink("SOCKS proxy (Tor)") {
+                    TransportProxySettingsView()
+                }
+                NavigationLink("Post-quantum encryption") {
+                    PQHybridSettingsView()
+                }
+            }
             Section("Account") {
                 NavigationLink("Data & deletion") {
                     AccountDataView()
@@ -73,6 +81,87 @@ struct PrivacyHubView: View {
                     showPhoneBackup = false
                 }
             }
+        }
+    }
+}
+
+/// Optional SOCKS5 routing for REST and WebSocket (WO-SX4).
+struct TransportProxySettingsView: View {
+    @State private var enabled = TransportProxySettings.isEnabled
+    @State private var host = TransportProxySettings.socksHost
+    @State private var port = TransportProxySettings.socksPort
+    @State private var savedMessage: String?
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Route traffic through SOCKS5", isOn: $enabled)
+            } footer: {
+                Text("When enabled, API and messaging WebSocket connections use the proxy below. Reconnect chats after changing proxy settings. Compatible with Tor (default port 9050).")
+            }
+
+            Section("Proxy") {
+                TextField("Host", text: $host)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Stepper(value: $port, in: 1...65535) {
+                    Text("Port: \(port)")
+                }
+            }
+
+            if let savedMessage {
+                Section {
+                    Text(savedMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Section {
+                Button("Save") {
+                    TransportProxySettings.isEnabled = enabled
+                    TransportProxySettings.socksHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
+                    TransportProxySettings.socksPort = port
+                    savedMessage = "Saved. Reconnect messaging for proxy changes to take effect."
+                }
+            }
+        }
+        .navigationTitle("SOCKS proxy")
+        .onAppear {
+            enabled = TransportProxySettings.isEnabled
+            host = TransportProxySettings.socksHost
+            port = TransportProxySettings.socksPort
+        }
+    }
+}
+
+/// PQ-hybrid Double Ratchet bootstrap preference (WO-SX2).
+struct PQHybridSettingsView: View {
+    @State private var usePQ = PQHybridPreferences.usePQBootstrap
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Post-quantum handshake", isOn: $usePQ)
+                    .onChange(of: usePQ) { _, newValue in
+                        PQHybridPreferences.usePQBootstrap = newValue
+                    }
+            } footer: {
+                Text("Uses ML-KEM-768 plus P-256 for new 1:1 ratchet sessions. Hybrid only — never PQ-only. Requires Double Ratchet and a chat reconnect to negotiate with your contact.")
+            }
+
+            Section("Status") {
+                HStack {
+                    Text("Device support")
+                    Spacer()
+                    Text(PQHybridBootstrap.isPlatformSupported ? "Available" : "Unavailable")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .navigationTitle("Post-quantum")
+        .onAppear {
+            usePQ = PQHybridPreferences.usePQBootstrap
         }
     }
 }

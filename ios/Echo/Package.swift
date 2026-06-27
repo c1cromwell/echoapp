@@ -13,11 +13,15 @@ let package = Package(
             targets: ["Echo"]
         ),
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/MarlonJD/MLKEMNativeSwift.git", from: "0.2.0"),
+    ],
     targets: [
         .target(
             name: "Echo",
-            dependencies: [],
+            dependencies: [
+                .product(name: "MLKEMNativeSwift", package: "MLKEMNativeSwift"),
+            ],
             path: "Sources",
             exclude: ["App/EchoApp.swift"]  // entry point lives in EchoApp.xcodeproj, not the package
         ),

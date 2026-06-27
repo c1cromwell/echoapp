@@ -50,7 +50,7 @@ var ephemeralSignalTypes = map[string]bool{
 	"reaction":         true, // payload: ReactionSignal (live update; durable truth is the reactions API)
 	"group_key":        true, // payload: GroupKeySignal (E2E key package; content-blind opaque blob)
 	"screenshot_alert": true, // payload: ScreenshotAlertSignal (M6)
-	"ratchet_prekey":   true, // payload: RatchetPreKeySignal (WO-SX1 bootstrap)
+	"ratchet_prekey":   true, // payload: ratchet pre-key + optional PQ hybrid bundle/ciphertext (WO-SX1/SX2)
 }
 
 // TypingSignal is the payload of a Type:"typing" WS message (ephemeral).

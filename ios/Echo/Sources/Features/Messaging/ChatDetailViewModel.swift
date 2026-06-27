@@ -119,10 +119,22 @@ final class ChatDetailViewModel {
         if DoubleRatchetPreferences.isEnabled, !conversationId.hasPrefix("group:"), !peerDID.isEmpty {
             Task {
                 guard let raw = try? await DoubleRatchetCoordinator.shared.publishedPreKeyRaw() else { return }
+                let selfDID = await CurrentUserSession.currentDID() ?? ""
+                var hybridCT: HybridCiphertextWire?
+                if PQHybridBootstrap.isActive,
+                   selfDID > peerDID,
+                   let peerBundle = PQHybridBootstrap.cachedPeerHybridBundle(peerDID: peerDID),
+                   let encapsulated = try? PQHybridBootstrap.encapsulateForPeer(
+                       peerDID: peerDID,
+                       remoteBundle: peerBundle
+                   ) {
+                    hybridCT = encapsulated.ciphertext
+                }
                 try? await signalService.sendRatchetPreKey(
                     conversationId: conversationId,
                     peerDID: peerDID,
-                    ratchetPublicKeyB64: raw.base64EncodedString()
+                    ratchetPublicKeyB64: raw.base64EncodedString(),
+                    hybridCiphertext: hybridCT
                 )
             }
         }

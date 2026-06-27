@@ -3,11 +3,12 @@ import XCTest
 @testable import Echo
 
 final class PQHybridPreferencesTests: XCTestCase {
-    func testInactiveUntilPlatformSupport() {
+    func testActiveWhenEnabledAndSupported() {
         PQHybridPreferences.usePQBootstrap = true
-        XCTAssertFalse(PQHybridBootstrap.isPlatformSupported)
-        XCTAssertFalse(PQHybridBootstrap.isActive)
+        XCTAssertTrue(PQHybridBootstrap.isPlatformSupported)
+        XCTAssertTrue(PQHybridBootstrap.isActive)
         PQHybridPreferences.usePQBootstrap = false
+        XCTAssertFalse(PQHybridBootstrap.isActive)
     }
 
     func testCachesPeerHybridBundle() {
@@ -19,15 +20,29 @@ final class PQHybridPreferencesTests: XCTestCase {
         XCTAssertNil(PQHybridBootstrap.cachedPeerHybridBundle(peerDID: peer))
     }
 
-    func testRatchetPreKeyPayloadEncodesOptionalHybrid() throws {
+    func testRatchetPreKeyPayloadEncodesHybridFields() throws {
         let wire = try ConversationSignalCodec.encodeRatchetPreKey(
             to: "did:key:zBob",
             conversationId: "conv-1",
             ratchetPublicKeyB64: "cmF0Y2hldA==",
-            hybridPublicBundle: HybridPublicBundleWire(ec: "ec", pq: "pq")
+            hybridPublicBundle: HybridPublicBundleWire(ec: "ec", pq: "pq"),
+            hybridCiphertext: HybridCiphertextWire(ephemeralEC: "eec", pq: "pqct")
         )
         XCTAssertTrue(wire.contains("hybrid_public_bundle"))
+        XCTAssertTrue(wire.contains("hybrid_ciphertext"))
         XCTAssertTrue(wire.contains("ratchet_public_key"))
+    }
+
+    func testHybridEncapsulateDecapsulateAgree() throws {
+        let generated = try PQHybridCrypto.generateKeyPair()
+        let (ct, secretA) = try PQHybridCrypto.encapsulate(remote: generated.bundle)
+        let secretB = try PQHybridCrypto.decapsulate(
+            ec: generated.ec,
+            pq: generated.pq,
+            ciphertext: ct
+        )
+        XCTAssertEqual(secretA, secretB)
+        XCTAssertEqual(secretA.count, 32)
     }
 }
 #endif

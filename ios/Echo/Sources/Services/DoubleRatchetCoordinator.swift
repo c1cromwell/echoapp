@@ -101,9 +101,10 @@ actor DoubleRatchetCoordinator {
         peerDID: String,
         peerMessagingPub: Data
     ) async throws -> Data {
-        // PQ-hybrid replaces the X3DH bootstrap secret when platform ML-KEM is available (WO-SX2).
-        if PQHybridBootstrap.isActive, PQHybridBootstrap.cachedPeerHybridBundle(peerDID: peerDID) != nil {
-            throw DoubleRatchetError.noSendingChain
+        if PQHybridBootstrap.isActive,
+           let pqSecret = PQHybridBootstrap.cachedBootstrapSecret(peerDID: peerDID),
+           pqSecret.count == 32 {
+            return pqSecret
         }
         return try DoubleRatchet.deriveBootstrapSecret(local: local, peerPubData: peerMessagingPub)
     }

@@ -1,44 +1,70 @@
 #if os(iOS)
 import Foundation
 
-/// PQ-hybrid ratchet bootstrap handshake hook (WO-SX2 finish).
-///
-/// Full ML-KEM encapsulation/decapsulation lives in Go (`internal/crypto/pqhybrid.go`).
-/// iOS defers crypto until CryptoKit exposes ML-KEM; this type gates preference + payload wiring.
+/// PQ-hybrid ratchet bootstrap handshake (WO-SX2).
 enum PQHybridBootstrap {
-    /// `false` until the platform SDK ships ML-KEM-768.
-    static var isPlatformSupported: Bool { false }
+    static var isPlatformSupported: Bool { true }
 
-    /// User wants PQ bootstrap and the device can perform it.
     static var isActive: Bool {
         PQHybridPreferences.usePQBootstrap && isPlatformSupported
     }
 
-    /// Hybrid bundle to attach to outbound ratchet pre-keys when active.
     static func outboundHybridBundle() async -> HybridPublicBundleWire? {
         guard isActive else { return nil }
-        // Future: generate via CryptoKit ML-KEM + P-256 and persist in keychain.
-        return nil
+        return try? await PQHybridKeyStore.shared.loadOrGenerateBundle()
     }
 
-    /// Cache a peer's hybrid bundle for a future PQ session establishment.
+    /// Initiator encapsulates against a cached peer bundle and stores the derived ratchet root secret.
+    static func encapsulateForPeer(
+        peerDID: String,
+        remoteBundle: HybridPublicBundleWire
+    ) throws -> (ciphertext: HybridCiphertextWire, secret: Data) {
+        let (wire, secret) = try PQHybridCrypto.encapsulate(remote: remoteBundle)
+        cacheBootstrapSecret(secret, peerDID: peerDID)
+        return (wire, secret)
+    }
+
+    /// Responder decapsulates an initiator ciphertext and stores the ratchet root secret.
+    static func decapsulateFromPeer(
+        peerDID: String,
+        ciphertext: HybridCiphertextWire
+    ) async throws {
+        guard let keys = try await PQHybridKeyStore.shared.loadPrivateKeys() else {
+            throw PQHybridCrypto.Error.invalidKeyMaterial
+        }
+        let secret = try PQHybridCrypto.decapsulate(ec: keys.ec, pq: keys.pq, ciphertext: ciphertext)
+        cacheBootstrapSecret(secret, peerDID: peerDID)
+    }
+
+    static func cachedBootstrapSecret(peerDID: String) -> Data? {
+        UserDefaults.standard.data(forKey: secretKey(peerDID))
+    }
+
     static func cachePeerHybridBundle(peerDID: String, bundle: HybridPublicBundleWire?) {
         guard let bundle else {
-            UserDefaults.standard.removeObject(forKey: peerKey(peerDID))
+            UserDefaults.standard.removeObject(forKey: bundleKey(peerDID))
             return
         }
         if let data = try? JSONEncoder().encode(bundle) {
-            UserDefaults.standard.set(data, forKey: peerKey(peerDID))
+            UserDefaults.standard.set(data, forKey: bundleKey(peerDID))
         }
     }
 
     static func cachedPeerHybridBundle(peerDID: String) -> HybridPublicBundleWire? {
-        guard let data = UserDefaults.standard.data(forKey: peerKey(peerDID)) else { return nil }
+        guard let data = UserDefaults.standard.data(forKey: bundleKey(peerDID)) else { return nil }
         return try? JSONDecoder().decode(HybridPublicBundleWire.self, from: data)
     }
 
-    private static func peerKey(_ peerDID: String) -> String {
+    private static func cacheBootstrapSecret(_ secret: Data, peerDID: String) {
+        UserDefaults.standard.set(secret, forKey: secretKey(peerDID))
+    }
+
+    private static func bundleKey(_ peerDID: String) -> String {
         "echo.pq_hybrid.peer.bundle." + peerDID
+    }
+
+    private static func secretKey(_ peerDID: String) -> String {
+        "echo.pq_hybrid.peer.secret." + peerDID
     }
 }
 #endif
