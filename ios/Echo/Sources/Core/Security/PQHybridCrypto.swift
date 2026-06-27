@@ -97,10 +97,10 @@ enum PQHybridCrypto {
         var info = Data(combinerInfo.utf8)
         info.append(digest)
 
-        let derived = SymmetricKey(data: ikm).hkdfDerivedSymmetricKey(
-            using: SHA256.self,
+        let derived = HKDF<SHA256>.deriveKey(
+            inputKeyMaterial: SymmetricKey(data: ikm),
             salt: Data(),
-            sharedInfo: info,
+            info: info,
             outputByteCount: 32
         )
         return symmetricBytes(derived)
@@ -126,6 +126,10 @@ enum PQHybridCrypto {
 
     private static func symmetricBytes(_ key: SymmetricKey) -> Data {
         key.withUnsafeBytes { Data($0) }
+    }
+
+    private static func symmetricBytes(_ secret: SharedSecret) -> Data {
+        secret.withUnsafeBytes { Data($0) }
     }
 }
 #endif

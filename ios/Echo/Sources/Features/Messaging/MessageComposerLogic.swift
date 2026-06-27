@@ -100,7 +100,7 @@ enum MessageForwarder {
             } catch {
                 payload = TextMessagePayload(messageId: message.id, text: body, encrypted: nil)
             }
-            if SealedSenderPolicy.shouldUseSealed(peerDID: peerDID, conversationId: conversation.id),
+            if SealedSenderPolicy.shouldUseSealed(peerDID: conversation.peerDID, conversationId: conversation.id),
                !conversation.id.hasPrefix("group:") {
                 let client = DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
                 let sealedService = SealedSenderService(

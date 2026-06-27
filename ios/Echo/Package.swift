@@ -48,5 +48,10 @@ let package = Package(
             dependencies: ["Echo"],
             path: "Phase2Tests"
         ),
+        .testTarget(
+            name: "EchoScreenCatalogTests",
+            dependencies: ["Echo"],
+            path: "ScreenCatalog"
+        ),
     ]
 )

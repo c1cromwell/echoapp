@@ -1,0 +1,14 @@
+{"journey":"onboarding","title":"Welcome","e2eRef":"E2E §6.1 step 1","relativePath":"onboarding\/01-welcome.png","stepId":"01-welcome"}
+{"journey":"onboarding","stepId":"02-username","title":"Choose username","e2eRef":"E2E §6.1 step 2","relativePath":"onboarding\/02-username.png"}
+{"title":"Face ID + optional VIP","journey":"onboarding","stepId":"03-secure-account","relativePath":"onboarding\/03-secure-account.png","e2eRef":"E2E §6.1 step 3"}
+{"title":"Storage locked","stepId":"01-storage-locked","e2eRef":"E2E §6.2 step 1","journey":"auth","relativePath":"auth\/01-storage-locked.png"}
+{"relativePath":"auth\/02-soft-lockout.png","e2eRef":"E2E §6.2 step 3","title":"Biometric soft lockout","journey":"auth","stepId":"02-soft-lockout"}
+{"journey":"messaging","e2eRef":"TESTFLIGHT A1","title":"Messages hub (empty)","relativePath":"messaging\/01-empty-hub.png","stepId":"01-empty-hub"}
+{"journey":"messaging","stepId":"02-dm-thread","e2eRef":"TESTFLIGHT A2–A7","relativePath":"messaging\/02-dm-thread.png","title":"Direct message thread"}
+{"stepId":"03-typing","e2eRef":"TESTFLIGHT A6","title":"Typing indicator","journey":"messaging","relativePath":"messaging\/03-typing.png"}
+{"relativePath":"messaging\/04-reactions.png","journey":"messaging","stepId":"04-reactions","title":"Reaction picker","e2eRef":"TESTFLIGHT A7"}
+{"stepId":"01-socks-proxy","title":"SOCKS proxy settings","e2eRef":"WO-SX4 \/ Privacy Hub","journey":"privacy","relativePath":"privacy\/01-socks-proxy.png"}
+{"journey":"privacy","relativePath":"privacy\/02-post-quantum.png","title":"Post-quantum handshake","e2eRef":"WO-SX2 \/ Privacy Hub","stepId":"02-post-quantum"}
+{"stepId":"03-hidden-folder","title":"Hidden folder settings","e2eRef":"Phase 5 privacy","journey":"privacy","relativePath":"privacy\/03-hidden-folder.png"}
+{"e2eRef":"TESTFLIGHT B1","relativePath":"contacts\/01-invite-accept.png","journey":"contacts","title":"Accept invite sheet","stepId":"01-invite-accept"}
+{"title":"Add contact by username","relativePath":"contacts\/02-username-search.png","e2eRef":"TESTFLIGHT A2","journey":"contacts","stepId":"02-username-search"}

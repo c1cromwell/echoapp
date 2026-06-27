@@ -273,7 +273,7 @@ extension WebRTCLiveCallEngine: RTCPeerConnectionDelegate {
             let payload = ICECandidatePayload(
                 candidate: candidate.sdp,
                 sdpMid: candidate.sdpMid,
-                sdpMLineIndex: candidate.sdpMLineIndex.map(Int.init)
+                sdpMLineIndex: Int(candidate.sdpMLineIndex)
             )
             if let data = try? payload.encoded() {
                 self.onIceCandidate?(data)

@@ -6,17 +6,34 @@ import WebRTC
 
 /// Renders a remote or local `RTCVideoTrack` inside SwiftUI (M4c).
 struct WebRTCVideoView: UIViewRepresentable {
-    let track: RTCVideoTrack?
+    let track: Any?
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
 
     func makeUIView(context: Context) -> RTCMTLVideoView {
         let view = RTCMTLVideoView(frame: .zero)
         view.videoContentMode = .scaleAspectFill
-        view.track = track
+        context.coordinator.bind(track: track as? RTCVideoTrack, to: view)
         return view
     }
 
     func updateUIView(_ uiView: RTCMTLVideoView, context: Context) {
-        uiView.track = track
+        context.coordinator.bind(track: track as? RTCVideoTrack, to: uiView)
+    }
+
+    final class Coordinator {
+        private weak var boundView: RTCMTLVideoView?
+        private var boundTrack: RTCVideoTrack?
+
+        func bind(track: RTCVideoTrack?, to view: RTCMTLVideoView) {
+            if boundView === view, boundTrack === track { return }
+            boundTrack?.remove(view)
+            boundView = view
+            boundTrack = track
+            track?.add(view)
+        }
     }
 }
 #else

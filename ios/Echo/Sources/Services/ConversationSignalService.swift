@@ -86,7 +86,12 @@ final class ConversationSignalService: @unchecked Sendable {
         hybridPublicBundle: HybridPublicBundleWire? = nil,
         hybridCiphertext: HybridCiphertextWire? = nil
     ) async throws {
-        let bundle = hybridPublicBundle ?? await PQHybridBootstrap.outboundHybridBundle()
+        let bundle: HybridPublicBundleWire?
+        if let hybridPublicBundle {
+            bundle = hybridPublicBundle
+        } else {
+            bundle = await PQHybridBootstrap.outboundHybridBundle()
+        }
         let text = try ConversationSignalCodec.encodeRatchetPreKey(
             to: peerDID,
             conversationId: conversationId,

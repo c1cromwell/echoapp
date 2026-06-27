@@ -385,6 +385,22 @@
 		W0E00101234567890123400C /* InviteLinkSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E00101234567890123400B /* InviteLinkSheet.swift */; };
 		W0E00101234567890123400E /* AcceptInviteSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E00101234567890123400D /* AcceptInviteSheet.swift */; };
 		W0E001012345678901234010 /* PrivacyHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E00101234567890123400F /* PrivacyHubView.swift */; };
+		S5B00SCATRENDER000000002 /* ScreenCatalogRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F00SCATRENDER000000001 /* ScreenCatalogRenderer.swift */; };
+		S5B00SCATFIXTS000000004 /* ScreenCatalogFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F00SCATFIXTS000000003 /* ScreenCatalogFixtures.swift */; };
+		S5B00SCATTESTS000000006 /* ScreenCatalogGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F00SCATTESTS000000005 /* ScreenCatalogGeneratorTests.swift */; };
+		SX1B001DR00000000000001 /* DoubleRatchet.swift in Sources */ = {isa = PBXBuildFile; fileRef = SX1F001DR00000000000001 /* Sources/Core/Security/DoubleRatchet.swift */; };
+		SX1B002DRC0000000000002 /* DoubleRatchetCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = SX1F002DRC0000000000002 /* Sources/Services/DoubleRatchetCoordinator.swift */; };
+		SX1B003DRP0000000000003 /* DoubleRatchetPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = SX1F003DRP0000000000003 /* Sources/Features/Settings/DoubleRatchetPreferences.swift */; };
+		SX1B004TPX0000000000004 /* TransportProxySettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = SX1F004TPX0000000000004 /* Sources/Features/Settings/TransportProxySettings.swift */; };
+		SX1B005PQH0000000000005 /* PQHybridPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = SX1F005PQH0000000000005 /* Sources/Features/Settings/PQHybridPreferences.swift */; };
+		SX1B006PQB0000000000006 /* PQHybridBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = SX1F006PQB0000000000006 /* Sources/Features/Settings/PQHybridBootstrap.swift */; };
+		SX1B007PQC0000000000007 /* PQHybridCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = SX1F007PQC0000000000007 /* Sources/Core/Security/PQHybridCrypto.swift */; };
+		SX1B008PQK0000000000008 /* PQHybridKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = SX1F008PQK0000000000008 /* Sources/Services/PQHybridKeyStore.swift */; };
+		SX1B009CPS0000000000009 /* ContactPersonaStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = SX1F009CPS0000000000009 /* Sources/Services/ContactPersonaStore.swift */; };
+		SX1B010VNS0000000000010 /* VoiceNoteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = SX1F010VNS0000000000010 /* Sources/Services/VoiceNoteService.swift */; };
+		SX1B011SSP0000000000011 /* SealedSenderPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = SX1F011SSP0000000000011 /* Sources/Services/SealedSenderPolicy.swift */; };
+		SX1B012CQA0000000000012 /* ConversationQueueAliasStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = SX1F012CQA0000000000012 /* Sources/Services/ConversationQueueAliasStore.swift */; };
+		MLKEMBF00000000000001 /* MLKEMNativeSwift in Frameworks */ = {isa = PBXBuildFile; productRef = MLKEM_PROD_DEP00000001 /* MLKEMNativeSwift */; };
 		W0E001012345678901234012 /* ConversationSignalService.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E001012345678901234011 /* ConversationSignalService.swift */; };
 		W0E001012345678901234014 /* ChatDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E001012345678901234013 /* ChatDetailViewModel.swift */; };
 		W0E001012345678901234016 /* ConversationSignalLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0E001012345678901234015 /* ConversationSignalLogic.swift */; };
@@ -784,6 +800,21 @@
 		W0E00101234567890123400B /* InviteLinkSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteLinkSheet.swift; sourceTree = "<group>"; };
 		W0E00101234567890123400D /* AcceptInviteSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcceptInviteSheet.swift; sourceTree = "<group>"; };
 		W0E00101234567890123400F /* PrivacyHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyHubView.swift; sourceTree = "<group>"; };
+		S5F00SCATRENDER000000001 /* ScreenCatalogRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/ScreenCatalog/ScreenCatalogRenderer.swift; sourceTree = SOURCE_ROOT; };
+		S5F00SCATFIXTS000000003 /* ScreenCatalogFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCatalogFixtures.swift; sourceTree = "<group>"; };
+		S5F00SCATTESTS000000005 /* ScreenCatalogGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCatalogGeneratorTests.swift; sourceTree = "<group>"; };
+		SX1F001DR00000000000001 /* Sources/Core/Security/DoubleRatchet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Core/Security/DoubleRatchet.swift; sourceTree = SOURCE_ROOT; };
+		SX1F002DRC0000000000002 /* Sources/Services/DoubleRatchetCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/DoubleRatchetCoordinator.swift; sourceTree = SOURCE_ROOT; };
+		SX1F003DRP0000000000003 /* Sources/Features/Settings/DoubleRatchetPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Settings/DoubleRatchetPreferences.swift; sourceTree = SOURCE_ROOT; };
+		SX1F004TPX0000000000004 /* Sources/Features/Settings/TransportProxySettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Settings/TransportProxySettings.swift; sourceTree = SOURCE_ROOT; };
+		SX1F005PQH0000000000005 /* Sources/Features/Settings/PQHybridPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Settings/PQHybridPreferences.swift; sourceTree = SOURCE_ROOT; };
+		SX1F006PQB0000000000006 /* Sources/Features/Settings/PQHybridBootstrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Settings/PQHybridBootstrap.swift; sourceTree = SOURCE_ROOT; };
+		SX1F007PQC0000000000007 /* Sources/Core/Security/PQHybridCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Core/Security/PQHybridCrypto.swift; sourceTree = SOURCE_ROOT; };
+		SX1F008PQK0000000000008 /* Sources/Services/PQHybridKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/PQHybridKeyStore.swift; sourceTree = SOURCE_ROOT; };
+		SX1F009CPS0000000000009 /* Sources/Services/ContactPersonaStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/ContactPersonaStore.swift; sourceTree = SOURCE_ROOT; };
+		SX1F010VNS0000000000010 /* Sources/Services/VoiceNoteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/VoiceNoteService.swift; sourceTree = SOURCE_ROOT; };
+		SX1F011SSP0000000000011 /* Sources/Services/SealedSenderPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/SealedSenderPolicy.swift; sourceTree = SOURCE_ROOT; };
+		SX1F012CQA0000000000012 /* Sources/Services/ConversationQueueAliasStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/ConversationQueueAliasStore.swift; sourceTree = SOURCE_ROOT; };
 		W0E001012345678901234011 /* ConversationSignalService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationSignalService.swift; sourceTree = "<group>"; };
 		W0E001012345678901234013 /* ChatDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatDetailViewModel.swift; sourceTree = "<group>"; };
 		W0E001012345678901234015 /* ConversationSignalLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationSignalLogic.swift; sourceTree = "<group>"; };
@@ -1177,6 +1208,18 @@
 				EF1C5DE7829640F9BD1D51AA /* Sources/Presentation/Screens/Profile/IdentityCardView.swift */,
 				6125BC995B494A6E8821C867 /* Sources/Security/BiometricLockoutView.swift */,
 				404E937D2E5B42EFBF874085 /* Sources/Security/StorageLockedView.swift */,
+				SX1F001DR00000000000001 /* Sources/Core/Security/DoubleRatchet.swift */,
+				SX1F002DRC0000000000002 /* Sources/Services/DoubleRatchetCoordinator.swift */,
+				SX1F003DRP0000000000003 /* Sources/Features/Settings/DoubleRatchetPreferences.swift */,
+				SX1F004TPX0000000000004 /* Sources/Features/Settings/TransportProxySettings.swift */,
+				SX1F005PQH0000000000005 /* Sources/Features/Settings/PQHybridPreferences.swift */,
+				SX1F006PQB0000000000006 /* Sources/Features/Settings/PQHybridBootstrap.swift */,
+				SX1F007PQC0000000000007 /* Sources/Core/Security/PQHybridCrypto.swift */,
+				SX1F008PQK0000000000008 /* Sources/Services/PQHybridKeyStore.swift */,
+				SX1F009CPS0000000000009 /* Sources/Services/ContactPersonaStore.swift */,
+				SX1F010VNS0000000000010 /* Sources/Services/VoiceNoteService.swift */,
+				SX1F011SSP0000000000011 /* Sources/Services/SealedSenderPolicy.swift */,
+				SX1F012CQA0000000000012 /* Sources/Services/ConversationQueueAliasStore.swift */,
 			);
 			name = "Recovered References";
 			sourceTree = "<group>";
@@ -1394,6 +1437,7 @@
 			children = (
 				CF8FBBC5A8A613FEA6825F54 /* Resources */,
 				930B0F85E8C631514258FECB /* Phase3Tests */,
+				S5G00SCATALOG0000000007 /* ScreenCatalog */,
 				ECCC562F637CE3015478A7DF /* SecurityTests */,
 				F1A2B3C4012345678900012 /* EchoApp-Info.plist */,
 				F1A2B3C4012345678900013 /* Libraries */,
@@ -1828,6 +1872,15 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
+		S5G00SCATALOG0000000007 /* ScreenCatalog */ = {
+			isa = PBXGroup;
+			children = (
+				S5F00SCATFIXTS000000003 /* ScreenCatalogFixtures.swift */,
+				S5F00SCATTESTS000000005 /* ScreenCatalogGeneratorTests.swift */,
+			);
+			path = ScreenCatalog;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1870,6 +1923,7 @@
 			buildConfigurationList = BDDF8B906B237213F6AE168A /* Build configuration list for PBXNativeTarget "EchoApp" */;
 			buildPhases = (
 				B2C88D326DA240AA4549DCEF /* Sources */,
+				MLKEMFWPHASE0000000001 /* Frameworks */,
 				5FD4BE639BFE3E67572E4678 /* Resources */,
 			);
 			buildRules = (
@@ -1879,6 +1933,7 @@
 			name = EchoApp;
 			packageProductDependencies = (
 				WEBRTC_PROD_DEP00000001 /* WebRTC */,
+				MLKEM_PROD_DEP00000001 /* MLKEMNativeSwift */,
 			);
 			productName = Echo;
 			productReference = 3B355D26B7A704237F7ACEEF /* Echo.app */;
@@ -1914,6 +1969,7 @@
 			preferredProjectObjectVersion = 77;
 			packageReferences = (
 				WEBRTC_PKG_REF00000001 /* XCRemoteSwiftPackageReference "WebRTC" */,
+				MLKEM_PKG_REF00000001 /* XCRemoteSwiftPackageReference "MLKEMNativeSwift" */,
 			);
 			productRefGroup = 290D02D64F0CB90A283D9880 /* Products */;
 			projectDirPath = "";
@@ -1940,6 +1996,17 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		MLKEMFWPHASE0000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				MLKEMBF00000000000001 /* MLKEMNativeSwift in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		C6E82E90BA2434F7060A82B2 /* Sources */ = {
@@ -1981,6 +2048,8 @@
 				724E6077E62488C985DEF3D4 /* MessageSenderAuthTests.swift in Sources */,
 				D4ED16AF694A4777F6DF850D /* SecureEnclaveSecurityTests.swift in Sources */,
 				DC0B3E5479D38B105BD7DD2B /* UsernameValidatorTests.swift in Sources */,
+				S5B00SCATFIXTS000000004 /* ScreenCatalogFixtures.swift in Sources */,
+				S5B00SCATTESTS000000006 /* ScreenCatalogGeneratorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2340,6 +2409,19 @@
 				W0E00101234567890123402D /* ChatComposerBanner.swift in Sources */,
 				TF001A2B3C4D5E6F7890002 /* EchoAPIBaseURL.swift in Sources */,
 				TF001A2B3C4D5E6F7890004 /* DidKeyDeriver.swift in Sources */,
+				S5B00SCATRENDER000000002 /* ScreenCatalogRenderer.swift in Sources */,
+				SX1B001DR00000000000001 /* DoubleRatchet.swift in Sources */,
+				SX1B002DRC0000000000002 /* DoubleRatchetCoordinator.swift in Sources */,
+				SX1B003DRP0000000000003 /* DoubleRatchetPreferences.swift in Sources */,
+				SX1B004TPX0000000000004 /* TransportProxySettings.swift in Sources */,
+				SX1B005PQH0000000000005 /* PQHybridPreferences.swift in Sources */,
+				SX1B006PQB0000000000006 /* PQHybridBootstrap.swift in Sources */,
+				SX1B007PQC0000000000007 /* PQHybridCrypto.swift in Sources */,
+				SX1B008PQK0000000000008 /* PQHybridKeyStore.swift in Sources */,
+				SX1B009CPS0000000000009 /* ContactPersonaStore.swift in Sources */,
+				SX1B010VNS0000000000010 /* VoiceNoteService.swift in Sources */,
+				SX1B011SSP0000000000011 /* SealedSenderPolicy.swift in Sources */,
+				SX1B012CQA0000000000012 /* ConversationQueueAliasStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2958,6 +3040,14 @@
 				version = 131.0.0;
 			};
 		};
+		MLKEM_PKG_REF00000001 /* XCRemoteSwiftPackageReference "MLKEMNativeSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/MarlonJD/MLKEMNativeSwift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.2.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -2965,6 +3055,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = WEBRTC_PKG_REF00000001 /* XCRemoteSwiftPackageReference "WebRTC" */;
 			productName = WebRTC;
+		};
+		MLKEM_PROD_DEP00000001 /* MLKEMNativeSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = MLKEM_PKG_REF00000001 /* XCRemoteSwiftPackageReference "MLKEMNativeSwift" */;
+			productName = MLKEMNativeSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

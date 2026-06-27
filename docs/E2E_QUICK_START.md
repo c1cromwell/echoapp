@@ -8,6 +8,7 @@
 | [`E2E_LAUNCH_AND_TESTING.md`](E2E_LAUNCH_AND_TESTING.md) | Full launch procedures, feature delivery matrix, TestFlight sign-off |
 | [`WEEK_A_B_LAUNCH.md`](WEEK_A_B_LAUNCH.md) | Week A messaging → Week B contacts sprint |
 | [`TESTFLIGHT_WEEK_A_B.md`](TESTFLIGHT_WEEK_A_B.md) | Tester script A1–A10 / B1–B6 |
+| [`screen_catalog/README.md`](screen_catalog/README.md) | SwiftUI PNG gallery — `make screen-catalog` → `index.html` (headless UX review) |
 
 **Agents:** skill **`echo-testing`** · MCP **`echo-local-dev`** (`cluster_status`, `run_ios_preflight`, `run_regression`, `run_validate_phase1`).
 
@@ -26,6 +27,7 @@ Run the row for your current focus **before** opening Xcode or uploading TestFli
 | **Metagraph PR** | Every Scala change | `make metagraph-test` | — | `sharedData` + identity/data L1 tests green |
 | **Phase 1 go/no-go** | Metagraph/auth changes; pre-TestFlight | `make regression-with-phase1` | — | `validate-phase1` → **GO** (all steps `ok`) |
 | **iOS compile gate** | Every iOS change | `make ios-preflight BUILD=1 TESTS=1` | — | Zero `FAIL` lines |
+| **UX screen catalog** | iOS UI / onboarding / privacy changes | `make screen-catalog` | Open `docs/screen_catalog/index.html` | 14 journey PNGs + tabbed index |
 | **Week A — messaging** | DM / chat / Phase 3 UI | `make phase3-signals-proof` + `make regression` | [`TESTFLIGHT_WEEK_A_B.md`](TESTFLIGHT_WEEK_A_B.md) **A1–A10** | Two clients DM; typing/reactions/history |
 | **Week B — contacts** | After Week A green | `make regression` | **B1–B6** in same tester doc | Invite, QR, block, link-device |
 | **Pre-TestFlight** | Before archive | `make regression-with-phase1` | Quick start §7 simulator smoke + [`E2E_LAUNCH_AND_TESTING.md` §9](E2E_LAUNCH_AND_TESTING.md#9-launch-checklist--sign-off) | Sign-off template complete |

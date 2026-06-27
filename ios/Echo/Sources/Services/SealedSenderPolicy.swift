@@ -25,6 +25,7 @@ enum SealedSenderPreferences {
 }
 
 enum SealedSenderPolicy {
+    @MainActor
     static func shouldUseSealed(peerDID: String, conversationId: String = "") -> Bool {
         guard SealedSenderPreferences.isEnabled, !peerDID.isEmpty else { return false }
         if !SealedSenderPreferences.trustedContactsOnly { return true }
