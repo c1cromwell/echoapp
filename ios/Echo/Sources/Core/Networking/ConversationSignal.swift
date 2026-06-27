@@ -172,11 +172,20 @@ struct PollPayload: Codable, Sendable, Equatable {
     }
 }
 
+/// Wire shape for Go `HybridPublicBundle` (WO-SX2).
+struct HybridPublicBundleWire: Codable, Sendable, Equatable {
+    let ec: String
+    let pq: String
+}
+
 struct RatchetPreKeyPayload: Codable, Sendable, Equatable {
     let ratchetPublicKey: String
+    /// Optional PQ-hybrid public bundle (WO-SX2); omitted on classic bootstrap.
+    let hybridPublicBundle: HybridPublicBundleWire?
 
     enum CodingKeys: String, CodingKey {
         case ratchetPublicKey = "ratchet_public_key"
+        case hybridPublicBundle = "hybrid_public_bundle"
     }
 }
 
@@ -451,13 +460,21 @@ enum ConversationSignalCodec {
         return d
     }()
 
-    static func encodeRatchetPreKey(to peerDID: String, conversationId: String, ratchetPublicKeyB64: String) throws -> String {
+    static func encodeRatchetPreKey(
+        to peerDID: String,
+        conversationId: String,
+        ratchetPublicKeyB64: String,
+        hybridPublicBundle: HybridPublicBundleWire? = nil
+    ) throws -> String {
         let envelope = WSEnvelope(
             type: ConversationSignalType.ratchetPrekey,
             to: peerDID,
             from: nil,
             conversationId: conversationId,
-            payload: RatchetPreKeyPayload(ratchetPublicKey: ratchetPublicKeyB64),
+            payload: RatchetPreKeyPayload(
+                ratchetPublicKey: ratchetPublicKeyB64,
+                hybridPublicBundle: hybridPublicBundle
+            ),
             timestamp: isoTimestamp()
         )
         let data = try encoder.encode(envelope)

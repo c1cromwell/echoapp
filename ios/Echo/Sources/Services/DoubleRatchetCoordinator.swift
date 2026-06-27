@@ -49,7 +49,7 @@ actor DoubleRatchetCoordinator {
             return restored
         }
         let local = try await TextMessageCrypto.loadAgreementPrivateKey()
-        let secret = try DoubleRatchet.deriveBootstrapSecret(local: local, peerPubData: peerMessagingPub)
+        let secret = try await bootstrapSecret(local: local, peerDID: peerDID, peerMessagingPub: peerMessagingPub)
         let selfDID = await CurrentUserSession.currentDID() ?? ""
         let isInitiator = selfDID > peerDID
         if isInitiator {
@@ -78,7 +78,7 @@ actor DoubleRatchetCoordinator {
             return restored
         }
         let local = try await TextMessageCrypto.loadAgreementPrivateKey()
-        let secret = try DoubleRatchet.deriveBootstrapSecret(local: local, peerPubData: peerMessagingPub)
+        let secret = try await bootstrapSecret(local: local, peerDID: peerDID, peerMessagingPub: peerMessagingPub)
         let selfDID = await CurrentUserSession.currentDID() ?? ""
         let isInitiator = selfDID > peerDID
         if isInitiator {
@@ -94,6 +94,18 @@ actor DoubleRatchetCoordinator {
         let sess = try DoubleRatchet.newInitiator(sharedSecret: secret, remoteRatchetPub: remotePre)
         sessions[peerDID] = sess
         return sess
+    }
+
+    private func bootstrapSecret(
+        local: P256.KeyAgreement.PrivateKey,
+        peerDID: String,
+        peerMessagingPub: Data
+    ) async throws -> Data {
+        // PQ-hybrid replaces the X3DH bootstrap secret when platform ML-KEM is available (WO-SX2).
+        if PQHybridBootstrap.isActive, PQHybridBootstrap.cachedPeerHybridBundle(peerDID: peerDID) != nil {
+            throw DoubleRatchetError.noSendingChain
+        }
+        return try DoubleRatchet.deriveBootstrapSecret(local: local, peerPubData: peerMessagingPub)
     }
 }
 

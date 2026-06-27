@@ -80,10 +80,12 @@ final class ConversationSignalService: @unchecked Sendable {
     }
 
     func sendRatchetPreKey(conversationId: String, peerDID: String, ratchetPublicKeyB64: String) async throws {
+        let hybrid = await PQHybridBootstrap.outboundHybridBundle()
         let text = try ConversationSignalCodec.encodeRatchetPreKey(
             to: peerDID,
             conversationId: conversationId,
-            ratchetPublicKeyB64: ratchetPublicKeyB64
+            ratchetPublicKeyB64: ratchetPublicKeyB64,
+            hybridPublicBundle: hybrid
         )
         try await transport.send(text: text)
     }
@@ -188,6 +190,7 @@ final class ConversationSignalService: @unchecked Sendable {
            let envelope = try? JSONDecoder().decode(WSEnvelope<RatchetPreKeyPayload>.self, from: data),
            let raw = Data(base64Encoded: envelope.payload.ratchetPublicKey),
            let from = header.from, !from.isEmpty {
+            PQHybridBootstrap.cachePeerHybridBundle(peerDID: from, bundle: envelope.payload.hybridPublicBundle)
             Task { await DoubleRatchetCoordinator.shared.cachePeerPreKey(peerDID: from, ratchetPubRaw: raw) }
             return
         }
