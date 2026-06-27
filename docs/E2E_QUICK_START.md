@@ -30,6 +30,7 @@ Run the row for your current focus **before** opening Xcode or uploading TestFli
 | **UX screen catalog** | iOS UI / onboarding / privacy changes | `make screen-catalog` | Open `docs/screen_catalog/index.html` | 14 journey PNGs + tabbed index |
 | **Week A — messaging** | DM / chat / Phase 3 UI | `make phase3-signals-proof` + `make regression` | [`TESTFLIGHT_WEEK_A_B.md`](TESTFLIGHT_WEEK_A_B.md) **A1–A10** | Two clients DM; typing/reactions/history |
 | **Week B — contacts** | After Week A green | `make regression` | **B1–B6** in same tester doc | Invite, QR, block, link-device |
+| **Wallet + staking** | Balance / stake / claim changes | `./scripts/validate-wallet.sh` | Rewards tab → Stake 10 ECHO bronze → Claim | Real balance; position listed |
 | **Pre-TestFlight** | Before archive | `make regression-with-phase1` | Quick start §7 simulator smoke + [`E2E_LAUNCH_AND_TESTING.md` §9](E2E_LAUNCH_AND_TESTING.md#9-launch-checklist--sign-off) | Sign-off template complete |
 
 **PR bar (all milestones):**
@@ -356,6 +357,31 @@ New `IdentityUpdate` / `EchoUpdate` variants: update encoders in `IdentityTypes.
 | New Swift file missing in target | Add file to **EchoApp** target in Xcode |
 
 Env vars: [E2E_LAUNCH_AND_TESTING.md §3e](E2E_LAUNCH_AND_TESTING.md#3e-environment-variable-reference).
+
+---
+
+## 11b. Wallet & staking (Currency L1)
+
+**Plan:** [`ECHO_WALLET_STAKING_LAUNCH.md`](ECHO_WALLET_STAKING_LAUNCH.md)
+
+```bash
+# Headless (Go + iOS unit tests)
+./scripts/validate-wallet.sh
+
+# Live cluster (optional)
+make dev
+export CURRENCY_L1_URL=http://localhost:9300
+export ECHO_WALLET_GENESIS_AUTO=1
+```
+
+**Manual (simulator or device):**
+
+1. Complete first-run provisioning (wallet step links DAG address).
+2. Open **Rewards** tab — balance shows genesis credit in dev (~1000 ECHO).
+3. **Stake** → bronze → 10 ECHO → confirm position appears.
+4. **Claim** messaging rewards if pending (`/v3/rewards` activity).
+
+Balances use **datum scale** (÷1e8) on the wire; UI shows human ECHO.
 
 ---
 
