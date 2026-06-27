@@ -32,6 +32,8 @@ class ContactDetailViewModel: ObservableObject {
     @Published var isBlocked = false
     @Published var blockError: String?
 
+    @Published var selectedPersonaId: String = "default"
+
     private var socialAPI: ContactSocialAPIClient? {
         guard let client = DIContainer.shared.resolveAPIClient() else { return nil }
         return ContactSocialAPIClient(apiClient: client)
@@ -40,6 +42,7 @@ class ContactDetailViewModel: ObservableObject {
     init(contactId: String, displayName: String? = nil) {
         self.contactId = contactId
         self.preferredDisplayName = displayName
+        self.selectedPersonaId = ContactPersonaStore.personaId(for: contactId) ?? "default"
     }
 
     func loadContact() async {
@@ -116,6 +119,13 @@ class ContactDetailViewModel: ObservableObject {
             mutualGroups = []
             mutualContacts = []
         }
+    }
+
+    func saveContactPersona() {
+        ContactPersonaStore.setPersonaId(
+            selectedPersonaId == "default" ? nil : selectedPersonaId,
+            for: contactId
+        )
     }
 
     func blockContact() async {

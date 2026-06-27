@@ -149,6 +149,16 @@ public struct ContactDetailView: View {
 
                 // Privacy settings for this contact
                 GhostBorderSection(title: "PRIVACY FOR THIS CONTACT") {
+                    Picker("Persona", selection: $viewModel.selectedPersonaId) {
+                        Text("Default").tag("default")
+                        Text("Work").tag("work")
+                        Text("Hidden (minimal)").tag("hidden")
+                    }
+                    .pickerStyle(.menu)
+                    .onChange(of: viewModel.selectedPersonaId) { _, _ in
+                        viewModel.saveContactPersona()
+                    }
+
                     SettingsRow(icon: "bell.fill", label: "Custom Notifications",
                                 value: viewModel.notificationsEnabled ? "On" : "Off")
                     SettingsRow(icon: "timer", label: "Disappearing Messages",

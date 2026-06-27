@@ -10,11 +10,12 @@ enum ContactThreadHelper {
             return nil
         }
         let threadId = ConversationID.direct(localDID: localDID, peerDID: peerDID)
+        let personaId = ContactPersonaStore.personaId(for: peerDID) ?? PersonaSessionStore.activePersonaId
         let conversation = StoredConversation(
             id: threadId,
             contactName: displayName,
             peerDID: peerDID,
-            personaId: PersonaSessionStore.activePersonaId
+            personaId: personaId
         )
         ConversationStore.shared.upsert(conversation)
         return conversation
