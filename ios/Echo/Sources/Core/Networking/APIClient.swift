@@ -129,6 +129,7 @@ actor APIClient {
         sessionConfig.timeoutIntervalForResource = configuration.timeout * 2
         sessionConfig.waitsForConnectivity = true
         sessionConfig.tlsMinimumSupportedProtocolVersion = .TLSv13
+        TransportProxySettings.apply(to: sessionConfig)
 
         if let pinner = pinner {
             self.session = URLSession(configuration: sessionConfig, delegate: pinner, delegateQueue: nil)

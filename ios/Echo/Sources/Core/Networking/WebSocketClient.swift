@@ -175,6 +175,7 @@ actor WebSocketClient: NSObject, URLSessionWebSocketDelegate {
         
         let config = URLSessionConfiguration.default
         config.tlsMinimumSupportedProtocolVersion = .TLSv13
+        TransportProxySettings.apply(to: config)
         self.session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
         
         guard let session = session else {
