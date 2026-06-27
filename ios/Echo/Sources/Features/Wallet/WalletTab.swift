@@ -58,6 +58,14 @@ struct WalletTab: View {
                             .foregroundStyle(Color.Echo.onSurface)
                     }
                 }
+                ToolbarItem(placement: .primaryAction) {
+                    NavigationLink {
+                        StakingDetailView()
+                    } label: {
+                        Image(systemName: "chart.bar.doc.horizontal")
+                            .foregroundStyle(Color.Echo.onSurface)
+                    }
+                }
             }
             .refreshable {
                 await viewModel.loadWallet()

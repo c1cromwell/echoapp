@@ -50,36 +50,45 @@ public struct MediaGalleryView: View {
             .background(Color.Echo.surfaceContainerLow)
 
             // Content
-            switch selectedTab {
-            case .photos, .videos:
-                let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 4)
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 2) {
-                        ForEach(viewModel.mediaItems(for: selectedTab)) { item in
-                            MediaThumbnail(item: item)
-                                .aspectRatio(1, contentMode: .fill)
+            if viewModel.isEmpty(for: selectedTab) {
+                ContentUnavailableView(
+                    "No shared media",
+                    systemImage: "photo.on.rectangle.angled",
+                    description: Text("Photos, videos, and files from this chat appear here.")
+                )
+                .frame(maxHeight: .infinity)
+            } else {
+                switch selectedTab {
+                case .photos, .videos:
+                    let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 4)
+                    ScrollView {
+                        LazyVGrid(columns: columns, spacing: 2) {
+                            ForEach(viewModel.mediaItems(for: selectedTab)) { item in
+                                MediaThumbnail(item: item)
+                                    .aspectRatio(1, contentMode: .fill)
+                            }
                         }
                     }
-                }
 
-            case .files:
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(viewModel.files) { file in
-                            FileRow(file: file)
+                case .files:
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(viewModel.files) { file in
+                                FileRow(file: file)
+                            }
                         }
                     }
-                }
 
-            case .links:
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(viewModel.links) { link in
-                            LinkPreviewCard(link: link)
-                                .padding(.horizontal, 16)
+                case .links:
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(viewModel.links) { link in
+                                LinkPreviewCard(link: link)
+                                    .padding(.horizontal, 16)
+                            }
                         }
+                        .padding(.top, 12)
                     }
-                    .padding(.top, 12)
                 }
             }
         }
@@ -105,7 +114,20 @@ class MediaGalleryViewModel: ObservableObject {
     }
 
     func loadMedia() async {
-        // TODO: Load from media service
+        let bundle = SharedMediaLoader.loadGallery(conversationId: conversationId)
+        photos = bundle.photos
+        videos = bundle.videos
+        files = bundle.files
+        links = bundle.links
+    }
+
+    func isEmpty(for tab: MediaGalleryView.MediaTab) -> Bool {
+        switch tab {
+        case .photos: return photos.isEmpty
+        case .videos: return videos.isEmpty
+        case .files: return files.isEmpty
+        case .links: return links.isEmpty
+        }
     }
 
     func mediaItems(for tab: MediaGalleryView.MediaTab) -> [GalleryMediaItem] {

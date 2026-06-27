@@ -925,7 +925,7 @@ struct ChatView: View {
             peerName: contactName,
             peerTier: tier,
             isFirstContact: isFirst,
-            knownContacts: []   // TODO: pass verified contacts to enable impersonation detection
+            knownContacts: KnownContactsProvider.forSafety(excludingPeerDID: peerDID)
         )
         if assessment.level != .ok { safetyAssessment = assessment }
         FirstContactStore.markSeen(peerDID)

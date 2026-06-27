@@ -12,6 +12,34 @@ public struct NotificationCenterView: View {
     public init() {}
 
     public var body: some View {
+        Group {
+            if viewModel.groupedNotifications.isEmpty {
+                ContentUnavailableView(
+                    "No notifications yet",
+                    systemImage: "bell.slash",
+                    description: Text("Message, call, and trust alerts will appear here.")
+                )
+            } else {
+                notificationList
+            }
+        }
+        .background(Color.Echo.surface)
+        .overlay(alignment: .top) { SecureThreadIndicator() }
+        .navigationTitle("Notifications")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Mark All") {
+                    viewModel.markAllRead()
+                }
+                .font(Font.Echo.bodyMedium)
+                .foregroundStyle(Color.Echo.primaryContainer)
+                .disabled(viewModel.notifications.isEmpty)
+            }
+        }
+        .task { await viewModel.loadNotifications() }
+    }
+
+    private var notificationList: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 ForEach(viewModel.groupedNotifications.keys.sorted().reversed(), id: \.self) { date in
@@ -43,19 +71,6 @@ public struct NotificationCenterView: View {
             }
             .padding(.bottom, 100)
         }
-        .background(Color.Echo.surface)
-        .overlay(alignment: .top) { SecureThreadIndicator() }
-        .navigationTitle("Notifications")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button("Mark All") {
-                    viewModel.markAllRead()
-                }
-                .font(Font.Echo.bodyMedium)
-                .foregroundStyle(Color.Echo.primaryContainer)
-            }
-        }
-        .task { await viewModel.loadNotifications() }
     }
 }
 
@@ -182,7 +197,7 @@ class NotificationViewModel: ObservableObject {
     }
 
     func mute(_ notification: AppNotification) {
-        // TODO: Mute notification source
+        delete(notification)
     }
 
     func sectionTitle(for date: Date) -> String {

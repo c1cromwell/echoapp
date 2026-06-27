@@ -84,3 +84,26 @@ public struct ContactSafetyEvaluator {
     /// Pay-guard: require an extra confirmation before sending money to an unverified/low-trust peer.
     public func requiresExtraConfirmationToPay(peerTier: Int) -> Bool { peerTier <= 1 }
 }
+
+#if os(iOS)
+@MainActor
+enum KnownContactsProvider {
+    /// Verified contacts from the local conversation list (excludes groups and the open peer).
+    static func forSafety(excludingPeerDID peerDID: String) -> [KnownContact] {
+        ConversationStore.shared.conversations
+            .filter { conv in
+                !conv.peerDID.isEmpty
+                    && conv.peerDID != peerDID
+                    && !conv.id.hasPrefix("group:")
+                    && !conv.peerDID.hasPrefix("grp-")
+            }
+            .map { conv in
+                KnownContact(
+                    did: conv.peerDID,
+                    displayName: conv.contactName,
+                    tier: ContactTrustIndex.shared.tier(peerDID: conv.peerDID)
+                )
+            }
+    }
+}
+#endif

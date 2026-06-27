@@ -91,6 +91,20 @@ final class ScreenCatalogGeneratorTests: XCTestCase {
             title: "Reaction picker",
             e2eRef: "TESTFLIGHT A7"
         )
+        try ScreenCatalogRenderer.render(
+            CatalogMessagesHubGroupsPreview(),
+            journey: "messaging",
+            stepId: "05-hub-groups",
+            title: "Messages hub (groups)",
+            e2eRef: "TESTFLIGHT groups tab"
+        )
+        try ScreenCatalogRenderer.render(
+            CatalogGroupCreatePreview(),
+            journey: "messaging",
+            stepId: "06-group-create",
+            title: "Create group",
+            e2eRef: "GroupCreateSheet"
+        )
 
         try ScreenCatalogRenderer.render(
             CatalogSOCKSProxyPreview(),
@@ -129,7 +143,7 @@ final class ScreenCatalogGeneratorTests: XCTestCase {
             e2eRef: "TESTFLIGHT B1"
         )
         try ScreenCatalogRenderer.render(
-            UsernameSearchView(),
+            CatalogUsernameSearchPreview(),
             journey: "contacts",
             stepId: "02-username-search",
             title: "Add contact by username",

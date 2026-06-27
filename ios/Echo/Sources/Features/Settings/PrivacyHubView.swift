@@ -57,6 +57,9 @@ struct PrivacyHubView: View {
                 }
             }
             Section("Account") {
+                NavigationLink("Backup & security") {
+                    BackupView()
+                }
                 NavigationLink("Data & deletion") {
                     AccountDataView()
                 }
@@ -268,7 +271,7 @@ private struct AccountDataView: View {
     var body: some View {
         List {
             Section {
-                Text("Your messages stay encrypted even if you delete your account. Deleting your account signs you out everywhere; full identity removal is coming soon.")
+                Text("Deleting your account signs you out on all devices and removes your profile from ECHO servers. End-to-end encrypted messages already delivered to contacts remain on their devices.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }

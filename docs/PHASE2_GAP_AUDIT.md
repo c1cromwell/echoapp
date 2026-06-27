@@ -1,13 +1,32 @@
 # Phase 2 Gap Audit — Onboarding, Identity & Credentials
 
-**Date:** 2026-05-26 (refreshed)  
-**Prior audit:** 2026-05-24  
+**Date:** 2026-05-29 (UX punch-list refresh)  
+**Prior audit:** 2026-05-26  
 **Guide / source of truth:** `docs/Echo_Combined_Blueprints-2026-05-08.md`  
 **Scope:** All 26 Phase 2 work orders (`docs/phase-2-work-orders.md`)  
 **Software Factory sync:** 2026-05-26 — see phase doc headers  
 **Architecture baseline:** `did:key` + Constellation Identity Metagraph. **Cardano is removed from Phase 1–2** (blueprint decision 2026-04-25; ADR-0001). Cardano/Midnight survive only as Phase 3+ ZK-circuit evaluation candidates.
 
 **Frozen iOS UX (2026-05):** Shipped onboarding (`FirstRunCoordinator`) and login (`GlacialLoginScreen`) are **correct and must not be redesigned** from the React design prototype. WO-203/204 are backend/orchestration backlog — not a UI replacement mandate. See [`ux-spec.md`](ux-spec.md) and [`ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) §0.
+
+---
+
+## 0. iOS UX punch list (2026-05-29)
+
+Closed in `main` since the 2026-05-26 audit:
+
+| Item | Status |
+|------|--------|
+| Messages hub → `GroupCreateSheet` + groups tab | ✅ |
+| In-chat Pay gated (`ECHO_IN_CHAT_PAYMENTS=1`) | ✅ |
+| Channels segment hidden until shipped | ✅ |
+| Group voice notes (`GroupChatView`) | ✅ |
+| Impersonation safety (`KnownContactsProvider`) | ✅ |
+| VIP / account-deletion copy aligned with capability | ✅ |
+| Screen catalog composites (hub, group create, username search) | ✅ |
+| Privacy hub → `BackupView`; contact → shared media gallery | ✅ |
+
+Still open for Phase 2/3: **WO-100** OIDC4VC iOS client, **WO-221** PSI iOS client, **WO-228** full privacy consolidation, two-client Phase 3 E2E.
 
 ---
 

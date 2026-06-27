@@ -34,12 +34,12 @@ and work orders link back to.
 | Reactions / typing / read receipts | ⚠️ Partial — backend fan-out incomplete | `internal/api/reactions_*`, WO-192/10 |
 | Disappearing messages | ⚠️ UI only, backend not wired | `ios/.../ChatSettingsSheet.swift` |
 | Edit / delete / forward / pin / reply | ⚠️ UI sketched, backend missing | WO-25/59/84 |
-| **Group key distribution** | ❌ `distributeGroupKey()` absent; no group UI | `internal/services/groups/` (models only), WO-207 |
+| **Group key distribution** | 🟨 Group create + encrypted group chat UI wired; server fan-out still partial | `ios/.../Groups/`, WO-207 |
 | **Voice / video calls** | ❌ UI skeleton only; no WebRTC signaling | `ios/.../Calling/` |
-| **Media / file relay** | ❌ Encryption service exists; no pipeline/IPFS | WO-237 |
+| **Media / file relay** | 🟨 Local thread media + shared gallery from `ConversationThreadStore` | WO-237 |
 | **Search / indexing** | ❌ Designed, not built | WO-3, WO-16 |
 | **Multi-device message sync** | ❌ Not started | WO-CA3 |
-| Voice notes | ❌ Not started | WO-194 |
+| Voice notes | 🟩 DM + group capture wired (WO-194 / WO-SX5) | `VoiceNoteRecorder`, `GroupChatView` |
 
 **Read:** the planning is thorough; the gap is **execution + sequencing**, not missing design.
 

@@ -101,6 +101,11 @@ final class GroupChatViewModel {
         }
     }
 
+    func sendVoiceNote(from recorder: VoiceNoteRecorder, caption: String = "") async {
+        guard let data = try? recorder.stopRecording() else { return }
+        await sendGroupMedia(data: data, mimeType: VoiceNoteCodec.wireMimeType, mediaKind: .audio)
+    }
+
     func sendGroupMedia(data: Data, mimeType: String, mediaKind: MediaKind) async {
         guard !data.isEmpty else { return }
         guard await keyManager.hasKey(groupId: groupId) else {

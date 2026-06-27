@@ -5,6 +5,7 @@ struct GroupChatView: View {
     @Bindable var viewModel: GroupChatViewModel
     @State private var showGroupDetail = false
     @State private var showAttachmentPicker = false
+    @StateObject private var voiceRecorder = VoiceNoteRecorder()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -36,6 +37,9 @@ struct GroupChatView: View {
             if let error = viewModel.errorMessage {
                 Text(error).font(.caption).foregroundStyle(.red).padding(.horizontal)
             }
+            if voiceRecorder.isRecording {
+                groupVoiceRecordingBar
+            }
             if showAttachmentPicker {
                 AttachmentPickerView(
                     isPresented: $showAttachmentPicker,
@@ -48,7 +52,9 @@ struct GroupChatView: View {
                     onFileSelected: { data, mime in
                         Task { await viewModel.sendGroupMedia(data: data, mimeType: mime, mediaKind: .file) }
                     },
-                    onVoiceNoteTapped: {}
+                    onVoiceNoteTapped: {
+                        try? voiceRecorder.startRecording()
+                    }
                 )
             }
             HStack {
@@ -82,6 +88,53 @@ struct GroupChatView: View {
                 currentUserDID: viewModel.currentUserDID
             )
         }
+    }
+
+    private var groupVoiceRecordingBar: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(Color.red)
+                .frame(width: 10, height: 10)
+
+            WaveformView(
+                samples: voiceRecorder.waveformSamples,
+                progress: 1.0,
+                accentColor: .echoSignal
+            )
+            .frame(height: 28)
+
+            Text(voiceRecorderElapsed)
+                .font(.system(size: 14, weight: .medium).monospacedDigit())
+                .foregroundStyle(Color.echoInk)
+
+            Spacer()
+
+            Button {
+                voiceRecorder.cancelRecording()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundStyle(Color.echoInk40)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                Task { await viewModel.sendVoiceNote(from: voiceRecorder) }
+            } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 28))
+                    .foregroundStyle(Color.echoSignal)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, Spacing.md.rawValue)
+        .padding(.vertical, 10)
+        .background(Color.echoPaperDim)
+    }
+
+    private var voiceRecorderElapsed: String {
+        let total = Int(voiceRecorder.elapsed)
+        return String(format: "%d:%02d", total / 60, total % 60)
     }
 }
 #endif

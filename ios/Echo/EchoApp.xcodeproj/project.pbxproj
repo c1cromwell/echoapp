@@ -317,6 +317,7 @@
 		M3C001BACKUP00000000001 /* BackupCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F007BACKUP00000000001 /* BackupCrypto.swift */; };
 		M3C002BACKUP00000000002 /* BackupAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F008BACKUP00000000002 /* BackupAPIClient.swift */; };
 		M3C003BACKUP00000000003 /* MessageBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F009BACKUP00000000003 /* MessageBackupService.swift */; };
+		M3C003SHAREDMEDIA0000001 /* SharedMediaLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F009SHAREDMEDIA0000001 /* SharedMediaLoader.swift */; };
 		M3C004BACKUP00000000004 /* BackupScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F010BACKUP00000000004 /* BackupScheduler.swift */; };
 		M3C005BACKUP00000000005 /* BackupSessionKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M3F011BACKUP00000000005 /* BackupSessionKeyStore.swift */; };
 		S5B001HIDDEN000000000001 /* HiddenThreadCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F001HIDDEN000000000001 /* Sources/Core/Security/HiddenThreadCrypto.swift */; };
@@ -732,6 +733,7 @@
 		M3F007BACKUP00000000001 /* BackupCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCrypto.swift; sourceTree = "<group>"; };
 		M3F008BACKUP00000000002 /* BackupAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupAPIClient.swift; sourceTree = "<group>"; };
 		M3F009BACKUP00000000003 /* MessageBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageBackupService.swift; sourceTree = "<group>"; };
+		M3F009SHAREDMEDIA0000001 /* SharedMediaLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedMediaLoader.swift; sourceTree = "<group>"; };
 		M3F010BACKUP00000000004 /* BackupScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupScheduler.swift; sourceTree = "<group>"; };
 		M3F011BACKUP00000000005 /* BackupSessionKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupSessionKeyStore.swift; sourceTree = "<group>"; };
 		S5F001HIDDEN000000000001 /* Sources/Core/Security/HiddenThreadCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Core/Security/HiddenThreadCrypto.swift; sourceTree = "<group>"; };
@@ -1105,6 +1107,7 @@
 				M3F007BACKUP00000000001 /* BackupCrypto.swift */,
 				M3F008BACKUP00000000002 /* BackupAPIClient.swift */,
 				M3F009BACKUP00000000003 /* MessageBackupService.swift */,
+				M3F009SHAREDMEDIA0000001 /* SharedMediaLoader.swift */,
 				M3F010BACKUP00000000004 /* BackupScheduler.swift */,
 				M3F011BACKUP00000000005 /* BackupSessionKeyStore.swift */,
 				M4F004CALL00000000000004 /* CallICEAPIClient.swift */,
@@ -2115,6 +2118,7 @@
 				M3C001BACKUP00000000001 /* BackupCrypto.swift in Sources */,
 				M3C002BACKUP00000000002 /* BackupAPIClient.swift in Sources */,
 				M3C003BACKUP00000000003 /* MessageBackupService.swift in Sources */,
+				M3C003SHAREDMEDIA0000001 /* SharedMediaLoader.swift in Sources */,
 				M3C004BACKUP00000000004 /* BackupScheduler.swift in Sources */,
 				M3C005BACKUP00000000005 /* BackupSessionKeyStore.swift in Sources */,
 				S5B001HIDDEN000000000001 /* HiddenThreadCrypto.swift in Sources */,

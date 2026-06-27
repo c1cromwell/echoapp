@@ -1,15 +1,17 @@
-{"journey":"onboarding","stepId":"01-welcome","relativePath":"onboarding\/01-welcome.png","title":"Welcome","e2eRef":"E2E §6.1 step 1"}
-{"relativePath":"onboarding\/02-username.png","e2eRef":"E2E §6.1 step 2","title":"Choose username","journey":"onboarding","stepId":"02-username"}
-{"journey":"onboarding","title":"Face ID + optional VIP","relativePath":"onboarding\/03-secure-account.png","e2eRef":"E2E §6.1 step 3","stepId":"03-secure-account"}
-{"title":"Storage locked","relativePath":"auth\/01-storage-locked.png","e2eRef":"E2E §6.2 step 1","journey":"auth","stepId":"01-storage-locked"}
-{"journey":"auth","title":"Biometric soft lockout","e2eRef":"E2E §6.2 step 3","stepId":"02-soft-lockout","relativePath":"auth\/02-soft-lockout.png"}
-{"journey":"messaging","title":"Messages hub (empty)","e2eRef":"TESTFLIGHT A1","stepId":"01-empty-hub","relativePath":"messaging\/01-empty-hub.png"}
-{"relativePath":"messaging\/02-dm-thread.png","e2eRef":"TESTFLIGHT A2–A7","journey":"messaging","title":"Direct message thread","stepId":"02-dm-thread"}
-{"stepId":"03-typing","e2eRef":"TESTFLIGHT A6","relativePath":"messaging\/03-typing.png","title":"Typing indicator","journey":"messaging"}
-{"e2eRef":"TESTFLIGHT A7","relativePath":"messaging\/04-reactions.png","journey":"messaging","title":"Reaction picker","stepId":"04-reactions"}
-{"stepId":"01-socks-proxy","title":"SOCKS proxy settings","e2eRef":"WO-SX4 \/ Privacy Hub","relativePath":"privacy\/01-socks-proxy.png","journey":"privacy"}
-{"journey":"privacy","title":"Post-quantum handshake","e2eRef":"WO-SX2 \/ Privacy Hub","stepId":"02-post-quantum","relativePath":"privacy\/02-post-quantum.png"}
-{"journey":"privacy","stepId":"03-hidden-folder","title":"Hidden folder settings","e2eRef":"Phase 5 privacy","relativePath":"privacy\/03-hidden-folder.png"}
-{"relativePath":"privacy\/04-privacy-hub.png","journey":"privacy","stepId":"04-privacy-hub","title":"Privacy hub","e2eRef":"WO-228 \/ Settings"}
-{"stepId":"01-invite-accept","e2eRef":"TESTFLIGHT B1","journey":"contacts","relativePath":"contacts\/01-invite-accept.png","title":"Accept invite sheet"}
-{"title":"Add contact by username","journey":"contacts","stepId":"02-username-search","e2eRef":"TESTFLIGHT A2","relativePath":"contacts\/02-username-search.png"}
+{"journey":"onboarding","stepId":"01-welcome","e2eRef":"E2E §6.1 step 1","relativePath":"onboarding\/01-welcome.png","title":"Welcome"}
+{"e2eRef":"E2E §6.1 step 2","stepId":"02-username","title":"Choose username","relativePath":"onboarding\/02-username.png","journey":"onboarding"}
+{"stepId":"03-secure-account","journey":"onboarding","title":"Face ID + optional VIP","e2eRef":"E2E §6.1 step 3","relativePath":"onboarding\/03-secure-account.png"}
+{"journey":"auth","e2eRef":"E2E §6.2 step 1","title":"Storage locked","stepId":"01-storage-locked","relativePath":"auth\/01-storage-locked.png"}
+{"journey":"auth","e2eRef":"E2E §6.2 step 3","title":"Biometric soft lockout","stepId":"02-soft-lockout","relativePath":"auth\/02-soft-lockout.png"}
+{"relativePath":"messaging\/01-empty-hub.png","journey":"messaging","stepId":"01-empty-hub","title":"Messages hub (empty)","e2eRef":"TESTFLIGHT A1"}
+{"e2eRef":"TESTFLIGHT A2–A7","title":"Direct message thread","journey":"messaging","stepId":"02-dm-thread","relativePath":"messaging\/02-dm-thread.png"}
+{"relativePath":"messaging\/03-typing.png","stepId":"03-typing","title":"Typing indicator","e2eRef":"TESTFLIGHT A6","journey":"messaging"}
+{"e2eRef":"TESTFLIGHT A7","stepId":"04-reactions","title":"Reaction picker","journey":"messaging","relativePath":"messaging\/04-reactions.png"}
+{"journey":"messaging","relativePath":"messaging\/05-hub-groups.png","stepId":"05-hub-groups","title":"Messages hub (groups)","e2eRef":"TESTFLIGHT groups tab"}
+{"journey":"messaging","stepId":"06-group-create","e2eRef":"GroupCreateSheet","relativePath":"messaging\/06-group-create.png","title":"Create group"}
+{"title":"SOCKS proxy settings","e2eRef":"WO-SX4 \/ Privacy Hub","relativePath":"privacy\/01-socks-proxy.png","journey":"privacy","stepId":"01-socks-proxy"}
+{"e2eRef":"WO-SX2 \/ Privacy Hub","stepId":"02-post-quantum","title":"Post-quantum handshake","relativePath":"privacy\/02-post-quantum.png","journey":"privacy"}
+{"e2eRef":"Phase 5 privacy","relativePath":"privacy\/03-hidden-folder.png","title":"Hidden folder settings","journey":"privacy","stepId":"03-hidden-folder"}
+{"e2eRef":"WO-228 \/ Settings","journey":"privacy","title":"Privacy hub","stepId":"04-privacy-hub","relativePath":"privacy\/04-privacy-hub.png"}
+{"e2eRef":"TESTFLIGHT B1","journey":"contacts","title":"Accept invite sheet","relativePath":"contacts\/01-invite-accept.png","stepId":"01-invite-accept"}
+{"stepId":"02-username-search","title":"Add contact by username","e2eRef":"TESTFLIGHT A2","relativePath":"contacts\/02-username-search.png","journey":"contacts"}

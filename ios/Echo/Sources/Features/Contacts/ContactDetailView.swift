@@ -245,6 +245,16 @@ public struct ContactDetailView: View {
         .alert("Contact blocked", isPresented: $viewModel.isBlocked) {
             Button("OK") { dismiss() }
         }
+        .sheet(isPresented: $viewModel.showMediaGallery) {
+            NavigationStack {
+                MediaGalleryView(conversationId: SharedMediaLoader.conversationId(peerDID: viewModel.contactId))
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") { viewModel.showMediaGallery = false }
+                        }
+                    }
+            }
+        }
     }
 }
 

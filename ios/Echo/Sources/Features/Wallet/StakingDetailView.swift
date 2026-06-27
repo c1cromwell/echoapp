@@ -296,7 +296,25 @@ class StakingDetailViewModel: ObservableObject {
     @Published var delegatedValidator: DelegatedValidatorInfo?
 
     func loadStakingDetails() async {
-        // TODO: Load from staking service
+        let api = WalletAPIClientStub()
+        do {
+            let balance = try await api.getBalance()
+            stakedAmount = balance.staked
+            let locks = try await api.getTokenLocks()
+            if let lock = locks.max(by: { $0.amount < $1.amount }) {
+                lockPeriod = lock.lockedUntil.formatted(date: .abbreviated, time: .omitted)
+                currentTier = StakingTierLevel(rawValue: lock.tier.lowercased()) ?? .bronze
+            }
+            if let validator = try await api.getValidators().first {
+                delegatedValidator = DelegatedValidatorInfo(
+                    name: validator.address,
+                    uptime: validator.uptimePercent,
+                    commission: validator.commissionPercent
+                )
+            }
+        } catch {
+            stakedAmount = 0
+        }
     }
 }
 #endif

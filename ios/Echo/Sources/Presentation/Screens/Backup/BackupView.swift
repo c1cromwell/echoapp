@@ -110,9 +110,15 @@ public struct BackupView: View {
 
                 // Export options
                 GhostBorderSection(title: "EXPORT DATA") {
-                    ExportButton(label: "Export Chat History", icon: "text.bubble")
-                    ExportButton(label: "Export Contacts", icon: "person.2")
-                    ExportButton(label: "Export Identity (DID)", icon: "person.text.rectangle")
+                    ExportButton(label: "Export Chat History", icon: "text.bubble") {
+                        viewModel.exportChatHistory()
+                    }
+                    ExportButton(label: "Export Contacts", icon: "person.2") {
+                        viewModel.exportContacts()
+                    }
+                    ExportButton(label: "Export Identity (DID)", icon: "person.text.rectangle") {
+                        viewModel.exportIdentity()
+                    }
                 }
 
                 // Danger zone
@@ -251,6 +257,56 @@ class BackupViewModel: ObservableObject {
         }
         #endif
     }
+
+    func exportContacts() {
+        let payload = ConversationStore.shared.conversations.map { conv in
+            [
+                "name": conv.contactName,
+                "did": conv.peerDID,
+                "conversationId": conv.id,
+            ] as [String: String]
+        }
+        shareExport(payload, filename: "echo-contacts.json")
+    }
+
+    func exportChatHistory() {
+        var payload: [[String: String]] = []
+        for conversationId in ConversationThreadStore.allStoredConversationIds() {
+            for message in ConversationThreadStore.exportMessages(conversationId: conversationId) {
+                payload.append([
+                    "conversationId": conversationId,
+                    "messageId": message.id,
+                    "senderDID": message.senderDID,
+                    "content": message.content,
+                    "timestamp": message.timestamp,
+                ])
+            }
+        }
+        shareExport(payload, filename: "echo-chat-history.json")
+    }
+
+    func exportIdentity() {
+        Task {
+            let did = await CurrentUserSession.currentDID() ?? ""
+            let username = UserDefaults.standard.string(forKey: "echo.username") ?? ""
+            shareExport(["did": did, "username": username], filename: "echo-identity.json")
+        }
+    }
+
+    private func shareExport<T: Encodable>(_ value: T, filename: String) {
+        guard let data = try? JSONEncoder().encode(value) else { return }
+        #if canImport(UIKit)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+        try? data.write(to: url)
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { return }
+        var presenter = root
+        while let presented = presenter.presentedViewController {
+            presenter = presented
+        }
+        presenter.present(UIActivityViewController(activityItems: [url], applicationActivities: nil), animated: true)
+        #endif
+    }
 }
 
 // MARK: - Phrase prompt
@@ -321,11 +377,10 @@ struct InfoRow: View {
 struct ExportButton: View {
     let label: String
     let icon: String
+    let action: () -> Void
 
     var body: some View {
-        Button {
-            // TODO: Trigger export
-        } label: {
+        Button(action: action) {
             HStack(spacing: 12) {
                 Image(systemName: icon)
                     .font(.system(size: 16))

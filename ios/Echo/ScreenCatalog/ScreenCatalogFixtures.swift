@@ -268,4 +268,139 @@ struct CatalogInviteAcceptPreview: View {
         .background(Color.Echo.surface)
     }
 }
+
+struct CatalogMessagesHubGroupsPreview: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Messages")
+                    .font(.system(size: 28, weight: .bold))
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+
+            HStack(spacing: 4) {
+                segmentChip("Chats", selected: false)
+                segmentChip("Groups", selected: true)
+            }
+            .padding(4)
+            .background(Color.Echo.surfaceContainerLow)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+
+            VStack(spacing: 0) {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundStyle(Color.echoSignal)
+                    Text("New group")
+                        .font(.system(size: 15, weight: .semibold))
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 14)
+
+                hubRow(initials: "TE", name: "Team Echo", preview: "Welcome to the group")
+                hubRow(initials: "PR", name: "Product", preview: "Ship checklist updated")
+            }
+            Spacer(minLength: 0)
+        }
+        .background(Color.echoPaper)
+    }
+
+    private func segmentChip(_ title: String, selected: Bool) -> some View {
+        Text(title)
+            .font(.system(size: 14, weight: selected ? .semibold : .medium))
+            .foregroundStyle(selected ? Color.echoPaper : Color.echoInk55)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(selected ? Color.echoInk : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 9))
+    }
+
+    private func hubRow(initials: String, name: String, preview: String) -> some View {
+        HStack(spacing: 12) {
+            Text(initials)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 48, height: 48)
+                .background(Color.echoSignal)
+                .clipShape(Circle())
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name).font(.system(size: 16, weight: .semibold))
+                Text(preview).font(.system(size: 14)).foregroundStyle(Color.Echo.onSurfaceVariant)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+    }
+}
+
+struct CatalogGroupCreatePreview: View {
+    var body: some View {
+        CatalogSettingsScaffold(title: "New group") {
+            CatalogFieldRow(label: "Name", value: "Weekend crew")
+            Text("Members")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.Echo.onSurfaceVariant)
+            CatalogNavRow(title: "Jordan", subtitle: "Selected")
+            CatalogNavRow(title: "Sam", subtitle: "Selected")
+            CatalogNavRow(title: "Riley", subtitle: "Tap to add")
+            CatalogPrimaryButton(title: "Create")
+        }
+    }
+}
+
+struct CatalogUsernameSearchPreview: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Add by username")
+                .font(.system(size: 28, weight: .bold))
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(Color.Echo.onSurfaceVariant)
+                Text("@jordan")
+                    .foregroundStyle(Color.Echo.onSurface)
+                Spacer()
+            }
+            .padding(14)
+            .background(Color.Echo.surfaceContainerLow)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal, 20)
+
+            VStack(spacing: 12) {
+                searchResult(name: "Jordan Lee", handle: "@jordan", tier: "Verified")
+                searchResult(name: "Jordan Kim", handle: "@jordank", tier: "Basic")
+            }
+            .padding(.horizontal, 20)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color.Echo.surface)
+    }
+
+    private func searchResult(name: String, handle: String, tier: String) -> some View {
+        HStack {
+            Circle()
+                .fill(Color.echoSignal.opacity(0.15))
+                .frame(width: 44, height: 44)
+                .overlay(Text(String(name.prefix(1))).font(.headline))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name).font(.body.weight(.semibold))
+                Text(handle).font(.caption).foregroundStyle(Color.Echo.onSurfaceVariant)
+            }
+            Spacer()
+            Text(tier)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.echoTrustGreen)
+        }
+        .padding(12)
+        .background(Color.Echo.surfaceContainerLow)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+}
 #endif

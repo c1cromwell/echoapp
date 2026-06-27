@@ -87,6 +87,7 @@ class ContactDetailViewModel: ObservableObject {
         )
 
         await loadRelationship()
+        sharedMedia = SharedMediaLoader.previewItems(peerDID: contactId)
     }
 
     func loadRelationship() async {

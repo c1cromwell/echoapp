@@ -1310,6 +1310,25 @@ public struct NotificationSettingsView: View {
 
                 ScrollView {
                     VStack(spacing: Spacing.lg.rawValue) {
+                        NavigationLink {
+                            NotificationCenterView()
+                        } label: {
+                            HStack {
+                                Image(systemName: "bell.badge")
+                                    .foregroundColor(.echoPrimary)
+                                Text("Recent activity")
+                                    .typographyStyle(.body, color: .echoPrimaryText)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.echoGray400)
+                            }
+                            .padding(Spacing.lg.rawValue)
+                            .background(Color.echoSurface)
+                            .cornerRadius(12)
+                        }
+                        .buttonStyle(.plain)
+
                         // Messages
                         SettingsSectionView(title: "Messages") {
                             SettingsListItem(
