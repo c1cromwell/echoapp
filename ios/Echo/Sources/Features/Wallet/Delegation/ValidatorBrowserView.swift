@@ -8,7 +8,9 @@ public struct ValidatorBrowserView: View {
     @StateObject private var viewModel: WalletViewModel
 
     public init() {
-        _viewModel = StateObject(wrappedValue: WalletViewModel(api: WalletAPIClientStub()))
+        _viewModel = StateObject(wrappedValue: WalletViewModel(
+            api: DIContainer.shared.resolveWalletAPI() ?? WalletAPIClientStub()
+        ))
     }
 
     init(viewModel: WalletViewModel) {

@@ -6,8 +6,10 @@ import SwiftUI
 
 struct WalletTab: View {
     @StateObject private var viewModel: WalletViewModel
+    private let screenTitle: String
 
-    init(api: WalletAPIClient) {
+    init(api: WalletAPIClient, title: String = "Rewards") {
+        self.screenTitle = title
         _viewModel = StateObject(wrappedValue: WalletViewModel(api: api))
     }
 
@@ -15,7 +17,12 @@ struct WalletTab: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    if let state = viewModel.walletState {
+                    if viewModel.isLoading && viewModel.walletState == nil {
+                        ProgressView("Loading balance…")
+                            .font(Font.Echo.bodyMedium)
+                            .foregroundStyle(Color.Echo.onSurfaceVariant)
+                            .frame(maxWidth: .infinity, minHeight: 200)
+                    } else if let state = viewModel.walletState {
                         BalanceCard(state: state)
 
                         BalanceBreakdown(state: state)
@@ -36,6 +43,10 @@ struct WalletTab: View {
                                 Task { await viewModel.unstake(stakeId: stakeId, amount: amount) }
                             }
                         )
+                    } else {
+                        WalletEmptyState {
+                            Task { await viewModel.loadWallet() }
+                        }
                     }
 
                     if let error = viewModel.errorMessage {
@@ -53,7 +64,7 @@ struct WalletTab: View {
                 ToolbarItem(placement: .principal) {
                     HStack(spacing: 6) {
                         EchoLogo(size: 24)
-                        Text("Wallet")
+                        Text(screenTitle)
                             .font(Font.Echo.headlineSm)
                             .foregroundStyle(Color.Echo.onSurface)
                     }
@@ -318,6 +329,29 @@ func formatEcho(_ amount: Decimal) -> String {
     formatter.minimumFractionDigits = 2
     formatter.maximumFractionDigits = 2
     return formatter.string(from: amount as NSDecimalNumber) ?? "0.00"
+}
+
+// MARK: - Empty State
+
+private struct WalletEmptyState: View {
+    let onRetry: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "wallet.pass")
+                .font(.system(size: 44))
+                .foregroundStyle(Color.Echo.onSurfaceVariant.opacity(0.5))
+            Text("Your ECHO balance will appear here after provisioning completes.")
+                .font(Font.Echo.bodyMedium)
+                .foregroundStyle(Color.Echo.onSurfaceVariant)
+                .multilineTextAlignment(.center)
+            Button("Refresh", action: onRetry)
+                .font(Font.Echo.bodyMedium)
+                .foregroundStyle(Color.Echo.primaryContainer)
+        }
+        .frame(maxWidth: .infinity, minHeight: 200)
+        .padding()
+    }
 }
 
 #endif

@@ -121,6 +121,12 @@ final class DIContainer {
             return MessageOpsAPI(apiClient: client)
         }
 
+        registerFactory(ServiceKeys.walletAPI) { [weak self] () -> HTTPWalletAPIClient in
+            let client: APIClient = self?.resolve(ServiceKeys.apiClient)
+                ?? APIClient(configuration: .default)
+            return HTTPWalletAPIClient(apiClient: client)
+        }
+
         registerFactory(ServiceKeys.groupKeyManager) { [weak self] () -> GroupKeyManager in
             let encryption: KinnamiEncryption = self?.resolve(ServiceKeys.kinnamiEncryption)
                 ?? KinnamiEncryption()
@@ -378,6 +384,7 @@ enum ServiceKeys {
     static let reactionsAPI = "networking.reactionsAPI"
     static let receiptsAPI = "networking.receiptsAPI"
     static let messageOpsAPI = "networking.messageOpsAPI"
+    static let walletAPI = "networking.walletAPI"
     static let groupKeyManager = "relay.groupKeyManager"
     static let groupsAPI = "networking.groupsAPI"
     static let groupKeyDistribution = "services.groupKeyDistribution"
@@ -477,6 +484,10 @@ extension DIContainer {
 
     func resolveMessageOpsAPI() -> MessageOpsAPI? {
         resolve(ServiceKeys.messageOpsAPI)
+    }
+
+    func resolveWalletAPI() -> WalletAPIClient? {
+        resolve(ServiceKeys.walletAPI)
     }
 
     func resolveContactDiscoveryService() -> ContactDiscoveryService? {

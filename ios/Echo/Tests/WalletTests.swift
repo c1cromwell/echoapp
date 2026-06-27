@@ -140,6 +140,7 @@ final class WalletTypesTests: XCTestCase {
 
 // MARK: - Wallet ViewModel Tests
 
+#if os(iOS)
 @MainActor
 final class WalletViewModelTests: XCTestCase {
 
@@ -213,6 +214,7 @@ final class WalletViewModelTests: XCTestCase {
         XCTAssertEqual(vm.selectedTier, .bronze)
     }
 }
+#endif
 
 // MARK: - Delivery Status Tests
 
@@ -332,6 +334,7 @@ final class EvidenceResultCodableTests: XCTestCase {
 
 // MARK: - Format ECHO Tests
 
+#if os(iOS)
 final class FormatEchoTests: XCTestCase {
 
     func testFormatEcho_wholeNumber() {
@@ -376,3 +379,4 @@ final class MockWalletAPIClientTests: XCTestCase {
         }
     }
 }
+#endif

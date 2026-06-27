@@ -295,13 +295,17 @@ class StakingDetailViewModel: ObservableObject {
     @Published var lockPeriod: String = "—"
     @Published var delegatedValidator: DelegatedValidatorInfo?
 
+    private let api: WalletAPIClient
+
+    init(api: WalletAPIClient? = nil) {
+        self.api = api ?? DIContainer.shared.resolveWalletAPI() ?? WalletAPIClientStub()
+    }
+
     func loadStakingDetails() async {
-        let api = WalletAPIClientStub()
         do {
-            let balance = try await api.getBalance()
-            stakedAmount = balance.staked
-            let locks = try await api.getTokenLocks()
-            if let lock = locks.max(by: { $0.amount < $1.amount }) {
+            let state = try await api.fetchWalletState()
+            stakedAmount = state.staked
+            if let lock = state.locks.max(by: { $0.amount < $1.amount }) {
                 lockPeriod = lock.lockedUntil.formatted(date: .abbreviated, time: .omitted)
                 currentTier = StakingTierLevel(rawValue: lock.tier.lowercased()) ?? .bronze
             }

@@ -34,31 +34,22 @@ class WalletViewModel: ObservableObject {
         errorMessage = nil
 
         do {
-            let balance = try await api.getBalance()
-            let locks = try await api.getTokenLocks()
-            let delegations = try await api.getDelegations()
-
-            // Compute vesting for founder locks
-            var vesting: VestingState?
-            if let founderLock = locks.first(where: { $0.isFounderVesting }) {
-                vesting = computeVesting(founderLock)
-            }
-
-            walletState = WalletState(
-                totalBalance: balance.total,
-                available: balance.available,
-                staked: balance.staked,
-                pendingRewards: 0, // loaded separately
-                locks: locks,
-                delegations: delegations,
-                dailyRewards: nil, // loaded separately
-                vesting: vesting
-            )
+            walletState = try await api.fetchWalletState()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = userFacingWalletError(error)
         }
 
         isLoading = false
+    }
+
+    private func userFacingWalletError(_ error: Error) -> String {
+        if let stargazer = error as? StargazerError {
+            return stargazer.localizedDescription
+        }
+        if let apiError = error as? APIError {
+            return apiError.localizedDescription
+        }
+        return "Could not load wallet. Pull to refresh or try again later."
     }
 
     // MARK: - Load Validators

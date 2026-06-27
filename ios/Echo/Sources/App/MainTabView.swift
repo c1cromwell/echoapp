@@ -132,6 +132,12 @@ struct GlacialTabBar: View {
 // MARK: - Placeholder for WalletAPIClient
 
 struct WalletAPIClientStub: WalletAPIClient {
+    func fetchWalletState() async throws -> WalletState {
+        WalletState(
+            totalBalance: 0, available: 0, staked: 0, pendingRewards: 0,
+            locks: [], delegations: [], dailyRewards: nil, vesting: nil
+        )
+    }
     func createWallet() async throws -> WalletInfo { WalletInfo(address: "", publicKey: "") }
     func importWallet(mnemonic: String) async throws -> WalletInfo { WalletInfo(address: "", publicKey: "") }
     func getBalance() async throws -> BalanceInfo { BalanceInfo(total: 0, available: 0) }

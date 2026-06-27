@@ -1,112 +1,17 @@
 #if os(iOS)
 import SwiftUI
 
-/// Rewards Dashboard Screen
+/// Rewards Dashboard Screen — live ECHO balance, staking, and claims.
 public struct RewardsDashboardView: View {
-    @State private var tokenBalance = 1250.50
-    @State private var activities: [RewardActivity] = [
-        RewardActivity(id: "1", type: "messaging", amount: 50, description: "Sent 10 messages", date: "Today"),
-        RewardActivity(id: "2", type: "referral", amount: 100, description: "Referred John Doe", date: "Yesterday"),
-        RewardActivity(id: "3", type: "transaction", amount: 75, description: "Completed transaction", date: "2 days ago")
-    ]
-    
-    let onStaking: () -> Void
-    let onReferrals: () -> Void
-    let onAchievements: () -> Void
-    
-    public init(
-        onStaking: @escaping () -> Void = {},
-        onReferrals: @escaping () -> Void = {},
-        onAchievements: @escaping () -> Void = {}
-    ) {
-        self.onStaking = onStaking
-        self.onReferrals = onReferrals
-        self.onAchievements = onAchievements
-    }
-    
+    public init() {}
+
     public var body: some View {
-        ZStack {
-            Color.echoBackground.ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                EchoNavBar(
-                    title: "Rewards",
-                    showBackButton: false
-                )
-                
-                ScrollView {
-                    VStack(spacing: Spacing.xl.rawValue) {
-                        // Token Balance Card
-                        VStack(spacing: Spacing.lg.rawValue) {
-                            Text("ECHO Token Balance")
-                                .typographyStyle(.body, color: .echoSecondaryText)
-                            
-                            Text("\(String(format: "%.2f", tokenBalance))")
-                                .typographyStyle(.display, color: .echoPrimary)
-                                .font(.system(size: 48, weight: .bold))
-                            
-                            Text("$\(String(format: "%.2f", tokenBalance * 0.50))")
-                                .typographyStyle(.body, color: .echoGray500)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(Spacing.xl.rawValue)
-                        .background(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color.echoPrimary.opacity(0.1),
-                                    Color.echoPrimary.opacity(0.05)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .cornerRadius(16)
-                        
-                        // Action Buttons
-                        HStack(spacing: Spacing.md.rawValue) {
-                            EchoButton(
-                                "Stake",
-                                style: .secondary,
-                                size: .medium,
-                                icon: Image(systemName: "chart.line.uptrend.xyaxis"),
-                                action: onStaking
-                            )
-                            
-                            EchoButton(
-                                "Refer",
-                                style: .secondary,
-                                size: .medium,
-                                icon: Image(systemName: "person.badge.plus"),
-                                action: onReferrals
-                            )
-                            
-                            EchoButton(
-                                "Badges",
-                                style: .secondary,
-                                size: .medium,
-                                icon: Image(systemName: "star.fill"),
-                                action: onAchievements
-                            )
-                        }
-                        
-                        // Recent Activity
-                        VStack(alignment: .leading, spacing: Spacing.md.rawValue) {
-                            Text("Recent Activity")
-                                .typographyStyle(.h4, color: .echoPrimaryText)
-                            
-                            VStack(spacing: Spacing.md.rawValue) {
-                                ForEach(activities) { activity in
-                                    ActivityRow(activity: activity)
-                                }
-                            }
-                        }
-                        
-                        Spacer()
-                    }
-                    .echoSpacing(.lg)
-                }
-            }
-        }
+        WalletTab(api: resolvedWalletAPI())
+    }
+
+    @MainActor
+    private func resolvedWalletAPI() -> WalletAPIClient {
+        DIContainer.shared.resolveWalletAPI() ?? WalletAPIClientStub()
     }
 }
 
