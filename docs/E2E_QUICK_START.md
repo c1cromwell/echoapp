@@ -32,6 +32,7 @@ Run the row for your current focus **before** opening Xcode or uploading TestFli
 | **Week B — contacts** | After Week A green | `make regression` | **B1–B6** in same tester doc | Invite, QR, block, link-device |
 | **Wallet + staking** | Balance / stake / claim changes | `./scripts/validate-wallet.sh` | Rewards tab → Stake 10 ECHO bronze → Claim | Real balance; position listed |
 | **Pre-TestFlight** | Before archive | `make regression-with-phase1` | Quick start §7 simulator smoke + [`E2E_LAUNCH_AND_TESTING.md` §9](E2E_LAUNCH_AND_TESTING.md#9-launch-checklist--sign-off) | Sign-off template complete |
+| **App Store compliance** | Before external TF / ASC submit | — | [`APP_STORE_SUBMISSION.md`](APP_STORE_SUBMISSION.md) P0–P2 | All P0 closed for phase gate |
 
 **PR bar (all milestones):**
 
@@ -404,6 +405,7 @@ Before TestFlight upload:
 | Resource | Use |
 |----------|-----|
 | [`E2E_LAUNCH_AND_TESTING.md`](E2E_LAUNCH_AND_TESTING.md) | Tiers, env vars, TestFlight, feature matrix, sign-off |
+| [`APP_STORE_SUBMISSION.md`](APP_STORE_SUBMISSION.md) | App Store / IAP / privacy / deletion checklist |
 | [`metagraph-backend-e2e-testing.md`](metagraph-backend-e2e-testing.md) | Hydra ports, node URLs |
 | Skill **`echo-ios-agent-vs-xcode`** | Agent vs Xcode ownership |
 | Skill **`echo-phase1-validate`** | WO-230 detail |

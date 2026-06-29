@@ -21,6 +21,7 @@
 | Feature QA on simulator | [§6 Manual E2E — Simulator](#6-manual-e2e--ios-simulator) |
 | Device + PSI + biometrics | [§7 Manual E2E — Physical iPhone](#7-manual-e2e--physical-iphone) |
 | TestFlight upload | [§8 TestFlight & App Store](#8-testflight--app-store) |
+| App Store submission checklist | [`APP_STORE_SUBMISSION.md`](APP_STORE_SUBMISSION.md) |
 | Release sign-off | [§9 Launch checklist & sign-off](#9-launch-checklist--sign-off) |
 | Metagraph cluster detail | [`metagraph-backend-e2e-testing.md`](metagraph-backend-e2e-testing.md) |
 

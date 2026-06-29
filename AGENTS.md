@@ -13,6 +13,7 @@ Quick entry point for Cursor agents working in this repo. Read this first, then 
 | Chain / submission / PII review | Skill: **`echo-t0-t7-review`** + `docs/data-classification.md` |
 | Local cluster / validate / release check | MCP **`echo-local-dev`** (see `.cursor/mcp.json`) |
 | TestFlight / Phase 1 go-no-go | Skill: **`echo-phase1-validate`** + [`docs/E2E_LAUNCH_AND_TESTING.md`](docs/E2E_LAUNCH_AND_TESTING.md) |
+| App Store / IAP / privacy submission | [`docs/APP_STORE_SUBMISSION.md`](docs/APP_STORE_SUBMISSION.md) |
 | Launch & regression testing (full matrix) | Skill: **`echo-testing`** + [`docs/E2E_QUICK_START.md`](docs/E2E_QUICK_START.md) (start here) / [`docs/E2E_LAUNCH_AND_TESTING.md`](docs/E2E_LAUNCH_AND_TESTING.md) |
 | Phase 2 onboarding / VC / contacts | Skill: **`echo-phase2-gaps`** |
 | Phase 3 messaging UI (Xcode wiring) | Skill: **`echo-phase3-ios-wire`** |
