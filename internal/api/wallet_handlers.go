@@ -14,6 +14,18 @@ type WalletHandlers struct {
 	Store   wallet.Store
 }
 
+// walletDID extracts the authenticated DID and rejects empty values, so a
+// blank-DID identity can never read or mutate wallet state even if upstream
+// auth is misrouted (defense-in-depth; auth middleware is the primary gate).
+func walletDID(w http.ResponseWriter, r *http.Request) (string, bool) {
+	did, _ := r.Context().Value(ContextKeyUserID).(string)
+	if strings.TrimSpace(did) == "" {
+		WriteError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "authentication required", r.Header.Get("X-Request-ID"))
+		return "", false
+	}
+	return did, true
+}
+
 func (h *WalletHandlers) handleWalletRoot(w http.ResponseWriter, r *http.Request) {
 	if h.Service == nil {
 		WriteError(w, http.StatusServiceUnavailable, "WALLET_UNAVAILABLE", "Wallet service not configured", r.Header.Get("X-Request-ID"))
@@ -23,7 +35,10 @@ func (h *WalletHandlers) handleWalletRoot(w http.ResponseWriter, r *http.Request
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
 		return
 	}
-	did, _ := r.Context().Value(ContextKeyUserID).(string)
+	did, ok := walletDID(w, r)
+	if !ok {
+		return
+	}
 	state, err := h.Service.GetWalletState(r.Context(), did)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, "WALLET_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
@@ -37,7 +52,10 @@ func (h *WalletHandlers) handleWalletStake(w http.ResponseWriter, r *http.Reques
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
 		return
 	}
-	did, _ := r.Context().Value(ContextKeyUserID).(string)
+	did, ok := walletDID(w, r)
+	if !ok {
+		return
+	}
 	var req struct {
 		Amount int64  `json:"amount"`
 		Tier   string `json:"tier"`
@@ -67,7 +85,10 @@ func (h *WalletHandlers) handleWalletUnstake(w http.ResponseWriter, r *http.Requ
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
 		return
 	}
-	did, _ := r.Context().Value(ContextKeyUserID).(string)
+	did, ok := walletDID(w, r)
+	if !ok {
+		return
+	}
 	var req struct {
 		StakeID string `json:"stakeId"`
 		Amount  int64  `json:"amount"`
@@ -93,7 +114,10 @@ func (h *WalletHandlers) handleWalletDelegate(w http.ResponseWriter, r *http.Req
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
 		return
 	}
-	did, _ := r.Context().Value(ContextKeyUserID).(string)
+	did, ok := walletDID(w, r)
+	if !ok {
+		return
+	}
 	var req struct {
 		StakeID     string `json:"stakeId"`
 		ValidatorID string `json:"validatorId"`
@@ -121,7 +145,10 @@ func (h *WalletHandlers) handleWalletClaim(w http.ResponseWriter, r *http.Reques
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
 		return
 	}
-	did, _ := r.Context().Value(ContextKeyUserID).(string)
+	did, ok := walletDID(w, r)
+	if !ok {
+		return
+	}
 	var req struct {
 		Types []string `json:"types"`
 	}
@@ -159,7 +186,10 @@ func (h *WalletHandlers) handleWalletLink(w http.ResponseWriter, r *http.Request
 		WriteError(w, http.StatusServiceUnavailable, "WALLET_UNAVAILABLE", "Wallet store not configured", r.Header.Get("X-Request-ID"))
 		return
 	}
-	did, _ := r.Context().Value(ContextKeyUserID).(string)
+	did, ok := walletDID(w, r)
+	if !ok {
+		return
+	}
 	var req struct {
 		Address string `json:"address"`
 	}

@@ -20,6 +20,7 @@ type Store interface {
 	ListLocks(ctx context.Context, did string) ([]TokenLockPos, error)
 	ListDelegations(ctx context.Context, did string) ([]DelegationPos, error)
 	InsertLock(ctx context.Context, did string, pos TokenLockPos) error
+	InsertDelegation(ctx context.Context, did string, d DelegationPos) error
 	ApplyStake(ctx context.Context, did string, amount int64) error
 	ApplyUnstake(ctx context.Context, did string, amount int64) error
 	CreditRewards(ctx context.Context, did string, amount int64) error
@@ -142,6 +143,18 @@ func (s *PGStore) InsertLock(ctx context.Context, did string, pos TokenLockPos) 
 			locked_until = EXCLUDED.locked_until,
 			updated_at = NOW()
 	`, pos.ID, did, pos.Amount, pos.Tier, pos.LockedUntil, pos.VestingType, pos.DelegatedTo)
+	return err
+}
+
+func (s *PGStore) InsertDelegation(ctx context.Context, did string, d DelegationPos) error {
+	_, err := s.pool.Exec(ctx, `
+		INSERT INTO staking_delegations (id, did, stake_id, validator_id, amount, created_at)
+		VALUES ($1, $2, $3, $4, $5, NOW())
+		ON CONFLICT (id) DO UPDATE SET
+			stake_id = EXCLUDED.stake_id,
+			validator_id = EXCLUDED.validator_id,
+			amount = EXCLUDED.amount
+	`, d.ID, did, d.StakeID, d.ValidatorID, d.Amount)
 	return err
 }
 
@@ -294,6 +307,11 @@ func (m *MemStore) ListDelegations(_ context.Context, did string) ([]DelegationP
 
 func (m *MemStore) InsertLock(_ context.Context, did string, pos TokenLockPos) error {
 	m.locks[did] = append(m.locks[did], pos)
+	return nil
+}
+
+func (m *MemStore) InsertDelegation(_ context.Context, did string, d DelegationPos) error {
+	m.delegations[did] = append(m.delegations[did], d)
 	return nil
 }
 

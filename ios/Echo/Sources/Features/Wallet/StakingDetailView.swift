@@ -6,8 +6,13 @@ import SwiftUI
 
 public struct StakingDetailView: View {
     @StateObject private var viewModel = StakingDetailViewModel()
+    @StateObject private var walletViewModel: WalletViewModel
+    @State private var showUnstakeConfirm = false
 
-    public init() {}
+    public init(walletViewModel: WalletViewModel? = nil) {
+        let vm = walletViewModel ?? WalletViewModel(api: DIContainer.shared.resolveWalletAPI() ?? WalletAPIClientStub())
+        _walletViewModel = StateObject(wrappedValue: vm)
+    }
 
     public var body: some View {
         ScrollView {
@@ -191,8 +196,8 @@ public struct StakingDetailView: View {
 
                 // Action Buttons
                 VStack(spacing: 12) {
-                    Button {
-                        // Navigate to stake more
+                    NavigationLink {
+                        StakingView(viewModel: walletViewModel)
                     } label: {
                         Text("Stake More")
                             .font(.system(size: 14)).fontWeight(.bold)
@@ -207,7 +212,7 @@ public struct StakingDetailView: View {
                     .deepGlacialShadow()
 
                     Button {
-                        // Navigate to unstake
+                        showUnstakeConfirm = true
                     } label: {
                         Text("Unstake")
                             .font(.system(size: 14)).fontWeight(.bold)

@@ -3,6 +3,7 @@ package wallet
 import (
 	"context"
 	"encoding/json"
+	"log"
 
 	"github.com/google/uuid"
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
@@ -45,7 +46,7 @@ func (q *LedgerQuerier) GetValidators(ctx context.Context) ([]ValidatorInfo, err
 		return cached, nil
 	}
 	if q.submitter == nil {
-		return nil, nil
+		return []ValidatorInfo{}, nil
 	}
 	snaps, err := q.submitter.QueryValidators(ctx)
 	if err != nil {
@@ -63,7 +64,9 @@ func (q *LedgerQuerier) GetValidators(ctx context.Context) ([]ValidatorInfo, err
 			Layer:          s.Layer,
 		})
 	}
-	_ = q.store.UpsertValidators(ctx, out)
+	if err := q.store.UpsertValidators(ctx, out); err != nil {
+		log.Printf("wallet: failed to cache validators: %v", err)
+	}
 	return out, nil
 }
 
@@ -114,6 +117,14 @@ func (q *LedgerQuerier) SubmitStakeDelegation(ctx context.Context, delegatorDID,
 		}); err == nil && h != "" {
 			txHash = h
 		}
+	}
+	if err := q.store.InsertDelegation(ctx, delegatorDID, DelegationPos{
+		ID:          txHash,
+		StakeID:     stakeID,
+		ValidatorID: validatorID,
+		Amount:      amount,
+	}); err != nil {
+		return "", err
 	}
 	return txHash, nil
 }

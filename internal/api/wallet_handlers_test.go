@@ -13,6 +13,25 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/wallet"
 )
 
+func TestWalletGetState_EmptyDIDRejected(t *testing.T) {
+	store := wallet.NewMemStore()
+	ledger := wallet.NewLedgerQuerier(store, nil)
+	svc := wallet.NewWalletService(ledger, &walletTestRewards{})
+
+	h := &WalletHandlers{Service: svc, Store: store}
+	mux := http.NewServeMux()
+	(&V3Handlers{Wallet: h}).RegisterV3Routes(mux)
+
+	// No ContextKeyUserID set -> blank DID must be rejected, not served.
+	req := httptest.NewRequest(http.MethodGet, "/v3/wallet", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("want 401 for empty DID, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestWalletGetState_GenesisCredit(t *testing.T) {
 	t.Setenv("ECHO_WALLET_GENESIS_AUTO", "1")
 

@@ -229,6 +229,31 @@ func TestDelegateToValidator(t *testing.T) {
 	}
 }
 
+// TestLedgerQuerierPersistsDelegation guards the gap where SubmitStakeDelegation
+// returned without writing staking_delegations, so delegations vanished on
+// the next read. Uses the real LedgerQuerier + MemStore (no L1 submitter).
+func TestLedgerQuerierPersistsDelegation(t *testing.T) {
+	q := NewLedgerQuerier(NewMemStore(), nil)
+	did := "did:echo:test"
+
+	txHash, err := q.SubmitStakeDelegation(context.Background(), did, "lock1", "validator1", 300_00000000)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	dels, err := q.GetDelegations(context.Background(), did)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(dels) != 1 {
+		t.Fatalf("expected delegation to persist, got %d", len(dels))
+	}
+	d := dels[0]
+	if d.ID != txHash || d.StakeID != "lock1" || d.ValidatorID != "validator1" || d.Amount != 300_00000000 {
+		t.Errorf("persisted delegation mismatch: %+v", d)
+	}
+}
+
 func TestUnstake(t *testing.T) {
 	mg := &mockMetagraph{txHash: "unstake_hash_1"}
 	rw := &mockRewards{}
