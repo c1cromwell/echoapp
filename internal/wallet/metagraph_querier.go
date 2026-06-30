@@ -16,6 +16,9 @@ type CurrencySubmitter interface {
 	SubmitStakeDelegation(ctx context.Context, update metagraph.StakeDelegationUpdate) (string, error)
 	SubmitCurrencyL1(ctx context.Context, tx metagraph.CurrencyL1Transaction) (string, error)
 	QueryValidators(ctx context.Context) ([]metagraph.ValidatorSnapshot, error)
+	// SubmitSignedByType relays a client-signed {value, proofs} payload to the
+	// metagraph endpoint for txType (tokenLock / delegatedStake). Real-funds.
+	SubmitSignedByType(ctx context.Context, txType string, signed []byte) (string, error)
 }
 
 // LedgerQuerier implements MetagraphQuerier using PG ledger + optional L1 submit.
@@ -112,6 +115,46 @@ func (q *LedgerQuerier) SubmitTokenLock(ctx context.Context, did string, amount 
 		return "", err
 	}
 	return txHash, nil
+}
+
+// SubmitSignedTokenLock relays a CLIENT-signed TokenLock to the metagraph (the
+// backend never signs) and mirrors the position into PG, like SubmitTokenLock.
+// Requires a Currency L1 submitter; in real-funds mode there is always one.
+func (q *LedgerQuerier) SubmitSignedTokenLock(ctx context.Context, did string, amount int64, tier StakingTier, signed []byte) (string, error) {
+	chain, err := ResolveChainTier(tier.Name)
+	if err != nil {
+		return "", err
+	}
+	if amount < chain.MinDatum {
+		return "", ErrInsufficientBalance
+	}
+	if q.submitter == nil {
+		return "", ErrSignedSubmitUnavailable
+	}
+	if err := q.store.ApplyStake(ctx, did, amount); err != nil {
+		return "", err
+	}
+	txHash, err := q.submitter.SubmitSignedByType(ctx, "tokenLock", signed)
+	if err != nil || txHash == "" {
+		return "", ErrSignedSubmitFailed
+	}
+	pos := TokenLockPos{
+		ID:          txHash,
+		Amount:      amount,
+		Tier:        tier.Name,
+		LockedUntil: LockUntil(chain.LockDays),
+	}
+	if err := q.store.InsertLock(ctx, did, pos); err != nil {
+		return "", err
+	}
+	return txHash, nil
+}
+
+func (q *LedgerQuerier) SubmitSignedByType(ctx context.Context, txType string, signed []byte) (string, error) {
+	if q.submitter == nil {
+		return "", ErrSignedSubmitUnavailable
+	}
+	return q.submitter.SubmitSignedByType(ctx, txType, signed)
 }
 
 func (q *LedgerQuerier) SubmitStakeDelegation(ctx context.Context, delegatorDID, stakeID, validatorID string, amount int64) (string, error) {

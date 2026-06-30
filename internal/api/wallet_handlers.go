@@ -95,18 +95,24 @@ func (h *WalletHandlers) handleWalletStake(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	var req struct {
-		Amount int64  `json:"amount"`
-		Tier   string `json:"tier"`
+		Amount int64           `json:"amount"`
+		Tier   string          `json:"tier"`
+		Signed json.RawMessage `json:"signed,omitempty"` // client-signed {value, proofs}
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Amount <= 0 || req.Tier == "" {
 		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "amount and tier are required", r.Header.Get("X-Request-ID"))
 		return
 	}
-	result, err := h.Service.StakeEcho(r.Context(), wallet.StakeRequest{
-		DID:    did,
-		Amount: req.Amount,
-		Tier:   req.Tier,
-	})
+	stakeReq := wallet.StakeRequest{DID: did, Amount: req.Amount, Tier: req.Tier}
+	// Real-funds mode: the client signs the TokenLock locally and the backend
+	// relays it (never originates). Interim mode keeps server-side origination.
+	var result *wallet.StakeResult
+	var err error
+	if h.RealFunds && len(req.Signed) > 0 {
+		result, err = h.Service.StakeEchoSigned(r.Context(), stakeReq, req.Signed)
+	} else {
+		result, err = h.Service.StakeEcho(r.Context(), stakeReq)
+	}
 	if err != nil {
 		status := http.StatusBadRequest
 		if err == wallet.ErrInsufficientBalance {

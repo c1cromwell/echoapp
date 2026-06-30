@@ -12,6 +12,7 @@ type MetagraphQuerier interface {
 	GetDelegations(ctx context.Context, did string) ([]DelegationPos, error)
 	GetValidators(ctx context.Context) ([]ValidatorInfo, error)
 	SubmitTokenLock(ctx context.Context, did string, amount int64, tier StakingTier) (string, error)
+	SubmitSignedTokenLock(ctx context.Context, did string, amount int64, tier StakingTier, signed []byte) (string, error)
 	SubmitStakeDelegation(ctx context.Context, delegatorDID, stakeID, validatorID string, amount int64) (string, error)
 	SubmitWithdrawLock(ctx context.Context, did, stakeID string, amount int64) (string, error)
 	SubmitAtomicRewardClaim(ctx context.Context, did string, claims []RewardClaim) (string, error)
@@ -106,6 +107,21 @@ func (s *WalletService) StakeEcho(ctx context.Context, req StakeRequest) (*Stake
 		return nil, err
 	}
 
+	return &StakeResult{TxHash: txHash, Tier: tier}, nil
+}
+
+// StakeEchoSigned forwards a CLIENT-signed TokenLock (real-funds custody): the
+// iOS app built and signed the {value, proofs}; the backend relays it and
+// mirrors the position. The backend never holds the key.
+func (s *WalletService) StakeEchoSigned(ctx context.Context, req StakeRequest, signed []byte) (*StakeResult, error) {
+	tier, err := ValidateTier(req.Tier)
+	if err != nil {
+		return nil, err
+	}
+	txHash, err := s.metagraph.SubmitSignedTokenLock(ctx, req.DID, req.Amount, tier, signed)
+	if err != nil {
+		return nil, err
+	}
 	return &StakeResult{TxHash: txHash, Tier: tier}, nil
 }
 

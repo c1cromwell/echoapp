@@ -15,6 +15,7 @@ type mockMetagraph struct {
 	delegations []DelegationPos
 	validators  []ValidatorInfo
 	txHash      string
+	signedBody  []byte
 	err         error
 }
 
@@ -41,6 +42,14 @@ func (m *mockMetagraph) SubmitTokenLock(_ context.Context, _ string, _ int64, _ 
 	if m.err != nil {
 		return "", m.err
 	}
+	return m.txHash, nil
+}
+
+func (m *mockMetagraph) SubmitSignedTokenLock(_ context.Context, _ string, _ int64, _ StakingTier, signed []byte) (string, error) {
+	if m.err != nil {
+		return "", m.err
+	}
+	m.signedBody = signed
 	return m.txHash, nil
 }
 

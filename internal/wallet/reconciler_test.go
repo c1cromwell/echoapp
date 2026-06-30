@@ -7,9 +7,13 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
 )
 
-// fakeSubmitter is a CurrencySubmitter that only serves validator snapshots.
+// fakeSubmitter is a CurrencySubmitter for tests: serves validator snapshots and
+// records client-signed forwards.
 type fakeSubmitter struct {
-	validators []metagraph.ValidatorSnapshot
+	validators     []metagraph.ValidatorSnapshot
+	signedHash     string
+	lastSignedType string
+	lastSigned     []byte
 }
 
 func (f *fakeSubmitter) SubmitTokenLock(context.Context, metagraph.TokenLockUpdate) (string, error) {
@@ -26,6 +30,11 @@ func (f *fakeSubmitter) SubmitCurrencyL1(context.Context, metagraph.CurrencyL1Tr
 }
 func (f *fakeSubmitter) QueryValidators(context.Context) ([]metagraph.ValidatorSnapshot, error) {
 	return f.validators, nil
+}
+func (f *fakeSubmitter) SubmitSignedByType(_ context.Context, txType string, signed []byte) (string, error) {
+	f.lastSignedType = txType
+	f.lastSigned = signed
+	return f.signedHash, nil
 }
 
 func TestReconcileOnceRefreshesValidatorCache(t *testing.T) {

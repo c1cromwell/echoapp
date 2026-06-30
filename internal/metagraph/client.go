@@ -83,6 +83,19 @@ func (c *MetagraphClient) SubmitSignedTransaction(ctx context.Context, baseURL, 
 	})
 }
 
+// SubmitSignedByType routes a client-signed payload to the correct metagraph
+// endpoint for the given Currency-L1 transaction type.
+func (c *MetagraphClient) SubmitSignedByType(ctx context.Context, txType string, signed []byte) (string, error) {
+	switch txType {
+	case "tokenLock":
+		return c.SubmitSignedTransaction(ctx, c.config.CurrencyL1URL, "/token-locks", signed)
+	case "delegatedStake":
+		return c.SubmitSignedTransaction(ctx, c.config.L0URL, "/delegated-stakes", signed)
+	default:
+		return "", fmt.Errorf("metagraph: unsupported signed tx type %q", txType)
+	}
+}
+
 // SubmitDataL1 posts a Data L1 data-application update.
 // Tessellation 4.x expects a signed POST /data body when IdentitySigner is set.
 func (c *MetagraphClient) SubmitDataL1(ctx context.Context, tx interface{}) (string, error) {
