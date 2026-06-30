@@ -81,6 +81,33 @@ func TestWalletRealFundsRejectsServerDerivableAddress(t *testing.T) {
 	}
 }
 
+// The challenge endpoint issues a per-DID nonce for proof-of-ownership.
+func TestWalletChallengeEndpoint(t *testing.T) {
+	h := &WalletHandlers{Store: wallet.NewMemStore(), Challenges: wallet.NewChallengeStore()}
+	mux := http.NewServeMux()
+	(&V3Handlers{Wallet: h}).RegisterV3Routes(mux)
+
+	did := "did:key:zChal"
+	req := httptest.NewRequest(http.MethodGet, "/v3/wallet/challenge", nil)
+	req = req.WithContext(context.WithValue(req.Context(), ContextKeyUserID, did))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		Challenge string `json:"challenge"`
+		ExpiresAt string `json:"expiresAt"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Challenge == "" || resp.ExpiresAt == "" {
+		t.Fatalf("empty challenge/expiry: %+v", resp)
+	}
+}
+
 type allowAllProof struct{}
 
-func (allowAllProof) VerifyOwnership(_, _, _ string) error { return nil }
+func (allowAllProof) VerifyOwnership(_, _, _ string) (string, error) { return "pubkey", nil }

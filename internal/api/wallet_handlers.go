@@ -17,32 +17,36 @@ type WalletHandlers struct {
 	// Proof verifies client-held proof-of-ownership; nil until the signing SDK
 	// ships, which (in real-funds mode) hard-blocks value-moving operations.
 	Proof wallet.ProofVerifier
+	// Challenges issues single-use nonces for proof-of-ownership (real funds).
+	Challenges *wallet.ChallengeStore
 }
 
-// requireCustody enforces real-funds custody rules on value-moving operations.
+// requireCustody enforces real-funds custody rules on value-moving operations
+// and returns the validated public key (used by /link to bind the account).
 // In interim mode (default) it is a no-op so the TestFlight flow is unchanged.
 // In real-funds mode it requires a verified proof-of-ownership and rejects
 // server-derivable addresses; with no verifier wired it hard-blocks.
-func (h *WalletHandlers) requireCustody(w http.ResponseWriter, r *http.Request, did, address, proof string) bool {
+func (h *WalletHandlers) requireCustody(w http.ResponseWriter, r *http.Request, did, address, proof string) (string, bool) {
 	if !h.RealFunds {
-		return true
+		return "", true
 	}
 	reqID := r.Header.Get("X-Request-ID")
 	if h.Proof == nil {
 		WriteError(w, http.StatusServiceUnavailable, "CUSTODY_NOT_READY",
 			"real-funds custody requires client-side signing which is not yet available", reqID)
-		return false
+		return "", false
 	}
 	if address != "" && address == wallet.ServerDerivableAddress(did) {
 		WriteError(w, http.StatusBadRequest, "SERVER_DERIVABLE_ADDRESS",
 			"address must be user-held, not server-derivable", reqID)
-		return false
+		return "", false
 	}
-	if err := h.Proof.VerifyOwnership(did, address, proof); err != nil {
+	pubKey, err := h.Proof.VerifyOwnership(did, address, proof)
+	if err != nil {
 		WriteError(w, http.StatusForbidden, "PROOF_INVALID", "proof of ownership failed", reqID)
-		return false
+		return "", false
 	}
-	return true
+	return pubKey, true
 }
 
 // walletDID extracts the authenticated DID and rejects empty values, so a
@@ -87,7 +91,7 @@ func (h *WalletHandlers) handleWalletStake(w http.ResponseWriter, r *http.Reques
 	if !ok {
 		return
 	}
-	if !h.requireCustody(w, r, did, "", r.Header.Get("X-Wallet-Proof")) {
+	if _, ok := h.requireCustody(w, r, did, "", r.Header.Get("X-Wallet-Proof")); !ok {
 		return
 	}
 	var req struct {
@@ -123,7 +127,7 @@ func (h *WalletHandlers) handleWalletUnstake(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	if !h.requireCustody(w, r, did, "", r.Header.Get("X-Wallet-Proof")) {
+	if _, ok := h.requireCustody(w, r, did, "", r.Header.Get("X-Wallet-Proof")); !ok {
 		return
 	}
 	var req struct {
@@ -155,7 +159,7 @@ func (h *WalletHandlers) handleWalletDelegate(w http.ResponseWriter, r *http.Req
 	if !ok {
 		return
 	}
-	if !h.requireCustody(w, r, did, "", r.Header.Get("X-Wallet-Proof")) {
+	if _, ok := h.requireCustody(w, r, did, "", r.Header.Get("X-Wallet-Proof")); !ok {
 		return
 	}
 	var req struct {
@@ -189,7 +193,7 @@ func (h *WalletHandlers) handleWalletClaim(w http.ResponseWriter, r *http.Reques
 	if !ok {
 		return
 	}
-	if !h.requireCustody(w, r, did, "", r.Header.Get("X-Wallet-Proof")) {
+	if _, ok := h.requireCustody(w, r, did, "", r.Header.Get("X-Wallet-Proof")); !ok {
 		return
 	}
 	var req struct {
@@ -241,12 +245,42 @@ func (h *WalletHandlers) handleWalletLink(w http.ResponseWriter, r *http.Request
 		return
 	}
 	addr := strings.TrimSpace(req.Address)
-	if !h.requireCustody(w, r, did, addr, r.Header.Get("X-Wallet-Proof")) {
+	pubKey, ok := h.requireCustody(w, r, did, addr, r.Header.Get("X-Wallet-Proof"))
+	if !ok {
 		return
 	}
-	if err := h.Store.LinkDAGAddress(r.Context(), did, addr); err != nil {
+	// In real-funds mode pubKey is the proof-validated key bound to the address;
+	// in interim mode it is empty (server-derivable address, no binding).
+	if err := h.Store.LinkDAGAccount(r.Context(), did, addr, pubKey); err != nil {
 		WriteError(w, http.StatusInternalServerError, "LINK_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
 	WriteJSON(w, http.StatusOK, map[string]string{"did": did, "address": addr})
+}
+
+// handleWalletChallenge issues a single-use proof-of-ownership challenge for the
+// authenticated DID (real-funds custody). The client signs it with the wallet
+// key and returns it in the X-Wallet-Proof header on the next mutating call.
+func (h *WalletHandlers) handleWalletChallenge(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	did, ok := walletDID(w, r)
+	if !ok {
+		return
+	}
+	if h.Challenges == nil {
+		WriteError(w, http.StatusServiceUnavailable, "WALLET_UNAVAILABLE", "Challenge store not configured", r.Header.Get("X-Request-ID"))
+		return
+	}
+	challenge, expires, err := h.Challenges.Issue(did)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "CHALLENGE_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"challenge": challenge,
+		"expiresAt": expires.UTC().Format("2006-01-02T15:04:05Z07:00"),
+	})
 }

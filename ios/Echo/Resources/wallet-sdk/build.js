@@ -32,6 +32,8 @@ const shimResolver = {
     build.onResolve({ filter: bare }, (args) => ({
       path: map[args.path.replace(/^node:/, '')],
     }));
+    // uuid (bare and /v4 subpath) -> host-RNG shim (drops the uuid dep).
+    build.onResolve({ filter: /^uuid(\/v4)?$/ }, () => ({ path: shim('uuid-v4.js') }));
     // jspm nodelibs import each other relatively; redirect those to our shims.
     build.onResolve({ filter: /^\.\.?\// }, (args) => {
       if (!args.importer.includes('@jspm/core/nodelibs/browser')) return undefined;

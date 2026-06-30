@@ -11,9 +11,10 @@ import { Buffer } from 'buffer';
 // JavaScriptCore lacks Node globals dag4 transitively expects.
 globalThis.Buffer = globalThis.Buffer || Buffer;
 
-import { dag4 } from '@stardust-collective/dag4';
-
-const keyStore = dag4.keyStore;
+// keystore-only (not the dag4 umbrella) — drops the network/account/monitor
+// layers (and their axios/qs/ws deps) for a smaller, lower-CVE bundle. It still
+// exports tx serialization (txEncode/TransactionV2/serializeBrotli) needed in M3.
+import { keyStore } from '@stardust-collective/dag4-keystore';
 
 // Promisify: keyStore.sign is async; expose a callback the Swift bridge awaits.
 function toHex(x) {

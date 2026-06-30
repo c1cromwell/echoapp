@@ -299,12 +299,15 @@ func (s *Server) Start() error {
 		walletStore := wallet.NewPGStore(pgDB.Pool())
 		ledger := wallet.NewLedgerQuerier(walletStore, currencyL1)
 		walletSvc := wallet.NewWalletService(ledger, wallet.NewRewardsAdapter(rewardsService))
+		walletChallenges := wallet.NewChallengeStore()
 		walletHandlers = &api.WalletHandlers{
-			Service:   walletSvc,
-			Store:     walletStore,
-			RealFunds: wallet.RealFundsEnabled(),
-			// Proof stays nil until the Constellation signing SDK ships; in
-			// real-funds mode this hard-blocks value-moving wallet operations.
+			Service:    walletSvc,
+			Store:      walletStore,
+			RealFunds:  wallet.RealFundsEnabled(),
+			Challenges: walletChallenges,
+			// DagProofVerifier verifies client-signed proof-of-ownership against
+			// the bound secp256k1 key; enforced only in real-funds mode.
+			Proof: wallet.NewDagProofVerifier(walletStore, walletChallenges),
 		}
 		if walletHandlers.RealFunds {
 			log.Println("Wallet REAL-FUNDS custody mode ON; proof-of-ownership required")

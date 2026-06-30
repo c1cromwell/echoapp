@@ -34,10 +34,10 @@ func ServerDerivableAddress(did string) string {
 	return "DAG" + hex.EncodeToString(sum[:])[:36]
 }
 
-// ProofVerifier verifies a client-held proof-of-ownership of a DAG address.
-// A real implementation requires the Constellation signing SDK (client signs a
-// challenge with the wallet key); until one is wired, real-funds mode
-// hard-blocks address-linked operations rather than trusting an unproven link.
+// ProofVerifier verifies a client-held proof-of-ownership of a DAG address and
+// returns the validated secp256k1 public key (which the link handler binds to
+// the DID). The client signs a server challenge with the wallet key; see
+// DagProofVerifier. Until a verifier is wired, real-funds mode hard-blocks.
 type ProofVerifier interface {
-	VerifyOwnership(did, address, proof string) error
+	VerifyOwnership(did, address, proof string) (publicKey string, err error)
 }
