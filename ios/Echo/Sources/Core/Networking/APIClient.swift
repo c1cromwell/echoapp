@@ -202,6 +202,21 @@ actor APIClient {
         let request = try await buildRequest(endpoint: endpoint, method: .post, body: body)
         return try await performRequest(request)
     }
+
+    /// POST with additional per-request headers (e.g. X-Wallet-Proof for
+    /// real-funds custody). Headers are applied after interceptors so they are
+    /// not part of the passkey-signed canonical string.
+    func post<T: Decodable, B: Encodable>(
+        endpoint: APIEndpoint,
+        body: B,
+        headers: [String: String]
+    ) async throws -> T {
+        var request = try await buildRequest(endpoint: endpoint, method: .post, body: body)
+        for (key, value) in headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        return try await performRequest(request)
+    }
     
     // MARK: - PUT Request
     

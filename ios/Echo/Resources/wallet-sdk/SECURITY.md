@@ -27,6 +27,17 @@ The bundle expects the JSContext to provide:
 - `crypto.getRandomValues` — Swift must inject one backed by `SecRandomCopyBytes`
   (used for keygen and uuid). Without it, key generation throws by design.
 
+## iOS integration (required Xcode step)
+`StargazerSigner` loads the bundle via `Bundle.main.url(forResource:
+"echo-wallet.bundle", withExtension: "js")`. **Add `echo-wallet.bundle.js` to the
+Echo app target's "Copy Bundle Resources" build phase in `EchoApp.xcodeproj`**
+(the app is built by the Xcode project, not SPM). Without it, `StargazerSigner`
+throws `.bundleMissing` and provisioning falls back to interim mode.
+
+Runtime verification (Xcode / device): first run generates a 24-word mnemonic,
+derives a `DAG…` (40-char) address, links it with an `X-Wallet-Proof` header, and
+Settings → recovery reveals the phrase; restoring it yields the same address.
+
 ## Reproducible build
 `scripts/build-wallet-sdk.sh` → `npm ci` (pinned `package-lock.json`) →
 `node build.js` → checksum. Review `echo-wallet.bundle.js.sha256` on each rebuild.

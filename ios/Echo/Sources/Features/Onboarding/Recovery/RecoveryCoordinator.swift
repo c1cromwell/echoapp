@@ -113,31 +113,30 @@ actor StargazerBridgeForRecovery {
 
     private init() {}
 
-    /// Returns the 24-word BIP-39 recovery phrase for the current wallet.
-    /// The phrase is retrieved from Keychain where it was stored during provisioning
-    /// (kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly).
+    /// Returns the 24-word BIP-39 recovery phrase for the current wallet, read
+    /// from the Keychain via WalletKeyStore. Revealing it counts as the user
+    /// backing up, so the backup-required gate is cleared.
     func exportRecoveryPhrase() async throws -> RecoveryPhrase {
-        // Production: read BIP-39 seed from Keychain, convert to mnemonic words.
-        // Stub returns a deterministic test phrase so the UI can be exercised in Simulator.
-        let stubWords = [
-            "abandon", "ability", "able", "about", "above", "absent",
-            "absorb", "abstract", "absurd", "abuse", "access", "accident",
-            "account", "accuse", "achieve", "acid", "acoustic", "acquire",
-            "across", "act", "action", "actor", "actress", "actual"
-        ]
-        guard let phrase = RecoveryPhrase(words: stubWords) else {
+        let mnemonic = try await WalletKeyStore.shared.exportMnemonic()
+        let words = mnemonic.split(separator: " ").map(String.init)
+        guard let phrase = RecoveryPhrase(words: words) else {
             throw RecoveryError.walletDerivationFailed
         }
+        WalletKeyStore.shared.markBackedUp()
         return phrase
     }
 
-    /// Restores the Constellation wallet from a BIP-39 phrase and returns the wallet address.
+    /// Restores the Constellation wallet from a BIP-39 phrase via the embedded
+    /// dag4 signer (HD path m/44'/1137'/0'/0) and returns the derived address +
+    /// public key. The same phrase always restores the same address.
     func restoreWallet(from phrase: RecoveryPhrase) async throws -> (address: String, publicKey: String) {
-        // Production: derive HD wallet from phrase entropy via Stargazer SDK.
-        guard phrase.entropy != nil else {
+        let mnemonic = phrase.words.joined(separator: " ")
+        do {
+            let account = try await WalletKeyStore.shared.restore(mnemonic: mnemonic)
+            return (address: account.address, publicKey: account.publicKey)
+        } catch {
             throw RecoveryError.walletDerivationFailed
         }
-        return (address: "DAG_restored_placeholder", publicKey: "se_pubkey_placeholder")
     }
 }
 

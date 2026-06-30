@@ -11,31 +11,54 @@ actor WalletProvisioner {
 
     private let apiClient: APIClient
     private let keychain: KeychainManager
+    private let keyStore: WalletKeyStore
 
-    init(apiClient: APIClient, keychain: KeychainManager = .shared) {
+    init(apiClient: APIClient, keychain: KeychainManager = .shared, keyStore: WalletKeyStore = .shared) {
         self.apiClient = apiClient
         self.keychain = keychain
+        self.keyStore = keyStore
     }
 
-    /// Returns a stable DAG address for `did`, linking it on the backend when needed.
+    /// Returns the user-held DAG address for `did`, generating the wallet key on
+    /// first use and linking the address (with proof-of-ownership) on the backend.
+    /// In real-funds mode the backend requires the proof; in interim mode it
+    /// ignores it (the proof is sent best-effort either way).
     func ensureWalletLinked(did: String) async throws -> String {
         if let existing = try? await keychain.retrieve(key: Self.dagAddressKey, as: String.self),
            !existing.isEmpty {
             return existing
         }
 
-        let address = Self.deterministicDAGAddress(did: did)
+        let account = try await keyStore.ensureWallet()
+        let proofHeaders = (try? await buildProofHeaders()) ?? [:]
+
         struct LinkBody: Encodable { let address: String }
         struct LinkResp: Decodable { let did: String; let address: String }
         let _: LinkResp = try await apiClient.post(
             endpoint: WalletEndpoint.link,
-            body: LinkBody(address: address)
+            body: LinkBody(address: account.address),
+            headers: proofHeaders
         )
-        try await keychain.store(key: Self.dagAddressKey, value: address)
-        return address
+        try await keychain.store(key: Self.dagAddressKey, value: account.address)
+        return account.address
     }
 
-    /// Mirrors Go `deterministicDAGAddress` (enrollment_handlers.go).
+    /// Fetches a server challenge, signs it with the wallet key, and returns the
+    /// base64(JSON) X-Wallet-Proof header the backend verifier expects.
+    private func buildProofHeaders() async throws -> [String: String] {
+        struct ChallengeResp: Decodable { let challenge: String; let expiresAt: String }
+        let resp: ChallengeResp = try await apiClient.get(endpoint: WalletEndpoint.challenge)
+        let signed = try await keyStore.signChallenge(resp.challenge)
+
+        struct Proof: Encodable { let publicKey: String; let challenge: String; let signature: String }
+        let proof = Proof(publicKey: signed.publicKey, challenge: resp.challenge, signature: signed.signature)
+        let encoded = try JSONEncoder().encode(proof).base64EncodedString()
+        return ["X-Wallet-Proof": encoded]
+    }
+
+    /// The legacy server-derivable address (DAG = SHA256(did)). Retained only as
+    /// the reference value the backend REJECTS in real-funds mode; no longer used
+    /// for provisioning. Mirrors Go wallet.ServerDerivableAddress.
     static func deterministicDAGAddress(did: String) -> String {
         let digest = SHA256.hash(data: Data(did.utf8))
         let hex = digest.map { String(format: "%02x", $0) }.joined()

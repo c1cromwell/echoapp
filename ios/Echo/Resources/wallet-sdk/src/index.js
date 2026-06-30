@@ -15,6 +15,7 @@ globalThis.Buffer = globalThis.Buffer || Buffer;
 // layers (and their axios/qs/ws deps) for a smaller, lower-CVE bundle. It still
 // exports tx serialization (txEncode/TransactionV2/serializeBrotli) needed in M3.
 import { keyStore } from '@stardust-collective/dag4-keystore';
+import * as bip39 from 'bip39';
 
 // Promisify: keyStore.sign is async; expose a callback the Swift bridge awaits.
 function toHex(x) {
@@ -22,9 +23,10 @@ function toHex(x) {
 }
 
 const EchoWallet = {
-  // Returns a fresh BIP-39 mnemonic (DAG wallet seed).
+  // Returns a fresh BIP-39 mnemonic (DAG wallet seed). 256-bit entropy => 24
+  // words, matching the app's RecoveryPhrase model. Requires host RNG.
   generateMnemonic() {
-    return keyStore.generateSeedPhrase();
+    return bip39.generateMnemonic(256);
   },
 
   // Derives the canonical DAG account from a mnemonic.
