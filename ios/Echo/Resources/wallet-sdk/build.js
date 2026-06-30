@@ -53,6 +53,10 @@ esbuild
     target: ['es2020'],
     outfile: path.join(__dirname, 'echo-wallet.bundle.js'),
     define: { 'process.env.NODE_ENV': '"production"', global: 'globalThis' },
+    // Embed the brotli .wasm as base64 so it can be instantiated from bytes in
+    // JSC (no fetch/import.meta). import.meta.url is unused on the bytes path.
+    loader: { '.wasm': 'base64' },
+    supported: { 'import-meta': false },
     plugins: [
       shimResolver,
       // crypto/stream are handled by our shims above; let polyfillNode cover any

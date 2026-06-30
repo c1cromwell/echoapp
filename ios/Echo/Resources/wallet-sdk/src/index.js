@@ -55,6 +55,18 @@ const EchoWallet = {
   signMessage(privateKey, message) {
     return keyStore.sign(privateKey, message).then(toHex);
   },
+
+  // Signs a Currency-L1 transaction body (TokenLock / DelegatedStake /
+  // WithdrawDelegatedStake) the Constellation way: brotli(normalize(body)) ->
+  // SHA256 -> SHA512 -> secp256k1. Returns the submittable
+  // { value, proofs: [{ id, signature }] }. The backend forwards it as-is.
+  signTransaction(privateKey, publicKey, body) {
+    // Constellation proof `id` is the uncompressed key WITHOUT the 0x04 prefix.
+    const id = publicKey.length === 130 && publicKey.slice(0, 2) === '04'
+      ? publicKey.slice(2)
+      : publicKey;
+    return keyStore.generateBrotliSignature(body, id, privateKey);
+  },
 };
 
 globalThis.EchoWallet = EchoWallet;

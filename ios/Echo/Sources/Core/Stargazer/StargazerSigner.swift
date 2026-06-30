@@ -98,6 +98,64 @@ actor StargazerSigner {
         let address: String
     }
 
+    /// Signs a Currency-L1 transaction body (TokenLock / DelegatedStake /
+    /// WithdrawDelegatedStake) and returns the submittable {value, proofs}.
+    func signTransaction(privateKey: String, publicKey: String, body: [String: Any]) async throws -> SignedTransaction {
+        let echo = try wallet()
+        let promise = echo.invokeMethod("signTransaction", withArguments: [privateKey, publicKey, body])
+        let dict = try await resolvePromiseObject(promise)
+        guard let value = dict["value"] as? [String: Any],
+              let proofs = dict["proofs"] as? [[String: Any]],
+              let first = proofs.first,
+              let id = first["id"] as? String,
+              let signature = first["signature"] as? String else {
+            throw SignerError.badResult
+        }
+        return SignedTransaction(value: value, proofID: id, signature: signature)
+    }
+
+    struct SignedTransaction: Sendable {
+        let value: [String: Any]
+        let proofID: String
+        let signature: String
+    }
+
+    private static let textCodecPolyfill = """
+    if (typeof TextEncoder === 'undefined') {
+      globalThis.TextEncoder = function(){};
+      globalThis.TextEncoder.prototype.encode = function(str){
+        str = String(str); var out = [];
+        for (var i=0;i<str.length;i++){
+          var c = str.charCodeAt(i);
+          if (c < 0x80) out.push(c);
+          else if (c < 0x800){ out.push(0xc0|(c>>6), 0x80|(c&0x3f)); }
+          else if (c >= 0xd800 && c < 0xdc00){
+            var c2 = str.charCodeAt(++i);
+            var cp = 0x10000 + ((c & 0x3ff)<<10) + (c2 & 0x3ff);
+            out.push(0xf0|(cp>>18), 0x80|((cp>>12)&0x3f), 0x80|((cp>>6)&0x3f), 0x80|(cp&0x3f));
+          } else { out.push(0xe0|(c>>12), 0x80|((c>>6)&0x3f), 0x80|(c&0x3f)); }
+        }
+        return new Uint8Array(out);
+      };
+    }
+    if (typeof TextDecoder === 'undefined') {
+      globalThis.TextDecoder = function(){};
+      globalThis.TextDecoder.prototype.decode = function(buf){
+        var b = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+        var out = '', i = 0;
+        while (i < b.length){
+          var c = b[i++];
+          if (c < 0x80) out += String.fromCharCode(c);
+          else if (c < 0xe0) out += String.fromCharCode(((c&0x1f)<<6)|(b[i++]&0x3f));
+          else if (c < 0xf0) out += String.fromCharCode(((c&0x0f)<<12)|((b[i++]&0x3f)<<6)|(b[i++]&0x3f));
+          else { var cp = (((c&0x07)<<18)|((b[i++]&0x3f)<<12)|((b[i++]&0x3f)<<6)|(b[i++]&0x3f)) - 0x10000;
+            out += String.fromCharCode(0xd800+(cp>>10), 0xdc00+(cp&0x3ff)); }
+        }
+        return out;
+      };
+    }
+    """
+
     // MARK: - Context setup
 
     private func wallet() throws -> JSValue {
@@ -142,6 +200,10 @@ actor StargazerSigner {
         ctx.evaluateScript(
             "var process = { env: {}, browser: true, version: '', versions: {}, nextTick: function(cb){ setTimeout(cb, 0); } };"
         )
+        // Bare JavaScriptCore lacks TextEncoder/TextDecoder, which dag4 and the
+        // brotli wasm glue use. Inject minimal UTF-8 implementations. (We do NOT
+        // define `self`, which would route @noble through an absent crypto.subtle.)
+        ctx.evaluateScript(Self.textCodecPolyfill)
 
         let fill: @convention(block) (JSValue) -> JSValue = { typedArray in
             let length = Int(typedArray.forProperty("length")?.toInt32() ?? 0)
@@ -175,12 +237,26 @@ actor StargazerSigner {
 
     /// Bridges a JS Promise<string> to async/await via then/catch callbacks.
     private func resolvePromise(_ promise: JSValue?) async throws -> String {
+        let value = try await settle(promise)
+        return value?.toString() ?? ""
+    }
+
+    /// Bridges a JS Promise<object> to a Swift dictionary.
+    private func resolvePromiseObject(_ promise: JSValue?) async throws -> [String: Any] {
+        let value = try await settle(promise)
+        guard let dict = value?.toDictionary() as? [String: Any] else {
+            throw SignerError.badResult
+        }
+        return dict
+    }
+
+    private func settle(_ promise: JSValue?) async throws -> JSValue? {
         guard let promise, !promise.isUndefined else { throw SignerError.badResult }
         return try await withCheckedThrowingContinuation { continuation in
             let resumed = ResumeOnce()
             let onFulfilled: @convention(block) (JSValue?) -> Void = { value in
                 guard resumed.claim() else { return }
-                continuation.resume(returning: value?.toString() ?? "")
+                continuation.resume(returning: value)
             }
             let onRejected: @convention(block) (JSValue?) -> Void = { error in
                 guard resumed.claim() else { return }

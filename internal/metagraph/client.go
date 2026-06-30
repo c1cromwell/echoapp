@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -68,6 +69,17 @@ type CurrencyL1Transaction struct {
 func (c *MetagraphClient) SubmitCurrencyL1(ctx context.Context, tx CurrencyL1Transaction) (string, error) {
 	return c.guarded(func() (string, error) {
 		return c.submitTransaction(ctx, c.config.CurrencyL1URL+"/transactions", tx)
+	})
+}
+
+// SubmitSignedTransaction forwards a CLIENT-signed {value, proofs} payload to a
+// metagraph endpoint (e.g. DAG L1 /token-locks, Global L0 /delegated-stakes).
+// The iOS client constructs and signs the transaction locally (real-funds
+// custody); the backend never holds the key — it only relays the signed bytes.
+func (c *MetagraphClient) SubmitSignedTransaction(ctx context.Context, baseURL, path string, signed json.RawMessage) (string, error) {
+	return c.guarded(func() (string, error) {
+		url := strings.TrimRight(baseURL, "/") + path
+		return c.submitTransaction(ctx, url, signed)
 	})
 }
 
