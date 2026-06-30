@@ -15,6 +15,7 @@ type mockMetagraph struct {
 	delegations []DelegationPos
 	validators  []ValidatorInfo
 	txHash      string
+	signedBody  []byte
 	err         error
 }
 
@@ -41,6 +42,14 @@ func (m *mockMetagraph) SubmitTokenLock(_ context.Context, _ string, _ int64, _ 
 	if m.err != nil {
 		return "", m.err
 	}
+	return m.txHash, nil
+}
+
+func (m *mockMetagraph) SubmitSignedTokenLock(_ context.Context, _ string, _ int64, _ StakingTier, signed []byte) (string, error) {
+	if m.err != nil {
+		return "", m.err
+	}
+	m.signedBody = signed
 	return m.txHash, nil
 }
 
@@ -89,7 +98,7 @@ func (m *mockRewards) GetAutoScaleState(_ context.Context, _ string) (*AutoScale
 	return m.autoScaleState, m.err
 }
 
-func (m *mockRewards) ClearPending(_ context.Context, _ string, _ []string) error {
+func (m *mockRewards) ClearPending(_ context.Context, _ string, _ []string, _ int) error {
 	return nil
 }
 
@@ -288,7 +297,7 @@ func TestClaimRewards(t *testing.T) {
 	}
 	svc := NewWalletService(mg, rw)
 
-	result, err := svc.ClaimRewards(context.Background(), "did:echo:test", []string{"messaging", "staking"})
+	result, err := svc.ClaimRewards(context.Background(), "did:echo:test", []string{"messaging", "staking"}, 2)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -305,7 +314,7 @@ func TestClaimRewards_NoPending(t *testing.T) {
 	}
 	svc := NewWalletService(mg, rw)
 
-	_, err := svc.ClaimRewards(context.Background(), "did:echo:test", []string{"messaging"})
+	_, err := svc.ClaimRewards(context.Background(), "did:echo:test", []string{"messaging"}, 1)
 	if !errors.Is(err, ErrNoPendingRewards) {
 		t.Errorf("expected ErrNoPendingRewards, got %v", err)
 	}

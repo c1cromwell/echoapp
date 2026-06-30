@@ -16,6 +16,9 @@ type CurrencySubmitter interface {
 	SubmitStakeDelegation(ctx context.Context, update metagraph.StakeDelegationUpdate) (string, error)
 	SubmitCurrencyL1(ctx context.Context, tx metagraph.CurrencyL1Transaction) (string, error)
 	QueryValidators(ctx context.Context) ([]metagraph.ValidatorSnapshot, error)
+	// SubmitSignedByType relays a client-signed {value, proofs} payload to the
+	// metagraph endpoint for txType (tokenLock / delegatedStake). Real-funds.
+	SubmitSignedByType(ctx context.Context, txType string, signed []byte) (string, error)
 }
 
 // LedgerQuerier implements MetagraphQuerier using PG ledger + optional L1 submit.
@@ -52,6 +55,16 @@ func (q *LedgerQuerier) GetValidators(ctx context.Context) ([]ValidatorInfo, err
 	if err != nil {
 		return nil, err
 	}
+	out := validatorsFromSnapshots(snaps)
+	if err := q.store.UpsertValidators(ctx, out); err != nil {
+		log.Printf("wallet: failed to cache validators: %v", err)
+	}
+	return out, nil
+}
+
+// validatorsFromSnapshots converts metagraph validator snapshots into the
+// wallet's ValidatorInfo. Shared by GetValidators and the Reconciler.
+func validatorsFromSnapshots(snaps []metagraph.ValidatorSnapshot) []ValidatorInfo {
 	out := make([]ValidatorInfo, 0, len(snaps))
 	for _, s := range snaps {
 		out = append(out, ValidatorInfo{
@@ -64,10 +77,7 @@ func (q *LedgerQuerier) GetValidators(ctx context.Context) ([]ValidatorInfo, err
 			Layer:          s.Layer,
 		})
 	}
-	if err := q.store.UpsertValidators(ctx, out); err != nil {
-		log.Printf("wallet: failed to cache validators: %v", err)
-	}
-	return out, nil
+	return out
 }
 
 func (q *LedgerQuerier) SubmitTokenLock(ctx context.Context, did string, amount int64, tier StakingTier) (string, error) {
@@ -105,6 +115,46 @@ func (q *LedgerQuerier) SubmitTokenLock(ctx context.Context, did string, amount 
 		return "", err
 	}
 	return txHash, nil
+}
+
+// SubmitSignedTokenLock relays a CLIENT-signed TokenLock to the metagraph (the
+// backend never signs) and mirrors the position into PG, like SubmitTokenLock.
+// Requires a Currency L1 submitter; in real-funds mode there is always one.
+func (q *LedgerQuerier) SubmitSignedTokenLock(ctx context.Context, did string, amount int64, tier StakingTier, signed []byte) (string, error) {
+	chain, err := ResolveChainTier(tier.Name)
+	if err != nil {
+		return "", err
+	}
+	if amount < chain.MinDatum {
+		return "", ErrInsufficientBalance
+	}
+	if q.submitter == nil {
+		return "", ErrSignedSubmitUnavailable
+	}
+	if err := q.store.ApplyStake(ctx, did, amount); err != nil {
+		return "", err
+	}
+	txHash, err := q.submitter.SubmitSignedByType(ctx, "tokenLock", signed)
+	if err != nil || txHash == "" {
+		return "", ErrSignedSubmitFailed
+	}
+	pos := TokenLockPos{
+		ID:          txHash,
+		Amount:      amount,
+		Tier:        tier.Name,
+		LockedUntil: LockUntil(chain.LockDays),
+	}
+	if err := q.store.InsertLock(ctx, did, pos); err != nil {
+		return "", err
+	}
+	return txHash, nil
+}
+
+func (q *LedgerQuerier) SubmitSignedByType(ctx context.Context, txType string, signed []byte) (string, error) {
+	if q.submitter == nil {
+		return "", ErrSignedSubmitUnavailable
+	}
+	return q.submitter.SubmitSignedByType(ctx, txType, signed)
 }
 
 func (q *LedgerQuerier) SubmitStakeDelegation(ctx context.Context, delegatorDID, stakeID, validatorID string, amount int64) (string, error) {

@@ -109,6 +109,7 @@ enum WalletEndpoint: APIEndpoint {
     case claim
     case validators
     case link
+    case challenge
 
     var path: String {
         switch self {
@@ -119,6 +120,7 @@ enum WalletEndpoint: APIEndpoint {
         case .claim: return "/v3/wallet/claim"
         case .validators: return "/v3/wallet/validators"
         case .link: return "/v3/wallet/link"
+        case .challenge: return "/v3/wallet/challenge"
         }
     }
 }

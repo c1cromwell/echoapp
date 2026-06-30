@@ -15,6 +15,9 @@ type WalletState struct {
 	Delegations    []DelegationPos `json:"delegations"`
 	DailyRewards   *AutoScaleState `json:"dailyRewards"`
 	Vesting        *VestingState   `json:"vesting,omitempty"`
+	// CustodyMode is "interim" (server-derivable address, no real funds) or
+	// "real_funds" (user-held key, proof-of-ownership enforced).
+	CustodyMode string `json:"custodyMode"`
 }
 
 // TokenLockPos represents a staking position (on-chain TokenLock mirror).

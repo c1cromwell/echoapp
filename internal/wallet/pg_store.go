@@ -26,6 +26,10 @@ type Store interface {
 	CreditRewards(ctx context.Context, did string, amount int64) error
 	GetDAGAddress(ctx context.Context, did string) (string, error)
 	LinkDAGAddress(ctx context.Context, did, address string) error
+	// LinkDAGAccount binds the address together with the user-held public key
+	// (real-funds custody). GetDAGAccountPubKey returns the bound key.
+	LinkDAGAccount(ctx context.Context, did, address, publicKey string) error
+	GetDAGAccountPubKey(ctx context.Context, did string) (string, error)
 	UpsertValidators(ctx context.Context, validators []ValidatorInfo) error
 	ListValidators(ctx context.Context) ([]ValidatorInfo, error)
 }
@@ -211,14 +215,33 @@ func (s *PGStore) GetDAGAddress(ctx context.Context, did string) (string, error)
 }
 
 func (s *PGStore) LinkDAGAddress(ctx context.Context, did, address string) error {
+	return s.LinkDAGAccount(ctx, did, address, "")
+}
+
+func (s *PGStore) LinkDAGAccount(ctx context.Context, did, address, publicKey string) error {
 	if did == "" || address == "" {
 		return fmt.Errorf("did and dag_address required")
 	}
 	_, err := s.pool.Exec(ctx, `
-		INSERT INTO wallet_accounts (did, dag_address) VALUES ($1, $2)
-		ON CONFLICT (did) DO UPDATE SET dag_address = EXCLUDED.dag_address, linked_at = NOW()
-	`, did, address)
+		INSERT INTO wallet_accounts (did, dag_address, public_key) VALUES ($1, $2, NULLIF($3, ''))
+		ON CONFLICT (did) DO UPDATE SET
+			dag_address = EXCLUDED.dag_address,
+			public_key = COALESCE(EXCLUDED.public_key, wallet_accounts.public_key),
+			linked_at = NOW()
+	`, did, address, publicKey)
 	return err
+}
+
+func (s *PGStore) GetDAGAccountPubKey(ctx context.Context, did string) (string, error) {
+	var pub *string
+	err := s.pool.QueryRow(ctx, `SELECT public_key FROM wallet_accounts WHERE did = $1`, did).Scan(&pub)
+	if err != nil {
+		return "", err
+	}
+	if pub == nil {
+		return "", nil
+	}
+	return *pub, nil
 }
 
 func (s *PGStore) UpsertValidators(ctx context.Context, validators []ValidatorInfo) error {
@@ -268,6 +291,7 @@ type MemStore struct {
 	locks       map[string][]TokenLockPos
 	delegations map[string][]DelegationPos
 	addresses   map[string]string
+	pubkeys     map[string]string
 	validators  []ValidatorInfo
 }
 
@@ -346,9 +370,23 @@ func (m *MemStore) GetDAGAddress(_ context.Context, did string) (string, error) 
 	return m.addresses[did], nil
 }
 
-func (m *MemStore) LinkDAGAddress(_ context.Context, did, address string) error {
+func (m *MemStore) LinkDAGAddress(ctx context.Context, did, address string) error {
+	return m.LinkDAGAccount(ctx, did, address, "")
+}
+
+func (m *MemStore) LinkDAGAccount(_ context.Context, did, address, publicKey string) error {
 	m.addresses[did] = address
+	if publicKey != "" {
+		if m.pubkeys == nil {
+			m.pubkeys = map[string]string{}
+		}
+		m.pubkeys[did] = publicKey
+	}
 	return nil
+}
+
+func (m *MemStore) GetDAGAccountPubKey(_ context.Context, did string) (string, error) {
+	return m.pubkeys[did], nil
 }
 
 func (m *MemStore) UpsertValidators(_ context.Context, validators []ValidatorInfo) error {

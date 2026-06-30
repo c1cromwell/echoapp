@@ -12,6 +12,7 @@ type MetagraphQuerier interface {
 	GetDelegations(ctx context.Context, did string) ([]DelegationPos, error)
 	GetValidators(ctx context.Context) ([]ValidatorInfo, error)
 	SubmitTokenLock(ctx context.Context, did string, amount int64, tier StakingTier) (string, error)
+	SubmitSignedTokenLock(ctx context.Context, did string, amount int64, tier StakingTier, signed []byte) (string, error)
 	SubmitStakeDelegation(ctx context.Context, delegatorDID, stakeID, validatorID string, amount int64) (string, error)
 	SubmitWithdrawLock(ctx context.Context, did, stakeID string, amount int64) (string, error)
 	SubmitAtomicRewardClaim(ctx context.Context, did string, claims []RewardClaim) (string, error)
@@ -28,7 +29,7 @@ type RewardsQuerier interface {
 	GetPending(ctx context.Context, did string) (int64, error)
 	GetPendingByType(ctx context.Context, did, rewardType string) (int64, error)
 	GetAutoScaleState(ctx context.Context, did string) (*AutoScaleState, error)
-	ClearPending(ctx context.Context, did string, types []string) error
+	ClearPending(ctx context.Context, did string, types []string, trustTier int) error
 }
 
 // WalletService aggregates on-chain and cached data for the iOS Wallet tab.
@@ -90,6 +91,7 @@ func (s *WalletService) GetWalletState(ctx context.Context, did string) (*Wallet
 		Delegations:    delegations,
 		DailyRewards:   autoScaleState,
 		Vesting:        vesting,
+		CustodyMode:    CustodyMode(),
 	}, nil
 }
 
@@ -105,6 +107,21 @@ func (s *WalletService) StakeEcho(ctx context.Context, req StakeRequest) (*Stake
 		return nil, err
 	}
 
+	return &StakeResult{TxHash: txHash, Tier: tier}, nil
+}
+
+// StakeEchoSigned forwards a CLIENT-signed TokenLock (real-funds custody): the
+// iOS app built and signed the {value, proofs}; the backend relays it and
+// mirrors the position. The backend never holds the key.
+func (s *WalletService) StakeEchoSigned(ctx context.Context, req StakeRequest, signed []byte) (*StakeResult, error) {
+	tier, err := ValidateTier(req.Tier)
+	if err != nil {
+		return nil, err
+	}
+	txHash, err := s.metagraph.SubmitSignedTokenLock(ctx, req.DID, req.Amount, tier, signed)
+	if err != nil {
+		return nil, err
+	}
 	return &StakeResult{TxHash: txHash, Tier: tier}, nil
 }
 
@@ -132,7 +149,8 @@ func (s *WalletService) Unstake(ctx context.Context, req UnstakeRequest) (*Unsta
 }
 
 // ClaimRewards constructs and submits an AtomicAction for reward claiming.
-func (s *WalletService) ClaimRewards(ctx context.Context, did string, types []string) (*ClaimResult, error) {
+// trustTier scales the claim per the rewards trust-multiplier table.
+func (s *WalletService) ClaimRewards(ctx context.Context, did string, types []string, trustTier int) (*ClaimResult, error) {
 	var claims []RewardClaim
 	for _, rewardType := range types {
 		pending, _ := s.rewards.GetPendingByType(ctx, did, rewardType)
@@ -150,7 +168,7 @@ func (s *WalletService) ClaimRewards(ctx context.Context, did string, types []st
 		return nil, err
 	}
 
-	_ = s.rewards.ClearPending(ctx, did, types)
+	_ = s.rewards.ClearPending(ctx, did, types, trustTier)
 
 	return &ClaimResult{TxHash: txHash}, nil
 }

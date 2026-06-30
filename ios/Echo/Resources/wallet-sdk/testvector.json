@@ -1,0 +1,8 @@
+{
+  "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+  "privateKey": "041a5c5c5d5cdc229ee0c668bf86cf48183b47bb9948298456cccfc32757d901",
+  "publicKey": "0453f06ad396d382ff1db457e6d2b608c04be2678bbd12207625e581f1e030c4c4c8f9db9094424eea5f7868b846301a8e8857e2c01583714316a043edd192798b",
+  "address": "DAG35XRkcBSHPqT8h62hDzzJJ7YerwUPgqDzGm2P",
+  "message": "echo-wallet-ownership:did:key:zVECTOR:nonce-0123456789",
+  "signature": "3045022100a6ad1cb5f28ccaede29a0b19768c93682abaf640ecf0900ba926b0a0c98976bd02206c6586785c9d8cf83351ecc9d896a42c0b8665e38048080ed21b67797d8b4ac4"
+}

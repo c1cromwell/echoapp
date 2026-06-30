@@ -101,7 +101,8 @@ func (h *WalletHandler) ClaimRewards(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.service.ClaimRewards(r.Context(), req.DID, req.Types)
+	// Legacy gateway path carries no JWT trust-tier claim; use the base tier.
+	result, err := h.service.ClaimRewards(r.Context(), req.DID, req.Types, 1)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if err == wallet.ErrNoPendingRewards {
