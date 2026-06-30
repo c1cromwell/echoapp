@@ -309,6 +309,9 @@ func (s *Server) Start() error {
 			// the bound secp256k1 key; enforced only in real-funds mode.
 			Proof: wallet.NewDagProofVerifier(walletStore, walletChallenges),
 		}
+		if currencyL1 != nil {
+			walletHandlers.TxContext = currencyL1 // last-reference for client tx building
+		}
 		if walletHandlers.RealFunds {
 			log.Println("Wallet REAL-FUNDS custody mode ON; proof-of-ownership required")
 		}

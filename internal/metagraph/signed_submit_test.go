@@ -42,3 +42,23 @@ func TestSubmitSignedTransactionRelaysPayload(t *testing.T) {
 		t.Fatalf("forwarded body missing signed proofs: %s", gotBody)
 	}
 }
+
+// Withdraw routes to the Global L0 delegated-stakes endpoint as a PUT.
+func TestSubmitSignedByTypeWithdrawUsesPut(t *testing.T) {
+	var gotMethod, gotPath string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath = r.Method, r.URL.Path
+		_, _ = w.Write([]byte(`{"hash":"wd_1"}`))
+	}))
+	defer srv.Close()
+
+	client := NewMetagraphClient(MetagraphConfig{L0URL: srv.URL})
+	hash, err := client.SubmitSignedByType(context.Background(), "withdrawDelegatedStake",
+		[]byte(`{"value":{"stakeRef":"r1"},"proofs":[{"id":"a","signature":"30"}]}`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if hash != "wd_1" || gotMethod != http.MethodPut || gotPath != "/delegated-stakes" {
+		t.Fatalf("withdraw routing wrong: hash=%q method=%q path=%q", hash, gotMethod, gotPath)
+	}
+}

@@ -27,19 +27,16 @@ Add `ios/Echo/Resources/wallet-sdk/echo-wallet.bundle.js` to the Echo app target
 non-nil. Without this, `StargazerSigner` throws `.bundleMissing` and provisioning
 falls back to interim mode.
 
-## Step 2 — lastRef / parent (the one design decision left)
-TokenLock / DelegatedStake bodies include a `parent` (the signer's last tx
-reference: `{hash, ordinal}`). The client must include it in the body it signs.
-Pick one:
-- **(A, recommended) Backend tx-context endpoint.** Add `GET /v3/wallet/tx-context?type=tokenLock`
-  that queries the metagraph L1 for the address's last reference and returns
-  `{parent, source}`. Keeps metagraph access server-side. Add a
-  `MetagraphClient.QueryLastRef(addr)` (GET `{CurrencyL1URL}/transactions/last-reference/{addr}`
-  or the metagraph's equivalent — confirm the path against the testnet).
-- **(B) Client-direct.** iOS queries the L1 last-reference endpoint itself.
-
-The `parent` is inspectable (a hash + ordinal), so signing the assembled body is
-not blind-signing.
+## Step 2 — lastRef / parent  ✅ IMPLEMENTED (backend)
+`GET /v3/wallet/tx-context?type=tokenLock` is wired
+(`handleWalletTxContext`): it returns `{source: <DAG address>, parent: {hash,
+ordinal}}` by calling `MetagraphClient.LastRef(txType, address)` (GET
+`{baseURL}/transactions/last-reference/{address}`; CurrencyL1URL for tokenLock,
+L0URL for delegated/withdraw). Tested with a mock provider.
+**TESTNET TODO:** confirm the exact `last-reference` path/shape against the target
+metagraph build and adjust `MetagraphClient.LastRef` if it differs. The `parent`
+is inspectable (hash + ordinal), so signing the assembled body is not
+blind-signing.
 
 ## Step 3 — iOS: build, sign, attach (stake path)
 In `HTTPWalletAPIClient.submitTokenLock(amount:tier:)`:
@@ -57,12 +54,13 @@ Repeat the pattern for unstake (`/withdraw` → DelegatedStake withdraw, PUT) an
 delegate (`/delegated-stakes`). NOTE: withdraw is a **PUT**; add a PUT variant of
 `SubmitSignedByType` / `submitTransaction` (current relay is POST-only).
 
-## Step 4 — Backend: extend the flow-flip to unstake/delegate
-Mirror the stake change (`internal/api/wallet_handlers.go` +
-`internal/wallet/service.go` + `metagraph_querier.go`): add `UnstakeSigned` /
-`DelegateSigned` accepting `signed`, calling `SubmitSignedByType` with
-`"delegatedStake"` (and a withdraw type once PUT is supported). Add the
-`delegatedStake` → Global L0 mapping is already in `SubmitSignedByType`.
+## Step 4 — Backend: extend the flow-flip to unstake/delegate  ✅ IMPLEMENTED
+Done: `handleWalletUnstake` / `handleWalletDelegate` accept a `signed` field and,
+in real-funds mode, forward via `WalletService.UnstakeSigned` /
+`DelegateToValidatorSigned` → `SubmitSignedWithdrawLock` /
+`SubmitSignedStakeDelegation`. `SubmitSignedByType` routes `delegatedStake`
+(POST, Global L0) and `withdrawDelegatedStake` (**PUT**, Global L0); a PUT-capable
+`submitTransactionMethod` was added. Tested (forward + mirror + PUT routing).
 
 ## Step 5 — Testnet config
 Set on the backend:

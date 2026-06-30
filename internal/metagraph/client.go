@@ -83,14 +83,57 @@ func (c *MetagraphClient) SubmitSignedTransaction(ctx context.Context, baseURL, 
 	})
 }
 
+// LastRef fetches the signer address's last transaction reference (hash +
+// ordinal) for the layer that txType targets. The client includes this as
+// `parent` in the body it signs. NOTE: confirm the exact path against the
+// target metagraph build — Tessellation exposes it as
+// {L1}/transactions/last-reference/{address}.
+func (c *MetagraphClient) LastRef(ctx context.Context, txType, address string) (string, int64, error) {
+	base := c.config.CurrencyL1URL
+	if txType == "delegatedStake" || txType == "withdrawDelegatedStake" {
+		base = c.config.L0URL
+	}
+	if base == "" {
+		return "", 0, fmt.Errorf("metagraph: no base URL for tx type %q", txType)
+	}
+	url := strings.TrimRight(base, "/") + "/transactions/last-reference/" + address
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return "", 0, err
+	}
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return "", 0, fmt.Errorf("last-reference: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", 0, fmt.Errorf("last-reference failed: status %d, body: %s", resp.StatusCode, string(body))
+	}
+	var ref struct {
+		Hash    string `json:"hash"`
+		Ordinal int64  `json:"ordinal"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&ref); err != nil {
+		return "", 0, fmt.Errorf("decode last-reference: %w", err)
+	}
+	return ref.Hash, ref.Ordinal, nil
+}
+
 // SubmitSignedByType routes a client-signed payload to the correct metagraph
-// endpoint for the given Currency-L1 transaction type.
+// endpoint (and HTTP method) for the given Currency-L1 transaction type.
 func (c *MetagraphClient) SubmitSignedByType(ctx context.Context, txType string, signed []byte) (string, error) {
 	switch txType {
 	case "tokenLock":
 		return c.SubmitSignedTransaction(ctx, c.config.CurrencyL1URL, "/token-locks", signed)
 	case "delegatedStake":
 		return c.SubmitSignedTransaction(ctx, c.config.L0URL, "/delegated-stakes", signed)
+	case "withdrawDelegatedStake":
+		// Withdraw is a PUT on the Global L0 delegated-stakes endpoint.
+		return c.guarded(func() (string, error) {
+			url := strings.TrimRight(c.config.L0URL, "/") + "/delegated-stakes"
+			return c.submitTransactionMethod(ctx, http.MethodPut, url, json.RawMessage(signed))
+		})
 	default:
 		return "", fmt.Errorf("metagraph: unsupported signed tx type %q", txType)
 	}
@@ -157,12 +200,16 @@ type ValidatorSnapshot struct {
 }
 
 func (c *MetagraphClient) submitTransaction(ctx context.Context, url string, payload interface{}) (string, error) {
+	return c.submitTransactionMethod(ctx, http.MethodPost, url, payload)
+}
+
+func (c *MetagraphClient) submitTransactionMethod(ctx context.Context, method, url string, payload interface{}) (string, error) {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return "", fmt.Errorf("marshal tx: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, io.NopCloser(
+	req, err := http.NewRequestWithContext(ctx, method, url, io.NopCloser(
 		jsonReader(body),
 	))
 	if err != nil {

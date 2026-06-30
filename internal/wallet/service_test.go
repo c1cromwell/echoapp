@@ -53,6 +53,22 @@ func (m *mockMetagraph) SubmitSignedTokenLock(_ context.Context, _ string, _ int
 	return m.txHash, nil
 }
 
+func (m *mockMetagraph) SubmitSignedStakeDelegation(_ context.Context, _, _, _ string, _ int64, signed []byte) (string, error) {
+	if m.err != nil {
+		return "", m.err
+	}
+	m.signedBody = signed
+	return m.txHash, nil
+}
+
+func (m *mockMetagraph) SubmitSignedWithdrawLock(_ context.Context, _, _ string, _ int64, signed []byte) (string, error) {
+	if m.err != nil {
+		return "", m.err
+	}
+	m.signedBody = signed
+	return m.txHash, nil
+}
+
 func (m *mockMetagraph) SubmitStakeDelegation(_ context.Context, _, _, _ string, _ int64) (string, error) {
 	if m.err != nil {
 		return "", m.err
