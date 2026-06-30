@@ -34,7 +34,19 @@ const (
 	ContextKeyUserID contextKey = "user_id"
 	// ContextKeyRequestID is the context key for the request ID.
 	ContextKeyRequestID contextKey = "request_id"
+	// ContextKeyTrustTier is the authenticated caller's verified trust tier
+	// (from JWT claims). Absent for passkey-only requests.
+	ContextKeyTrustTier contextKey = "trust_tier"
 )
+
+// TrustTierFromContext returns the caller's verified trust tier, or the given
+// default when none was set (e.g. passkey auth, which carries no tier claim).
+func TrustTierFromContext(ctx context.Context, fallback int) int {
+	if v, ok := ctx.Value(ContextKeyTrustTier).(int); ok {
+		return v
+	}
+	return fallback
+}
 
 // APIError represents a standardized error response.
 type APIError struct {
@@ -60,6 +72,7 @@ type Router struct {
 	StartTime            time.Time
 	TokenValidator       func(token string) bool
 	UserIDExtractor      func(token string) string
+	TrustTierExtractor   func(token string) int // optional; JWT trust-tier claim
 	WSHub                *Hub          // WebSocket hub for real-time messaging
 	V3                   *V3Handlers   // V3 API handlers (blueprint services)
 	DIDRegistry          DIDRegistry   // did:key binding store (WO-230 / WO-278)
@@ -130,6 +143,13 @@ func NewRouter(allowedOrigins []string) *Router {
 			return ""
 		}
 		return claims.Subject
+	}
+	rt.TrustTierExtractor = func(token string) int {
+		claims, err := tokenService.ValidateAccessToken(token)
+		if err != nil {
+			return 0
+		}
+		return claims.TrustTier
 	}
 
 	return rt
@@ -429,6 +449,9 @@ func (rt *Router) authMiddleware(next http.Handler) http.Handler {
 
 		ctx := context.WithValue(r.Context(), ContextKeyUserID, rt.UserIDExtractor(token))
 		ctx = context.WithValue(ctx, ContextKeyRequestID, reqID)
+		if rt.TrustTierExtractor != nil {
+			ctx = context.WithValue(ctx, ContextKeyTrustTier, rt.TrustTierExtractor(token))
+		}
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

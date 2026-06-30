@@ -32,7 +32,7 @@ if command -v xcrun >/dev/null 2>&1 && xcode-select -p 2>/dev/null | grep -q Xco
   (
     cd ios/Echo
     DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
-    swift test --filter 'WalletTypesTests|FormatEchoTests|WalletViewModelTests' 2>&1
+    swift test --filter 'WalletTypesTests|FormatEchoTests|WalletViewModelTests|EchoDatumTests|WalletProvisionerDerivationTests' 2>&1
   ) || {
     echo "⚠️  Some WalletTests require iOS — WalletTypesTests should pass on macOS."
   }

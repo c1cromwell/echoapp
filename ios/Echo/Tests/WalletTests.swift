@@ -379,4 +379,52 @@ final class MockWalletAPIClientTests: XCTestCase {
         }
     }
 }
+
+// MARK: - EchoDatum conversion (wire serialization correctness)
+
+final class EchoDatumTests: XCTestCase {
+
+    func testFromDatum_wholeEcho() {
+        XCTAssertEqual(EchoDatum.fromDatum(100_000_000), Decimal(1))
+    }
+
+    func testFromDatum_fractional() {
+        XCTAssertEqual(EchoDatum.fromDatum(150_000_000), Decimal(string: "1.5"))
+    }
+
+    func testToDatum_wholeEcho() {
+        XCTAssertEqual(EchoDatum.toDatum(Decimal(1)), 100_000_000)
+    }
+
+    func testRoundTrip() {
+        // 123.45 ECHO must survive ECHO -> datum -> ECHO unchanged.
+        let echo = Decimal(string: "123.45")!
+        let datum = EchoDatum.toDatum(echo)
+        XCTAssertEqual(datum, 12_345_000_000)
+        XCTAssertEqual(EchoDatum.fromDatum(datum), echo)
+    }
+}
+
+// MARK: - WalletProvisioner deterministic address contract
+
+final class WalletProvisionerDerivationTests: XCTestCase {
+
+    func testDeterministicAddress_format() {
+        let addr = WalletProvisioner.deterministicDAGAddress(did: "did:key:zTest")
+        XCTAssertTrue(addr.hasPrefix("DAG"))
+        XCTAssertEqual(addr.count, 39) // "DAG" + 36 hex chars
+    }
+
+    func testDeterministicAddress_isStable() {
+        let a = WalletProvisioner.deterministicDAGAddress(did: "did:key:zStable")
+        let b = WalletProvisioner.deterministicDAGAddress(did: "did:key:zStable")
+        XCTAssertEqual(a, b)
+    }
+
+    func testDeterministicAddress_distinctPerDID() {
+        let a = WalletProvisioner.deterministicDAGAddress(did: "did:key:zA")
+        let b = WalletProvisioner.deterministicDAGAddress(did: "did:key:zB")
+        XCTAssertNotEqual(a, b)
+    }
+}
 #endif

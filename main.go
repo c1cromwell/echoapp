@@ -299,8 +299,19 @@ func (s *Server) Start() error {
 		walletStore := wallet.NewPGStore(pgDB.Pool())
 		ledger := wallet.NewLedgerQuerier(walletStore, currencyL1)
 		walletSvc := wallet.NewWalletService(ledger, wallet.NewRewardsAdapter(rewardsService))
-		walletHandlers = &api.WalletHandlers{Service: walletSvc, Store: walletStore}
-		log.Println("Wallet + staking API enabled (/v3/wallet/*)")
+		walletHandlers = &api.WalletHandlers{
+			Service:   walletSvc,
+			Store:     walletStore,
+			RealFunds: wallet.RealFundsEnabled(),
+			// Proof stays nil until the Constellation signing SDK ships; in
+			// real-funds mode this hard-blocks value-moving wallet operations.
+		}
+		if walletHandlers.RealFunds {
+			log.Println("Wallet REAL-FUNDS custody mode ON; proof-of-ownership required")
+		}
+		// Reconcile cached wallet state against Currency L1 (no-op without it).
+		go wallet.NewReconciler(ledger).Run(context.Background())
+		log.Printf("Wallet + staking API enabled (/v3/wallet/*), custody=%s", wallet.CustodyMode())
 	}
 
 	router.V3 = &api.V3Handlers{

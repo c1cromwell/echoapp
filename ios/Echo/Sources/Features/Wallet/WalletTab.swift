@@ -71,7 +71,7 @@ struct WalletTab: View {
                 }
                 ToolbarItem(placement: .primaryAction) {
                     NavigationLink {
-                        StakingDetailView()
+                        StakingDetailView(walletViewModel: viewModel)
                     } label: {
                         Image(systemName: "chart.bar.doc.horizontal")
                             .foregroundStyle(Color.Echo.onSurface)

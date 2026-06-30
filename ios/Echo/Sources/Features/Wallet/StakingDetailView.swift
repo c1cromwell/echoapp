@@ -225,6 +225,15 @@ public struct StakingDetailView: View {
                             )
                             .ghostBorder(opacity: 0.15)
                     }
+                    .disabled(viewModel.primaryLock == nil)
+                    .opacity(viewModel.primaryLock == nil ? 0.5 : 1.0)
+
+                    if let error = walletViewModel.errorMessage {
+                        Text(error)
+                            .font(Font.Echo.labelMd)
+                            .foregroundStyle(Color.Echo.error)
+                            .multilineTextAlignment(.center)
+                    }
                 }
                 .padding(.horizontal, 20)
             }
@@ -235,6 +244,25 @@ public struct StakingDetailView: View {
         .overlay(alignment: .top) { SecureThreadIndicator() }
         .navigationTitle("Staking Details")
         .task { await viewModel.loadStakingDetails() }
+        .onChange(of: viewModel.currentTier) { _, newTier in
+            // Prefill the stake sheet with the position's current tier.
+            walletViewModel.selectedTier = newTier.stakingTier
+        }
+        .confirmationDialog("Unstake ECHO", isPresented: $showUnstakeConfirm, titleVisibility: .visible) {
+            if let lock = viewModel.primaryLock {
+                Button("Unstake \(lock.amount.formatted()) ECHO", role: .destructive) {
+                    Task {
+                        await walletViewModel.unstake(stakeId: lock.id, amount: lock.amount)
+                        if walletViewModel.errorMessage == nil {
+                            await viewModel.loadStakingDetails()
+                        }
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Unstaking starts a 14-day cooldown before your ECHO becomes available.")
+        }
     }
 }
 
@@ -281,6 +309,16 @@ enum StakingTierLevel: String, CaseIterable {
         case .platinum: return 2.5
         }
     }
+
+    /// Maps to the WalletViewModel staking tier used by the stake sheet.
+    var stakingTier: StakingTier {
+        switch self {
+        case .silver: return .silver
+        case .gold: return .gold
+        case .platinum: return .platinum
+        case .none, .bronze: return .bronze
+        }
+    }
 }
 
 // MARK: - Delegated Validator
@@ -299,6 +337,8 @@ class StakingDetailViewModel: ObservableObject {
     @Published var currentTier: StakingTierLevel = .none
     @Published var lockPeriod: String = "—"
     @Published var delegatedValidator: DelegatedValidatorInfo?
+    /// Largest active lock, used as the unstake target.
+    @Published var primaryLock: TokenLockPosition?
 
     private let api: WalletAPIClient
 
@@ -311,8 +351,11 @@ class StakingDetailViewModel: ObservableObject {
             let state = try await api.fetchWalletState()
             stakedAmount = state.staked
             if let lock = state.locks.max(by: { $0.amount < $1.amount }) {
+                primaryLock = lock
                 lockPeriod = lock.lockedUntil.formatted(date: .abbreviated, time: .omitted)
                 currentTier = StakingTierLevel(rawValue: lock.tier.lowercased()) ?? .bronze
+            } else {
+                primaryLock = nil
             }
             if let validator = try await api.getValidators().first {
                 delegatedValidator = DelegatedValidatorInfo(

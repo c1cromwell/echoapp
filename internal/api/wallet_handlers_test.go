@@ -179,4 +179,4 @@ func (walletTestRewards) GetPendingByType(context.Context, string, string) (int6
 func (walletTestRewards) GetAutoScaleState(context.Context, string) (*wallet.AutoScaleState, error) {
 	return &wallet.AutoScaleState{CurrentRate: 1}, nil
 }
-func (walletTestRewards) ClearPending(context.Context, string, []string) error { return nil }
+func (walletTestRewards) ClearPending(context.Context, string, []string, int) error { return nil }

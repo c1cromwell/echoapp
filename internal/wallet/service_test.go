@@ -89,7 +89,7 @@ func (m *mockRewards) GetAutoScaleState(_ context.Context, _ string) (*AutoScale
 	return m.autoScaleState, m.err
 }
 
-func (m *mockRewards) ClearPending(_ context.Context, _ string, _ []string) error {
+func (m *mockRewards) ClearPending(_ context.Context, _ string, _ []string, _ int) error {
 	return nil
 }
 
@@ -288,7 +288,7 @@ func TestClaimRewards(t *testing.T) {
 	}
 	svc := NewWalletService(mg, rw)
 
-	result, err := svc.ClaimRewards(context.Background(), "did:echo:test", []string{"messaging", "staking"})
+	result, err := svc.ClaimRewards(context.Background(), "did:echo:test", []string{"messaging", "staking"}, 2)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -305,7 +305,7 @@ func TestClaimRewards_NoPending(t *testing.T) {
 	}
 	svc := NewWalletService(mg, rw)
 
-	_, err := svc.ClaimRewards(context.Background(), "did:echo:test", []string{"messaging"})
+	_, err := svc.ClaimRewards(context.Background(), "did:echo:test", []string{"messaging"}, 1)
 	if !errors.Is(err, ErrNoPendingRewards) {
 		t.Errorf("expected ErrNoPendingRewards, got %v", err)
 	}

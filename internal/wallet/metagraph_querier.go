@@ -52,6 +52,16 @@ func (q *LedgerQuerier) GetValidators(ctx context.Context) ([]ValidatorInfo, err
 	if err != nil {
 		return nil, err
 	}
+	out := validatorsFromSnapshots(snaps)
+	if err := q.store.UpsertValidators(ctx, out); err != nil {
+		log.Printf("wallet: failed to cache validators: %v", err)
+	}
+	return out, nil
+}
+
+// validatorsFromSnapshots converts metagraph validator snapshots into the
+// wallet's ValidatorInfo. Shared by GetValidators and the Reconciler.
+func validatorsFromSnapshots(snaps []metagraph.ValidatorSnapshot) []ValidatorInfo {
 	out := make([]ValidatorInfo, 0, len(snaps))
 	for _, s := range snaps {
 		out = append(out, ValidatorInfo{
@@ -64,10 +74,7 @@ func (q *LedgerQuerier) GetValidators(ctx context.Context) ([]ValidatorInfo, err
 			Layer:          s.Layer,
 		})
 	}
-	if err := q.store.UpsertValidators(ctx, out); err != nil {
-		log.Printf("wallet: failed to cache validators: %v", err)
-	}
-	return out, nil
+	return out
 }
 
 func (q *LedgerQuerier) SubmitTokenLock(ctx context.Context, did string, amount int64, tier StakingTier) (string, error) {

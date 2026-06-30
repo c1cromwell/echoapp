@@ -60,16 +60,21 @@ func (a *RewardsAdapter) GetAutoScaleState(ctx context.Context, did string) (*Au
 	}, nil
 }
 
-func (a *RewardsAdapter) ClearPending(ctx context.Context, did string, types []string) error {
+func (a *RewardsAdapter) ClearPending(ctx context.Context, did string, types []string, trustTier int) error {
 	if len(types) == 0 {
 		types = []string{"messaging"}
+	}
+	// Tier 0 (e.g. passkey requests with no JWT claim) falls back to the base
+	// tier so a missing claim never zeroes the reward multiplier.
+	if trustTier < 1 {
+		trustTier = 1
 	}
 	var firstErr error
 	for _, rewardType := range types {
 		if _, err := a.svc.Claim(ctx, rewards.ClaimRequest{
 			DID:        did,
 			RewardType: rewardType,
-			TrustTier:  1,
+			TrustTier:  trustTier,
 		}); err != nil && firstErr == nil {
 			firstErr = err
 		}

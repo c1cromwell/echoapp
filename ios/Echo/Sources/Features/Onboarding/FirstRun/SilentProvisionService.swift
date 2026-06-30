@@ -10,6 +10,7 @@
 import Foundation
 import Observation
 import Network
+import os
 
 @MainActor
 @Observable
@@ -245,7 +246,9 @@ final class RealProvisionAPI: ProvisionAPIProtocol, @unchecked Sendable {
     }
 
     func linkWalletToDID(did: String, walletAddress: String) async throws {
-        try? await KeychainManager.shared.store(key: WalletKeychain.dagAddressKey, value: walletAddress)
+        // Propagate keychain failures: the caller wraps this in withRetry, and a
+        // dropped address would silently desync local state from the backend link.
+        try await KeychainManager.shared.store(key: WalletKeychain.dagAddressKey, value: walletAddress)
     }
 
     func updateTrustTier(did: String, trustTier: Int, evidenceType: String) async throws {
@@ -257,10 +260,34 @@ final class RealProvisionAPI: ProvisionAPIProtocol, @unchecked Sendable {
         var req = URLRequest(url: EchoAPIBaseURL.url(path: "/v1/auth/vip-verify"))
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
         req.timeoutInterval = 10
-        _ = try? await URLSession.shared.data(for: req)
+
+        var lastError: Error?
+        for attempt in 1...2 {
+            do {
+                let (_, response) = try await URLSession.shared.data(for: req)
+                let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+                if (200...299).contains(status) {
+                    return
+                }
+                lastError = ProvisionError.trustTierUpdateFailed(status: status)
+            } catch {
+                lastError = error
+            }
+            if attempt == 1 {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+            }
+        }
+        Self.log.error("trust-tier update failed for \(did, privacy: .private): \(String(describing: lastError))")
+        throw lastError ?? ProvisionError.trustTierUpdateFailed(status: -1)
     }
+
+    private static let log = Logger(subsystem: "app.echo", category: "provisioning")
+}
+
+enum ProvisionError: Error {
+    case trustTierUpdateFailed(status: Int)
 }
 
 // MARK: - Stub implementations (TestFlight / unit tests)

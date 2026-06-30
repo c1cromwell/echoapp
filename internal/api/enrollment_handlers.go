@@ -1,8 +1,6 @@
 package api
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/thechadcromwell/echoapp/internal/wallet"
 	"github.com/thechadcromwell/echoapp/pkg/didkey"
 )
 
@@ -58,9 +57,11 @@ func trustTierForIAL(ial string) int {
 	}
 }
 
+// deterministicDAGAddress is the interim, server-derivable wallet address.
+// Single source of truth lives in the wallet package so custody enforcement
+// (which rejects this exact form in real-funds mode) can never drift from it.
 func deterministicDAGAddress(did string) string {
-	sum := sha256.Sum256([]byte(did))
-	return "DAG" + hex.EncodeToString(sum[:])[:36]
+	return wallet.ServerDerivableAddress(did)
 }
 
 // displayNameAllowed matches per PRD v3.1 AC-INFRA-004.4 and mirrors the iOS DisplayNameValidator.

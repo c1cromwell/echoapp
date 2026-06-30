@@ -28,7 +28,7 @@ type RewardsQuerier interface {
 	GetPending(ctx context.Context, did string) (int64, error)
 	GetPendingByType(ctx context.Context, did, rewardType string) (int64, error)
 	GetAutoScaleState(ctx context.Context, did string) (*AutoScaleState, error)
-	ClearPending(ctx context.Context, did string, types []string) error
+	ClearPending(ctx context.Context, did string, types []string, trustTier int) error
 }
 
 // WalletService aggregates on-chain and cached data for the iOS Wallet tab.
@@ -90,6 +90,7 @@ func (s *WalletService) GetWalletState(ctx context.Context, did string) (*Wallet
 		Delegations:    delegations,
 		DailyRewards:   autoScaleState,
 		Vesting:        vesting,
+		CustodyMode:    CustodyMode(),
 	}, nil
 }
 
@@ -132,7 +133,8 @@ func (s *WalletService) Unstake(ctx context.Context, req UnstakeRequest) (*Unsta
 }
 
 // ClaimRewards constructs and submits an AtomicAction for reward claiming.
-func (s *WalletService) ClaimRewards(ctx context.Context, did string, types []string) (*ClaimResult, error) {
+// trustTier scales the claim per the rewards trust-multiplier table.
+func (s *WalletService) ClaimRewards(ctx context.Context, did string, types []string, trustTier int) (*ClaimResult, error) {
 	var claims []RewardClaim
 	for _, rewardType := range types {
 		pending, _ := s.rewards.GetPendingByType(ctx, did, rewardType)
@@ -150,7 +152,7 @@ func (s *WalletService) ClaimRewards(ctx context.Context, did string, types []st
 		return nil, err
 	}
 
-	_ = s.rewards.ClearPending(ctx, did, types)
+	_ = s.rewards.ClearPending(ctx, did, types, trustTier)
 
 	return &ClaimResult{TxHash: txHash}, nil
 }

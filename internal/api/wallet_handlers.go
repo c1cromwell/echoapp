@@ -12,6 +12,37 @@ import (
 type WalletHandlers struct {
 	Service *wallet.WalletService
 	Store   wallet.Store
+	// RealFunds enables real-funds custody enforcement (ECHO_WALLET_REAL_FUNDS).
+	RealFunds bool
+	// Proof verifies client-held proof-of-ownership; nil until the signing SDK
+	// ships, which (in real-funds mode) hard-blocks value-moving operations.
+	Proof wallet.ProofVerifier
+}
+
+// requireCustody enforces real-funds custody rules on value-moving operations.
+// In interim mode (default) it is a no-op so the TestFlight flow is unchanged.
+// In real-funds mode it requires a verified proof-of-ownership and rejects
+// server-derivable addresses; with no verifier wired it hard-blocks.
+func (h *WalletHandlers) requireCustody(w http.ResponseWriter, r *http.Request, did, address, proof string) bool {
+	if !h.RealFunds {
+		return true
+	}
+	reqID := r.Header.Get("X-Request-ID")
+	if h.Proof == nil {
+		WriteError(w, http.StatusServiceUnavailable, "CUSTODY_NOT_READY",
+			"real-funds custody requires client-side signing which is not yet available", reqID)
+		return false
+	}
+	if address != "" && address == wallet.ServerDerivableAddress(did) {
+		WriteError(w, http.StatusBadRequest, "SERVER_DERIVABLE_ADDRESS",
+			"address must be user-held, not server-derivable", reqID)
+		return false
+	}
+	if err := h.Proof.VerifyOwnership(did, address, proof); err != nil {
+		WriteError(w, http.StatusForbidden, "PROOF_INVALID", "proof of ownership failed", reqID)
+		return false
+	}
+	return true
 }
 
 // walletDID extracts the authenticated DID and rejects empty values, so a
@@ -56,6 +87,9 @@ func (h *WalletHandlers) handleWalletStake(w http.ResponseWriter, r *http.Reques
 	if !ok {
 		return
 	}
+	if !h.requireCustody(w, r, did, "", r.Header.Get("X-Wallet-Proof")) {
+		return
+	}
 	var req struct {
 		Amount int64  `json:"amount"`
 		Tier   string `json:"tier"`
@@ -89,6 +123,9 @@ func (h *WalletHandlers) handleWalletUnstake(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
+	if !h.requireCustody(w, r, did, "", r.Header.Get("X-Wallet-Proof")) {
+		return
+	}
 	var req struct {
 		StakeID string `json:"stakeId"`
 		Amount  int64  `json:"amount"`
@@ -116,6 +153,9 @@ func (h *WalletHandlers) handleWalletDelegate(w http.ResponseWriter, r *http.Req
 	}
 	did, ok := walletDID(w, r)
 	if !ok {
+		return
+	}
+	if !h.requireCustody(w, r, did, "", r.Header.Get("X-Wallet-Proof")) {
 		return
 	}
 	var req struct {
@@ -149,6 +189,9 @@ func (h *WalletHandlers) handleWalletClaim(w http.ResponseWriter, r *http.Reques
 	if !ok {
 		return
 	}
+	if !h.requireCustody(w, r, did, "", r.Header.Get("X-Wallet-Proof")) {
+		return
+	}
 	var req struct {
 		Types []string `json:"types"`
 	}
@@ -156,7 +199,7 @@ func (h *WalletHandlers) handleWalletClaim(w http.ResponseWriter, r *http.Reques
 		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "types array is required", r.Header.Get("X-Request-ID"))
 		return
 	}
-	result, err := h.Service.ClaimRewards(r.Context(), did, req.Types)
+	result, err := h.Service.ClaimRewards(r.Context(), did, req.Types, TrustTierFromContext(r.Context(), 1))
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "CLAIM_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
@@ -198,6 +241,9 @@ func (h *WalletHandlers) handleWalletLink(w http.ResponseWriter, r *http.Request
 		return
 	}
 	addr := strings.TrimSpace(req.Address)
+	if !h.requireCustody(w, r, did, addr, r.Header.Get("X-Wallet-Proof")) {
+		return
+	}
 	if err := h.Store.LinkDAGAddress(r.Context(), did, addr); err != nil {
 		WriteError(w, http.StatusInternalServerError, "LINK_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
