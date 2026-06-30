@@ -1,0 +1,18 @@
+{
+  "name": "echo-wallet-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Self-contained dag4 wallet bundle for embedding in iOS JavaScriptCore (Echo real-custody signing).",
+  "scripts": {
+    "build": "node build.js",
+    "vector": "node gen-vector.js"
+  },
+  "dependencies": {
+    "@stardust-collective/dag4": "2.8.1",
+    "buffer": "6.0.3"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.0",
+    "esbuild-plugin-polyfill-node": "^0.3.0"
+  }
+}
