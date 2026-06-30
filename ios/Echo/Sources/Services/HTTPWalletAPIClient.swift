@@ -110,6 +110,7 @@ enum WalletEndpoint: APIEndpoint {
     case validators
     case link
     case challenge
+    case txContext(type: String)
 
     var path: String {
         switch self {
@@ -121,6 +122,7 @@ enum WalletEndpoint: APIEndpoint {
         case .validators: return "/v3/wallet/validators"
         case .link: return "/v3/wallet/link"
         case .challenge: return "/v3/wallet/challenge"
+        case .txContext(let type): return "/v3/wallet/tx-context?type=\(type)"
         }
     }
 }
@@ -190,7 +192,20 @@ actor HTTPWalletAPIClient: WalletAPIClient {
     }
 
     func submitTokenLock(amount: Decimal, tier: StakingTier) async throws -> String {
-        let body = StakeRequestWire(amount: EchoDatum.toDatum(amount), tier: tier.rawValue)
+        let datum = EchoDatum.toDatum(amount)
+        // Real-funds: sign the TokenLock locally and let the backend relay it.
+        // Falls back to the server-originated path when signing isn't possible
+        // (interim mode / no tx-context).
+        if let signed = try? await buildSignedTx(type: "tokenLock", extra: ["amount": datum]) {
+            let proof = (try? await buildProofHeader()) ?? [:]
+            let result: TxResultWire = try await apiClient.postJSON(
+                endpoint: WalletEndpoint.stake,
+                json: ["amount": datum, "tier": tier.rawValue, "signed": signed],
+                headers: proof)
+            cached = nil
+            return result.txHash
+        }
+        let body = StakeRequestWire(amount: datum, tier: tier.rawValue)
         let result: TxResultWire = try await apiClient.post(endpoint: WalletEndpoint.stake, body: body)
         cached = nil
         return result.txHash
@@ -201,21 +216,75 @@ actor HTTPWalletAPIClient: WalletAPIClient {
         guard let lock = wire.locks.first(where: { $0.id == stakeId }) else {
             throw StargazerError.transactionFailed("Stake position not found")
         }
-        let body = DelegateRequestWire(
-            stakeId: stakeId,
-            validatorId: validatorId,
-            amount: lock.amount
-        )
+        if let signed = try? await buildSignedTx(type: "delegatedStake", extra: [
+            "nodeId": validatorId, "amount": lock.amount, "fee": 0, "tokenLockRef": stakeId,
+        ]) {
+            let proof = (try? await buildProofHeader()) ?? [:]
+            let result: TxResultWire = try await apiClient.postJSON(
+                endpoint: WalletEndpoint.delegate,
+                json: ["stakeId": stakeId, "validatorId": validatorId, "amount": lock.amount, "signed": signed],
+                headers: proof)
+            cached = nil
+            return result.txHash
+        }
+        let body = DelegateRequestWire(stakeId: stakeId, validatorId: validatorId, amount: lock.amount)
         let result: TxResultWire = try await apiClient.post(endpoint: WalletEndpoint.delegate, body: body)
         cached = nil
         return result.txHash
     }
 
     func submitWithdrawLock(stakeId: String, amount: Decimal) async throws -> String {
-        let body = UnstakeRequestWire(stakeId: stakeId, amount: EchoDatum.toDatum(amount))
+        let datum = EchoDatum.toDatum(amount)
+        if let signed = try? await buildSignedTx(type: "withdrawDelegatedStake", extra: ["stakeRef": stakeId]) {
+            let proof = (try? await buildProofHeader()) ?? [:]
+            let result: TxResultWire = try await apiClient.postJSON(
+                endpoint: WalletEndpoint.unstake,
+                json: ["stakeId": stakeId, "amount": datum, "signed": signed],
+                headers: proof)
+            cached = nil
+            return result.txHash
+        }
+        let body = UnstakeRequestWire(stakeId: stakeId, amount: datum)
         let result: TxResultWire = try await apiClient.post(endpoint: WalletEndpoint.unstake, body: body)
         cached = nil
         return result.txHash
+    }
+
+    // MARK: - Real-funds signing helpers
+
+    /// Builds a client-signed {value, proofs} for a Currency-L1 tx: fetch
+    /// tx-context (source + parent), assemble the body, sign via the embedded
+    /// dag4 bundle. `extra` carries the type-specific fields (amount, nodeId, …).
+    /// `withdrawDelegatedStake` needs no parent (its body is {source, stakeRef}).
+    private func buildSignedTx(type: String, extra: [String: Any]) async throws -> [String: Any] {
+        let account = try await WalletKeyStore.shared.ensureWallet()
+        let ctx = try await fetchTxContext(type: type)
+        var body: [String: Any] = ["source": ctx.source]
+        if type != "withdrawDelegatedStake" { body["parent"] = ctx.parent }
+        body.merge(extra) { _, new in new }
+        let signed = try await StargazerSigner.shared.signTransaction(
+            privateKey: account.privateKey, publicKey: account.publicKey, body: body)
+        return ["value": signed.value, "proofs": [["id": signed.proofID, "signature": signed.signature]]]
+    }
+
+    private struct TxContext { let source: String; let parent: [String: Any] }
+
+    private func fetchTxContext(type: String) async throws -> TxContext {
+        struct ParentWire: Decodable { let hash: String; let ordinal: Int }
+        struct CtxWire: Decodable { let source: String; let parent: ParentWire }
+        let wire: CtxWire = try await apiClient.get(endpoint: WalletEndpoint.txContext(type: type))
+        return TxContext(source: wire.source, parent: ["hash": wire.parent.hash, "ordinal": wire.parent.ordinal])
+    }
+
+    private func buildProofHeader() async throws -> [String: String] {
+        struct ChallengeResp: Decodable { let challenge: String; let expiresAt: String }
+        let resp: ChallengeResp = try await apiClient.get(endpoint: WalletEndpoint.challenge)
+        let signed = try await WalletKeyStore.shared.signChallenge(resp.challenge)
+        let proof: [String: String] = [
+            "publicKey": signed.publicKey, "challenge": resp.challenge, "signature": signed.signature,
+        ]
+        let data = try JSONSerialization.data(withJSONObject: proof)
+        return ["X-Wallet-Proof": data.base64EncodedString()]
     }
 
     func submitRewardClaim(rewardTypes: [String]) async throws -> String {

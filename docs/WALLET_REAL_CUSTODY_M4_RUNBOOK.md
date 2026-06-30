@@ -38,21 +38,18 @@ metagraph build and adjust `MetagraphClient.LastRef` if it differs. The `parent`
 is inspectable (hash + ordinal), so signing the assembled body is not
 blind-signing.
 
-## Step 3 — iOS: build, sign, attach (stake path)
-In `HTTPWalletAPIClient.submitTokenLock(amount:tier:)`:
-1. `let account = try await WalletKeyStore.shared.ensureWallet()`
-2. Fetch tx-context (Step 2) → `parent`, `source` (= account.address).
-3. Build the body:
-   `["source": source, "amount": EchoDatum.toDatum(amount), "fee": 0, "parent": parent]`
-   (omit null `currencyId`/`unlockEpoch`; the bundle/normalize strips nulls).
-4. `let signed = try await StargazerSigner.shared.signTransaction(privateKey: account.privateKey, publicKey: account.publicKey, body: body)`
-5. Build the `X-Wallet-Proof` header (reuse `WalletProvisioner.buildProofHeaders`
-   pattern: GET `/v3/wallet/challenge` → `WalletKeyStore.signChallenge`).
-6. POST `/v3/wallet/stake` with body `{amount, tier, signed: {value, proofs}}` and
-   the proof header (use `apiClient.post(endpoint:body:headers:)`).
-Repeat the pattern for unstake (`/withdraw` → DelegatedStake withdraw, PUT) and
-delegate (`/delegated-stakes`). NOTE: withdraw is a **PUT**; add a PUT variant of
-`SubmitSignedByType` / `submitTransaction` (current relay is POST-only).
+## Step 3 — iOS: build, sign, attach  ✅ IMPLEMENTED (compile-only; verify in Xcode)
+`HTTPWalletAPIClient.submitTokenLock` / `submitStakeDelegation` /
+`submitWithdrawLock` now attempt the real-funds signed path and fall back to the
+server-originated path when signing isn't possible (interim mode / no tx-context):
+fetch `tx-context` → assemble the body → `StargazerSigner.signTransaction` →
+`postJSON` with `{…, signed: {value, proofs}}` and the `X-Wallet-Proof` header
+(`buildProofHeader`: challenge → `WalletKeyStore.signChallenge`). Withdraw signs
+`{source, stakeRef}` (no parent). Added `APIClient.postJSON` (the signed payload
+isn't statically Codable) and `WalletEndpoint.txContext`.
+**XCODE/TESTNET TODO:** this is parse-clean only. Verify the JSContext signing +
+the exact body field names Tessellation expects at runtime (Step 6). Confirm
+`StargazerSigner` loads (needs Step 1's bundle resource).
 
 ## Step 4 — Backend: extend the flow-flip to unstake/delegate  ✅ IMPLEMENTED
 Done: `handleWalletUnstake` / `handleWalletDelegate` accept a `signed` field and,
