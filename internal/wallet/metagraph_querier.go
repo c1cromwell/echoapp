@@ -195,6 +195,43 @@ func (q *LedgerQuerier) SubmitWithdrawLock(ctx context.Context, did, stakeID str
 	return txHash, nil
 }
 
+// SubmitSignedStakeDelegation relays a CLIENT-signed DelegatedStake and mirrors
+// the delegation. The backend never signs.
+func (q *LedgerQuerier) SubmitSignedStakeDelegation(ctx context.Context, delegatorDID, stakeID, validatorID string, amount int64, signed []byte) (string, error) {
+	if q.submitter == nil {
+		return "", ErrSignedSubmitUnavailable
+	}
+	txHash, err := q.submitter.SubmitSignedByType(ctx, "delegatedStake", signed)
+	if err != nil || txHash == "" {
+		return "", ErrSignedSubmitFailed
+	}
+	if err := q.store.InsertDelegation(ctx, delegatorDID, DelegationPos{
+		ID:          txHash,
+		StakeID:     stakeID,
+		ValidatorID: validatorID,
+		Amount:      amount,
+	}); err != nil {
+		return "", err
+	}
+	return txHash, nil
+}
+
+// SubmitSignedWithdrawLock relays a CLIENT-signed withdraw (PUT) and mirrors the
+// balance change. The backend never signs.
+func (q *LedgerQuerier) SubmitSignedWithdrawLock(ctx context.Context, did, stakeID string, amount int64, signed []byte) (string, error) {
+	if q.submitter == nil {
+		return "", ErrSignedSubmitUnavailable
+	}
+	txHash, err := q.submitter.SubmitSignedByType(ctx, "withdrawDelegatedStake", signed)
+	if err != nil || txHash == "" {
+		return "", ErrSignedSubmitFailed
+	}
+	if err := q.store.ApplyUnstake(ctx, did, amount); err != nil {
+		return "", err
+	}
+	return txHash, nil
+}
+
 func (q *LedgerQuerier) SubmitAtomicRewardClaim(ctx context.Context, did string, claims []RewardClaim) (string, error) {
 	var total int64
 	for _, c := range claims {

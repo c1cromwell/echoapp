@@ -14,6 +14,8 @@ type MetagraphQuerier interface {
 	SubmitTokenLock(ctx context.Context, did string, amount int64, tier StakingTier) (string, error)
 	SubmitSignedTokenLock(ctx context.Context, did string, amount int64, tier StakingTier, signed []byte) (string, error)
 	SubmitStakeDelegation(ctx context.Context, delegatorDID, stakeID, validatorID string, amount int64) (string, error)
+	SubmitSignedStakeDelegation(ctx context.Context, delegatorDID, stakeID, validatorID string, amount int64, signed []byte) (string, error)
+	SubmitSignedWithdrawLock(ctx context.Context, did, stakeID string, amount int64, signed []byte) (string, error)
 	SubmitWithdrawLock(ctx context.Context, did, stakeID string, amount int64) (string, error)
 	SubmitAtomicRewardClaim(ctx context.Context, did string, claims []RewardClaim) (string, error)
 }
@@ -135,6 +137,15 @@ func (s *WalletService) DelegateToValidator(ctx context.Context, req DelegateReq
 	return &DelegateResult{TxHash: txHash}, nil
 }
 
+// DelegateToValidatorSigned forwards a CLIENT-signed DelegatedStake (real funds).
+func (s *WalletService) DelegateToValidatorSigned(ctx context.Context, req DelegateRequest, signed []byte) (*DelegateResult, error) {
+	txHash, err := s.metagraph.SubmitSignedStakeDelegation(ctx, req.DID, req.StakeID, req.ValidatorID, req.Amount, signed)
+	if err != nil {
+		return nil, err
+	}
+	return &DelegateResult{TxHash: txHash}, nil
+}
+
 // Unstake constructs and submits a WithdrawLock transaction (14-day cooldown).
 func (s *WalletService) Unstake(ctx context.Context, req UnstakeRequest) (*UnstakeResult, error) {
 	txHash, err := s.metagraph.SubmitWithdrawLock(ctx, req.DID, req.StakeID, req.Amount)
@@ -142,6 +153,18 @@ func (s *WalletService) Unstake(ctx context.Context, req UnstakeRequest) (*Unsta
 		return nil, err
 	}
 
+	return &UnstakeResult{
+		TxHash:          txHash,
+		CooldownEndDate: time.Now().Add(14 * 24 * time.Hour),
+	}, nil
+}
+
+// UnstakeSigned forwards a CLIENT-signed withdraw (real funds, PUT relay).
+func (s *WalletService) UnstakeSigned(ctx context.Context, req UnstakeRequest, signed []byte) (*UnstakeResult, error) {
+	txHash, err := s.metagraph.SubmitSignedWithdrawLock(ctx, req.DID, req.StakeID, req.Amount, signed)
+	if err != nil {
+		return nil, err
+	}
 	return &UnstakeResult{
 		TxHash:          txHash,
 		CooldownEndDate: time.Now().Add(14 * 24 * time.Hour),

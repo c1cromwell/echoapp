@@ -109,6 +109,7 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 		mux.HandleFunc("/v3/wallet/validators", h.Wallet.handleWalletValidators)
 		mux.HandleFunc("/v3/wallet/link", h.Wallet.handleWalletLink)
 		mux.HandleFunc("/v3/wallet/challenge", h.Wallet.handleWalletChallenge)
+		mux.HandleFunc("/v3/wallet/tx-context", h.Wallet.handleWalletTxContext)
 	}
 
 	// Notification endpoints

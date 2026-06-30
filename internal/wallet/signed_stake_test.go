@@ -52,3 +52,42 @@ func TestSubmitSignedTokenLockRequiresSubmitter(t *testing.T) {
 		t.Fatalf("expected ErrSignedSubmitUnavailable, got %v", err)
 	}
 }
+
+func TestSubmitSignedStakeDelegationForwardsAndMirrors(t *testing.T) {
+	ctx := context.Background()
+	store := NewMemStore()
+	sub := &fakeSubmitter{signedHash: "del_signed_1"}
+	q := NewLedgerQuerier(store, sub)
+	did := "did:echo:del"
+	signed := []byte(`{"value":{"nodeId":"node1"},"proofs":[{"id":"ab","signature":"30"}]}`)
+
+	hash, err := q.SubmitSignedStakeDelegation(ctx, did, "lock1", "validator1", 300*DatumPerECHO, signed)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if hash != "del_signed_1" || sub.lastSignedType != "delegatedStake" {
+		t.Fatalf("forward mismatch: hash=%q type=%q", hash, sub.lastSignedType)
+	}
+	dels, _ := store.ListDelegations(ctx, did)
+	if len(dels) != 1 || dels[0].ID != hash {
+		t.Fatalf("expected mirrored delegation, got %+v", dels)
+	}
+}
+
+func TestSubmitSignedWithdrawForwards(t *testing.T) {
+	t.Setenv("ECHO_WALLET_GENESIS_AUTO", "1")
+	ctx := context.Background()
+	store := NewMemStore()
+	sub := &fakeSubmitter{signedHash: "wd_signed_1"}
+	q := NewLedgerQuerier(store, sub)
+	_, _ = store.GetBalance(ctx, "did:echo:wd") // seed the balance row
+	signed := []byte(`{"value":{"stakeRef":"r1"},"proofs":[{"id":"ab","signature":"30"}]}`)
+
+	hash, err := q.SubmitSignedWithdrawLock(ctx, "did:echo:wd", "lock1", 50*DatumPerECHO, signed)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if hash != "wd_signed_1" || sub.lastSignedType != "withdrawDelegatedStake" {
+		t.Fatalf("forward mismatch: hash=%q type=%q", hash, sub.lastSignedType)
+	}
+}

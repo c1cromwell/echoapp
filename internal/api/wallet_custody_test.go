@@ -108,6 +108,57 @@ func TestWalletChallengeEndpoint(t *testing.T) {
 	}
 }
 
+type fakeTxContext struct{ hash string; ordinal int64 }
+
+func (f fakeTxContext) LastRef(_ context.Context, _, _ string) (string, int64, error) {
+	return f.hash, f.ordinal, nil
+}
+
+// tx-context returns the linked address as source plus the last-reference parent.
+func TestWalletTxContext(t *testing.T) {
+	store := wallet.NewMemStore()
+	_ = store.LinkDAGAccount(context.Background(), "did:key:zTC", "DAG4realaddress", "04pub")
+	h := &WalletHandlers{Store: store, TxContext: fakeTxContext{hash: "parenthash", ordinal: 7}}
+	mux := http.NewServeMux()
+	(&V3Handlers{Wallet: h}).RegisterV3Routes(mux)
+
+	req := httptest.NewRequest(http.MethodGet, "/v3/wallet/tx-context?type=tokenLock", nil)
+	req = req.WithContext(context.WithValue(req.Context(), ContextKeyUserID, "did:key:zTC"))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		Source string `json:"source"`
+		Parent struct {
+			Hash    string `json:"hash"`
+			Ordinal int64  `json:"ordinal"`
+		} `json:"parent"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Source != "DAG4realaddress" || resp.Parent.Hash != "parenthash" || resp.Parent.Ordinal != 7 {
+		t.Fatalf("unexpected tx-context: %+v", resp)
+	}
+}
+
+// tx-context must 409 when no wallet is linked yet.
+func TestWalletTxContext_NotLinked(t *testing.T) {
+	h := &WalletHandlers{Store: wallet.NewMemStore(), TxContext: fakeTxContext{}}
+	mux := http.NewServeMux()
+	(&V3Handlers{Wallet: h}).RegisterV3Routes(mux)
+	req := httptest.NewRequest(http.MethodGet, "/v3/wallet/tx-context", nil)
+	req = req.WithContext(context.WithValue(req.Context(), ContextKeyUserID, "did:key:zNone"))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("want 409 when not linked, got %d", rec.Code)
+	}
+}
+
 type allowAllProof struct{}
 
 func (allowAllProof) VerifyOwnership(_, _, _ string) (string, error) { return "pubkey", nil }

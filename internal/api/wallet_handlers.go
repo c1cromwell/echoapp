@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -19,6 +20,15 @@ type WalletHandlers struct {
 	Proof wallet.ProofVerifier
 	// Challenges issues single-use nonces for proof-of-ownership (real funds).
 	Challenges *wallet.ChallengeStore
+	// TxContext supplies the last-reference the client needs to build a tx body.
+	TxContext TxContextProvider
+}
+
+// TxContextProvider returns the signer address's last transaction reference for
+// a given Currency-L1 tx type (used to populate the `parent` of the body the
+// client signs). Implemented by *metagraph.MetagraphClient.
+type TxContextProvider interface {
+	LastRef(ctx context.Context, txType, address string) (hash string, ordinal int64, err error)
 }
 
 // requireCustody enforces real-funds custody rules on value-moving operations
@@ -137,18 +147,22 @@ func (h *WalletHandlers) handleWalletUnstake(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	var req struct {
-		StakeID string `json:"stakeId"`
-		Amount  int64  `json:"amount"`
+		StakeID string          `json:"stakeId"`
+		Amount  int64           `json:"amount"`
+		Signed  json.RawMessage `json:"signed,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.StakeID == "" || req.Amount <= 0 {
 		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "stakeId and amount are required", r.Header.Get("X-Request-ID"))
 		return
 	}
-	result, err := h.Service.Unstake(r.Context(), wallet.UnstakeRequest{
-		DID:     did,
-		StakeID: req.StakeID,
-		Amount:  req.Amount,
-	})
+	unstakeReq := wallet.UnstakeRequest{DID: did, StakeID: req.StakeID, Amount: req.Amount}
+	var result *wallet.UnstakeResult
+	var err error
+	if h.RealFunds && len(req.Signed) > 0 {
+		result, err = h.Service.UnstakeSigned(r.Context(), unstakeReq, req.Signed)
+	} else {
+		result, err = h.Service.Unstake(r.Context(), unstakeReq)
+	}
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "UNSTAKE_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
@@ -169,20 +183,23 @@ func (h *WalletHandlers) handleWalletDelegate(w http.ResponseWriter, r *http.Req
 		return
 	}
 	var req struct {
-		StakeID     string `json:"stakeId"`
-		ValidatorID string `json:"validatorId"`
-		Amount      int64  `json:"amount"`
+		StakeID     string          `json:"stakeId"`
+		ValidatorID string          `json:"validatorId"`
+		Amount      int64           `json:"amount"`
+		Signed      json.RawMessage `json:"signed,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.StakeID == "" || req.ValidatorID == "" || req.Amount <= 0 {
 		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "stakeId, validatorId, and amount are required", r.Header.Get("X-Request-ID"))
 		return
 	}
-	result, err := h.Service.DelegateToValidator(r.Context(), wallet.DelegateRequest{
-		DID:         did,
-		StakeID:     req.StakeID,
-		ValidatorID: req.ValidatorID,
-		Amount:      req.Amount,
-	})
+	delegateReq := wallet.DelegateRequest{DID: did, StakeID: req.StakeID, ValidatorID: req.ValidatorID, Amount: req.Amount}
+	var result *wallet.DelegateResult
+	var err error
+	if h.RealFunds && len(req.Signed) > 0 {
+		result, err = h.Service.DelegateToValidatorSigned(r.Context(), delegateReq, req.Signed)
+	} else {
+		result, err = h.Service.DelegateToValidator(r.Context(), delegateReq)
+	}
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "DELEGATE_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
@@ -262,6 +279,43 @@ func (h *WalletHandlers) handleWalletLink(w http.ResponseWriter, r *http.Request
 		return
 	}
 	WriteJSON(w, http.StatusOK, map[string]string{"did": did, "address": addr})
+}
+
+// handleWalletTxContext returns the data the iOS client needs to build a
+// Currency-L1 transaction body before signing it locally: its DAG `source`
+// address and the `parent` (last transaction reference). Real-funds custody.
+func (h *WalletHandlers) handleWalletTxContext(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	did, ok := walletDID(w, r)
+	if !ok {
+		return
+	}
+	reqID := r.Header.Get("X-Request-ID")
+	if h.Store == nil || h.TxContext == nil {
+		WriteError(w, http.StatusServiceUnavailable, "WALLET_UNAVAILABLE", "Transaction context not configured", reqID)
+		return
+	}
+	txType := r.URL.Query().Get("type")
+	if txType == "" {
+		txType = "tokenLock"
+	}
+	addr, err := h.Store.GetDAGAddress(r.Context(), did)
+	if err != nil || strings.TrimSpace(addr) == "" {
+		WriteError(w, http.StatusConflict, "WALLET_NOT_LINKED", "link a wallet before building transactions", reqID)
+		return
+	}
+	hash, ordinal, err := h.TxContext.LastRef(r.Context(), txType, addr)
+	if err != nil {
+		WriteError(w, http.StatusBadGateway, "TX_CONTEXT_ERROR", err.Error(), reqID)
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"source": addr,
+		"parent": map[string]interface{}{"hash": hash, "ordinal": ordinal},
+	})
 }
 
 // handleWalletChallenge issues a single-use proof-of-ownership challenge for the
