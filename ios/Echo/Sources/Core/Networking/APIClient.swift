@@ -217,7 +217,27 @@ actor APIClient {
         }
         return try await performRequest(request)
     }
-    
+
+    /// POST an arbitrary JSON object (used when the body embeds a client-signed
+    /// {value, proofs} that isn't statically Codable). Mirrors buildRequest's
+    /// default + endpoint headers and interceptors, then applies extra headers.
+    func postJSON<T: Decodable>(
+        endpoint: APIEndpoint,
+        json: [String: Any],
+        headers: [String: String] = [:]
+    ) async throws -> T {
+        let url = configuration.baseURL.appendingPathComponent(endpoint.path)
+        var request = URLRequest(url: url)
+        request.httpMethod = HTTPMethod.post.rawValue
+        for (key, value) in configuration.headers { request.setValue(value, forHTTPHeaderField: key) }
+        for (key, value) in endpoint.headers { request.setValue(value, forHTTPHeaderField: key) }
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: json)
+        for interceptor in interceptors { try await interceptor.intercept(&request) }
+        for (key, value) in headers { request.setValue(value, forHTTPHeaderField: key) }
+        return try await performRequest(request)
+    }
+
     // MARK: - PUT Request
     
     func put<T: Decodable, B: Encodable>(
