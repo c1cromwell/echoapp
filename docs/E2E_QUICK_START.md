@@ -388,7 +388,41 @@ Balances use **datum scale** (÷1e8) on the wire; UI shows human ECHO.
 
 ---
 
-## 12. Minimal launch sign-off
+## 12. Phase 5 E2E gaps (optional)
+
+### Post-quantum hybrid bootstrap
+
+1. Start backend with `ECHO_PQ_ENABLED=true` (Docker compose or `export` before `make dev`).
+2. Confirm gate: `curl -s "$API_URL/v3/pq/status"` → `"available": true`.
+3. On **two devices/simulators**: Settings → Privacy → enable **Post-quantum hybrid**.
+4. Open a new DM and send messages — ratchet pre-keys should include `hybrid_public_bundle` on the wire.
+5. Automated unit coverage: `cd ios/Echo && swift test --filter PQHybridPreferencesTests`.
+
+### Cloud file picker
+
+1. Set provider OAuth env vars (`GOOGLE_DRIVE_CLIENT_ID`, etc.) or `CLOUD_OAUTH_STUB=true` for dev.
+2. Chat composer → attach → **Cloud** → Connect → Browse → pick file (streams via `/v3/integrations/cloud/.../stream`).
+
+### Hidden folder assignment
+
+1. Chat settings → **Hide conversation** → choose **Hidden folder** from the picker.
+2. Hidden tab groups chats by folder (`HiddenFolderStore`).
+
+### ZK Midnight envelope
+
+1. Client builds `midnight:` proof via commitment envelope (`ZKCommitmentProof.midnightEnvelope`).
+2. `POST /v3/zk/verify` returns `verified: true`, `mode: midnight`.
+3. Optional: set `MIDNIGHT_VERIFY_URL` for external circuit verification.
+
+### Filecoin archival UI
+
+1. Set `ESTUARY_API_TOKEN` so `wrapFilecoinArchiver` enables deals.
+2. Upload media; tap **Filecoin archival** row on the media bubble for CID, expiry, and FIL cost estimate.
+3. Renewal cron runs every 6h (`filecoin_renewal.go`).
+
+---
+
+## 13. Minimal launch sign-off
 
 Before TestFlight upload:
 

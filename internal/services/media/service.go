@@ -267,6 +267,25 @@ func (s *Service) RetrieveChunk(ctx context.Context, fileID string, index int) (
 	return s.storage.Retrieve(ctx, target.ChunkID)
 }
 
+// StorageArchiver returns the archiving backend when Filecoin is enabled.
+func (s *Service) StorageArchiver() (*ArchivingBackend, bool) {
+	ab, ok := s.storage.(*ArchivingBackend)
+	return ab, ok
+}
+
+// RenewFilecoinDeal renews archival for a media file's first chunk.
+func (s *Service) RenewFilecoinDeal(ctx context.Context, fileID string, durationDays int) (*FilecoinDeal, error) {
+	ab, ok := s.StorageArchiver()
+	if !ok {
+		return nil, fmt.Errorf("filecoin archiver not configured")
+	}
+	chunks, err := s.db.GetChunks(ctx, fileID)
+	if err != nil || len(chunks) == 0 {
+		return nil, ErrFileNotFound
+	}
+	return ab.RenewDeal(ctx, chunks[0].ChunkID, durationDays)
+}
+
 // FilecoinDealForFile returns archival deal metadata when Filecoin backend is enabled (WO-185).
 func (s *Service) FilecoinDealForFile(ctx context.Context, fileID string) *FilecoinDeal {
 	ab, ok := s.storage.(*ArchivingBackend)

@@ -4,10 +4,14 @@ import SwiftUI
 /// timer, verify (DID safety-number analog), block/report. Persists via `ConversationPreferencesStore`.
 public struct ChatSettingsSheet: View {
     let contactName: String
+    let conversationId: String
     @State private var prefs: ConversationPreferences
     @State private var isArchived: Bool
     @State private var allowedTimers: [DisappearingTimer] = DisappearingTimer.allCases
     @State private var restrictionReason: String?
+    #if os(iOS)
+    @State private var hiddenFolderId: String
+    #endif
 
     let onChange: (ConversationPreferences) -> Void
     let onArchiveChange: (Bool) -> Void
@@ -16,6 +20,7 @@ public struct ChatSettingsSheet: View {
 
     public init(
         contactName: String,
+        conversationId: String,
         preferences: ConversationPreferences,
         isArchived: Bool = false,
         onChange: @escaping (ConversationPreferences) -> Void,
@@ -24,8 +29,12 @@ public struct ChatSettingsSheet: View {
         onBlock: @escaping () -> Void = {}
     ) {
         self.contactName = contactName
+        self.conversationId = conversationId
         self._prefs = State(initialValue: preferences)
         self._isArchived = State(initialValue: isArchived)
+        #if os(iOS)
+        self._hiddenFolderId = State(initialValue: HiddenFolderStore.folderId(for: conversationId))
+        #endif
         self.onChange = onChange
         self.onArchiveChange = onArchiveChange
         self.onVerify = onVerify
@@ -101,6 +110,12 @@ public struct ChatSettingsSheet: View {
                 .tint(.echoSignal)
             }
 
+            #if os(iOS)
+            if prefs.isHidden {
+                hiddenFolderPicker
+            }
+            #endif
+
             // Archive conversation (WO-198)
             row(icon: "archivebox", title: "Archive conversation") {
                 Toggle("", isOn: Binding(
@@ -136,6 +151,32 @@ public struct ChatSettingsSheet: View {
         .background(Color.echoPaper)
     }
 
+    #if os(iOS)
+    private var hiddenFolderPicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: Spacing.md.rawValue) {
+                Image(systemName: "folder.fill").frame(width: 24).foregroundColor(.echoInk55)
+                Text("Hidden folder")
+                    .font(.system(size: 15))
+                    .foregroundColor(.echoInk)
+                Spacer()
+            }
+            Picker("", selection: $hiddenFolderId) {
+                ForEach(HiddenFolderStore.all()) { folder in
+                    Text(folder.name).tag(folder.id)
+                }
+            }
+            .pickerStyle(.menu)
+            .onChange(of: hiddenFolderId) { _, newId in
+                HiddenFolderStore.assign(conversationId: conversationId, folderId: newId)
+            }
+        }
+        .padding(.horizontal, Spacing.lg.rawValue)
+        .padding(.vertical, Spacing.md.rawValue)
+        .overlay(Divider(), alignment: .bottom)
+    }
+    #endif
+
     @ViewBuilder
     private func row<Trailing: View>(
         icon: String,
@@ -167,6 +208,7 @@ struct ChatSettingsSheet_Previews: PreviewProvider {
     static var previews: some View {
         ChatSettingsSheet(
             contactName: "Aria Rao",
+            conversationId: "preview-conv",
             preferences: ConversationPreferences(isMuted: true, disappearing: .h24),
             onChange: { _ in }
         )

@@ -14,6 +14,8 @@ struct MediaBubbleView: View {
     @State private var isLoading = true
     @State private var loadError: String?
     @State private var waveformSamples: [CGFloat] = []
+    @State private var filecoinDeal: FilecoinDealInfo?
+    @State private var showFilecoinDetails = false
 
     private var mediaKind: MediaKind {
         MediaKind(rawValue: mediaRef.mediaKind) ?? .file
@@ -38,6 +40,10 @@ struct MediaBubbleView: View {
                 Text(caption)
                     .typographyStyle(.body, color: isSent ? .white : .echoPrimaryText)
                     .padding(.horizontal, Spacing.md.rawValue)
+            }
+
+            if let filecoinDeal, filecoinDeal.enabled {
+                filecoinDetailsRow(deal: filecoinDeal)
             }
 
             HStack(spacing: Spacing.xs.rawValue) {
@@ -160,6 +166,46 @@ struct MediaBubbleView: View {
         (0..<30).map { _ in CGFloat.random(in: 0.15...0.85) }
     }
 
+    @ViewBuilder
+    private func filecoinDetailsRow(deal: FilecoinDealInfo) -> some View {
+        Button {
+            showFilecoinDetails.toggle()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "archivebox.fill")
+                    .font(.system(size: 11))
+                Text("Filecoin archival")
+                    .font(.system(size: 11, weight: .medium))
+                if let cost = deal.costFil {
+                    Text("· \(cost) FIL")
+                        .font(.system(size: 11))
+                }
+                Image(systemName: showFilecoinDetails ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 9))
+            }
+            .foregroundStyle(isSent ? .white.opacity(0.85) : .echoInk55)
+        }
+        .buttonStyle(.plain)
+        if showFilecoinDetails {
+            VStack(alignment: .leading, spacing: 4) {
+                if let cid = deal.cid {
+                    Text("CID: \(cid)").font(.system(size: 10)).lineLimit(1)
+                }
+                if let expires = deal.expiresAt {
+                    Text("Expires: \(expires)").font(.system(size: 10))
+                }
+                if let days = deal.durationDays {
+                    Text("Duration: \(days) days").font(.system(size: 10))
+                }
+                if let status = deal.status {
+                    Text("Status: \(status)").font(.system(size: 10))
+                }
+            }
+            .frame(maxWidth: 280, alignment: isSent ? .trailing : .leading)
+            .foregroundStyle(isSent ? .white.opacity(0.75) : .echoInk55)
+        }
+    }
+
     private func loadMedia() async {
         guard let mediaService = DIContainer.shared.resolveMediaMessage() else {
             isLoading = false
@@ -187,6 +233,14 @@ struct MediaBubbleView: View {
             isLoading = false
             loadError = error.localizedDescription
         }
+        await loadFilecoinDeal()
+    }
+
+    private func loadFilecoinDeal() async {
+        guard let client = DIContainer.shared.resolveAPIClient().map({ LiveMediaAPIClient(apiClient: $0) }) else {
+            return
+        }
+        filecoinDeal = try? await client.fetchFilecoinDeal(fileId: mediaRef.fileId)
     }
 }
 #endif

@@ -51,6 +51,7 @@ enum MediaEndpoint: APIEndpoint {
     case uploadComplete
     case chunk(fileId: String, index: Int)
     case overflowManifest(fileId: String)
+    case filecoin(fileId: String)
 
     var path: String {
         switch self {
@@ -66,7 +67,27 @@ enum MediaEndpoint: APIEndpoint {
             return "/v3/media/\(fileId)/chunks/\(index)"
         case .overflowManifest(let fileId):
             return "/v3/media/\(fileId)/manifest"
+        case .filecoin(let fileId):
+            return "/v3/media/\(fileId)/filecoin"
         }
+    }
+}
+
+struct FilecoinDealInfo: Decodable, Sendable {
+    let enabled: Bool
+    let cid: String?
+    let dealId: String?
+    let status: String?
+    let costFil: String?
+    let expiresAt: String?
+    let durationDays: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case enabled, cid, status
+        case dealId = "deal_id"
+        case costFil = "cost_fil"
+        case expiresAt = "expires_at"
+        case durationDays = "duration_days"
     }
 }
 
@@ -75,6 +96,7 @@ protocol MediaAPIClient: Sendable {
     func downloadChunks(fileId: String, chunkCount: Int) async throws -> Data
     func fetchOverflowManifest(fileId: String) async throws -> OverflowManifest
     func downloadWithManifest(fileId: String) async throws -> Data
+    func fetchFilecoinDeal(fileId: String) async throws -> FilecoinDealInfo
 }
 
 actor LiveMediaAPIClient: MediaAPIClient {
@@ -216,6 +238,10 @@ actor LiveMediaAPIClient: MediaAPIClient {
     func downloadWithManifest(fileId: String) async throws -> Data {
         let manifest = try await fetchOverflowManifest(fileId: fileId)
         return try await downloadChunks(fileId: fileId, chunkCount: manifest.totalChunks)
+    }
+
+    func fetchFilecoinDeal(fileId: String) async throws -> FilecoinDealInfo {
+        try await apiClient.get(endpoint: MediaEndpoint.filecoin(fileId: fileId))
     }
 }
 #endif

@@ -320,6 +320,7 @@ struct ChatView: View {
         .sheet(isPresented: $showChatSettings) {
             ChatSettingsSheet(
                 contactName: contactName,
+                conversationId: conversationId,
                 preferences: ConversationPreferencesStore.shared.preferences(for: conversationId),
                 isArchived: ConversationArchiveStore.isArchived(conversationId: conversationId),
                 onChange: { [viewModel] newPrefs in

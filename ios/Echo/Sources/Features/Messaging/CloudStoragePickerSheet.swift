@@ -10,12 +10,15 @@ struct CloudStoragePickerSheet: View {
 
     @State private var message: String?
     @State private var isLoading = false
+    @State private var connected: [CloudStorageIntegrationManager.Provider] = []
+    @State private var browsingProvider: CloudStorageIntegrationManager.Provider?
+    @State private var remoteFiles: [CloudStorageIntegrationManager.RemoteFile] = []
 
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    Text("Files stream through encryption — nothing is stored unencrypted on device.")
+                    Text("Files stream through the backend proxy, then encrypt before upload.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -24,15 +27,31 @@ struct CloudStoragePickerSheet: View {
                         HStack {
                             VStack(alignment: .leading) {
                                 Text(provider.title)
-                                if CloudStorageIntegrationManager.connectedProviders().contains(provider) {
+                                if connected.contains(provider) {
                                     Text("Connected").font(.caption).foregroundStyle(.green)
                                 }
                             }
                             Spacer()
-                            if CloudStorageIntegrationManager.connectedProviders().contains(provider) {
-                                Button("Pick file") { Task { await pickStub(provider: provider) } }
+                            if connected.contains(provider) {
+                                Button("Browse") { Task { await browse(provider: provider) } }
                             } else {
                                 Button("Connect") { connect(provider: provider) }
+                            }
+                        }
+                    }
+                }
+                if let browsingProvider, !remoteFiles.isEmpty {
+                    Section("Files — \(browsingProvider.title)") {
+                        ForEach(remoteFiles) { file in
+                            Button {
+                                Task { await pickFile(provider: browsingProvider, file: file) }
+                            } label: {
+                                VStack(alignment: .leading) {
+                                    Text(file.name)
+                                    Text(ByteCountFormatter.string(fromByteCount: file.size, countStyle: .file))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
@@ -53,44 +72,83 @@ struct CloudStoragePickerSheet: View {
             .overlay {
                 if isLoading { ProgressView().controlSize(.large) }
             }
+            .task { connected = await CloudStorageIntegrationManager.connectedProviders() }
         }
     }
 
     private func connect(provider: CloudStorageIntegrationManager.Provider) {
-        let url = CloudStorageIntegrationManager.authorizationURL(provider: provider)
-        let session = ASWebAuthenticationSession(
-            url: url,
-            callbackURLScheme: "echo"
-        ) { callback, error in
-            if let error {
+        Task {
+            isLoading = true
+            defer { isLoading = false }
+            do {
+                let url = try await CloudStorageIntegrationManager.fetchAuthorizeURL(provider: provider)
+                await MainActor.run {
+                    let session = ASWebAuthenticationSession(
+                        url: url,
+                        callbackURLScheme: "echo"
+                    ) { callback, error in
+                        if let error {
+                            message = error.localizedDescription
+                            return
+                        }
+                        guard let callback,
+                              let code = URLComponents(url: callback, resolvingAgainstBaseURL: false)?
+                                .queryItems?
+                                .first(where: { $0.name == "code" })?
+                                .value else {
+                            message = "OAuth callback missing authorization code."
+                            return
+                        }
+                        Task {
+                            do {
+                                try await CloudStorageIntegrationManager.exchangeCode(code, provider: provider)
+                                connected = await CloudStorageIntegrationManager.connectedProviders()
+                                message = "\(provider.title) connected."
+                            } catch {
+                                message = error.localizedDescription
+                            }
+                        }
+                    }
+                    session.presentationContextProvider = CloudAuthContext.shared
+                    session.start()
+                }
+            } catch {
                 message = error.localizedDescription
-                return
-            }
-            guard let callback,
-                  let token = URLComponents(url: callback, resolvingAgainstBaseURL: false)?
-                    .queryItems?
-                    .first(where: { $0.name == "access_token" })?
-                    .value else {
-                message = "OAuth completed — paste token via Settings if redirect lacks access_token."
-                return
-            }
-            Task {
-                try? await CloudStorageIntegrationManager.saveToken(token, provider: provider)
-                message = "\(provider.title) connected."
             }
         }
-        session.presentationContextProvider = CloudAuthContext.shared
-        session.start()
     }
 
-    private func pickStub(provider: CloudStorageIntegrationManager.Provider) async {
+    private func browse(provider: CloudStorageIntegrationManager.Provider) async {
         isLoading = true
         defer { isLoading = false }
-        // MVP: cloud picker streams via backend proxy in a later WO; demo encrypted payload path.
-        let sample = Data("echo-cloud-file-placeholder".utf8)
-        onFileData(sample, "application/octet-stream")
-        message = "Selected file from \(provider.title) (stub stream)."
-        dismiss()
+        do {
+            remoteFiles = try await CloudStorageIntegrationManager.listFiles(provider: provider)
+            browsingProvider = provider
+            if remoteFiles.isEmpty {
+                message = "No files found in \(provider.title)."
+            }
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    private func pickFile(
+        provider: CloudStorageIntegrationManager.Provider,
+        file: CloudStorageIntegrationManager.RemoteFile
+    ) async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let (data, mime) = try await CloudStorageIntegrationManager.downloadFile(
+                provider: provider,
+                fileID: file.id
+            )
+            let resolvedMime = file.mimeType.isEmpty ? mime : file.mimeType
+            onFileData(data, resolvedMime)
+            dismiss()
+        } catch {
+            message = error.localizedDescription
+        }
     }
 }
 

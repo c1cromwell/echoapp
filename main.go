@@ -248,6 +248,7 @@ func (s *Server) Start() error {
 	storage = wrapFilecoinArchiver(storage)
 	mediaSvc := media.NewService(db, storage)
 	mediaSvc.DataL1 = router.DataL1 // D3: anchor media content roots on Data L1
+	go media.NewRenewalService(mediaSvc).Run(context.Background())
 
 	// D2: private (OPRF-PSI) contact discovery. Degrades gracefully — if the key
 	// is unset in production, discovery is disabled rather than failing startup.

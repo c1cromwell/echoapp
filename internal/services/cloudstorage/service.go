@@ -46,6 +46,14 @@ func (s *Service) SaveToken(did string, tok Token) {
 	s.tokens[did][tok.Provider] = tok
 }
 
+// GetToken returns a stored token for a DID/provider.
+func (s *Service) GetToken(did string, provider Provider) (Token, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	tok, ok := s.tokens[did][provider]
+	return tok, ok && tok.AccessToken != ""
+}
+
 // ListProviders returns connected providers for a DID.
 func (s *Service) ListProviders(did string) []Provider {
 	s.mu.RLock()
@@ -72,14 +80,5 @@ func (s *Service) Revoke(did string, provider Provider) error {
 
 // AuthURL returns the OAuth authorize URL for a provider (stub).
 func AuthURL(provider Provider, redirectURI string) string {
-	switch provider {
-	case GoogleDrive:
-		return "https://accounts.google.com/o/oauth2/v2/auth?scope=https://www.googleapis.com/auth/drive.readonly&redirect_uri=" + redirectURI
-	case Dropbox:
-		return "https://www.dropbox.com/oauth2/authorize?token_access_type=offline&redirect_uri=" + redirectURI
-	case OneDrive:
-		return "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?scope=files.read&redirect_uri=" + redirectURI
-	default:
-		return ""
-	}
+	return AuthURLWithConfig(provider, redirectURI, LoadOAuthConfig())
 }

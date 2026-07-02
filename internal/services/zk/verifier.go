@@ -34,11 +34,7 @@ func (v *Verifier) Verify(req VerifyRequest) (VerifyResult, error) {
 		return VerifyResult{}, fmt.Errorf("subject_did, claim_type, proof and nonce required")
 	}
 	if strings.HasPrefix(req.Proof, "midnight:") {
-		return VerifyResult{
-			Verified: false,
-			Mode:     "midnight",
-			Detail:   "Midnight proof envelope detected; native verification not enabled",
-		}, nil
+		return verifyMidnightEnvelope(req)
 	}
 	expected := commitmentHash(req.SubjectDID, req.ClaimType, req.Nonce)
 	proof := strings.TrimSpace(req.Proof)

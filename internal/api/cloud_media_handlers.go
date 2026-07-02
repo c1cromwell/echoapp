@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/services/cloudstorage"
 	"github.com/thechadcromwell/echoapp/internal/services/media"
@@ -47,6 +48,33 @@ func (h *V3Handlers) handleCloudIntegrationByProvider(w http.ResponseWriter, r *
 		return
 	}
 	p := cloudstorage.Provider(provider)
+	path := strings.TrimPrefix(r.URL.Path, "/v3/integrations/cloud/")
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	if len(parts) == 0 {
+		WriteError(w, http.StatusBadRequest, "INVALID_PROVIDER", "provider required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	provider = parts[0]
+	p = cloudstorage.Provider(provider)
+
+	// Sub-routes: callback, files, files/{id}/stream
+	if len(parts) >= 2 {
+		switch parts[1] {
+		case "callback":
+			h.handleCloudOAuthCallback(w, r, did, p)
+			return
+		case "files":
+			if len(parts) == 2 {
+				h.handleCloudListFiles(w, r, did, p)
+				return
+			}
+			if len(parts) == 4 && parts[3] == "stream" {
+				h.handleCloudStreamFile(w, r, did, p, parts[2])
+				return
+			}
+		}
+	}
+
 	switch r.Method {
 	case http.MethodPost:
 		var req struct {
@@ -81,6 +109,78 @@ func (h *V3Handlers) handleCloudIntegrationByProvider(w http.ResponseWriter, r *
 	default:
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "GET, POST, or DELETE", r.Header.Get("X-Request-ID"))
 	}
+}
+
+func (h *V3Handlers) handleCloudOAuthCallback(w http.ResponseWriter, r *http.Request, did string, p cloudstorage.Provider) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		Code        string `json:"code"`
+		RedirectURI string `json:"redirect_uri"`
+	}
+	if err := h.readJSON(r, &req); err != nil || req.Code == "" {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "code required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	redirect := req.RedirectURI
+	if redirect == "" {
+		redirect = "echo://oauth/cloud"
+	}
+	cfg := cloudstorage.LoadOAuthConfig()
+	tokens, err := cloudstorage.ExchangeCode(p, req.Code, redirect, cfg)
+	if err != nil {
+		WriteError(w, http.StatusBadGateway, "OAUTH_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	tok := cloudstorage.Token{Provider: p, AccessToken: tokens.AccessToken, Refresh: tokens.RefreshToken}
+	if tokens.ExpiresIn > 0 {
+		tok.ExpiresAt = time.Now().Add(time.Duration(tokens.ExpiresIn) * time.Second)
+	}
+	h.CloudStorage.SaveToken(did, tok)
+	WriteJSON(w, http.StatusCreated, map[string]string{"provider": string(p), "status": "connected"})
+}
+
+func (h *V3Handlers) handleCloudListFiles(w http.ResponseWriter, r *http.Request, did string, p cloudstorage.Provider) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET", r.Header.Get("X-Request-ID"))
+		return
+	}
+	cfg := cloudstorage.LoadOAuthConfig()
+	token, err := h.CloudStorage.AccessToken(did, p, cfg)
+	if err != nil {
+		WriteError(w, http.StatusUnauthorized, "NOT_CONNECTED", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	files, err := cloudstorage.ListFiles(r.Context(), p, token)
+	if err != nil {
+		WriteError(w, http.StatusBadGateway, "CLOUD_LIST_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]interface{}{"files": files})
+}
+
+func (h *V3Handlers) handleCloudStreamFile(w http.ResponseWriter, r *http.Request, did string, p cloudstorage.Provider, fileID string) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET", r.Header.Get("X-Request-ID"))
+		return
+	}
+	cfg := cloudstorage.LoadOAuthConfig()
+	token, err := h.CloudStorage.AccessToken(did, p, cfg)
+	if err != nil {
+		WriteError(w, http.StatusUnauthorized, "NOT_CONNECTED", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	data, mime, err := cloudstorage.StreamFile(r.Context(), p, token, fileID)
+	if err != nil {
+		WriteError(w, http.StatusBadGateway, "CLOUD_STREAM_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	w.Header().Set("Content-Type", mime)
+	w.Header().Set("X-Cloud-File-Id", fileID)
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
 }
 
 // WireMediaResumable registers chunked upload resume routes (WO-21/34).
@@ -233,12 +333,22 @@ func (h *V3Handlers) handleMediaFilecoin(w http.ResponseWriter, r *http.Request,
 		})
 		return
 	}
-	WriteJSON(w, http.StatusOK, map[string]interface{}{
+	resp := map[string]interface{}{
 		"file_id":  fileID,
 		"enabled":  true,
 		"cid":      deal.CID,
 		"deal_id":  deal.DealID,
 		"status":   deal.Status,
 		"provider": deal.Provider,
-	})
+	}
+	if !deal.ExpiresAt.IsZero() {
+		resp["expires_at"] = deal.ExpiresAt.UTC().Format(time.RFC3339)
+	}
+	if deal.CostFIL != "" {
+		resp["cost_fil"] = deal.CostFIL
+	}
+	if deal.DurationDays > 0 {
+		resp["duration_days"] = deal.DurationDays
+	}
+	WriteJSON(w, http.StatusOK, resp)
 }

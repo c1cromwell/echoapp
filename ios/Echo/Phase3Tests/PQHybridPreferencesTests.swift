@@ -44,5 +44,14 @@ final class PQHybridPreferencesTests: XCTestCase {
         XCTAssertEqual(secretA, secretB)
         XCTAssertEqual(secretA.count, 32)
     }
+
+    /// Device E2E (two clients): export `ECHO_PQ_ENABLED=true` on backend, confirm
+    /// `GET /v3/pq/status` → `available: true`, then enable PQ in Privacy Hub on both devices
+    /// and exchange a ratchet pre-key (signal path uses `PQHybridBootstrap`).
+    func testPQDeviceE2EPrerequisites() {
+        XCTAssertTrue(PQHybridBootstrap.isPlatformSupported)
+        let active = PQHybridPreferences.usePQBootstrap && PQHybridBootstrap.isPlatformSupported
+        XCTAssertEqual(PQHybridBootstrap.isActive, active)
+    }
 }
 #endif

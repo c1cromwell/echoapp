@@ -40,10 +40,13 @@ func NewFilecoinArchiver() (*FilecoinArchiver, error) {
 
 // FilecoinDeal describes a storage deal request outcome.
 type FilecoinDeal struct {
-	CID      string `json:"cid"`
-	DealID   string `json:"deal_id,omitempty"`
-	Provider string `json:"provider,omitempty"`
-	Status   string `json:"status"`
+	CID          string    `json:"cid"`
+	DealID       string    `json:"deal_id,omitempty"`
+	Provider     string    `json:"provider,omitempty"`
+	Status       string    `json:"status"`
+	ExpiresAt    time.Time `json:"expires_at,omitempty"`
+	CostFIL      string    `json:"cost_fil,omitempty"`
+	DurationDays int       `json:"duration_days,omitempty"`
 }
 
 // CreateDeal pins an existing IPFS CID for Filecoin replication.
@@ -87,10 +90,18 @@ func (f *FilecoinArchiver) CreateDeal(ctx context.Context, cid string, durationD
 		return &FilecoinDeal{CID: cid, Status: "submitted"}, nil
 	}
 	return &FilecoinDeal{
-		CID:    out.Pin.CID,
-		DealID: fmt.Sprintf("%d", out.Pin.DealID),
-		Status: "submitted",
+		CID:          out.Pin.CID,
+		DealID:       fmt.Sprintf("%d", out.Pin.DealID),
+		Status:       "active",
+		DurationDays: durationDays,
+		ExpiresAt:    time.Now().Add(time.Duration(durationDays) * 24 * time.Hour),
+		CostFIL:      estimateDealCostFIL(durationDays),
 	}, nil
+}
+
+func estimateDealCostFIL(durationDays int) string {
+	// MVP estimate for UI; replace with Estuary quote API when wired.
+	return fmt.Sprintf("%.4f", float64(durationDays)*0.0001)
 }
 
 // ArchivingBackend optionally archives CIDs to Filecoin after IPFS pin.
@@ -130,4 +141,33 @@ func (a *ArchivingBackend) DealForKey(key string) *FilecoinDeal {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	return a.deals[key]
+}
+
+// AllDeals returns a snapshot of tracked deals (for renewal cron).
+func (a *ArchivingBackend) AllDeals() map[string]*FilecoinDeal {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	out := make(map[string]*FilecoinDeal, len(a.deals))
+	for k, v := range a.deals {
+		out[k] = v
+	}
+	return out
+}
+
+// RenewDeal extends or recreates a deal for an existing CID.
+func (a *ArchivingBackend) RenewDeal(ctx context.Context, key string, durationDays int) (*FilecoinDeal, error) {
+	a.mu.Lock()
+	prev := a.deals[key]
+	a.mu.Unlock()
+	if prev == nil || prev.CID == "" || a.archiver == nil {
+		return nil, fmt.Errorf("no deal for key %q", key)
+	}
+	deal, err := a.archiver.CreateDeal(ctx, prev.CID, durationDays)
+	if err != nil {
+		return nil, err
+	}
+	a.mu.Lock()
+	a.deals[key] = deal
+	a.mu.Unlock()
+	return deal, nil
 }
