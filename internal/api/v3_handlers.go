@@ -759,6 +759,8 @@ func (h *V3Handlers) handleMediaGet(w http.ResponseWriter, r *http.Request) {
 		h.handleMediaChunks(w, r, fileID)
 	case len(parts) == 3 && parts[1] == "chunks":
 		h.handleMediaChunkData(w, r, fileID, parts[2])
+	case len(parts) == 2 && parts[1] == "filecoin":
+		h.handleMediaFilecoin(w, r, fileID)
 	case len(parts) == 2 && parts[1] == "manifest":
 		h.handleMediaManifest(w, r, fileID)
 	case len(parts) == 2 && parts[1] == "scan":

@@ -11,6 +11,8 @@ struct HiddenFolderSettingsView: View {
     @State private var duressPIN = ""
     @State private var duressPINConfirm = ""
     @State private var settingsMessage: String?
+    @State private var showBackupSheet = false
+    @State private var newFolderName = ""
 
     private let store = HiddenFolderSettingsStore.shared
 
@@ -53,6 +55,39 @@ struct HiddenFolderSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                Section("Folders") {
+                    ForEach(HiddenFolderStore.all()) { folder in
+                        HStack {
+                            Text(folder.name)
+                            Spacer()
+                            Text("\(folder.conversationIds.count) chats")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    HStack {
+                        TextField("New folder name", text: $newFolderName)
+                        Button("Add") {
+                            do {
+                                _ = try HiddenFolderStore.create(name: newFolderName)
+                                newFolderName = ""
+                            } catch {
+                                settingsMessage = error.localizedDescription
+                            }
+                        }
+                        .disabled(newFolderName.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                }
+
+                Section("Backup & recovery") {
+                    Button("Backup settings") { showBackupSheet = true }
+                    Text(HiddenFolderBackupScheduler.isPhraseConfigured
+                         ? "Recovery phrase configured."
+                         : "Set a recovery phrase to enable encrypted backups.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("Duress PIN") {
                     SecureField("New PIN (4–8 digits)", text: $duressPIN)
                         .keyboardType(.numberPad)
@@ -90,6 +125,9 @@ struct HiddenFolderSettingsView: View {
                 }
             }
             .onAppear { load() }
+            .sheet(isPresented: $showBackupSheet) {
+                HiddenFolderBackupSheet()
+            }
         }
     }
 

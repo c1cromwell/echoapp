@@ -7,6 +7,7 @@ struct AttachmentPickerView: View {
     var onImageSelected: (Data, String) -> Void
     var onVideoSelected: (Data, String) -> Void
     var onFileSelected: (Data, String) -> Void
+    var onCloudTapped: (() -> Void)?
     var onVoiceNoteTapped: () -> Void
     var onPollTapped: (() -> Void)?
     var onPaymentTapped: (() -> Void)?
@@ -27,6 +28,12 @@ struct AttachmentPickerView: View {
                 }
                 attachmentButton(icon: "doc.fill", label: "File") {
                     showFilePicker = true
+                }
+                if let onCloudTapped {
+                    attachmentButton(icon: "icloud.fill", label: "Cloud") {
+                        isPresented = false
+                        onCloudTapped()
+                    }
                 }
                 if let onPollTapped {
                     attachmentButton(icon: "chart.bar", label: "Poll") {

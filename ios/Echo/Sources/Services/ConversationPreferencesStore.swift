@@ -122,6 +122,7 @@ public final class ConversationPreferencesStore {
         #if os(iOS)
         ConversationThreadStore.migrateStorageEncryption(conversationId: conversationId)
         if hidden {
+            HiddenFolderStore.assign(conversationId: conversationId, folderId: HiddenFolderStore.defaultFolderId())
             Task { await HiddenChatsSession.shared.preloadFolderKeys() }
         }
         #endif

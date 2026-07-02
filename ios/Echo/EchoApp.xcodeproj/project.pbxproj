@@ -317,6 +317,12 @@
 		P5B010SCHEDCR0000000010 /* ScheduledMessageCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F010SCHEDCR0000000010 /* ScheduledMessageCrypto.swift */; };
 		P6B003CLOUD000000000003 /* CloudStorageIntegrationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F003CLOUD000000000003 /* CloudStorageIntegrationManager.swift */; };
 		P6B004SCREEN00000000004 /* ScreenShareCapturer.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F004SCREEN00000000004 /* ScreenShareCapturer.swift */; };
+		P5B011HFSTORE0000000011 /* HiddenFolderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F011HFSTORE0000000011 /* HiddenFolderStore.swift */; };
+		P5B012HFBKPSCH000000012 /* HiddenFolderBackupScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F012HFBKPSCH000000012 /* HiddenFolderBackupScheduler.swift */; };
+		P5B013HFBAKSH0000000013 /* HiddenFolderBackupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F013HFBAKSH0000000013 /* HiddenFolderBackupSheet.swift */; };
+		P6B005MEDRES00000000005 /* MediaUploadResumeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F005MEDRES00000000005 /* MediaUploadResumeStore.swift */; };
+		P6B006CLOUDPICK000000006 /* CloudStoragePickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F006CLOUDPICK000000006 /* CloudStoragePickerSheet.swift */; };
+		P5B014ZKCOMM00000000014 /* ZKCommitmentProof.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F014ZKCOMM00000000014 /* ZKCommitmentProof.swift */; };
 		P6B001CHANNELS0000000001 /* ChannelsAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F001CHANNELS0000000001 /* ChannelsAPIClient.swift */; };
 		P6B002CHANNELS0000000002 /* ChannelsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F002CHANNELS0000000002 /* ChannelsListView.swift */; };
 		G7B001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = G7F001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift */; };
@@ -773,6 +779,12 @@
 		P5F010SCHEDCR0000000010 /* ScheduledMessageCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledMessageCrypto.swift; sourceTree = "<group>"; };
 		P6F003CLOUD000000000003 /* CloudStorageIntegrationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudStorageIntegrationManager.swift; sourceTree = "<group>"; };
 		P6F004SCREEN00000000004 /* ScreenShareCapturer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenShareCapturer.swift; sourceTree = "<group>"; };
+		P5F011HFSTORE0000000011 /* HiddenFolderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderStore.swift; sourceTree = "<group>"; };
+		P5F012HFBKPSCH000000012 /* HiddenFolderBackupScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderBackupScheduler.swift; sourceTree = "<group>"; };
+		P5F013HFBAKSH0000000013 /* HiddenFolderBackupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderBackupSheet.swift; sourceTree = "<group>"; };
+		P6F005MEDRES00000000005 /* MediaUploadResumeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaUploadResumeStore.swift; sourceTree = "<group>"; };
+		P6F006CLOUDPICK000000006 /* CloudStoragePickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudStoragePickerSheet.swift; sourceTree = "<group>"; };
+		P5F014ZKCOMM00000000014 /* ZKCommitmentProof.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZKCommitmentProof.swift; sourceTree = "<group>"; };
 		P6F001CHANNELS0000000001 /* ChannelsAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelsAPIClient.swift; sourceTree = "<group>"; };
 		P6F002CHANNELS0000000002 /* ChannelsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelsListView.swift; sourceTree = "<group>"; };
 		G7F001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/GamificationAPIClient.swift; sourceTree = "<group>"; };
@@ -1081,6 +1093,9 @@
 				P5F006PQMODE000000000006 /* PostQuantumModeStore.swift */,
 				P5F009HFBKP000000000009 /* HiddenFolderBackupManager.swift */,
 				P5F010SCHEDCR0000000010 /* ScheduledMessageCrypto.swift */,
+				P5F011HFSTORE0000000011 /* HiddenFolderStore.swift */,
+				P5F012HFBKPSCH000000012 /* HiddenFolderBackupScheduler.swift */,
+				P6F005MEDRES00000000005 /* MediaUploadResumeStore.swift */,
 				P6F003CLOUD000000000003 /* CloudStorageIntegrationManager.swift */,
 				P6F001CHANNELS0000000001 /* ChannelsAPIClient.swift */,
 				M3F011SYNC00000000000011 /* GroupCallSignalingService.swift */,
@@ -1175,6 +1190,7 @@
 				3141640DB14B49719F5CD49A /* Sources/Core/Security/StepUpAuthManager.swift */,
 				S5F001HIDDEN000000000001 /* Sources/Core/Security/HiddenThreadCrypto.swift */,
 				P5F008HFKEY000000000008 /* HiddenFolderKeyManager.swift */,
+				P5F014ZKCOMM00000000014 /* ZKCommitmentProof.swift */,
 				S5F007HIDDEN000000000007 /* Sources/Core/Security/ScreenCaptureGuard.swift */,
 				3C4FB342BDBA4A46BCB6A489 /* Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift */,
 				C3F638568F074357AEE51CD9 /* Sources/Features/Onboarding/VIP/VIPPathView.swift */,
@@ -1310,6 +1326,8 @@
 				W0E001012345678901234005 /* ChatDestinationView.swift */,
 				S5F005HIDDEN000000000005 /* Sources/Features/Messaging/HiddenFolderGateSheet.swift */,
 				S5F006HIDDEN000000000006 /* Sources/Features/Messaging/HiddenFolderSettingsView.swift */,
+				P5F013HFBAKSH0000000013 /* HiddenFolderBackupSheet.swift */,
+				P6F006CLOUDPICK000000006 /* CloudStoragePickerSheet.swift */,
 				W0E001012345678901234015 /* ConversationSignalLogic.swift */,
 				W0E001012345678901234024 /* InboundTextMessageResolver.swift */,
 				W0E001012345678901234026 /* ActiveChatRegistry.swift */,
@@ -2261,6 +2279,12 @@
 				P5B010SCHEDCR0000000010 /* ScheduledMessageCrypto.swift in Sources */,
 				P6B003CLOUD000000000003 /* CloudStorageIntegrationManager.swift in Sources */,
 				P6B004SCREEN00000000004 /* ScreenShareCapturer.swift in Sources */,
+				P5B011HFSTORE0000000011 /* HiddenFolderStore.swift in Sources */,
+				P5B012HFBKPSCH000000012 /* HiddenFolderBackupScheduler.swift in Sources */,
+				P5B013HFBAKSH0000000013 /* HiddenFolderBackupSheet.swift in Sources */,
+				P6B005MEDRES00000000005 /* MediaUploadResumeStore.swift in Sources */,
+				P6B006CLOUDPICK000000006 /* CloudStoragePickerSheet.swift in Sources */,
+				P5B014ZKCOMM00000000014 /* ZKCommitmentProof.swift in Sources */,
 				P6B001CHANNELS0000000001 /* ChannelsAPIClient.swift in Sources */,
 				P6B002CHANNELS0000000002 /* ChannelsListView.swift in Sources */,
 				59377B9DF47C401D5068938A /* AppState.swift in Sources */,

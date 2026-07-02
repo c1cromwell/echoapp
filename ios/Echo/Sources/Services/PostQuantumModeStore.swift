@@ -1,13 +1,14 @@
 #if os(iOS)
 import Foundation
 
-/// Post-quantum mode opt-in (WO-257).
+/// Post-quantum mode opt-in (WO-257) — mirrors PQ hybrid ratchet bootstrap.
 enum PostQuantumModeStore {
     private static let key = "echo.pq.mode.enabled"
 
     static var isEnabled: Bool {
-        get { UserDefaults.standard.bool(forKey: key) }
+        get { PQHybridPreferences.usePQBootstrap }
         set {
+            PQHybridPreferences.usePQBootstrap = newValue
             UserDefaults.standard.set(newValue, forKey: key)
             if newValue {
                 Task { _ = try? await PQHybridKeyStore.shared.loadOrGenerateBundle() }
@@ -15,6 +16,6 @@ enum PostQuantumModeStore {
         }
     }
 
-    static var isAvailable: Bool { true }
+    static var isAvailable: Bool { PQHybridBootstrap.isPlatformSupported }
 }
 #endif

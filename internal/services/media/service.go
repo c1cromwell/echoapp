@@ -267,6 +267,19 @@ func (s *Service) RetrieveChunk(ctx context.Context, fileID string, index int) (
 	return s.storage.Retrieve(ctx, target.ChunkID)
 }
 
+// FilecoinDealForFile returns archival deal metadata when Filecoin backend is enabled (WO-185).
+func (s *Service) FilecoinDealForFile(ctx context.Context, fileID string) *FilecoinDeal {
+	ab, ok := s.storage.(*ArchivingBackend)
+	if !ok {
+		return nil
+	}
+	chunks, err := s.db.GetChunks(ctx, fileID)
+	if err != nil || len(chunks) == 0 {
+		return nil
+	}
+	return ab.DealForKey(chunks[0].ChunkID)
+}
+
 // SubmitForScan submits a file for virus/content scanning.
 func (s *Service) SubmitForScan(ctx context.Context, fileID string) error {
 	_, err := s.db.GetMediaFile(ctx, fileID)

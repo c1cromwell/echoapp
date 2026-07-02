@@ -215,3 +215,30 @@ func (h *V3Handlers) handleMediaManifest(w http.ResponseWriter, r *http.Request,
 		"complete":         false,
 	})
 }
+
+func (h *V3Handlers) handleMediaFilecoin(w http.ResponseWriter, r *http.Request, fileID string) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Media == nil {
+		WriteError(w, http.StatusServiceUnavailable, "MEDIA_UNAVAILABLE", "Media service not configured", r.Header.Get("X-Request-ID"))
+		return
+	}
+	deal := h.Media.FilecoinDealForFile(r.Context(), fileID)
+	if deal == nil {
+		WriteJSON(w, http.StatusOK, map[string]interface{}{
+			"file_id": fileID,
+			"enabled": false,
+		})
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"file_id":  fileID,
+		"enabled":  true,
+		"cid":      deal.CID,
+		"deal_id":  deal.DealID,
+		"status":   deal.Status,
+		"provider": deal.Provider,
+	})
+}

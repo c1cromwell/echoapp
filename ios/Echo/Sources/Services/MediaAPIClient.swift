@@ -109,21 +109,64 @@ actor LiveMediaAPIClient: MediaAPIClient {
                 case totalChunks = "total_chunks"
             }
         }
+        struct ManifestResponse: Decodable {
+            let fileId: String
+            let totalChunks: Int
+            let receivedChunks: Int?
+            enum CodingKeys: String, CodingKey {
+                case fileId = "file_id"
+                case totalChunks = "total_chunks"
+                case receivedChunks = "received_chunks"
+            }
+        }
         struct CompleteBody: Encodable {
             let fileId: String
             enum CodingKeys: String, CodingKey { case fileId = "file_id" }
         }
-        let initResp: InitResponse = try await apiClient.postRaw(
-            endpoint: MediaEndpoint.uploadInit,
-            body: Data(),
-            extraHeaders: [
-                "Content-Type": mimeType,
-                "X-Encrypted-Size": String(data.count),
-                "X-Trust-Tier": String(trustTier),
-            ]
-        )
-        let chunkCount = initResp.totalChunks
-        for index in 0..<chunkCount {
+
+        var resumeState = MediaUploadResumeStore.pending().first {
+            $0.encryptedSize == data.count && $0.mimeType == mimeType && $0.trustTier == trustTier
+        }
+        let fileId: String
+        let chunkCount: Int
+        if let existing = resumeState {
+            fileId = existing.fileId
+            chunkCount = existing.totalChunks
+        } else {
+            let initResp: InitResponse = try await apiClient.postRaw(
+                endpoint: MediaEndpoint.uploadInit,
+                body: Data(),
+                extraHeaders: [
+                    "Content-Type": mimeType,
+                    "X-Encrypted-Size": String(data.count),
+                    "X-Trust-Tier": String(trustTier),
+                ]
+            )
+            fileId = initResp.fileId
+            chunkCount = initResp.totalChunks
+            let created = MediaUploadResumeState(
+                fileId: fileId,
+                totalChunks: chunkCount,
+                mimeType: mimeType,
+                trustTier: trustTier,
+                encryptedSize: data.count,
+                receivedChunks: [],
+                createdAt: Date()
+            )
+            resumeState = created
+            MediaUploadResumeStore.save(created)
+        }
+
+        var received = resumeState?.receivedChunks ?? []
+        if received.isEmpty,
+           let manifest: ManifestResponse = try? await apiClient.get(endpoint: MediaEndpoint.overflowManifest(fileId: fileId)) {
+            let already = manifest.receivedChunks ?? 0
+            if already > 0 {
+                received = Set(0..<min(already, chunkCount))
+            }
+        }
+
+        for index in 0..<chunkCount where !received.contains(index) {
             let start = index * Self.chunkSize
             let end = min(start + Self.chunkSize, data.count)
             let slice = data.subdata(in: start..<end)
@@ -131,15 +174,29 @@ actor LiveMediaAPIClient: MediaAPIClient {
                 endpoint: MediaEndpoint.uploadChunk,
                 body: slice,
                 extraHeaders: [
-                    "X-File-Id": initResp.fileId,
+                    "X-File-Id": fileId,
                     "X-Chunk-Index": String(index),
                 ]
             )
+            received.insert(index)
+            var state = resumeState ?? MediaUploadResumeState(
+                fileId: fileId,
+                totalChunks: chunkCount,
+                mimeType: mimeType,
+                trustTier: trustTier,
+                encryptedSize: data.count,
+                receivedChunks: received,
+                createdAt: Date()
+            )
+            state.receivedChunks = received
+            MediaUploadResumeStore.save(state)
         }
-        return try await apiClient.post(
+        let result: MediaUploadResponse = try await apiClient.post(
             endpoint: MediaEndpoint.uploadComplete,
-            body: CompleteBody(fileId: initResp.fileId)
+            body: CompleteBody(fileId: fileId)
         )
+        MediaUploadResumeStore.clear(fileId: fileId)
+        return result
     }
 
     func downloadChunks(fileId: String, chunkCount: Int) async throws -> Data {

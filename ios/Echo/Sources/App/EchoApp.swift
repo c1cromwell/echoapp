@@ -38,6 +38,8 @@ struct EchoApp: App {
             case .active:
                 DisappearingMessageBGTask.scheduleNext()
                 ScheduledMessageBGTask.scheduleNext()
+                HiddenChatsSession.shared.refreshForegroundLockIfNeeded()
+                BackupScheduler.runIfDue()
                 Task {
                     let storageKey = SecureEnclaveManager.shared.deriveStorageKey(
                         keyId: "echo-identity-signing"

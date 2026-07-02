@@ -158,6 +158,7 @@ struct ChatView: View {
     @State private var showVideoCall = false
     @State private var showScheduleMessage = false
     @State private var scheduleSourceText = ""
+    @State private var showCloudPicker = false
 
     let contactName: String
     let conversationId: String
@@ -471,6 +472,11 @@ struct ChatView: View {
                 )
             }
         }
+        .sheet(isPresented: $showCloudPicker) {
+            CloudStoragePickerSheet { data, mime in
+                Task { await viewModel.sendMedia(data: data, mimeType: mime, mediaKind: .file) }
+            }
+        }
         .fullScreenCover(isPresented: $showVoiceCall) {
             CallView(peerDID: peerDID, callType: .voice, contactName: contactName)
         }
@@ -718,6 +724,9 @@ struct ChatView: View {
                     },
                     onFileSelected: { data, mime in
                         Task { await viewModel.sendMedia(data: data, mimeType: mime, mediaKind: .file) }
+                    },
+                    onCloudTapped: {
+                        showCloudPicker = true
                     },
                     onVoiceNoteTapped: {
                         try? voiceRecorder.startRecording()
