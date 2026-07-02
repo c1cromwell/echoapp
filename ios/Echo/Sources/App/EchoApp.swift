@@ -10,6 +10,7 @@ struct EchoApp: App {
 
     init() {
         #if ECHO_PRODUCT_MESSAGING
+        DisappearingMessageBGTask.register()
         let provisionService = SilentProvisionService(
             secureEnclave: RealProvisionSecureEnclave(),
             api: RealProvisionAPI(),
@@ -34,6 +35,7 @@ struct EchoApp: App {
             #if ECHO_PRODUCT_MESSAGING
             switch newPhase {
             case .active:
+                DisappearingMessageBGTask.scheduleNext()
                 Task {
                     let storageKey = SecureEnclaveManager.shared.deriveStorageKey(
                         keyId: "echo-identity-signing"

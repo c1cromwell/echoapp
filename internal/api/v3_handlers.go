@@ -62,6 +62,8 @@ type V3Handlers struct {
 	BotRateLimiter  *bots.RateLimiter                             // optional; WO-11 bot send velocity
 	BotWebhooks     *bots.WebhookRegistry                         // optional; WO-11 inbound webhooks
 	Wallet          *WalletHandlers                               // optional; Currency L1 wallet + staking
+	DisappearingRestrictions *messaging.DisappearingRestrictionService // WO-115 trust-tier TTL policy
+	GroupAnchoring  *groups.GroupAnchoringService                 // WO-156 group metadata anchoring
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.
@@ -128,6 +130,10 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 
 	// Conversation-scoped endpoints (pins list, retention flag)
 	mux.HandleFunc("/v3/conversations/", h.handleConversationsSubroute)
+
+	// Disappearing message trust restrictions (WO-115)
+	mux.HandleFunc("/v3/disappearing/restrictions", h.handleDisappearingRestrictions)
+	mux.HandleFunc("/v3/disappearing/appeals", h.handleDisappearingAppeals)
 
 	// Device history sync (WO-CA3) — content-blind per-device streams
 	mux.HandleFunc("/v3/sync/push", h.handleSyncPush)
@@ -1687,6 +1693,10 @@ func (h *V3Handlers) handleConversationsSubroute(w http.ResponseWriter, r *http.
 			WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
 			return
 		}
+		tier := TrustTierFromContext(r.Context(), 1)
+		if !validateDisappearingTTL(w, r, tier, req.TTLSeconds, h.DisappearingRestrictions, h.getDID(r)) {
+			return
+		}
 		if req.TTLSeconds > 0 && h.Comply != nil && h.Comply.BlocksDisappearing(r.Context(), convID) {
 			WriteError(w, http.StatusForbidden, "RETENTION_POLICY_ACTIVE", "retention_policy_active", r.Header.Get("X-Request-ID"))
 			return
@@ -1769,6 +1779,11 @@ func (h *V3Handlers) handleGroupCreate(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusBadRequest, "GROUP_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
+	if h.GroupAnchoring != nil {
+		if _, err := h.GroupAnchoring.AnchorGroupCreated(r.Context(), group.GroupID, ownerDID, group.CurrentMembers); err != nil {
+			log.Printf("group anchoring failed for %s: %v", group.GroupID, err)
+		}
+	}
 	WriteJSON(w, http.StatusCreated, group)
 }
 
@@ -1833,6 +1848,11 @@ func (h *V3Handlers) handleGroupAddMember(w http.ResponseWriter, r *http.Request
 		WriteError(w, http.StatusBadRequest, "MEMBER_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
+	if h.GroupAnchoring != nil {
+		if g, gErr := h.Groups.GetGroup(req.GroupID); gErr == nil {
+			h.GroupAnchoring.QueueMembershipUpdate(req.GroupID, g.OwnerID, g.CurrentMembers)
+		}
+	}
 	WriteJSON(w, http.StatusCreated, map[string]interface{}{
 		"member":         member,
 		"requires_rekey": true,
@@ -1875,6 +1895,11 @@ func (h *V3Handlers) handleGroupRemoveMember(w http.ResponseWriter, r *http.Requ
 	if err := h.Groups.RemoveMember(req.GroupID, req.MemberID); err != nil {
 		WriteError(w, http.StatusNotFound, "MEMBER_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
+	}
+	if h.GroupAnchoring != nil {
+		if g, gErr := h.Groups.GetGroup(req.GroupID); gErr == nil {
+			h.GroupAnchoring.QueueMembershipUpdate(req.GroupID, g.OwnerID, g.CurrentMembers)
+		}
 	}
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"status":         "removed",

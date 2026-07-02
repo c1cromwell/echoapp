@@ -6,6 +6,8 @@ public struct ChatSettingsSheet: View {
     let contactName: String
     @State private var prefs: ConversationPreferences
     @State private var isArchived: Bool
+    @State private var allowedTimers: [DisappearingTimer] = DisappearingTimer.allCases
+    @State private var restrictionReason: String?
 
     let onChange: (ConversationPreferences) -> Void
     let onArchiveChange: (Bool) -> Void
@@ -66,15 +68,28 @@ public struct ChatSettingsSheet: View {
                     get: { prefs.disappearing },
                     set: { prefs.disappearing = $0; onChange(prefs) }
                 )) {
-                    ForEach(DisappearingTimer.allCases, id: \.self) { t in
+                    ForEach(allowedTimers, id: \.self) { t in
                         Text(t.label).tag(t)
                     }
                 }
                 .pickerStyle(.segmented)
+                if let restrictionReason {
+                    Text(restrictionReason)
+                        .font(.system(size: 12))
+                        .foregroundColor(.echoInk55)
+                }
             }
             .padding(.horizontal, Spacing.lg.rawValue)
             .padding(.vertical, Spacing.md.rawValue)
             .overlay(Divider(), alignment: .bottom)
+            #if os(iOS)
+            .task {
+                if let remote = await DisappearingRestrictionsAPI.fetchPolicy() {
+                    allowedTimers = DisappearingRestrictionsAPI.allowedTimers(policy: remote.policy)
+                    restrictionReason = remote.policy.reason
+                }
+            }
+            #endif
 
             // Hide conversation
             row(icon: "eye.slash", title: "Hide conversation") {

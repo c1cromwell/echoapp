@@ -1018,13 +1018,21 @@ struct ChatView: View {
             )
         } else {
             VStack(alignment: message.isFromCurrentUser ? .trailing : .leading, spacing: 4) {
-                MessageBubble(
-                    message: message.content,
-                    isSent: message.isFromCurrentUser,
-                    status: mapDeliveryStatus(viewModel.displayedDeliveryStatus(message.deliveryStatus)),
-                    deliveryStatus: peerStatus,
-                    timestamp: message.timestamp
-                )
+                DisappearingMessageView(
+                    messageId: message.id,
+                    expiresAt: message.expiresAt,
+                    onExpired: { messageId in
+                        Task { await viewModel.handleDisappearingExpired(messageId: messageId) }
+                    }
+                ) {
+                    MessageBubble(
+                        message: message.content,
+                        isSent: message.isFromCurrentUser,
+                        status: mapDeliveryStatus(viewModel.displayedDeliveryStatus(message.deliveryStatus)),
+                        deliveryStatus: peerStatus,
+                        timestamp: message.timestamp
+                    )
+                }
                 if let translated = messageTranslations[message.id], translated != message.content {
                     Text(translated)
                         .font(.system(size: 12))
@@ -1049,6 +1057,7 @@ struct ChatView: View {
         case .failed:    return .failed
         case .anchored:  return .anchored
         case .verified:  return .verified
+        case .anchorVerificationFailed: return .failed
         }
     }
 }

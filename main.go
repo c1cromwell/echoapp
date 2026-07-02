@@ -285,6 +285,14 @@ func (s *Server) Start() error {
 		log.Println("Groups service backed by PostgreSQL (migration 022_groups)")
 	}
 	groupSvc := groups.NewGroupService(groupOpts...)
+	var groupAnchoring *groups.GroupAnchoringService
+	if router.DataL1 != nil {
+		groupAnchoring = groups.NewGroupAnchoringService(router.DataL1)
+		go groupAnchoring.Run(context.Background())
+		log.Println("Group metadata anchoring enabled (WO-156)")
+	}
+
+	disappearingRestrictions := messaging.NewDisappearingRestrictionService()
 
 	sealedTokenStore := messaging.NewSealedTokenStore()
 	convNotifPrefs := messaging.NewConversationNotificationPrefsStore()
@@ -343,7 +351,9 @@ func (s *Server) Start() error {
 		BotTokens:       botTokens,         // WO-11 bot relay auth
 		BotRateLimiter:  botRateLimiter,    // WO-11 ~100 msg/min per bot
 		BotWebhooks:     botWebhooks,       // WO-11 inbound bot webhooks
-		Wallet:          walletHandlers,    // Currency L1 wallet + staking
+		Wallet:                 walletHandlers,    // Currency L1 wallet + staking
+		DisappearingRestrictions: disappearingRestrictions,
+		GroupAnchoring:           groupAnchoring,
 	}
 	if os.Getenv("COMPLY_SERVICE_TOKEN") != "" {
 		log.Println("ECHO Comply retention service enabled (WO-250)")

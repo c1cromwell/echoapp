@@ -2,12 +2,14 @@ import Foundation
 
 /// Disappearing-message timer options (spec §5.4 / ux-spec §2.6).
 public enum DisappearingTimer: String, Codable, CaseIterable, Sendable {
-    case off, s30, m5, h1, h24, d7
+    case off, s10, s30, m1, m5, h1, h24, d7
 
     public var label: String {
         switch self {
         case .off: return "Off"
+        case .s10: return "10s"
         case .s30: return "30s"
+        case .m1:  return "1m"
         case .m5:  return "5m"
         case .h1:  return "1h"
         case .h24: return "24h"
@@ -18,7 +20,9 @@ public enum DisappearingTimer: String, Codable, CaseIterable, Sendable {
     public var seconds: Int {
         switch self {
         case .off: return 0
+        case .s10: return 10
         case .s30: return 30
+        case .m1:  return 60
         case .m5:  return 300
         case .h1:  return 3600
         case .h24: return 86400

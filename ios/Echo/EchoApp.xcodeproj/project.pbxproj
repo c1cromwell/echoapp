@@ -300,6 +300,11 @@
 		M7B004ANCHOR00000000004 /* MerkleProofLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F004ANCHOR00000000004 /* MerkleProofLogic.swift */; };
 		M7B005ANCHOR00000000005 /* DisappearingMessageProof.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F005ANCHOR00000000005 /* DisappearingMessageProof.swift */; };
 		M7B006ANCHOR00000000006 /* MessageAnchorAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F006ANCHOR00000000006 /* MessageAnchorAPI.swift */; };
+		D7B001DISAPPEAR00000001 /* DisappearingMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F001DISAPPEAR00000001 /* DisappearingMessageView.swift */; };
+		D7B002DISAPPEAR00000002 /* DisappearingMessageLocalDelete.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F002DISAPPEAR00000002 /* DisappearingMessageLocalDelete.swift */; };
+		D7B003DISAPPEAR00000003 /* DisappearingMessageBGTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F003DISAPPEAR00000003 /* DisappearingMessageBGTask.swift */; };
+		D7B004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift */; };
+		D7B005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift */; };
 		G7B001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = G7F001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift */; };
 		G7B002QUESTSECTION000001 /* Sources/Features/Gamification/QuestSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = G7F002QUESTSECTION000001 /* Sources/Features/Gamification/QuestSection.swift */; };
 		G7B003HTTPWALLET00000001 /* Sources/Services/HTTPWalletAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = G7F003HTTPWALLET00000001 /* Sources/Services/HTTPWalletAPIClient.swift */; };
@@ -737,6 +742,11 @@
 		M7F004ANCHOR00000000004 /* MerkleProofLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MerkleProofLogic.swift; sourceTree = "<group>"; };
 		M7F005ANCHOR00000000005 /* DisappearingMessageProof.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingMessageProof.swift; sourceTree = "<group>"; };
 		M7F006ANCHOR00000000006 /* MessageAnchorAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageAnchorAPI.swift; sourceTree = "<group>"; };
+		D7F001DISAPPEAR00000001 /* DisappearingMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingMessageView.swift; sourceTree = "<group>"; };
+		D7F002DISAPPEAR00000002 /* DisappearingMessageLocalDelete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingMessageLocalDelete.swift; sourceTree = "<group>"; };
+		D7F003DISAPPEAR00000003 /* DisappearingMessageBGTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingMessageBGTask.swift; sourceTree = "<group>"; };
+		D7F004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingRestrictionsAPI.swift; sourceTree = "<group>"; };
+		D7F005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingRestrictionsPolicy.swift; sourceTree = "<group>"; };
 		G7F001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/GamificationAPIClient.swift; sourceTree = "<group>"; };
 		G7F002QUESTSECTION000001 /* Sources/Features/Gamification/QuestSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Gamification/QuestSection.swift; sourceTree = "<group>"; };
 		G7F003HTTPWALLET00000001 /* Sources/Services/HTTPWalletAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/HTTPWalletAPIClient.swift; sourceTree = "<group>"; };
@@ -1032,6 +1042,10 @@
 				M3F008SYNC00000000000008 /* LinkedDevicesRegistry.swift */,
 				M3F009SYNC00000000000009 /* DeviceIncrementalSyncService.swift */,
 				M3F010SYNC00000000000010 /* DisappearingMessageEnforcer.swift */,
+				D7F002DISAPPEAR00000002 /* DisappearingMessageLocalDelete.swift */,
+				D7F003DISAPPEAR00000003 /* DisappearingMessageBGTask.swift */,
+				D7F004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift */,
+				D7F005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift */,
 				M3F011SYNC00000000000011 /* GroupCallSignalingService.swift */,
 				M3F007BACKUP00000000001 /* BackupCrypto.swift */,
 				M3F008BACKUP00000000002 /* BackupAPIClient.swift */,
@@ -1115,6 +1129,7 @@
 				41C636DFBEAD5B1D182D3ED4 /* Sources/Features/Personas/PersonaSwitcher.swift */,
 				7A76BD8C20CBD03FDC3EA61B /* Sources/Features/Messaging/MessagesHubView.swift */,
 				C51D1ECD4CDFC07B78CD4037 /* Sources/Features/Messaging/ChatSettingsSheet.swift */,
+				D7F001DISAPPEAR00000001 /* DisappearingMessageView.swift */,
 				B1B896BB33EE967785204A57 /* Sources/Features/Messaging/MessageActionsSheet.swift */,
 				1878FA1FFD4E9EFD1EFB1AE5 /* Sources/Features/Messaging/ChatFolderFilterView.swift */,
 				DDF6D1C6D0E4EB6697FB6BD1 /* Sources/Services/ConversationPreferencesStore.swift */,
@@ -2187,6 +2202,11 @@
 				M7B004ANCHOR00000000004 /* MerkleProofLogic.swift in Sources */,
 				M7B005ANCHOR00000000005 /* DisappearingMessageProof.swift in Sources */,
 				M7B006ANCHOR00000000006 /* MessageAnchorAPI.swift in Sources */,
+				D7B001DISAPPEAR00000001 /* DisappearingMessageView.swift in Sources */,
+				D7B002DISAPPEAR00000002 /* DisappearingMessageLocalDelete.swift in Sources */,
+				D7B003DISAPPEAR00000003 /* DisappearingMessageBGTask.swift in Sources */,
+				D7B004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift in Sources */,
+				D7B005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift in Sources */,
 				59377B9DF47C401D5068938A /* AppState.swift in Sources */,
 				A1B2C3D401234567890ABC02 /* SessionSignOut.swift in Sources */,
 				F2F596C925B9154A7632E2C1 /* AppleWalletMDLBridge.swift in Sources */,

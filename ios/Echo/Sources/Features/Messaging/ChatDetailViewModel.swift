@@ -210,6 +210,18 @@ final class ChatDetailViewModel {
         )
         guard !removed.isEmpty else { return }
         let removedSet = Set(removed)
+        for messageId in removed {
+            if let message = messages.first(where: { $0.id == messageId }) {
+                Task {
+                    await DisappearingMessageLocalDelete.deleteMessageLocally(
+                        messageId: messageId,
+                        conversationId: conversationId,
+                        commitmentHex: message.commitmentHex,
+                        expiresAt: message.expiresAt
+                    )
+                }
+            }
+        }
         messages.removeAll { removedSet.contains($0.id) }
         for messageId in removed {
             DeviceSyncOutboundCoordinator.notifyMessageDeleted(
@@ -367,10 +379,40 @@ final class ChatDetailViewModel {
     }
 
     /// Sets the conversation's disappearing-message TTL (0 = off) and syncs the peer.
-    func setDisappearing(ttlSeconds: Int) async {
-        disappearingTTLSeconds = max(0, ttlSeconds)
+    func setDisappearing(ttlSeconds: Int, trustTier: Int = 1) async {
+        let ttl = max(0, ttlSeconds)
+        guard DisappearingRestrictionsPolicy.isAllowed(ttlSeconds: ttl, trustTier: trustTier) else {
+            errorMessage = DisappearingRestrictionsPolicy.reason(trustTier: trustTier)
+            return
+        }
+        disappearingTTLSeconds = ttl
         guard let opsAPI else { return }
-        _ = try? await opsAPI.setDisappearing(conversationId: conversationId, ttlSeconds: disappearingTTLSeconds, peerDID: peerDID)
+        do {
+            _ = try await opsAPI.setDisappearing(
+                conversationId: conversationId,
+                ttlSeconds: disappearingTTLSeconds,
+                peerDID: peerDID
+            )
+        } catch {
+            errorMessage = "Couldn't update disappearing timer."
+        }
+    }
+
+    /// Called when a per-message countdown reaches zero (WO-105).
+    func handleDisappearingExpired(messageId: String) async {
+        guard let idx = messages.firstIndex(where: { $0.id == messageId }) else { return }
+        let message = messages[idx]
+        await DisappearingMessageLocalDelete.deleteMessageLocally(
+            messageId: messageId,
+            conversationId: conversationId,
+            commitmentHex: message.commitmentHex,
+            expiresAt: message.expiresAt
+        )
+        messages.remove(at: idx)
+        DeviceSyncOutboundCoordinator.notifyMessageDeleted(
+            conversationId: conversationId,
+            messageId: messageId
+        )
     }
 
     // MARK: - Polls (WO-23 / M6c)

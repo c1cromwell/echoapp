@@ -580,6 +580,10 @@ func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
 		rt.handleMessageMerkleProof(w, r)
 		return
 	}
+	if strings.HasPrefix(r.URL.Path, "/v1/groups/") && strings.HasSuffix(r.URL.Path, "/blockchain-proof") {
+		rt.handleGroupBlockchainProof(w, r)
+		return
+	}
 	if strings.HasPrefix(r.URL.Path, "/v1/tokens/") ||
 		strings.HasPrefix(r.URL.Path, "/v1/gamification/") ||
 		strings.HasPrefix(r.URL.Path, "/v1/admin/founder-revocation/") {
