@@ -43,17 +43,15 @@ func TestTokenConfiguration(t *testing.T) {
 func TestAllocationBreakdown(t *testing.T) {
 	ab := models.NewAllocationBreakdown()
 
-	if ab.UserRewards == nil || ab.ValidatorRewards == nil || ab.Ecosystem == nil {
+	if ab.CommunityRewards == nil || ab.Treasury == nil || ab.Founders == nil {
 		t.Fatal("Allocation pools not initialized")
 	}
 
-	// Verify individual allocations
 	total := new(big.Int)
-	total.Add(ab.UserRewards, ab.ValidatorRewards)
+	total.Add(ab.CommunityRewards, ab.Treasury)
+	total.Add(total, ab.Founders)
+	total.Add(total, ab.FutureTeam)
 	total.Add(total, ab.Ecosystem)
-	total.Add(total, ab.Team)
-	total.Add(total, ab.Treasury)
-	total.Add(total, ab.Liquidity)
 
 	expected := models.NewTokenConfig().TotalSupply
 
@@ -61,20 +59,12 @@ func TestAllocationBreakdown(t *testing.T) {
 		t.Errorf("Expected total allocation %s, got %s", expected.String(), total.String())
 	}
 
-	// Verify user rewards are 40% (400M ECHO)
-	expectedUserRewards := new(big.Int).Mul(expected, big.NewInt(40))
-	expectedUserRewards.Div(expectedUserRewards, big.NewInt(100))
+	// Community rewards pool is 400M ECHO (40%).
+	expectedCommunity := new(big.Int).Mul(expected, big.NewInt(40))
+	expectedCommunity.Div(expectedCommunity, big.NewInt(100))
 
-	if ab.UserRewards.Cmp(expectedUserRewards) != 0 {
-		t.Errorf("Expected user rewards %s, got %s", expectedUserRewards.String(), ab.UserRewards.String())
-	}
-
-	// Verify validator rewards are 25% (250M ECHO)
-	expectedValidatorRewards := new(big.Int).Mul(expected, big.NewInt(25))
-	expectedValidatorRewards.Div(expectedValidatorRewards, big.NewInt(100))
-
-	if ab.ValidatorRewards.Cmp(expectedValidatorRewards) != 0 {
-		t.Errorf("Expected validator rewards %s, got %s", expectedValidatorRewards.String(), ab.ValidatorRewards.String())
+	if ab.CommunityRewards.Cmp(expectedCommunity) != 0 {
+		t.Errorf("Expected community rewards %s, got %s", expectedCommunity.String(), ab.CommunityRewards.String())
 	}
 }
 

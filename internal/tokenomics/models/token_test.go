@@ -40,11 +40,10 @@ func TestAllocationBreakdown(t *testing.T) {
 	allocation := NewAllocationBreakdown()
 
 	total := new(big.Int)
-	total.Add(allocation.UserRewards, allocation.ValidatorRewards)
+	total.Add(allocation.CommunityRewards, allocation.Treasury)
+	total.Add(total, allocation.Founders)
+	total.Add(total, allocation.FutureTeam)
 	total.Add(total, allocation.Ecosystem)
-	total.Add(total, allocation.Team)
-	total.Add(total, allocation.Treasury)
-	total.Add(total, allocation.Liquidity)
 
 	expected := new(big.Int)
 	expected.SetString("100000000000000000", 10)

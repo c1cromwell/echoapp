@@ -26,10 +26,12 @@ object Main extends CurrencyL1App(
 ) {
 
   def dispatch(update: EchoUpdate): Either[String, Unit] = update match {
-    case u: TokenLockUpdate       => Validations.validateTokenLock(u)
-    case u: RewardClaimUpdate     => Validations.validateRewardClaim(u)
-    case _: StakeDelegationUpdate => Right(())
-    case _: WithdrawLockUpdate    => Right(())
+    case u: TokenLockUpdate          => Validations.validateTokenLock(u)
+    case u: RewardClaimUpdate        => Validations.validateRewardClaim(u)
+    case u: MintUpdate               => Validations.validateMint(u)
+    case u: FounderRevocationUpdate  => Validations.validateFounderRevocation(u)
+    case _: StakeDelegationUpdate    => Right(())
+    case _: WithdrawLockUpdate       => Right(())
     case other =>
       Left(s"Currency L1 does not accept update type ${other.getClass.getSimpleName}")
   }

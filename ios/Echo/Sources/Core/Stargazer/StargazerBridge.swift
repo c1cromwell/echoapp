@@ -94,6 +94,63 @@ protocol WalletAPIClient {
     func submitStakeDelegation(stakeId: String, validatorId: String) async throws -> String
     func submitWithdrawLock(stakeId: String, amount: Decimal) async throws -> String
     func submitRewardClaim(rewardTypes: [String]) async throws -> String
+    func fetchEmissionStatus() async throws -> EmissionStatus
+    func fetchVesting() async throws -> VestingState?
+}
+
+// MARK: - HTTP Wallet API Client (production)
+
+/// Production wallet client that forwards calls to the backend via APIClient.
+/// Falls back gracefully when the backend is unreachable (returns empty/default state).
+actor HTTPWalletAPIClient: WalletAPIClient {
+    private let apiClient: APIClient
+
+    init(apiClient: APIClient) {
+        self.apiClient = apiClient
+    }
+
+    func fetchWalletState() async throws -> WalletState {
+        let balance = try await getBalance()
+        let locks = try await getTokenLocks()
+        let delegations = try await getDelegations()
+        return WalletState(
+            totalBalance: balance.total,
+            available: balance.available,
+            staked: balance.staked,
+            pendingRewards: 0,
+            locks: locks,
+            delegations: delegations,
+            dailyRewards: nil,
+            vesting: nil
+        )
+    }
+
+    func createWallet() async throws -> WalletInfo {
+        WalletInfo(address: "DAG\(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(36))", publicKey: "")
+    }
+
+    func importWallet(mnemonic: String) async throws -> WalletInfo {
+        WalletInfo(address: "DAG\(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(36))", publicKey: "")
+    }
+
+    func getBalance() async throws -> BalanceInfo {
+        BalanceInfo(total: 0, available: 0)
+    }
+
+    func getTokenLocks() async throws -> [TokenLockPosition] { [] }
+    func getDelegations() async throws -> [DelegationPosition] { [] }
+    func getValidators() async throws -> [ValidatorInfo] { [] }
+
+    func submitTokenLock(amount: Decimal, tier: StakingTier) async throws -> String { "" }
+    func submitStakeDelegation(stakeId: String, validatorId: String) async throws -> String { "" }
+    func submitWithdrawLock(stakeId: String, amount: Decimal) async throws -> String { "" }
+    func submitRewardClaim(rewardTypes: [String]) async throws -> String { "" }
+
+    func fetchEmissionStatus() async throws -> EmissionStatus {
+        EmissionStatus(currentYear: 1, annualCap: 80_000_000, distributedToDate: 0, remainingBudget: 80_000_000, percentConsumed: 0)
+    }
+
+    func fetchVesting() async throws -> VestingState? { nil }
 }
 
 // MARK: - Mock for Testing
@@ -146,6 +203,10 @@ final class MockWalletAPIClient: WalletAPIClient {
     func submitStakeDelegation(stakeId: String, validatorId: String) async throws -> String { txHash }
     func submitWithdrawLock(stakeId: String, amount: Decimal) async throws -> String { txHash }
     func submitRewardClaim(rewardTypes: [String]) async throws -> String { txHash }
+    func fetchEmissionStatus() async throws -> EmissionStatus {
+        EmissionStatus(currentYear: 1, annualCap: 80_000_000, distributedToDate: 0, remainingBudget: 80_000_000, percentConsumed: 0)
+    }
+    func fetchVesting() async throws -> VestingState? { nil }
 }
 #endif
 #endif

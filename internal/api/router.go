@@ -73,10 +73,10 @@ type Router struct {
 	TokenValidator       func(token string) bool
 	UserIDExtractor      func(token string) string
 	TrustTierExtractor   func(token string) int // optional; JWT trust-tier claim
-	WSHub                *Hub          // WebSocket hub for real-time messaging
-	V3                   *V3Handlers   // V3 API handlers (blueprint services)
-	DIDRegistry          DIDRegistry   // did:key binding store (WO-230 / WO-278)
-	CredentialStatusPool *pgxpool.Pool // WO-274 durable VC status list slots (optional)
+	WSHub                *Hub                   // WebSocket hub for real-time messaging
+	V3                   *V3Handlers            // V3 API handlers (blueprint services)
+	DIDRegistry          DIDRegistry            // did:key binding store (WO-230 / WO-278)
+	CredentialStatusPool *pgxpool.Pool          // WO-274 durable VC status list slots (optional)
 	Redis                *infra.RedisClient
 	RateLimiter          *infra.RateLimiter               // WO-44 per-DID tiered rate limiting (optional)
 	PublicRateLimiter    *infra.RateLimiter               // S5: per-IP throttle for pre-auth public endpoints (optional)
@@ -93,6 +93,7 @@ type Router struct {
 	PassportRecovery     *recovery.Service                // WO-296 social-threshold recovery metadata
 	Comply               *ComplyHandlers                  // WO-250 Comply REST (/comply/*)
 	Anchoring            *metagraph.AnchoringService      // WO-15 message integrity batching
+	Tokenomics           *TokenomicsHandlers              // WO-206/214/215/225/226/271
 	tokenService         *auth.TokenService               // ES256 JWT token service
 
 	enrollmentVCMu          sync.Mutex
@@ -577,6 +578,12 @@ func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.HasPrefix(r.URL.Path, "/v1/messages/") && (strings.HasSuffix(r.URL.Path, "/merkle-proof") || strings.HasSuffix(r.URL.Path, "/proof")) {
 		rt.handleMessageMerkleProof(w, r)
+		return
+	}
+	if strings.HasPrefix(r.URL.Path, "/v1/tokens/") ||
+		strings.HasPrefix(r.URL.Path, "/v1/gamification/") ||
+		strings.HasPrefix(r.URL.Path, "/v1/admin/founder-revocation/") {
+		rt.handleTokenomicsSubroutes(w, r)
 		return
 	}
 	switch r.URL.Path {

@@ -73,8 +73,12 @@ struct MainTabView: View {
         .animation(.easeInOut(duration: 0.2), value: hideTabBar)
         .onPreferenceChange(TabBarHiddenPreferenceKey.self) { hideTabBar = $0 }
         .safeAreaInset(edge: .top, spacing: 0) {
-            ProvisioningStatusBanner()
+            VStack(spacing: 0) {
+                NetworkStatusBanner()
+                ProvisioningStatusBanner()
+            }
         }
+        .echoToastOverlay()
     }
 }
 
@@ -82,10 +86,11 @@ struct MainTabView: View {
 
 struct GlacialTabBar: View {
     @Binding var selectedTab: MainTabView.MainTab
+    var unreadMessages: Int = 0
 
     var body: some View {
         HStack(spacing: 0) {
-            tabButton(.messages, icon: "ellipsis.message", label: "Messages")
+            tabButton(.messages, icon: "ellipsis.message", label: "Messages", badge: unreadMessages)
             tabButton(.contacts, icon: "person.2", label: "Contacts")
             tabButton(.rewards, icon: "gift", label: "Rewards")
             tabButton(.settings, icon: "gearshape", label: "Settings")
@@ -99,9 +104,12 @@ struct GlacialTabBar: View {
         )
     }
 
-    private func tabButton(_ tab: MainTabView.MainTab, icon: String, label: String) -> some View {
+    private func tabButton(_ tab: MainTabView.MainTab, icon: String, label: String, badge: Int = 0) -> some View {
         let isSelected = selectedTab == tab
         return Button {
+            if selectedTab != tab {
+                HapticManager.selection()
+            }
             selectedTab = tab
         } label: {
             VStack(spacing: 4) {
@@ -110,11 +118,14 @@ struct GlacialTabBar: View {
                         .font(.system(size: 22))
                         .foregroundStyle(isSelected ? Color.echoPrimary : Color.echoInk40)
 
-                    if tab == .messages {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 7, height: 7)
-                            .offset(x: 4, y: -2)
+                    if badge > 0 {
+                        Text(badge > 9 ? "9+" : "\(badge)")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(minWidth: 16, minHeight: 16)
+                            .background(Color.echoAlert)
+                            .clipShape(Capsule())
+                            .offset(x: 6, y: -4)
                     }
                 }
 
@@ -125,7 +136,7 @@ struct GlacialTabBar: View {
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(label)
+        .accessibilityLabel(badge > 0 ? "\(label), \(badge) unread" : label)
     }
 }
 
@@ -148,6 +159,10 @@ struct WalletAPIClientStub: WalletAPIClient {
     func submitStakeDelegation(stakeId: String, validatorId: String) async throws -> String { "" }
     func submitWithdrawLock(stakeId: String, amount: Decimal) async throws -> String { "" }
     func submitRewardClaim(rewardTypes: [String]) async throws -> String { "" }
+    func fetchEmissionStatus() async throws -> EmissionStatus {
+        EmissionStatus(currentYear: 1, annualCap: 0, distributedToDate: 0, remainingBudget: 0, percentConsumed: 0)
+    }
+    func fetchVesting() async throws -> VestingState? { nil }
 }
 
 #endif

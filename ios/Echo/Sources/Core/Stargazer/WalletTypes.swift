@@ -153,6 +153,21 @@ struct VestingState: Equatable {
     let cliffDate: Date
     let cliffCompleted: Bool
     let vestingPercent: Double
+
+    /// Progress bar value 0.0–1.0 (WO-226).
+    var vestingProgress: Float { Float(vestingPercent / 100) }
+}
+
+// MARK: - Emission Status (WO-206)
+
+struct EmissionStatus: Equatable {
+    let currentYear: Int
+    let annualCap: Decimal
+    let distributedToDate: Decimal
+    let remainingBudget: Decimal
+    let percentConsumed: Double
+
+    var alertThresholdExceeded: Bool { percentConsumed >= 90 }
 }
 
 // MARK: - Wallet State (Aggregate)
@@ -166,6 +181,48 @@ struct WalletState: Equatable {
     let delegations: [DelegationPosition]
     let dailyRewards: DailyRewardProgress?
     let vesting: VestingState?
+}
+
+// MARK: - Wallet Transaction (History)
+
+struct WalletTransaction: Identifiable, Equatable {
+    let id: String
+    let type: TransactionType
+    let amount: Decimal
+    let description: String
+    let date: Date
+    let status: TransactionStatus
+
+    enum TransactionType: String, CaseIterable {
+        case stake
+        case unstake
+        case claim
+        case transfer
+        case reward
+
+        var icon: String {
+            switch self {
+            case .stake:    return "lock.shield.fill"
+            case .unstake:  return "lock.open.fill"
+            case .claim:    return "gift.fill"
+            case .transfer: return "arrow.left.arrow.right"
+            case .reward:   return "star.fill"
+            }
+        }
+
+        var displayName: String { rawValue.capitalized }
+    }
+
+    enum TransactionStatus: String {
+        case completed, pending, failed
+    }
+
+    var isPositive: Bool {
+        switch type {
+        case .claim, .reward, .unstake: return true
+        case .stake, .transfer: return false
+        }
+    }
 }
 
 // MARK: - Stargazer Error

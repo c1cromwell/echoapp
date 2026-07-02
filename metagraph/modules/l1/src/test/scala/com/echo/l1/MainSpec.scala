@@ -38,5 +38,30 @@ final class MainSpec extends AnyFunSpec with Matchers {
       val u = MerkleRootUpdate(root = "a" * 64, leafCount = 1)
       Main.dispatch(u).isLeft shouldBe true
     }
+
+    it("rejects post-genesis MintUpdate (WO-214 fixed supply)") {
+      val u = MintUpdate(amount = 1L, pool = "community_rewards")
+      Main.dispatch(u).isLeft shouldBe true
+    }
+
+    it("accepts FounderRevocationUpdate with 3 signatures to future_team pool") {
+      val u = FounderRevocationUpdate(
+        targetFounderDid = "did:key:z6MkFounder2",
+        amount           = 1000000000L,
+        revokerDids      = Seq("a", "b", "c"),
+        destinationPool  = "future_team"
+      )
+      Main.dispatch(u) shouldBe Right(())
+    }
+
+    it("rejects FounderRevocationUpdate crediting wrong pool") {
+      val u = FounderRevocationUpdate(
+        targetFounderDid = "did:key:z6MkFounder2",
+        amount           = 1000000000L,
+        revokerDids      = Seq("a", "b", "c"),
+        destinationPool  = "treasury"
+      )
+      Main.dispatch(u).isLeft shouldBe true
+    }
   }
 }

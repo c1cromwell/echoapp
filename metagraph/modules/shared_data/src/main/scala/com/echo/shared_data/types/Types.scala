@@ -147,6 +147,20 @@ case class MerkleRootUpdate(
   leafCount: Int
 ) extends EchoUpdate with DataLayerUpdate
 
+/** Post-genesis minting is forbidden (WO-214 fixed supply). */
+case class MintUpdate(
+  amount: Long,
+  pool:   String
+) extends EchoUpdate
+
+/** Founder departure revocation credits Future Team pool (WO-225). */
+case class FounderRevocationUpdate(
+  targetFounderDid: String,
+  amount:           Long,
+  revokerDids:      Seq[String],
+  destinationPool:  String
+) extends EchoUpdate
+
 object DataLayerUpdate {
 
   private val merkleDec = deriveDecoder[MerkleRootUpdate]
@@ -173,5 +187,7 @@ object EchoUpdate {
     case u: RewardClaimUpdate      => deriveEncoder[RewardClaimUpdate].apply(u)
     case u: TrustCommitmentUpdate  => deriveEncoder[TrustCommitmentUpdate].apply(u)
     case u: MerkleRootUpdate       => deriveEncoder[MerkleRootUpdate].apply(u)
+    case u: MintUpdate             => deriveEncoder[MintUpdate].apply(u)
+    case u: FounderRevocationUpdate => deriveEncoder[FounderRevocationUpdate].apply(u)
   }
 }

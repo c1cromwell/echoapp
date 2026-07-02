@@ -28,46 +28,27 @@ func NewTokenConfig() *TokenConfig {
 	}
 }
 
-// AllocationBreakdown defines token distribution percentages
+// AllocationBreakdown defines WO-214 genesis pool distribution (1B ECHO fixed supply).
 type AllocationBreakdown struct {
-	UserRewards      *big.Int // 40% - 400M
-	ValidatorRewards *big.Int // 25% - 250M
-	Ecosystem        *big.Int // 20% - 200M
-	Team             *big.Int // 8% - 80M
-	Treasury         *big.Int // 5% - 50M
-	Liquidity        *big.Int // 2% - 20M
+	CommunityRewards *big.Int // 400M — 10-year emission account
+	Treasury         *big.Int // 220M — 3-of-5 multi-sig
+	Founders         *big.Int // 180M — TokenLock positions
+	FutureTeam       *big.Int // 100M — multi-sig controlled
+	Ecosystem        *big.Int // 100M — governance-controlled
 }
 
-// NewAllocationBreakdown creates the allocation breakdown
+// NewAllocationBreakdown creates the WO-214 genesis allocation breakdown.
 func NewAllocationBreakdown() *AllocationBreakdown {
-	total := new(big.Int)
-	total.SetString("100000000000000000", 10)
-
-	userRewards := new(big.Int).Mul(total, big.NewInt(40))
-	userRewards.Div(userRewards, big.NewInt(100))
-
-	validatorRewards := new(big.Int).Mul(total, big.NewInt(25))
-	validatorRewards.Div(validatorRewards, big.NewInt(100))
-
-	ecosystem := new(big.Int).Mul(total, big.NewInt(20))
-	ecosystem.Div(ecosystem, big.NewInt(100))
-
-	team := new(big.Int).Mul(total, big.NewInt(8))
-	team.Div(team, big.NewInt(100))
-
-	treasury := new(big.Int).Mul(total, big.NewInt(5))
-	treasury.Div(treasury, big.NewInt(100))
-
-	liquidity := new(big.Int).Mul(total, big.NewInt(2))
-	liquidity.Div(liquidity, big.NewInt(100))
-
+	echo := func(millions int64) *big.Int {
+		// millions * 1e6 ECHO * 1e8 datum
+		return new(big.Int).Mul(big.NewInt(millions), big.NewInt(100_000_000_000000))
+	}
 	return &AllocationBreakdown{
-		UserRewards:      userRewards,
-		ValidatorRewards: validatorRewards,
-		Ecosystem:        ecosystem,
-		Team:             team,
-		Treasury:         treasury,
-		Liquidity:        liquidity,
+		CommunityRewards: echo(400),
+		Treasury:         echo(220),
+		Founders:         echo(180),
+		FutureTeam:       echo(100),
+		Ecosystem:        echo(100),
 	}
 }
 

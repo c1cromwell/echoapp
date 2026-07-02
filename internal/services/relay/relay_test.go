@@ -265,9 +265,9 @@ func TestOfflineQueue_EmptyDequeue(t *testing.T) {
 func TestCommitmentBatch_AddAndFlush(t *testing.T) {
 	cb := NewCommitmentBatch()
 
-	cb.Add("msg-1", []byte("hash1"))
-	cb.Add("msg-2", []byte("hash2"))
-	cb.Add("msg-3", []byte("hash3"))
+	cb.Add("msg-1", "did:key:z6MkSender", []byte("hash1"))
+	cb.Add("msg-2", "did:key:z6MkSender", []byte("hash2"))
+	cb.Add("msg-3", "did:key:z6MkSender", []byte("hash3"))
 
 	if cb.Len() != 3 {
 		t.Errorf("expected 3 commitments, got %d", cb.Len())

@@ -104,6 +104,18 @@ object Validations {
       _ <- StakingTiers.get(update.tier).toRight(s"Unknown tier: ${update.tier}")
     } yield ()
 
+  /** WO-214: fixed 1B supply — reject all post-genesis minting. */
+  def validateMint(update: MintUpdate): Either[String, Unit] =
+    Left(s"Mint rejected: fixed supply — no minting after genesis (amount=${update.amount}, pool=${update.pool})")
+
+  /** WO-225: 3-of-5 founder revocation must credit Future Team pool. */
+  def validateFounderRevocation(update: FounderRevocationUpdate): Either[String, Unit] =
+    for {
+      _ <- Either.cond(update.amount > 0, (), "Revocation amount must be positive")
+      _ <- Either.cond(update.revokerDids.distinct.size >= 3, (), "Revocation requires 3 distinct founder signatures")
+      _ <- Either.cond(update.destinationPool == "future_team", (), "Revoked tokens must credit future_team pool")
+    } yield ()
+
   /**
    * T7: TokenLockUpdate fields must contain no PII.
    * tierName is a controlled vocabulary — validate against known tiers.
@@ -128,5 +140,11 @@ object Validations {
       } yield ()
     case u: RewardClaimUpdate      => rejectPII("tier", u.tier)
     case _: WithdrawLockUpdate     => Right(())
+    case _: MintUpdate             => Right(())
+    case u: FounderRevocationUpdate =>
+      for {
+        _ <- rejectPII("targetFounderDid", u.targetFounderDid)
+        _ <- rejectPII("destinationPool", u.destinationPool)
+      } yield ()
   }
 }

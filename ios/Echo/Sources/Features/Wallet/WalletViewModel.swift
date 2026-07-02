@@ -8,6 +8,7 @@ import Combine
 @MainActor
 class WalletViewModel: ObservableObject {
     @Published var walletState: WalletState?
+    @Published var emissionStatus: EmissionStatus?
     @Published var validators: [ValidatorInfo] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -34,7 +35,24 @@ class WalletViewModel: ObservableObject {
         errorMessage = nil
 
         do {
-            walletState = try await api.fetchWalletState()
+            async let wallet = api.fetchWalletState()
+            async let emission = api.fetchEmissionStatus()
+            async let vesting = api.fetchVesting()
+            var state = try await wallet
+            if let founderVesting = try await vesting {
+                state = WalletState(
+                    totalBalance: state.totalBalance,
+                    available: state.available,
+                    staked: state.staked,
+                    pendingRewards: state.pendingRewards,
+                    locks: state.locks,
+                    delegations: state.delegations,
+                    dailyRewards: state.dailyRewards,
+                    vesting: founderVesting
+                )
+            }
+            walletState = state
+            emissionStatus = try await emission
         } catch {
             errorMessage = userFacingWalletError(error)
         }

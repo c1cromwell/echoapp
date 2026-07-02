@@ -18,10 +18,8 @@ struct WalletTab: View {
             ScrollView {
                 VStack(spacing: 20) {
                     if viewModel.isLoading && viewModel.walletState == nil {
-                        ProgressView("Loading balance…")
-                            .font(Font.Echo.bodyMedium)
-                            .foregroundStyle(Color.Echo.onSurfaceVariant)
-                            .frame(maxWidth: .infinity, minHeight: 200)
+                        BalanceCardSkeleton()
+                        SkeletonList(count: 3) { ConversationRowSkeleton() }
                     } else if let state = viewModel.walletState {
                         BalanceCard(state: state)
 
@@ -29,6 +27,10 @@ struct WalletTab: View {
 
                         if let rewards = state.dailyRewards {
                             DailyRewardsSection(rewards: rewards)
+                        }
+
+                        if let emission = viewModel.emissionStatus {
+                            EmissionGaugeSection(status: emission)
                         }
 
                         if let vesting = state.vesting {
@@ -70,11 +72,19 @@ struct WalletTab: View {
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    NavigationLink {
-                        StakingDetailView(walletViewModel: viewModel)
-                    } label: {
-                        Image(systemName: "chart.bar.doc.horizontal")
-                            .foregroundStyle(Color.Echo.onSurface)
+                    HStack(spacing: 12) {
+                        NavigationLink {
+                            TransactionHistoryView()
+                        } label: {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .foregroundStyle(Color.Echo.onSurface)
+                        }
+                        NavigationLink {
+                            StakingDetailView(walletViewModel: viewModel)
+                        } label: {
+                            Image(systemName: "chart.bar.doc.horizontal")
+                                .foregroundStyle(Color.Echo.onSurface)
+                        }
                     }
                 }
             }
@@ -180,6 +190,40 @@ struct DailyRewardsSection: View {
     }
 }
 
+// MARK: - Emission Gauge (WO-206)
+
+struct EmissionGaugeSection: View {
+    let status: EmissionStatus
+
+    var body: some View {
+        GhostBorderCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Year \(status.currentYear) Emission")
+                        .font(Font.Echo.titleLarge)
+                        .foregroundStyle(Color.Echo.onSurface)
+                    Spacer()
+                    if status.alertThresholdExceeded {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(Color.Echo.warning)
+                    }
+                }
+                ProgressView(value: min(status.percentConsumed / 100, 1.0))
+                    .tint(status.alertThresholdExceeded ? Color.Echo.warning : Color.Echo.primary)
+                HStack {
+                    Text("\(Int(status.percentConsumed))% of annual cap")
+                        .font(Font.Echo.bodySm)
+                        .foregroundStyle(Color.Echo.onSurfaceVariant)
+                    Spacer()
+                    Text(formatEcho(status.remainingBudget) + " left")
+                        .font(Font.Echo.labelMd)
+                        .foregroundStyle(Color.Echo.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Founder Vesting Section
 
 struct FounderVestingSection: View {
@@ -198,7 +242,7 @@ struct FounderVestingSection: View {
                         .foregroundStyle(Color.Echo.primaryContainer)
                 }
 
-                ProgressView(value: vesting.vestingPercent / 100)
+                ProgressView(value: vesting.vestingProgress)
                     .tint(LinearGradient.signature)
 
                 HStack {
@@ -238,6 +282,7 @@ struct FounderVestingSection: View {
 
 struct WalletActionButtons: View {
     @ObservedObject var viewModel: WalletViewModel
+    @State private var showClaimConfirmation = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -254,12 +299,21 @@ struct WalletActionButtons: View {
             }
 
             Button {
-                Task {
-                    await viewModel.claimRewards(types: ["messaging", "referral", "staking", "payment_rail"])
-                }
+                showClaimConfirmation = true
             } label: {
                 actionButton("Claim", icon: "gift")
             }
+        }
+        .confirmationDialog("Claim Rewards", isPresented: $showClaimConfirmation, titleVisibility: .visible) {
+            Button("Claim All Rewards") {
+                HapticManager.success()
+                Task {
+                    await viewModel.claimRewards(types: ["messaging", "referral", "staking", "payment_rail"])
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will transfer all pending rewards to your available balance.")
         }
     }
 
@@ -286,6 +340,7 @@ struct WalletActionButtons: View {
 struct StakingPositionsList: View {
     let locks: [TokenLockPosition]
     let onUnstake: (String, Decimal) -> Void
+    @State private var unstakeTarget: TokenLockPosition?
 
     var body: some View {
         if !locks.isEmpty {
@@ -308,7 +363,7 @@ struct StakingPositionsList: View {
                             Spacer()
                             if !lock.isLocked {
                                 Button("Unstake") {
-                                    onUnstake(lock.id, lock.amount)
+                                    unstakeTarget = lock
                                 }
                                 .font(Font.Echo.bodyMedium)
                                 .foregroundStyle(Color.Echo.primaryContainer)
@@ -316,6 +371,24 @@ struct StakingPositionsList: View {
                         }
                     }
                 }
+            }
+            .confirmationDialog(
+                "Unstake \(formatEcho(unstakeTarget?.amount ?? 0)) ECHO?",
+                isPresented: Binding(
+                    get: { unstakeTarget != nil },
+                    set: { if !$0 { unstakeTarget = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Unstake", role: .destructive) {
+                    if let target = unstakeTarget {
+                        HapticManager.medium()
+                        onUnstake(target.id, target.amount)
+                    }
+                }
+                Button("Cancel", role: .cancel) { unstakeTarget = nil }
+            } message: {
+                Text("This will begin the unstaking process. Funds may take time to become available.")
             }
         }
     }

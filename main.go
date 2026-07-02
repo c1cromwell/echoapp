@@ -31,6 +31,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/services/notification"
 	"github.com/thechadcromwell/echoapp/internal/services/onboarding"
 	rewardsSvc "github.com/thechadcromwell/echoapp/internal/services/rewards"
+	"github.com/thechadcromwell/echoapp/internal/tokenomics"
 	"github.com/thechadcromwell/echoapp/internal/wallet"
 	"github.com/thechadcromwell/echoapp/pkg/credentials"
 	"github.com/thechadcromwell/echoapp/pkg/credentials/oidc4vc"
@@ -295,10 +296,11 @@ func (s *Server) Start() error {
 	rewardsService := rewardsSvc.NewService(db, emission)
 
 	var walletHandlers *api.WalletHandlers
+	var walletSvc *wallet.WalletService
 	if pgDB != nil {
 		walletStore := wallet.NewPGStore(pgDB.Pool())
 		ledger := wallet.NewLedgerQuerier(walletStore, currencyL1)
-		walletSvc := wallet.NewWalletService(ledger, wallet.NewRewardsAdapter(rewardsService))
+		walletSvc = wallet.NewWalletService(ledger, wallet.NewRewardsAdapter(rewardsService))
 		walletChallenges := wallet.NewChallengeStore()
 		walletHandlers = &api.WalletHandlers{
 			Service:    walletSvc,
@@ -366,6 +368,26 @@ func (s *Server) Start() error {
 		router.Anchoring = anchoring
 		go anchoring.Run(context.Background())
 		log.Println("Message integrity anchoring enabled (WO-15)")
+	}
+
+	tokenomicsSvc, err := tokenomics.NewService(tokenomics.Config{
+		GenesisDate: emission.GenesisDate,
+		CurrencyL1:  currencyL1,
+		Redis:       redisClient,
+		Wallet:      walletSvc,
+		ClaimedToday: func() int64 {
+			stats, err := rewardsService.GetDailyStats(context.Background())
+			if err != nil || stats == nil {
+				return 0
+			}
+			return stats.TotalDistributed
+		},
+	})
+	if err != nil {
+		log.Printf("tokenomics service init failed: %v", err)
+	} else {
+		router.Tokenomics = &api.TokenomicsHandlers{Service: tokenomicsSvc}
+		log.Println("Tokenomics API enabled (/v1/tokens/*, /v1/gamification/*)")
 	}
 
 	go startBackgroundMaintenance(db, router.WSHub)
