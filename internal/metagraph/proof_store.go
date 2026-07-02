@@ -11,12 +11,13 @@ import (
 
 // MessageAnchorProof is returned by GET /v1/messages/{id}/merkle-proof (WO-15).
 type MessageAnchorProof struct {
-	MessageID      string   `json:"messageId"`
-	Commitment     string   `json:"commitment"`
-	Siblings       []string `json:"siblings"`
-	SnapshotHash   string   `json:"snapshotHash"`
-	SnapshotHeight int64    `json:"snapshotHeight,omitempty"`
-	MerkleRoot     string   `json:"merkleRoot"`
+	MessageID       string   `json:"messageId"`
+	Commitment      string   `json:"commitment"`
+	Siblings        []string `json:"siblings"`
+	MerkleLeafIndex int      `json:"merkleLeafIndex,omitempty"`
+	SnapshotHash    string   `json:"snapshotHash"`
+	SnapshotHeight  int64    `json:"snapshotHeight,omitempty"`
+	MerkleRoot      string   `json:"merkleRoot"`
 }
 
 // ProofStore persists message→proof mappings for later client verification.

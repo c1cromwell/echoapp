@@ -184,6 +184,20 @@ final class ConversationSignalService: @unchecked Sendable {
 
     func handleIncoming(text: String) {
         #if os(iOS)
+        if let confirmation = AnchorConfirmationCodec.decodeConfirmation(from: text) {
+            Task { @MainActor in
+                let tracker = DIContainer.shared.resolveAnchoringTracker()
+                tracker.confirmAnchoring(
+                    messageId: confirmation.messageId,
+                    snapshotHash: confirmation.snapshotHash,
+                    snapshotHeight: Int(confirmation.snapshotHeight ?? 0),
+                    merkleProof: confirmation.merkleProof,
+                    merkleRoot: confirmation.merkleRoot,
+                    merkleLeafIndex: confirmation.merkleLeafIndex
+                )
+            }
+            return
+        }
         if OverflowManifestHandler.tryHandle(text: text, reprocess: { [weak self] replay in
             self?.handleIncoming(text: replay)
         }) {

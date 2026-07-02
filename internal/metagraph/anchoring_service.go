@@ -23,12 +23,13 @@ type ConfirmationPublisher interface {
 
 // AnchorConfirmation is the WebSocket confirmation payload (WO-15).
 type AnchorConfirmation struct {
-	Type           string   `json:"type"` // "confirmation"
-	MessageID      string   `json:"messageId"`
-	SnapshotHash   string   `json:"snapshotHash"`
-	SnapshotHeight int64    `json:"snapshotHeight,omitempty"`
-	MerkleProof    []string `json:"merkleProof,omitempty"`
-	MerkleRoot     string   `json:"merkleRoot,omitempty"`
+	Type            string   `json:"type"` // "confirmation"
+	MessageID       string   `json:"messageId"`
+	SnapshotHash    string   `json:"snapshotHash"`
+	SnapshotHeight  int64    `json:"snapshotHeight,omitempty"`
+	MerkleProof     []string `json:"merkleProof,omitempty"`
+	MerkleRoot      string   `json:"merkleRoot,omitempty"`
+	MerkleLeafIndex int      `json:"merkleLeafIndex,omitempty"`
 }
 
 // AnchoringService batches commitments and anchors Merkle roots on Data L1 (WO-15).
@@ -177,23 +178,25 @@ func (s *AnchoringService) submitBatch(ctx context.Context, batch *AnchoringBatc
 			continue
 		}
 		proof := MessageAnchorProof{
-			MessageID:      c.MessageID,
-			Commitment:     leafHashes[i],
-			Siblings:       tree.ProofSiblings(i),
-			SnapshotHash:   txID,
-			MerkleRoot:     tree.Root,
-			SnapshotHeight: 0,
+			MessageID:       c.MessageID,
+			Commitment:      leafHashes[i],
+			Siblings:        tree.ProofSiblings(i),
+			MerkleLeafIndex: i,
+			SnapshotHash:    txID,
+			MerkleRoot:      tree.Root,
+			SnapshotHeight:  0,
 		}
 		_ = s.proofs.Put(ctx, proof)
 		if s.confirm != nil {
 			sender := s.batcher.senderFor(c.MessageID)
 			if sender != "" {
 				s.confirm.PublishConfirmation(sender, AnchorConfirmation{
-					Type:         "confirmation",
-					MessageID:    c.MessageID,
-					SnapshotHash: txID,
-					MerkleProof:  proof.Siblings,
-					MerkleRoot:   tree.Root,
+					Type:            "confirmation",
+					MessageID:       c.MessageID,
+					SnapshotHash:    txID,
+					MerkleProof:     proof.Siblings,
+					MerkleRoot:      tree.Root,
+					MerkleLeafIndex: i,
 				})
 			}
 		}

@@ -297,6 +297,9 @@
 		F87F0FFF3BDDDE670F5300DE /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 300AF0FDC279A0A6FCD7F651 /* KeychainManager.swift */; };
 		F995E8FAF2297AA73B9133FB /* DeliveryStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78A096DCD53AAA92D864E318 /* DeliveryStatus.swift */; };
 		FA8D3A76C5A6FA0B68E2B99F /* PasskeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F4610B4C101F03754584AB5 /* PasskeyManager.swift */; };
+		M7B004ANCHOR00000000004 /* MerkleProofLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F004ANCHOR00000000004 /* MerkleProofLogic.swift */; };
+		M7B005ANCHOR00000000005 /* DisappearingMessageProof.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F005ANCHOR00000000005 /* DisappearingMessageProof.swift */; };
+		M7B006ANCHOR00000000006 /* MessageAnchorAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F006ANCHOR00000000006 /* MessageAnchorAPI.swift */; };
 		G7B001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = G7F001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift */; };
 		G7B002QUESTSECTION000001 /* Sources/Features/Gamification/QuestSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = G7F002QUESTSECTION000001 /* Sources/Features/Gamification/QuestSection.swift */; };
 		G7B003HTTPWALLET00000001 /* Sources/Services/HTTPWalletAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = G7F003HTTPWALLET00000001 /* Sources/Services/HTTPWalletAPIClient.swift */; };
@@ -731,6 +734,9 @@
 		FE74762315295D6ADAAB0325 /* WalletTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletTypes.swift; sourceTree = "<group>"; };
 		FF63CD1AB50EF7D840F6A9E1 /* CallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallView.swift; sourceTree = "<group>"; };
 		FF7FB602A9668C3DB15C779D /* TrustBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustBadge.swift; sourceTree = "<group>"; };
+		M7F004ANCHOR00000000004 /* MerkleProofLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MerkleProofLogic.swift; sourceTree = "<group>"; };
+		M7F005ANCHOR00000000005 /* DisappearingMessageProof.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingMessageProof.swift; sourceTree = "<group>"; };
+		M7F006ANCHOR00000000006 /* MessageAnchorAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageAnchorAPI.swift; sourceTree = "<group>"; };
 		G7F001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/GamificationAPIClient.swift; sourceTree = "<group>"; };
 		G7F002QUESTSECTION000001 /* Sources/Features/Gamification/QuestSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Gamification/QuestSection.swift; sourceTree = "<group>"; };
 		G7F003HTTPWALLET00000001 /* Sources/Services/HTTPWalletAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/HTTPWalletAPIClient.swift; sourceTree = "<group>"; };
@@ -1012,6 +1018,7 @@
 				9FEC6E1333EB7EE114D4A244 /* MessageOpsAPI.swift */,
 				G2F001M2GROUPS00000000001 /* GroupsAPIClient.swift */,
 				G7F001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift */,
+				M7F006ANCHOR00000000006 /* MessageAnchorAPI.swift */,
 				G7F003HTTPWALLET00000001 /* Sources/Services/HTTPWalletAPIClient.swift */,
 				G2F002M2GROUPS00000000002 /* GroupKeyDistributionService.swift */,
 				G2F003M2GROUPS00000000003 /* GroupMemberResolver.swift */,
@@ -1304,6 +1311,8 @@
 			isa = PBXGroup;
 			children = (
 				07EB4AC07F9F7A037F2CAFE3 /* AnchoringTracker.swift */,
+				M7F004ANCHOR00000000004 /* MerkleProofLogic.swift */,
+				M7F005ANCHOR00000000005 /* DisappearingMessageProof.swift */,
 				9DBA2A027C3B24A1107626C0 /* DigitalEvidenceBridge.swift */,
 				6D7607942835C0D148F1D782 /* GroupKeyManager.swift */,
 			);
@@ -2175,6 +2184,9 @@
 				B3CAF0B450061EFD23000A1F /* APIClient.swift in Sources */,
 				290D1AF573B3832D2835A82B /* AccountLockedView.swift in Sources */,
 				D5BE1B2D78E207E4DED53DA7 /* AnchoringTracker.swift in Sources */,
+				M7B004ANCHOR00000000004 /* MerkleProofLogic.swift in Sources */,
+				M7B005ANCHOR00000000005 /* DisappearingMessageProof.swift in Sources */,
+				M7B006ANCHOR00000000006 /* MessageAnchorAPI.swift in Sources */,
 				59377B9DF47C401D5068938A /* AppState.swift in Sources */,
 				A1B2C3D401234567890ABC02 /* SessionSignOut.swift in Sources */,
 				F2F596C925B9154A7632E2C1 /* AppleWalletMDLBridge.swift in Sources */,

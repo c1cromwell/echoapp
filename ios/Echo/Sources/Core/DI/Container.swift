@@ -133,6 +133,16 @@ final class DIContainer {
             return GamificationAPI(apiClient: client)
         }
 
+        registerFactory(ServiceKeys.messageAnchorAPI) { [weak self] () -> MessageAnchorAPI in
+            let client: APIClient = self?.resolve(ServiceKeys.apiClient)
+                ?? APIClient(configuration: .default)
+            return MessageAnchorAPI(apiClient: client)
+        }
+
+        registerFactory(ServiceKeys.anchoringTracker) { () -> AnchoringTracker in
+            AnchoringTracker()
+        }
+
         registerFactory(ServiceKeys.groupKeyManager) { [weak self] () -> GroupKeyManager in
             let encryption: KinnamiEncryption = self?.resolve(ServiceKeys.kinnamiEncryption)
                 ?? KinnamiEncryption()
@@ -392,6 +402,8 @@ enum ServiceKeys {
     static let messageOpsAPI = "networking.messageOpsAPI"
     static let walletAPI = "networking.walletAPI"
     static let gamificationAPI = "networking.gamificationAPI"
+    static let messageAnchorAPI = "networking.messageAnchorAPI"
+    static let anchoringTracker = "relay.anchoringTracker"
     static let groupKeyManager = "relay.groupKeyManager"
     static let groupsAPI = "networking.groupsAPI"
     static let groupKeyDistribution = "services.groupKeyDistribution"
@@ -499,6 +511,14 @@ extension DIContainer {
 
     func resolveGamificationAPI() -> GamificationAPI? {
         resolve(ServiceKeys.gamificationAPI)
+    }
+
+    func resolveMessageAnchorAPI() -> MessageAnchorAPI? {
+        resolve(ServiceKeys.messageAnchorAPI)
+    }
+
+    func resolveAnchoringTracker() -> AnchoringTracker {
+        resolve(ServiceKeys.anchoringTracker) ?? AnchoringTracker()
     }
 
     func resolveContactDiscoveryService() -> ContactDiscoveryService? {

@@ -54,14 +54,18 @@ final class ChatDetailViewModel {
     private var screenshotNoticeClearTask: Task<Void, Never>?
     private var sentReadReceiptIDs = Set<String>()
     private var userReactionByMessage: [String: String] = [:]
+    private var anchorObservers: [NSObjectProtocol] = []
+    private let anchoringTracker: AnchoringTracker
 
     init(
         signalService: ConversationSignalService,
         textCrypto: TextMessageCrypto? = nil,
-        mediaService: MediaMessageService? = nil
+        mediaService: MediaMessageService? = nil,
+        anchoringTracker: AnchoringTracker? = nil
     ) {
         self.signalService = signalService
         self.mediaService = mediaService
+        self.anchoringTracker = anchoringTracker ?? DIContainer.shared.resolveAnchoringTracker()
         if let textCrypto {
             self.textCrypto = textCrypto
         } else {
@@ -138,6 +142,53 @@ final class ChatDetailViewModel {
                 )
             }
         }
+
+        installAnchorObservers()
+    }
+
+    private func installAnchorObservers() {
+        for token in anchorObservers {
+            NotificationCenter.default.removeObserver(token)
+        }
+        anchorObservers.removeAll()
+
+        let anchored = NotificationCenter.default.addObserver(
+            forName: .messageAnchored,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self else { return }
+            Task { @MainActor in
+                self.applyAnchorStatus(note: note, status: .anchored)
+            }
+        }
+        let failed = NotificationCenter.default.addObserver(
+            forName: .messageAnchorVerificationFailed,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self else { return }
+            Task { @MainActor in
+                self.applyAnchorStatus(note: note, status: .anchorVerificationFailed)
+            }
+        }
+        anchorObservers = [anchored, failed]
+    }
+
+    private func applyAnchorStatus(note: Notification, status: DeliveryStatus) {
+        guard let messageId = note.userInfo?["messageId"] as? String,
+              let idx = messages.firstIndex(where: { $0.id == messageId }) else { return }
+        messages[idx].deliveryStatus = DeliveryStatusAdvancement.advanced(
+            current: messages[idx].deliveryStatus,
+            incoming: status
+        )
+        if let snapshotHash = note.userInfo?["snapshotHash"] as? String {
+            messages[idx].snapshotHash = snapshotHash
+        }
+        if let height = note.userInfo?["snapshotHeight"] as? Int {
+            messages[idx].snapshotHeight = height
+        }
+        syncThreadMessage(messages[idx])
     }
 
     /// Bulk GET for messages that may have reactions while offline.
@@ -465,6 +516,12 @@ final class ChatDetailViewModel {
                 peerDID: peerDID,
                 messageId: message.id
             )
+            if let commitment = payload.commitmentHash {
+                anchoringTracker.track(messageId: message.id, commitmentHex: commitment)
+                if let idx = messages.firstIndex(where: { $0.id == message.id }) {
+                    messages[idx].commitmentHex = commitment
+                }
+            }
             let deliverSilent = outboundSilentDelivery
             if SealedSenderPolicy.shouldUseSealed(peerDID: peerDID, conversationId: conversationId),
                !conversationId.hasPrefix("group:") {
@@ -934,6 +991,9 @@ struct ChatDetailMessage: Identifiable, Equatable {
     var forwardedFromConversationId: String?
     var sentAt: Date?
     var expiresAt: Date?
+    var commitmentHex: String?
+    var snapshotHash: String?
+    var snapshotHeight: Int?
     var mediaRef: MediaAttachmentRef?
     var pollId: String?
 
@@ -952,6 +1012,9 @@ struct ChatDetailMessage: Identifiable, Equatable {
         forwardedFromConversationId: String? = nil,
         sentAt: Date? = nil,
         expiresAt: Date? = nil,
+        commitmentHex: String? = nil,
+        snapshotHash: String? = nil,
+        snapshotHeight: Int? = nil,
         mediaRef: MediaAttachmentRef? = nil,
         pollId: String? = nil
     ) {
@@ -969,6 +1032,9 @@ struct ChatDetailMessage: Identifiable, Equatable {
         self.forwardedFromConversationId = forwardedFromConversationId
         self.sentAt = sentAt
         self.expiresAt = expiresAt
+        self.commitmentHex = commitmentHex
+        self.snapshotHash = snapshotHash
+        self.snapshotHeight = snapshotHeight
         self.mediaRef = mediaRef
         self.pollId = pollId
     }

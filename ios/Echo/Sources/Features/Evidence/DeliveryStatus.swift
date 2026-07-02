@@ -12,6 +12,7 @@ public enum DeliveryStatus: String, Codable, Comparable {
     case read         // Recipient opened the message
     case failed       // Relay rejected or unrecoverable error
     case anchored     // Commitment included in finalized metagraph snapshot (all users)
+    case anchorVerificationFailed // WO-227: Merkle proof did not verify locally
     case verified     // Digital Evidence fingerprint anchored (Org tier + Smart Checkmark)
 
     /// Icon displayed next to message timestamp.
@@ -23,6 +24,7 @@ public enum DeliveryStatus: String, Codable, Comparable {
         case .read:      return "eye"
         case .failed:    return "exclamationmark.circle"
         case .anchored:  return "link"
+        case .anchorVerificationFailed: return "exclamationmark.triangle"
         case .verified:  return "checkmark.seal"
         }
     }
@@ -36,6 +38,7 @@ public enum DeliveryStatus: String, Codable, Comparable {
         case .read:      return Color.Echo.primaryContainer
         case .failed:    return Color.Echo.error
         case .anchored:  return Color.Echo.secondary
+        case .anchorVerificationFailed: return Color.Echo.warning
         case .verified:  return Color.Echo.primaryContainer
         }
     }
@@ -54,6 +57,7 @@ public enum DeliveryStatus: String, Codable, Comparable {
         case .read:      return "Read"
         case .failed:    return "Failed"
         case .anchored:  return "Anchored"
+        case .anchorVerificationFailed: return "Integrity warning"
         case .verified:  return "Verified"
         }
     }
@@ -67,6 +71,7 @@ public enum DeliveryStatus: String, Codable, Comparable {
         case .delivered: return 2
         case .read:      return 3
         case .failed:    return -1
+        case .anchorVerificationFailed: return 3
         case .anchored:  return 4
         case .verified:  return 5
         }

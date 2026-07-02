@@ -15,22 +15,24 @@ final class AnchoringTrackerTests: XCTestCase {
     }
 
     func testTrackCommitment() {
-        let commitment = Data("test-commitment".utf8)
-        tracker.track(messageId: "msg-1", commitment: commitment)
+        let commitment = "aa" + String(repeating: "b", count: 62)
+        tracker.track(messageId: "msg-1", commitmentHex: commitment)
 
         XCTAssertEqual(tracker.pendingCount, 1)
         XCTAssertNotNil(tracker.pendingAnchors["msg-1"])
-        XCTAssertEqual(tracker.pendingAnchors["msg-1"]?.commitment, commitment)
+        XCTAssertEqual(tracker.pendingAnchors["msg-1"]?.commitmentHex, commitment)
     }
 
     func testConfirmAnchoring() {
-        tracker.track(messageId: "msg-1", commitment: Data("hash".utf8))
+        tracker.track(messageId: "msg-1", commitmentHex: String(repeating: "a", count: 64))
 
         tracker.confirmAnchoring(
             messageId: "msg-1",
             snapshotHash: "snap-abc",
             snapshotHeight: 42,
-            merkleProof: nil
+            merkleProof: nil,
+            merkleRoot: nil,
+            merkleLeafIndex: nil
         )
 
         XCTAssertEqual(tracker.pendingCount, 0)
@@ -40,14 +42,16 @@ final class AnchoringTrackerTests: XCTestCase {
     }
 
     func testConfirmAnchoringRemovesPending() {
-        tracker.track(messageId: "msg-1", commitment: Data("h1".utf8))
-        tracker.track(messageId: "msg-2", commitment: Data("h2".utf8))
+        tracker.track(messageId: "msg-1", commitmentHex: "h1")
+        tracker.track(messageId: "msg-2", commitmentHex: "h2")
 
         tracker.confirmAnchoring(
             messageId: "msg-1",
             snapshotHash: "snap-1",
             snapshotHeight: 10,
-            merkleProof: nil
+            merkleProof: nil,
+            merkleRoot: nil,
+            merkleLeafIndex: nil
         )
 
         XCTAssertEqual(tracker.pendingCount, 1)
@@ -60,8 +64,7 @@ final class AnchoringTrackerTests: XCTestCase {
     }
 
     func testPruneStale() {
-        // Add a commitment and immediately prune with 0 interval
-        tracker.track(messageId: "msg-old", commitment: Data("old".utf8))
+        tracker.track(messageId: "msg-old", commitmentHex: "old")
 
         // Prune with 0 second interval should remove everything
         tracker.pruneStale(olderThan: 0)
@@ -71,7 +74,7 @@ final class AnchoringTrackerTests: XCTestCase {
 
     func testMultipleTracksAndConfirmations() {
         for i in 0..<5 {
-            tracker.track(messageId: "msg-\(i)", commitment: Data("h\(i)".utf8))
+            tracker.track(messageId: "msg-\(i)", commitmentHex: "h\(i)")
         }
         XCTAssertEqual(tracker.pendingCount, 5)
 
@@ -80,7 +83,9 @@ final class AnchoringTrackerTests: XCTestCase {
                 messageId: "msg-\(i)",
                 snapshotHash: "snap-\(i)",
                 snapshotHeight: i,
-                merkleProof: nil
+                merkleProof: nil,
+                merkleRoot: nil,
+                merkleLeafIndex: nil
             )
         }
 
@@ -96,9 +101,9 @@ final class DeliveryStatusTests: XCTestCase {
     func testAllCasesExist() {
         let allCases: [DeliveryStatus] = [
             .sending, .sent, .delivered, .read,
-            .failed, .anchored, .verified
+            .failed, .anchored, .anchorVerificationFailed, .verified
         ]
-        XCTAssertEqual(allCases.count, 7)
+        XCTAssertEqual(allCases.count, 8)
     }
 
     func testCodableRoundTrip() throws {

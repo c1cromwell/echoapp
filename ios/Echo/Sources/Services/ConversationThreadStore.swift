@@ -14,6 +14,9 @@ struct StoredThreadMessage: Codable, Equatable, Sendable, Identifiable {
     var forwardedFromConversationId: String?
     var sentAtISO: String?
     var expiresAtISO: String?
+    var commitmentHex: String?
+    var snapshotHash: String?
+    var snapshotHeight: Int?
 
     func asChatDetailMessage(currentUserDID: String) -> ChatDetailMessage {
         ChatDetailMessage(
@@ -28,7 +31,10 @@ struct StoredThreadMessage: Codable, Equatable, Sendable, Identifiable {
             forwardedFromMessageId: forwardedFromMessageId,
             forwardedFromConversationId: forwardedFromConversationId,
             sentAt: StoredThreadMessage.parseSentAt(sentAtISO),
-            expiresAt: StoredThreadMessage.parseSentAt(expiresAtISO)
+            expiresAt: StoredThreadMessage.parseSentAt(expiresAtISO),
+            commitmentHex: commitmentHex,
+            snapshotHash: snapshotHash,
+            snapshotHeight: snapshotHeight
         )
     }
 
@@ -43,7 +49,10 @@ struct StoredThreadMessage: Codable, Equatable, Sendable, Identifiable {
         forwardedFromMessageId: String? = nil,
         forwardedFromConversationId: String? = nil,
         sentAtISO: String? = nil,
-        expiresAtISO: String? = nil
+        expiresAtISO: String? = nil,
+        commitmentHex: String? = nil,
+        snapshotHash: String? = nil,
+        snapshotHeight: Int? = nil
     ) {
         self.id = id
         self.senderDID = senderDID
@@ -56,6 +65,9 @@ struct StoredThreadMessage: Codable, Equatable, Sendable, Identifiable {
         self.forwardedFromConversationId = forwardedFromConversationId
         self.sentAtISO = sentAtISO
         self.expiresAtISO = expiresAtISO
+        self.commitmentHex = commitmentHex
+        self.snapshotHash = snapshotHash
+        self.snapshotHeight = snapshotHeight
     }
 
     init(from message: ChatDetailMessage) {
@@ -70,6 +82,9 @@ struct StoredThreadMessage: Codable, Equatable, Sendable, Identifiable {
         forwardedFromConversationId = message.forwardedFromConversationId
         sentAtISO = StoredThreadMessage.formatSentAt(message.sentAt)
         expiresAtISO = StoredThreadMessage.formatSentAt(message.expiresAt)
+        commitmentHex = message.commitmentHex
+        snapshotHash = message.snapshotHash
+        snapshotHeight = message.snapshotHeight
     }
 
     private static let sentAtFormatter: ISO8601DateFormatter = {
