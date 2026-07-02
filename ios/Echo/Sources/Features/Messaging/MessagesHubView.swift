@@ -42,6 +42,7 @@ struct MessagesHubView: View {
     let onToggleArchive: (String, Bool) -> Void
     let onOpenMessageSearch: (String) -> Void
     let onGroupCreated: (String, String) -> Void
+    var onRefresh: (() async -> Void)? = nil
 
     @Bindable private var pinnedStore = PinnedConversationsStore.shared
     @State private var searchText = ""
@@ -93,6 +94,10 @@ struct MessagesHubView: View {
                         case .archived: archivedContent
                         }
                     }
+                }
+                .refreshable {
+                    HapticManager.light()
+                    await onRefresh?()
                 }
             }
         }

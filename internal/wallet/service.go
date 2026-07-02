@@ -78,7 +78,7 @@ func (s *WalletService) GetWalletState(ctx context.Context, did string) (*Wallet
 	var vesting *VestingState
 	for _, lock := range locks {
 		if lock.VestingType == "founder" {
-			vesting = s.computeVestingState(lock)
+			vesting = s.computeVestingState(lock, did)
 			break
 		}
 	}
@@ -209,7 +209,7 @@ func sumLocks(locks []TokenLockPos) int64 {
 	return total
 }
 
-func (s *WalletService) computeVestingState(lock TokenLockPos) *VestingState {
+func (s *WalletService) computeVestingState(lock TokenLockPos, did string) *VestingState {
 	// Founder vesting: 12-month cliff, 48-month linear vest
 	cliffMonths := 12
 	vestMonths := 48
@@ -256,5 +256,6 @@ func (s *WalletService) computeVestingState(lock TokenLockPos) *VestingState {
 		CliffDate:        cliffDate,
 		CliffCompleted:   cliffCompleted,
 		VestingPercent:   vestingPercent,
+		ExplorerURL:      "https://dagexplorer.io/address/" + did,
 	}
 }

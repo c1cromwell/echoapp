@@ -9,6 +9,7 @@ import Combine
 class WalletViewModel: ObservableObject {
     @Published var walletState: WalletState?
     @Published var emissionStatus: EmissionStatus?
+    @Published var founderVesting: FounderVestingProfile?
     @Published var validators: [ValidatorInfo] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -37,9 +38,10 @@ class WalletViewModel: ObservableObject {
         do {
             async let wallet = api.fetchWalletState()
             async let emission = api.fetchEmissionStatus()
-            async let vesting = api.fetchVesting()
+            async let founder = api.fetchFounderVesting()
             var state = try await wallet
-            if let founderVesting = try await vesting {
+            if let profile = try await founder {
+                founderVesting = profile
                 state = WalletState(
                     totalBalance: state.totalBalance,
                     available: state.available,
@@ -48,8 +50,10 @@ class WalletViewModel: ObservableObject {
                     locks: state.locks,
                     delegations: state.delegations,
                     dailyRewards: state.dailyRewards,
-                    vesting: founderVesting
+                    vesting: profile.vesting
                 )
+            } else {
+                founderVesting = nil
             }
             walletState = state
             emissionStatus = try await emission
@@ -142,6 +146,16 @@ class WalletViewModel: ObservableObject {
         }
     }
 
+    func withdrawVested(amount: Decimal, lockId: String) async {
+        errorMessage = nil
+        do {
+            _ = try await api.submitWithdrawLock(stakeId: lockId, amount: amount)
+            await loadWallet()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     // MARK: - Helpers
 
     private func computeVesting(_ lock: TokenLockPosition) -> VestingState {
@@ -169,7 +183,8 @@ class WalletViewModel: ObservableObject {
             nextUnlockDate: lock.nextUnlockDate,
             cliffDate: cliffDate,
             cliffCompleted: cliffCompleted,
-            vestingPercent: vestingPercent
+            vestingPercent: vestingPercent,
+            explorerURL: nil
         )
     }
 }

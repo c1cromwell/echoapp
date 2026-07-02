@@ -127,6 +127,12 @@ final class DIContainer {
             return HTTPWalletAPIClient(apiClient: client)
         }
 
+        registerFactory(ServiceKeys.gamificationAPI) { [weak self] () -> GamificationAPI in
+            let client: APIClient = self?.resolve(ServiceKeys.apiClient)
+                ?? APIClient(configuration: .default)
+            return GamificationAPI(apiClient: client)
+        }
+
         registerFactory(ServiceKeys.groupKeyManager) { [weak self] () -> GroupKeyManager in
             let encryption: KinnamiEncryption = self?.resolve(ServiceKeys.kinnamiEncryption)
                 ?? KinnamiEncryption()
@@ -385,6 +391,7 @@ enum ServiceKeys {
     static let receiptsAPI = "networking.receiptsAPI"
     static let messageOpsAPI = "networking.messageOpsAPI"
     static let walletAPI = "networking.walletAPI"
+    static let gamificationAPI = "networking.gamificationAPI"
     static let groupKeyManager = "relay.groupKeyManager"
     static let groupsAPI = "networking.groupsAPI"
     static let groupKeyDistribution = "services.groupKeyDistribution"
@@ -488,6 +495,10 @@ extension DIContainer {
 
     func resolveWalletAPI() -> WalletAPIClient? {
         resolve(ServiceKeys.walletAPI)
+    }
+
+    func resolveGamificationAPI() -> GamificationAPI? {
+        resolve(ServiceKeys.gamificationAPI)
     }
 
     func resolveContactDiscoveryService() -> ContactDiscoveryService? {

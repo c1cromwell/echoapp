@@ -162,7 +162,7 @@ struct WalletAPIClientStub: WalletAPIClient {
     func fetchEmissionStatus() async throws -> EmissionStatus {
         EmissionStatus(currentYear: 1, annualCap: 0, distributedToDate: 0, remainingBudget: 0, percentConsumed: 0)
     }
-    func fetchVesting() async throws -> VestingState? { nil }
+    func fetchFounderVesting() async throws -> FounderVestingProfile? { nil }
 }
 
 #endif

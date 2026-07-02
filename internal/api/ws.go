@@ -283,6 +283,7 @@ func (h *Hub) PublishConfirmation(to string, confirmation metagraph.AnchorConfir
 		Payload: payload,
 	})
 }
+
 // It fills Timestamp when empty. Returns false if `to` is empty or offline.
 func (h *Hub) PublishSignal(to string, msg WSMessage) bool {
 	if h == nil || to == "" {

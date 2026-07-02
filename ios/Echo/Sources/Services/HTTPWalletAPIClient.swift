@@ -65,6 +65,7 @@ private struct VestingWire: Codable, Sendable {
     let cliffDate: Date
     let cliffCompleted: Bool
     let vestingPercent: Double
+    let explorerUrl: String?
 }
 
 private struct ValidatorsResponse: Codable, Sendable {
@@ -296,6 +297,23 @@ actor HTTPWalletAPIClient: WalletAPIClient {
         return result.txHash
     }
 
+    func fetchEmissionStatus() async throws -> EmissionStatus {
+        let wire: EmissionStatusWire = try await apiClient.get(endpoint: TokenomicsEndpoint.emissionStatus)
+        return TokenomicsMapping.mapEmission(wire)
+    }
+
+    func fetchFounderVesting() async throws -> FounderVestingProfile? {
+        do {
+            let wire: FounderVestingWire = try await apiClient.get(endpoint: TokenomicsEndpoint.founderVesting)
+            guard wire.isFounder else { return nil }
+            let walletWire = try await cachedOrRefresh()
+            let lockId = walletWire.locks.first(where: { $0.vestingType == "founder" })?.id
+            return TokenomicsMapping.mapFounderVesting(wire, lockId: lockId)
+        } catch APIError.notFound {
+            return nil
+        }
+    }
+
     func linkDAGAddress(_ address: String) async throws {
         struct LinkResp: Decodable { let did: String; let address: String }
         let _: LinkResp = try await apiClient.post(
@@ -348,7 +366,8 @@ actor HTTPWalletAPIClient: WalletAPIClient {
                 nextUnlockDate: v.nextUnlockDate,
                 cliffDate: v.cliffDate,
                 cliffCompleted: v.cliffCompleted,
-                vestingPercent: v.vestingPercent
+                vestingPercent: v.vestingPercent,
+                explorerURL: v.explorerUrl.flatMap { URL(string: $0) }
             )
         }
 

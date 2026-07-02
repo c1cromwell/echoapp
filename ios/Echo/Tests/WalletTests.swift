@@ -125,14 +125,16 @@ final class WalletTypesTests: XCTestCase {
             vested: 15000000, locked: 45000000,
             withdrawable: 15000000, nextUnlockAmount: 1250000,
             nextUnlockDate: date, cliffDate: date,
-            cliffCompleted: true, vestingPercent: 25.0
+            cliffCompleted: true, vestingPercent: 25.0,
+            explorerURL: nil
         )
         let v2 = VestingState(
             role: "Founder", totalAllocated: 60000000,
             vested: 15000000, locked: 45000000,
             withdrawable: 15000000, nextUnlockAmount: 1250000,
             nextUnlockDate: date, cliffDate: date,
-            cliffCompleted: true, vestingPercent: 25.0
+            cliffCompleted: true, vestingPercent: 25.0,
+            explorerURL: nil
         )
         XCTAssertEqual(v1, v2)
     }

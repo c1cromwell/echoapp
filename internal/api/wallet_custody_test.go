@@ -108,7 +108,10 @@ func TestWalletChallengeEndpoint(t *testing.T) {
 	}
 }
 
-type fakeTxContext struct{ hash string; ordinal int64 }
+type fakeTxContext struct {
+	hash    string
+	ordinal int64
+}
 
 func (f fakeTxContext) LastRef(_ context.Context, _, _ string) (string, int64, error) {
 	return f.hash, f.ordinal, nil

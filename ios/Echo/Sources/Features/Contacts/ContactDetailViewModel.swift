@@ -172,6 +172,8 @@ class ContactDetailViewModel: ObservableObject {
     func copyDID() {
         #if canImport(UIKit)
         UIPasteboard.general.string = contact.did
+        HapticManager.light()
+        ToastManager.shared.show("DID copied to clipboard", style: .copied)
         #elseif canImport(AppKit)
         NSPasteboard.general.setString(contact.did, forType: .string)
         #endif

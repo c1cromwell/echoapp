@@ -345,6 +345,8 @@ struct TrustRow: View {
                         #elseif canImport(AppKit)
                         NSPasteboard.general.setString(value, forType: .string)
                         #endif
+                        HapticManager.light()
+                        ToastManager.shared.show("Copied to clipboard", style: .copied)
                     } label: {
                         Image(systemName: "doc.on.doc")
                             .font(.system(size: 10))

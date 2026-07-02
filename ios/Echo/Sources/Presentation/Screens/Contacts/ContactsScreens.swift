@@ -121,8 +121,7 @@ public struct ContactsListView: View {
 
                     #if os(iOS)
                     if viewModel.isLoading && viewModel.contacts.isEmpty {
-                        ProgressView("Loading contacts…")
-                            .frame(maxHeight: .infinity, alignment: .center)
+                        SkeletonList(count: 8) { ContactRowSkeleton() }
                     } else if displayedContacts.isEmpty {
                         contactsEmptyState
                     } else if filteredContacts.isEmpty {

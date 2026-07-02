@@ -442,6 +442,8 @@ struct EmptyStateView: View {
     let icon: String
     let title: String
     let subtitle: String
+    var actionTitle: String? = nil
+    var action: (() -> Void)? = nil
     
     var body: some View {
         VStack(spacing: 16) {
@@ -457,6 +459,18 @@ struct EmptyStateView: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+
+            if let actionTitle, let action {
+                EchoButton(
+                    actionTitle,
+                    style: .primary,
+                    size: .medium,
+                    action: action
+                )
+                .padding(.horizontal, 48)
+                .padding(.top, 8)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.echoBackground)

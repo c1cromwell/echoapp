@@ -200,6 +200,8 @@ public struct ReferralView: View {
                                 Button(action: {
                                     #if os(iOS)
                                     UIPasteboard.general.string = referralCode
+                                    HapticManager.light()
+                                    ToastManager.shared.show("Referral code copied", style: .copied)
                                     #elseif os(macOS)
                                     NSPasteboard.general.setString(referralCode, forType: .string)
                                     #endif

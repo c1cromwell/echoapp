@@ -42,8 +42,9 @@ extension Color {
         static let inverseSurface   = Color.echoNight
         static let inverseOnSurface = Color.echoNightInk
 
-        // Error
+        // Error / warning
         static let error = Color.echoAlert
+        static let warning = Color.echoWarning
 
         // Gradient anchors — night → signal (replaces deepNavy → skyBlue)
         static let deepNavy  = Color.echoNight

@@ -144,6 +144,9 @@ public struct EchoButton: View {
             },
             perform: {
                 if !isLoading && !isDisabled {
+                    #if os(iOS)
+                    HapticManager.light()
+                    #endif
                     action()
                 }
             }

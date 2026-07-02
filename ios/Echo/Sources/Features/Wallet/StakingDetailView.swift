@@ -4,17 +4,17 @@
 
 import SwiftUI
 
-public struct StakingDetailView: View {
+struct StakingDetailView: View {
     @StateObject private var viewModel = StakingDetailViewModel()
     @StateObject private var walletViewModel: WalletViewModel
     @State private var showUnstakeConfirm = false
 
-    public init(walletViewModel: WalletViewModel? = nil) {
+    init(walletViewModel: WalletViewModel? = nil) {
         let vm = walletViewModel ?? WalletViewModel(api: DIContainer.shared.resolveWalletAPI() ?? WalletAPIClientStub())
         _walletViewModel = StateObject(wrappedValue: vm)
     }
 
-    public var body: some View {
+    var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 // Current Position Card

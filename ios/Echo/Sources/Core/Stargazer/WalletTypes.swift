@@ -153,9 +153,28 @@ struct VestingState: Equatable {
     let cliffDate: Date
     let cliffCompleted: Bool
     let vestingPercent: Double
+    let explorerURL: URL?
 
     /// Progress bar value 0.0–1.0 (WO-226).
     var vestingProgress: Float { Float(vestingPercent / 100) }
+}
+
+struct RevocationEvent: Equatable, Identifiable {
+    var id: String { txHash }
+    let targetFounderDID: String
+    let revokedAmount: Decimal
+    let revokerDIDs: [String]
+    let timestamp: String
+    let txHash: String
+    let destinationPool: String
+}
+
+/// Founder vesting panel payload from GET /v1/tokens/vesting (WO-226).
+struct FounderVestingProfile: Equatable {
+    let vesting: VestingState
+    let revocationEvents: [RevocationEvent]
+    let explorerURL: URL?
+    let founderLockId: String?
 }
 
 // MARK: - Emission Status (WO-206)

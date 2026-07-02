@@ -33,8 +33,27 @@ struct WalletTab: View {
                             EmissionGaugeSection(status: emission)
                         }
 
-                        if let vesting = state.vesting {
-                            FounderVestingSection(vesting: vesting)
+                        if let profile = viewModel.founderVesting {
+                            FounderVestingSection(
+                                profile: profile,
+                                onWithdraw: { amount in
+                                    guard let lockId = profile.founderLockId else { return }
+                                    Task { await viewModel.withdrawVested(amount: amount, lockId: lockId) }
+                                }
+                            )
+                        } else if let vesting = state.vesting {
+                            FounderVestingSection(
+                                profile: FounderVestingProfile(
+                                    vesting: vesting,
+                                    revocationEvents: [],
+                                    explorerURL: vesting.explorerURL,
+                                    founderLockId: state.locks.first(where: \.isFounderVesting)?.id
+                                ),
+                                onWithdraw: { amount in
+                                    guard let lockId = state.locks.first(where: \.isFounderVesting)?.id else { return }
+                                    Task { await viewModel.withdrawVested(amount: amount, lockId: lockId) }
+                                }
+                            )
                         }
 
                         WalletActionButtons(viewModel: viewModel)
@@ -227,7 +246,14 @@ struct EmissionGaugeSection: View {
 // MARK: - Founder Vesting Section
 
 struct FounderVestingSection: View {
-    let vesting: VestingState
+    let profile: FounderVestingProfile
+    let onWithdraw: (Decimal) -> Void
+
+    @State private var showWithdrawSheet = false
+    @State private var withdrawAmount = ""
+    @State private var showBiometricError = false
+
+    private var vesting: VestingState { profile.vesting }
 
     var body: some View {
         GhostBorderCard {
@@ -246,6 +272,8 @@ struct FounderVestingSection: View {
                     .tint(LinearGradient.signature)
 
                 HStack {
+                    vestingDetail("Allocated", value: formatEcho(vesting.totalAllocated))
+                    Spacer()
                     vestingDetail("Vested", value: formatEcho(vesting.vested))
                     Spacer()
                     vestingDetail("Locked", value: formatEcho(vesting.locked))
@@ -262,7 +290,82 @@ struct FounderVestingSection: View {
                         .font(Font.Echo.bodySm)
                         .foregroundStyle(Color.Echo.onSurfaceVariant)
                 }
+
+                if vesting.withdrawable > 0 {
+                    Button("Withdraw Vested Tokens") {
+                        withdrawAmount = formatEcho(vesting.withdrawable)
+                        showWithdrawSheet = true
+                    }
+                    .font(Font.Echo.labelMd)
+                    .foregroundStyle(Color.Echo.primary)
+                }
+
+                if let url = profile.explorerURL ?? vesting.explorerURL {
+                    Link(destination: url) {
+                        Label("View on DAG Explorer", systemImage: "link")
+                            .font(Font.Echo.bodySm)
+                            .foregroundStyle(Color.Echo.primary)
+                    }
+                }
+
+                if !profile.revocationEvents.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Revocation History")
+                            .font(Font.Echo.labelMd)
+                            .foregroundStyle(Color.Echo.onSurfaceVariant)
+                        ForEach(profile.revocationEvents) { event in
+                            Text("\(formatEcho(event.revokedAmount)) revoked · \(event.timestamp.prefix(10))")
+                                .font(Font.Echo.bodySm)
+                                .foregroundStyle(Color.Echo.warning)
+                        }
+                    }
+                }
+
+                Text("Withdrawals require a 14-day cooldown after submission.")
+                    .font(Font.Echo.bodySm)
+                    .foregroundStyle(Color.Echo.onSurfaceVariant)
             }
+        }
+        .sheet(isPresented: $showWithdrawSheet) {
+            NavigationStack {
+                Form {
+                    Section {
+                        TextField("Amount", text: $withdrawAmount)
+                            .keyboardType(.decimalPad)
+                    } footer: {
+                        Text("Maximum withdrawable: \(formatEcho(vesting.withdrawable)). Withdrawals enter a 14-day cooldown.")
+                    }
+                }
+                .navigationTitle("Withdraw Vested ECHO")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { showWithdrawSheet = false }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Confirm") {
+                            Task {
+                                let bio = DIContainer.shared.resolveBiometricAuth() ?? BiometricAuthManager()
+                                do {
+                                    let ok = try await bio.authenticate(reason: "Confirm founder vesting withdrawal")
+                                    guard ok else { return }
+                                    if let amount = Decimal(string: withdrawAmount.trimmingCharacters(in: .whitespaces)),
+                                       amount > 0, amount <= vesting.withdrawable {
+                                        onWithdraw(amount)
+                                        showWithdrawSheet = false
+                                    }
+                                } catch {
+                                    showBiometricError = true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.medium])
+        }
+        .alert("Authentication failed", isPresented: $showBiometricError) {
+            Button("OK", role: .cancel) {}
         }
     }
 

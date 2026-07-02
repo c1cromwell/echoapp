@@ -106,6 +106,11 @@ public struct ProfileTabView: View {
                             }
                         }
 
+                        // Quests & badges (WO-271)
+                        if let gamification = DIContainer.shared.resolveGamificationAPI() {
+                            QuestGamificationSection(api: gamification)
+                        }
+
                         // Personas Section
                         personasSection
 
