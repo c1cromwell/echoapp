@@ -95,6 +95,8 @@ protocol GroupsAPIClient: Sendable {
         distributedBy: String,
         packages: [GroupKeyManager.KeyPackage]
     ) async throws -> GroupKeyDistributeResponse
+    func muteMember(groupId: String, memberDid: String, durationHours: Int) async throws
+    func banMember(groupId: String, memberDid: String) async throws
 }
 
 #if os(iOS)
@@ -105,6 +107,8 @@ enum GroupsEndpoint: APIEndpoint {
     case removeMember
     case distributeKeys
     case listMembers(groupId: String)
+    case muteMember
+    case banMember
 
     var path: String {
         switch self {
@@ -114,6 +118,8 @@ enum GroupsEndpoint: APIEndpoint {
         case .distributeKeys: return "/v3/groups/key/distribute"
         case .listMembers(let groupId):
             return "/v3/groups/members?groupId=\(groupId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? groupId)"
+        case .muteMember: return "/v3/groups/members/mute"
+        case .banMember: return "/v3/groups/members/ban"
         }
     }
 }
@@ -170,6 +176,24 @@ actor LiveGroupsAPIClient: GroupsAPIClient {
             packages: wire
         )
         return try await apiClient.post(endpoint: GroupsEndpoint.distributeKeys, body: body)
+    }
+
+    func muteMember(groupId: String, memberDid: String, durationHours: Int) async throws {
+        struct Body: Codable { let groupId: String; let memberId: String; let durationHours: Int
+            enum CodingKeys: String, CodingKey { case groupId; case memberId; case durationHours = "duration_hours" }
+        }
+        let _: [String: String] = try await apiClient.post(
+            endpoint: GroupsEndpoint.muteMember,
+            body: Body(groupId: groupId, memberId: memberDid, durationHours: durationHours)
+        )
+    }
+
+    func banMember(groupId: String, memberDid: String) async throws {
+        struct Body: Codable { let groupId: String; let memberId: String }
+        let _: [String: String] = try await apiClient.post(
+            endpoint: GroupsEndpoint.banMember,
+            body: Body(groupId: groupId, memberId: memberDid)
+        )
     }
 }
 

@@ -64,6 +64,11 @@ final class WebRTCStubCallEngine: WebRTCCallEngine {
     func setVideoEnabled(_ enabled: Bool) {}
     func setSpeakerEnabled(_ enabled: Bool) {}
 
+    private(set) var isScreenSharing = false
+
+    func startScreenShare() async throws { isScreenSharing = true }
+    func stopScreenShare() { isScreenSharing = false }
+
     func hangup() {
         phase = .ended
         onIceCandidate = nil

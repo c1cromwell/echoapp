@@ -95,6 +95,16 @@ final class WebRTCLiveCallEngine: NSObject, WebRTCCallEngine {
         WebRTCAudioSession.setSpeakerEnabled(enabled)
     }
 
+    private(set) var isScreenSharing = false
+
+    func startScreenShare() async throws {
+        isScreenSharing = true
+    }
+
+    func stopScreenShare() {
+        isScreenSharing = false
+    }
+
     func hangup() {
         phase = .ended
         capturer?.stopCapture()

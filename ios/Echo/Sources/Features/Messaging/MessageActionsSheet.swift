@@ -5,7 +5,7 @@ import UIKit
 
 /// A message action (spec §5.3). Telegram long-press grid + Signal action list.
 public enum MessageAction: String, Identifiable, CaseIterable {
-    case reply, copy, forward, pin, edit, delete, translate
+    case reply, copy, forward, pin, edit, delete, translate, schedule
 
     public var id: String { rawValue }
 
@@ -18,6 +18,7 @@ public enum MessageAction: String, Identifiable, CaseIterable {
         case .edit:      return "Edit"
         case .delete:    return "Delete"
         case .translate: return "Translate"
+        case .schedule:  return "Schedule"
         }
     }
 
@@ -30,6 +31,7 @@ public enum MessageAction: String, Identifiable, CaseIterable {
         case .edit:      return "pencil"
         case .delete:    return "trash"
         case .translate: return "character.bubble"
+        case .schedule:  return "calendar.badge.clock"
         }
     }
 
@@ -64,6 +66,7 @@ public struct MessageActionsSheet: View {
             switch action {
             case .edit:      return isOwnMessage && sentWithinEditWindow
             case .delete:    return isOwnMessage
+            case .schedule:  return isOwnMessage
             case .translate: return showTranslate
             default:         return true
             }

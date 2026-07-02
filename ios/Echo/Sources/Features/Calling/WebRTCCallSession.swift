@@ -62,6 +62,10 @@ final class WebRTCCallSession {
     func setVideoEnabled(_ enabled: Bool) { engine.setVideoEnabled(enabled) }
     func setSpeakerEnabled(_ enabled: Bool) { engine.setSpeakerEnabled(enabled) }
 
+    func startScreenShare() async throws { try await engine.startScreenShare() }
+    func stopScreenShare() { engine.stopScreenShare() }
+    var isScreenSharing: Bool { engine.isScreenSharing }
+
     func hangup() {
         engine.hangup()
     }

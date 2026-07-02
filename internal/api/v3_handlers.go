@@ -28,11 +28,13 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
 	"github.com/thechadcromwell/echoapp/internal/services/comply"
 	"github.com/thechadcromwell/echoapp/internal/services/contacts"
+	"github.com/thechadcromwell/echoapp/internal/services/datasov"
 	"github.com/thechadcromwell/echoapp/internal/services/groups"
 	"github.com/thechadcromwell/echoapp/internal/services/media"
 	"github.com/thechadcromwell/echoapp/internal/services/messaging"
 	"github.com/thechadcromwell/echoapp/internal/services/notification"
 	"github.com/thechadcromwell/echoapp/internal/services/rewards"
+	"github.com/thechadcromwell/echoapp/internal/services/zk"
 	"github.com/thechadcromwell/echoapp/internal/validation"
 	"github.com/thechadcromwell/echoapp/pkg/didkey"
 	"github.com/thechadcromwell/echoapp/pkg/passport"
@@ -41,29 +43,31 @@ import (
 
 // V3Handlers holds all service dependencies for v3 API routes.
 type V3Handlers struct {
-	DB              database.DB
-	Contacts        *contacts.Service
-	Notification    *notification.Service
-	Media           *media.Service
-	Rewards         *rewards.Service
-	Groups          *groups.GroupService
-	Broadcasts      *broadcast_channels.ChannelService
-	RateLimiter     *infra.RateLimiter                            // optional; enforces per-DID claim velocity (WO-35)
-	IdentityL1      *metagraph.MetagraphClient                    // optional; anchors @username -> DID on the Identity Metagraph (D1)
-	Signals         SignalPublisher                               // optional; pushes live typing/receipt/reaction signals over WS (WO-10/192)
-	Notifier        OfflineNotifier                               // optional; content-blind push when a signal target is offline (WO-57)
-	MessageBackup   *passport.SyncService                         // optional; WO-64/CA2 client-encrypted history backup relay
-	OverflowStorage encblob.Storage                               // optional; WO-237 overflow blob retrieval
-	Comply          *comply.Service                               // optional; WO-250 retention enforcement
-	SealedTokens    *messaging.SealedTokenStore                   // optional; WO-219 sealed-sender tokens
-	ConvNotifPrefs  *messaging.ConversationNotificationPrefsStore // optional; WO-56 mute prefs
-	Bots            *bots.InstallStore                            // optional; Stage 4 bot installs
-	BotTokens       *bots.TokenValidator                          // optional; WO-11 bot API tokens
-	BotRateLimiter  *bots.RateLimiter                             // optional; WO-11 bot send velocity
-	BotWebhooks     *bots.WebhookRegistry                         // optional; WO-11 inbound webhooks
-	Wallet          *WalletHandlers                               // optional; Currency L1 wallet + staking
-	DisappearingRestrictions *messaging.DisappearingRestrictionService // WO-115 trust-tier TTL policy
-	GroupAnchoring  *groups.GroupAnchoringService                 // WO-156 group metadata anchoring
+	DB                       database.DB
+	Contacts                 *contacts.Service
+	Notification             *notification.Service
+	Media                    *media.Service
+	Rewards                  *rewards.Service
+	Groups                   *groups.GroupService
+	Broadcasts               *broadcast_channels.ChannelService
+	RateLimiter              *infra.RateLimiter                            // optional; enforces per-DID claim velocity (WO-35)
+	IdentityL1               *metagraph.MetagraphClient                    // optional; anchors @username -> DID on the Identity Metagraph (D1)
+	Signals                  SignalPublisher                               // optional; pushes live typing/receipt/reaction signals over WS (WO-10/192)
+	Notifier                 OfflineNotifier                               // optional; content-blind push when a signal target is offline (WO-57)
+	MessageBackup            *passport.SyncService                         // optional; WO-64/CA2 client-encrypted history backup relay
+	OverflowStorage          encblob.Storage                               // optional; WO-237 overflow blob retrieval
+	Comply                   *comply.Service                               // optional; WO-250 retention enforcement
+	SealedTokens             *messaging.SealedTokenStore                   // optional; WO-219 sealed-sender tokens
+	ConvNotifPrefs           *messaging.ConversationNotificationPrefsStore // optional; WO-56 mute prefs
+	Bots                     *bots.InstallStore                            // optional; Stage 4 bot installs
+	BotTokens                *bots.TokenValidator                          // optional; WO-11 bot API tokens
+	BotRateLimiter           *bots.RateLimiter                             // optional; WO-11 bot send velocity
+	BotWebhooks              *bots.WebhookRegistry                         // optional; WO-11 inbound webhooks
+	Wallet                   *WalletHandlers                               // optional; Currency L1 wallet + staking
+	DisappearingRestrictions *messaging.DisappearingRestrictionService     // WO-115 trust-tier TTL policy
+	GroupAnchoring           *groups.GroupAnchoringService                 // WO-156 group metadata anchoring
+	DataSov                  *datasov.Service                              // WO-248/249 data sovereignty stub
+	ZKVerifier               *zk.Verifier                                  // WO-236 ZK verification stub
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.
@@ -168,6 +172,8 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/v3/broadcasts/subscribe", h.handleBroadcastSubscribe)
 	mux.HandleFunc("/v3/broadcasts/unsubscribe", h.handleBroadcastUnsubscribe)
 	mux.HandleFunc("/v3/broadcasts/", h.handleBroadcastGet)
+	h.WireDataSovZK(mux)
+	h.WirePhase6Extensions(mux)
 }
 
 // --- Helpers ---

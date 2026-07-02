@@ -19,7 +19,7 @@ struct MessagesHubView: View {
             case .archived: return "Archived"
             }
         }
-        static let standard: [Segment] = [.chats, .groups]
+        static let standard: [Segment] = [.chats, .groups, .channels]
     }
 
     let conversations: [StoredConversation]
@@ -89,7 +89,7 @@ struct MessagesHubView: View {
                         switch segment {
                         case .chats:    chatsContent
                         case .groups:   groupsContent
-                        case .channels: placeholder(icon: "dot.radiowaves.left.and.right", text: "Channels are coming soon.")
+                        case .channels: ChannelsListView()
                         case .hidden:   hiddenContent
                         case .archived: archivedContent
                         }

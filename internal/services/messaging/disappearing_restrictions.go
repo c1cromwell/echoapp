@@ -12,9 +12,9 @@ var ErrDisappearingTTLRestricted = errors.New("disappearing ttl below trust tier
 
 // DisappearingRestrictionPolicy defines minimum TTL by trust tier (WO-115).
 type DisappearingRestrictionPolicy struct {
-	MinTTLSeconds int      `json:"min_ttl_seconds"`
-	Reason        string   `json:"reason"`
-	BlockedTTLs   []int    `json:"blocked_ttls,omitempty"`
+	MinTTLSeconds int    `json:"min_ttl_seconds"`
+	Reason        string `json:"reason"`
+	BlockedTTLs   []int  `json:"blocked_ttls,omitempty"`
 }
 
 // MinTTLForTrustTier returns the minimum allowed disappearing TTL in seconds.
@@ -72,7 +72,7 @@ type DisappearingAppeal struct {
 
 // DisappearingRestrictionService tracks violations and appeals (WO-115).
 type DisappearingRestrictionService struct {
-	mu        sync.Mutex
+	mu         sync.Mutex
 	violations map[string]int
 	appeals    []DisappearingAppeal
 }

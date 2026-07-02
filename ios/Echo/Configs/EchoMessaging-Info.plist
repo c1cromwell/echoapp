@@ -51,6 +51,7 @@
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>com.echo.disappearing.purge</string>
+		<string>com.echo.scheduled.send</string>
 	</array>
 </dict>
 </plist>

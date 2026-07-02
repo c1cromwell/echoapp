@@ -22,6 +22,7 @@ public final class HiddenChatsSession {
         isUnlocked = true
         isDuressMode = duress
         unlockedAt = Date()
+        HiddenFolderAuditLog.record(duress ? .duressEntry : .unlock)
         if screenshotObserver == nil {
             screenshotObserver = NotificationCenter.default.addObserver(
                 forName: UIApplication.userDidTakeScreenshotNotification,
@@ -37,6 +38,7 @@ public final class HiddenChatsSession {
     }
 
     public func lock() {
+        if isUnlocked { HiddenFolderAuditLog.record(.lock) }
         isUnlocked = false
         isDuressMode = false
         unlockedAt = nil

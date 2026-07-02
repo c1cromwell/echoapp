@@ -154,11 +154,15 @@ class CallViewModel: ObservableObject {
     func flipCamera() {}
     func startScreenShare() {
         isScreenSharing = true
-        Task { try? await signaling?.sendScreenShare(callId: callId, to: peerDID, active: true) }
+        Task {
+            try? await session.startScreenShare()
+            try? await signaling?.sendScreenShare(callId: callId, to: peerDID, active: true)
+        }
     }
 
     func stopScreenShare() {
         isScreenSharing = false
+        session.stopScreenShare()
         Task { try? await signaling?.sendScreenShare(callId: callId, to: peerDID, active: false) }
     }
 

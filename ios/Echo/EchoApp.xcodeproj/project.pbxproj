@@ -305,6 +305,15 @@
 		D7B003DISAPPEAR00000003 /* DisappearingMessageBGTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F003DISAPPEAR00000003 /* DisappearingMessageBGTask.swift */; };
 		D7B004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift */; };
 		D7B005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift */; };
+		P5B001SCHED000000000001 /* ScheduledMessageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F001SCHED000000000001 /* ScheduledMessageStore.swift */; };
+		P5B002SCHED000000000002 /* ScheduledMessageBGTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F002SCHED000000000002 /* ScheduledMessageBGTask.swift */; };
+		P5B003SCHED000000000003 /* ScheduleMessageSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F003SCHED000000000003 /* ScheduleMessageSheet.swift */; };
+		P5B004HIDDEN000000000004 /* HiddenFolderAuditLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F004HIDDEN000000000004 /* HiddenFolderAuditLog.swift */; };
+		P5B005DATASOV000000000005 /* DataSovereigntySettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F005DATASOV000000000005 /* DataSovereigntySettingsStore.swift */; };
+		P5B006PQMODE000000000006 /* PostQuantumModeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F006PQMODE000000000006 /* PostQuantumModeStore.swift */; };
+		P5B007ZKPROOF00000000007 /* ZKProofUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F007ZKPROOF00000000007 /* ZKProofUseCase.swift */; };
+		P6B001CHANNELS0000000001 /* ChannelsAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F001CHANNELS0000000001 /* ChannelsAPIClient.swift */; };
+		P6B002CHANNELS0000000002 /* ChannelsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F002CHANNELS0000000002 /* ChannelsListView.swift */; };
 		G7B001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = G7F001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift */; };
 		G7B002QUESTSECTION000001 /* Sources/Features/Gamification/QuestSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = G7F002QUESTSECTION000001 /* Sources/Features/Gamification/QuestSection.swift */; };
 		G7B003HTTPWALLET00000001 /* Sources/Services/HTTPWalletAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = G7F003HTTPWALLET00000001 /* Sources/Services/HTTPWalletAPIClient.swift */; };
@@ -747,6 +756,15 @@
 		D7F003DISAPPEAR00000003 /* DisappearingMessageBGTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingMessageBGTask.swift; sourceTree = "<group>"; };
 		D7F004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingRestrictionsAPI.swift; sourceTree = "<group>"; };
 		D7F005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingRestrictionsPolicy.swift; sourceTree = "<group>"; };
+		P5F001SCHED000000000001 /* ScheduledMessageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledMessageStore.swift; sourceTree = "<group>"; };
+		P5F002SCHED000000000002 /* ScheduledMessageBGTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledMessageBGTask.swift; sourceTree = "<group>"; };
+		P5F003SCHED000000000003 /* ScheduleMessageSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleMessageSheet.swift; sourceTree = "<group>"; };
+		P5F004HIDDEN000000000004 /* HiddenFolderAuditLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderAuditLog.swift; sourceTree = "<group>"; };
+		P5F005DATASOV000000000005 /* DataSovereigntySettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSovereigntySettingsStore.swift; sourceTree = "<group>"; };
+		P5F006PQMODE000000000006 /* PostQuantumModeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostQuantumModeStore.swift; sourceTree = "<group>"; };
+		P5F007ZKPROOF00000000007 /* ZKProofUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZKProofUseCase.swift; sourceTree = "<group>"; };
+		P6F001CHANNELS0000000001 /* ChannelsAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelsAPIClient.swift; sourceTree = "<group>"; };
+		P6F002CHANNELS0000000002 /* ChannelsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelsListView.swift; sourceTree = "<group>"; };
 		G7F001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/GamificationAPIClient.swift; sourceTree = "<group>"; };
 		G7F002QUESTSECTION000001 /* Sources/Features/Gamification/QuestSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Gamification/QuestSection.swift; sourceTree = "<group>"; };
 		G7F003HTTPWALLET00000001 /* Sources/Services/HTTPWalletAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/HTTPWalletAPIClient.swift; sourceTree = "<group>"; };
@@ -1046,6 +1064,12 @@
 				D7F003DISAPPEAR00000003 /* DisappearingMessageBGTask.swift */,
 				D7F004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift */,
 				D7F005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift */,
+				P5F001SCHED000000000001 /* ScheduledMessageStore.swift */,
+				P5F002SCHED000000000002 /* ScheduledMessageBGTask.swift */,
+				P5F004HIDDEN000000000004 /* HiddenFolderAuditLog.swift */,
+				P5F005DATASOV000000000005 /* DataSovereigntySettingsStore.swift */,
+				P5F006PQMODE000000000006 /* PostQuantumModeStore.swift */,
+				P6F001CHANNELS0000000001 /* ChannelsAPIClient.swift */,
 				M3F011SYNC00000000000011 /* GroupCallSignalingService.swift */,
 				M3F007BACKUP00000000001 /* BackupCrypto.swift */,
 				M3F008BACKUP00000000002 /* BackupAPIClient.swift */,
@@ -1130,6 +1154,8 @@
 				7A76BD8C20CBD03FDC3EA61B /* Sources/Features/Messaging/MessagesHubView.swift */,
 				C51D1ECD4CDFC07B78CD4037 /* Sources/Features/Messaging/ChatSettingsSheet.swift */,
 				D7F001DISAPPEAR00000001 /* DisappearingMessageView.swift */,
+				P5F003SCHED000000000003 /* ScheduleMessageSheet.swift */,
+				P6F002CHANNELS0000000002 /* ChannelsListView.swift */,
 				B1B896BB33EE967785204A57 /* Sources/Features/Messaging/MessageActionsSheet.swift */,
 				1878FA1FFD4E9EFD1EFB1AE5 /* Sources/Features/Messaging/ChatFolderFilterView.swift */,
 				DDF6D1C6D0E4EB6697FB6BD1 /* Sources/Services/ConversationPreferencesStore.swift */,
@@ -1300,6 +1326,7 @@
 			children = (
 				F1A2B3C4012345678900003 /* RegisterWithVerifiableCredentialUseCase.swift */,
 				A1B2C3D4E5F60718293A4B5D /* Contacts/ContactUseCases.swift */,
+				P5F007ZKPROOF00000000007 /* ZKProofUseCase.swift */,
 				73D743AC0EC9162DF830D09D /* UseCases.swift */,
 			);
 			path = UseCases;
@@ -2207,6 +2234,15 @@
 				D7B003DISAPPEAR00000003 /* DisappearingMessageBGTask.swift in Sources */,
 				D7B004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift in Sources */,
 				D7B005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift in Sources */,
+				P5B001SCHED000000000001 /* ScheduledMessageStore.swift in Sources */,
+				P5B002SCHED000000000002 /* ScheduledMessageBGTask.swift in Sources */,
+				P5B003SCHED000000000003 /* ScheduleMessageSheet.swift in Sources */,
+				P5B004HIDDEN000000000004 /* HiddenFolderAuditLog.swift in Sources */,
+				P5B005DATASOV000000000005 /* DataSovereigntySettingsStore.swift in Sources */,
+				P5B006PQMODE000000000006 /* PostQuantumModeStore.swift in Sources */,
+				P5B007ZKPROOF00000000007 /* ZKProofUseCase.swift in Sources */,
+				P6B001CHANNELS0000000001 /* ChannelsAPIClient.swift in Sources */,
+				P6B002CHANNELS0000000002 /* ChannelsListView.swift in Sources */,
 				59377B9DF47C401D5068938A /* AppState.swift in Sources */,
 				A1B2C3D401234567890ABC02 /* SessionSignOut.swift in Sources */,
 				F2F596C925B9154A7632E2C1 /* AppleWalletMDLBridge.swift in Sources */,

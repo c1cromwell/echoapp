@@ -37,12 +37,19 @@ struct GroupDetailView: View {
                             Spacer()
                             if viewModel.canManageMembers,
                                member.memberId != viewModel.currentUserDID {
-                                Button(role: .destructive) {
-                                    Task { await viewModel.removeMember(member.memberId) }
+                                Menu {
+                                    Button("Mute 24h") {
+                                        Task { await viewModel.muteMember(member.memberId, hours: 24) }
+                                    }
+                                    Button("Ban", role: .destructive) {
+                                        Task { await viewModel.banMember(member.memberId) }
+                                    }
+                                    Button("Remove", role: .destructive) {
+                                        Task { await viewModel.removeMember(member.memberId) }
+                                    }
                                 } label: {
-                                    Text("Remove")
+                                    Image(systemName: "ellipsis.circle")
                                 }
-                                .buttonStyle(.borderless)
                                 .disabled(viewModel.isSaving)
                             }
                         }

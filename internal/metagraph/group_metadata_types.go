@@ -13,12 +13,12 @@ type GroupMetadataUpdate struct {
 
 // GovernanceVoteAnchor records closed vote outcomes on Data L1 (WO-156).
 type GovernanceVoteAnchor struct {
-	Type              string  `json:"type"` // governance_vote
-	GroupID           string  `json:"groupId"`
-	ProposalID        string  `json:"proposalId"`
-	Result            string  `json:"result"`
-	ParticipationPct  float64 `json:"participationPct"`
-	ClosedAt          int64   `json:"closedAt"`
+	Type             string  `json:"type"` // governance_vote
+	GroupID          string  `json:"groupId"`
+	ProposalID       string  `json:"proposalId"`
+	Result           string  `json:"result"`
+	ParticipationPct float64 `json:"participationPct"`
+	ClosedAt         int64   `json:"closedAt"`
 }
 
 // GroupBlockchainProof is returned by GET /v1/groups/{id}/blockchain-proof.

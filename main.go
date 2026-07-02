@@ -25,12 +25,14 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
 	"github.com/thechadcromwell/echoapp/internal/services/comply"
 	"github.com/thechadcromwell/echoapp/internal/services/contacts"
+	"github.com/thechadcromwell/echoapp/internal/services/datasov"
 	"github.com/thechadcromwell/echoapp/internal/services/groups"
 	"github.com/thechadcromwell/echoapp/internal/services/media"
 	"github.com/thechadcromwell/echoapp/internal/services/messaging"
 	"github.com/thechadcromwell/echoapp/internal/services/notification"
 	"github.com/thechadcromwell/echoapp/internal/services/onboarding"
 	rewardsSvc "github.com/thechadcromwell/echoapp/internal/services/rewards"
+	"github.com/thechadcromwell/echoapp/internal/services/zk"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics"
 	"github.com/thechadcromwell/echoapp/internal/wallet"
 	"github.com/thechadcromwell/echoapp/pkg/credentials"
@@ -331,29 +333,31 @@ func (s *Server) Start() error {
 	}
 
 	router.V3 = &api.V3Handlers{
-		DB:              db,
-		Contacts:        contactsSvc,
-		Notification:    notifSvc,
-		Media:           mediaSvc,
-		Rewards:         rewardsService,
-		Groups:          groupSvc,
-		Broadcasts:      broadcast_channels.NewChannelService(),
-		RateLimiter:     rateLimiter,
-		IdentityL1:      router.IdentityL1, // D1: anchor @username -> DID on registration
-		Signals:         router.WSHub,      // WO-10/192: live reaction + read-receipt fan-out over WS
-		Notifier:        offlineNotifier,   // WO-57: push reactions to offline peers
-		MessageBackup:   messageBackupSvc,  // WO-64/CA2: encrypted history backup relay
-		OverflowStorage: backupBlobStore,   // WO-237: overflow blob fetch for reconnect manifest
-		Comply:          complySvc,         // WO-250 retention enforcement hooks
-		SealedTokens:    sealedTokenStore,  // WO-219 sealed-sender delivery tokens
-		ConvNotifPrefs:  convNotifPrefs,    // WO-56 per-conversation mute prefs
-		Bots:            botInstalls,       // Stage 4 bot install grants
-		BotTokens:       botTokens,         // WO-11 bot relay auth
-		BotRateLimiter:  botRateLimiter,    // WO-11 ~100 msg/min per bot
-		BotWebhooks:     botWebhooks,       // WO-11 inbound bot webhooks
-		Wallet:                 walletHandlers,    // Currency L1 wallet + staking
+		DB:                       db,
+		Contacts:                 contactsSvc,
+		Notification:             notifSvc,
+		Media:                    mediaSvc,
+		Rewards:                  rewardsService,
+		Groups:                   groupSvc,
+		Broadcasts:               broadcast_channels.NewChannelService(),
+		RateLimiter:              rateLimiter,
+		IdentityL1:               router.IdentityL1, // D1: anchor @username -> DID on registration
+		Signals:                  router.WSHub,      // WO-10/192: live reaction + read-receipt fan-out over WS
+		Notifier:                 offlineNotifier,   // WO-57: push reactions to offline peers
+		MessageBackup:            messageBackupSvc,  // WO-64/CA2: encrypted history backup relay
+		OverflowStorage:          backupBlobStore,   // WO-237: overflow blob fetch for reconnect manifest
+		Comply:                   complySvc,         // WO-250 retention enforcement hooks
+		SealedTokens:             sealedTokenStore,  // WO-219 sealed-sender delivery tokens
+		ConvNotifPrefs:           convNotifPrefs,    // WO-56 per-conversation mute prefs
+		Bots:                     botInstalls,       // Stage 4 bot install grants
+		BotTokens:                botTokens,         // WO-11 bot relay auth
+		BotRateLimiter:           botRateLimiter,    // WO-11 ~100 msg/min per bot
+		BotWebhooks:              botWebhooks,       // WO-11 inbound bot webhooks
+		Wallet:                   walletHandlers,    // Currency L1 wallet + staking
 		DisappearingRestrictions: disappearingRestrictions,
 		GroupAnchoring:           groupAnchoring,
+		DataSov:                  datasov.NewService(),
+		ZKVerifier:               zk.NewVerifier(),
 	}
 	if os.Getenv("COMPLY_SERVICE_TOKEN") != "" {
 		log.Println("ECHO Comply retention service enabled (WO-250)")
@@ -607,6 +611,14 @@ func (s *Server) initStorage() media.StorageBackend {
 			return media.NewMemoryStorage()
 		}
 		log.Printf("Using IPFS storage at %s", os.Getenv("IPFS_API_URL"))
+		return storage
+	case "pinata":
+		storage, err := media.NewPinataStorage()
+		if err != nil {
+			log.Printf("Failed to initialize Pinata storage: %v — falling back to memory", err)
+			return media.NewMemoryStorage()
+		}
+		log.Println("Using Pinata IPFS pinning for media storage (WO-21)")
 		return storage
 	case "s3", "storj":
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

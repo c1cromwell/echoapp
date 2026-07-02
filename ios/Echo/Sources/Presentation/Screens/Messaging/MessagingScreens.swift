@@ -156,6 +156,8 @@ struct ChatView: View {
     @StateObject private var voiceRecorder = VoiceNoteRecorder()
     @State private var showVoiceCall = false
     @State private var showVideoCall = false
+    @State private var showScheduleMessage = false
+    @State private var scheduleSourceText = ""
 
     let contactName: String
     let conversationId: String
@@ -459,6 +461,16 @@ struct ChatView: View {
                 }
             )
         }
+        .sheet(isPresented: $showScheduleMessage) {
+            ScheduleMessageSheet(initialText: scheduleSourceText) { fireAt in
+                _ = ScheduledMessageStore.schedule(
+                    conversationId: conversationId,
+                    peerDID: peerDID,
+                    plaintext: scheduleSourceText,
+                    fireAt: fireAt
+                )
+            }
+        }
         .fullScreenCover(isPresented: $showVoiceCall) {
             CallView(peerDID: peerDID, callType: .voice, contactName: contactName)
         }
@@ -682,6 +694,9 @@ struct ChatView: View {
                     messageTranslations[message.id] = translated
                 }
             }
+        case .schedule:
+            scheduleSourceText = message.content
+            showScheduleMessage = true
         }
     }
 

@@ -99,6 +99,34 @@ final class GroupDetailViewModel {
         }
     }
 
+    func banMember(_ peerDID: String) async {
+        guard canManageMembers, peerDID != currentUserDID else { return }
+        isSaving = true
+        errorMessage = nil
+        defer { isSaving = false }
+        do {
+            try await groupsAPI.banMember(groupId: groupId, memberDid: peerDID)
+            await loadMembers()
+            statusMessage = "Member banned."
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func muteMember(_ peerDID: String, hours: Int) async {
+        guard canManageMembers, peerDID != currentUserDID else { return }
+        isSaving = true
+        errorMessage = nil
+        defer { isSaving = false }
+        do {
+            try await groupsAPI.muteMember(groupId: groupId, memberDid: peerDID, durationHours: hours)
+            await loadMembers()
+            statusMessage = "Member muted."
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     private func performRekey() async throws {
         let dids = members.map(\.memberId)
         _ = try await keyDistribution.rekeyForMembers(
