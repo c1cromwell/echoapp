@@ -5,6 +5,8 @@
 | Doc | Use |
 |-----|-----|
 | **This file** | Setup, rebuild, daily/weekly regression by milestone |
+| [`ECHO_MESSAGING_LAUNCH_STATUS.md`](ECHO_MESSAGING_LAUNCH_STATUS.md) | Messaging MVP vs go-live vs Comply/Passport |
+| [`PHASE4_7_GAP_AUDIT.md`](PHASE4_7_GAP_AUDIT.md) | Phase 4–7 gap matrix |
 | [`E2E_LAUNCH_AND_TESTING.md`](E2E_LAUNCH_AND_TESTING.md) | Full launch procedures, feature delivery matrix, TestFlight sign-off |
 | [`WEEK_A_B_LAUNCH.md`](WEEK_A_B_LAUNCH.md) | Week A messaging → Week B contacts sprint |
 | [`TESTFLIGHT_WEEK_A_B.md`](TESTFLIGHT_WEEK_A_B.md) | Tester script A1–A10 / B1–B6 |

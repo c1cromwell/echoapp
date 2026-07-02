@@ -2,7 +2,8 @@
 
 **Total Work Orders:** 46  
 **Status Summary:** 14 Completed, 32 Backlog  
-**Last synced with Software Factory:** 2026-05-29
+**Last synced with Software Factory:** 2026-05-29  
+**Gap audit:** [`PHASE4_7_GAP_AUDIT.md`](PHASE4_7_GAP_AUDIT.md) — MVP privacy slice shipped; WO-233 App Store = go-live
 
 ---
 

@@ -2,7 +2,8 @@
 
 **Total Work Orders:** 26  
 **Status Summary:** 26 Completed  
-**Last synced with Software Factory:** 2026-05-29
+**Last synced with Software Factory:** 2026-05-29  
+**Messaging MVP:** Foundation complete — see [`ECHO_MESSAGING_LAUNCH_STATUS.md`](ECHO_MESSAGING_LAUNCH_STATUS.md)
 
 ---
 

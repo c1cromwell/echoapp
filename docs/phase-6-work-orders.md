@@ -2,7 +2,8 @@
 
 **Total Work Orders:** 32  
 **Status Summary:** 4 Completed, 28 Backlog  
-**Last synced with Software Factory:** 2026-05-29
+**Last synced with Software Factory:** 2026-05-29  
+**Gap audit:** [`PHASE4_7_GAP_AUDIT.md`](PHASE4_7_GAP_AUDIT.md) — calls/groups/voice ✅; channels + files + VIP IAP backlog
 
 ---
 

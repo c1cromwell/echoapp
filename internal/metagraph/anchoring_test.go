@@ -45,26 +45,21 @@ func TestAnchoringBatcher_FlushEmpty(t *testing.T) {
 	}
 }
 
-func TestAnchoringBatcher_AutoFlushAtMaxBatch(t *testing.T) {
+func TestAnchoringBatcher_FlushAtMaxBatch(t *testing.T) {
 	ab := NewAnchoringBatcher()
 
-	// Add exactly MaxBatchSize commitments
 	for i := 0; i < MaxBatchSize; i++ {
 		ab.AddCommitment("msg-auto", []byte("hash"))
 	}
-
-	// Should have auto-flushed
-	if ab.PendingCount() != 0 {
-		t.Errorf("expected 0 pending after auto-flush, got %d", ab.PendingCount())
+	if ab.PendingCount() != MaxBatchSize {
+		t.Fatalf("expected %d pending before flush, got %d", MaxBatchSize, ab.PendingCount())
 	}
-
-	completed := ab.CompletedBatches()
-	if len(completed) != 1 {
-		t.Errorf("expected 1 completed batch, got %d", len(completed))
+	batch := ab.Flush()
+	if batch == nil {
+		t.Fatal("expected batch from flush")
 	}
-
-	if completed[0].CommitmentCount != MaxBatchSize {
-		t.Errorf("expected %d commitments, got %d", MaxBatchSize, completed[0].CommitmentCount)
+	if batch.CommitmentCount != MaxBatchSize {
+		t.Errorf("expected %d commitments, got %d", MaxBatchSize, batch.CommitmentCount)
 	}
 }
 

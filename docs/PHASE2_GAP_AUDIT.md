@@ -1,10 +1,10 @@
 # Phase 2 Gap Audit — Onboarding, Identity & Credentials
 
-**Date:** 2026-05-29 (UX punch-list refresh)  
+**Date:** 2026-05-29 (messaging MVP closure)  
 **Prior audit:** 2026-05-26  
 **Guide / source of truth:** `docs/Echo_Combined_Blueprints-2026-05-08.md`  
-**Scope:** All 26 Phase 2 work orders (`docs/phase-2-work-orders.md`)  
-**Software Factory sync:** 2026-05-26 — see phase doc headers  
+**Scope:** All 31 Phase 2 work orders (`docs/phase-2-work-orders.md`)  
+**Software Factory sync:** 2026-05-29 — see [`ECHO_MESSAGING_LAUNCH_STATUS.md`](ECHO_MESSAGING_LAUNCH_STATUS.md)  
 **Architecture baseline:** `did:key` + Constellation Identity Metagraph. **Cardano is removed from Phase 1–2** (blueprint decision 2026-04-25; ADR-0001). Cardano/Midnight survive only as Phase 3+ ZK-circuit evaluation candidates.
 
 **Frozen iOS UX (2026-05):** Shipped onboarding (`FirstRunCoordinator`) and login (`GlacialLoginScreen`) are **correct and must not be redesigned** from the React design prototype. WO-203/204 are backend/orchestration backlog — not a UI replacement mandate. See [`ux-spec.md`](ux-spec.md) and [`ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) §0.
@@ -26,7 +26,11 @@ Closed in `main` since the 2026-05-26 audit:
 | Screen catalog composites (hub, group create, username search) | ✅ |
 | Privacy hub → `BackupView`; contact → shared media gallery | ✅ |
 
-Still open for Phase 2/3: **WO-100** OIDC4VC iOS client, **WO-221** PSI iOS client, **WO-228** full privacy consolidation, two-client Phase 3 E2E.
+**Messaging MVP code:** closed (Phases 1–3 core + groups/calls baseline). **Go-live only:** two-client Phase 3 E2E, TestFlight, App Store (WO-233).
+
+**Post-MVP product tracks:** **ECHO Comply** (Phase 7 WOs 253–307, 281–286, WO-309 in progress) and **ECHO Passport** (WO-297 iOS module; Wave A backend WO-293–296 ✅).
+
+**Phase 2 polish (non-blocking):** WO-118 trust-registry durability, WO-129 profile auto-gen, WO-199 mDL, WO-202/205 phone-first onboarding.
 
 ---
 
@@ -43,8 +47,8 @@ Still open for Phase 2/3: **WO-100** OIDC4VC iOS client, **WO-221** PSI iOS clie
 - **Remaining Phase 2 iOS gaps** are still the largest slice: WO-100 OIDC4VC client, WO-221 PSI client, WO-39 contact use-cases, WO-228 privacy settings consolidation. **WO-14 closed** via formal re-scope to `FirstRunCoordinator` (`docs/WO-14_ONBOARDING_RESCOPE.md`).
 - **Cardano cleanup:** codebase remains essentially Cardano-free. Doc-side debt in blueprints/requirements persists (§5).
 
-**Status tally (26 WOs):** ✅ Done 4 · 🟩 Substantially done 4 · 🟨 Partial 10 · 🟥 Stub 3 · ⬜ Missing 3 · ⛔ Obsolete 2  
-*(Aligned with Software Factory: 4 completed · 3 in progress · 17 backlog · 2 blocked)*
+**Status tally (31 WOs):** Messaging MVP slice complete; remaining gaps are Comply/Passport or post-launch polish.  
+*(Software Factory 2026-05-29: 20 completed · 9 backlog · 2 blocked)*
 
 ---
 

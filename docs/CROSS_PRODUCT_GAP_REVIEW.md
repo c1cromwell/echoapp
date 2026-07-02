@@ -1,9 +1,8 @@
 # Cross-Product Feature-Gap Review
 
-> Status: **Accepted — 2026-06-12.** Whole-repo review across the three shipping products plus the
-> Passport 4th product. Answers three founder decisions (Comply web portal, Passport agentic claims,
-> x402/x401) and records the recommended changes. Execution artifacts: ADR 0005, ADR 0006, and
-> WO-309 … WO-317 in the phase docs.
+> Status: **Accepted — 2026-06-12** (decisions). **Maturity tables refreshed 2026-05-29** — see
+> [`ECHO_MESSAGING_LAUNCH_STATUS.md`](ECHO_MESSAGING_LAUNCH_STATUS.md) and
+> [`PHASE4_7_GAP_AUDIT.md`](PHASE4_7_GAP_AUDIT.md) for current ship state.
 
 ## Context
 
@@ -23,45 +22,35 @@ and work orders link back to.
 
 ## Per-product maturity
 
-### Echo Messaging — ~25% feature-complete
+### Echo Messaging — MVP code complete (2026-05-29)
 
 | Area | Status | Where |
 |------|--------|-------|
-| E2EE (Kinnami: X25519 + ChaCha20-Poly1305) | ✅ Solid | `internal/crypto/kinnami.go`, `ios/.../KinnamiEncryption.swift` |
-| 1:1 relay + offline queue + APNs | ✅ Works | `internal/services/relay/relay.go` |
-| PSI contact discovery (OPRF) | ✅ Backend ~done; iOS client in flight | `internal/services/contacts/oprf.go` (WO-220/221) |
-| did:key identity + trust tiers | ✅ ~80% | `pkg/didkey/`, Identity Metagraph |
-| Reactions / typing / read receipts | ⚠️ Partial — backend fan-out incomplete | `internal/api/reactions_*`, WO-192/10 |
-| Disappearing messages | ⚠️ UI only, backend not wired | `ios/.../ChatSettingsSheet.swift` |
-| Edit / delete / forward / pin / reply | ⚠️ UI sketched, backend missing | WO-25/59/84 |
-| **Group key distribution** | 🟨 Group create + encrypted group chat UI wired; server fan-out still partial | `ios/.../Groups/`, WO-207 |
-| **Voice / video calls** | ❌ UI skeleton only; no WebRTC signaling | `ios/.../Calling/` |
-| **Media / file relay** | 🟨 Local thread media + shared gallery from `ConversationThreadStore` | WO-237 |
-| **Search / indexing** | ❌ Designed, not built | WO-3, WO-16 |
-| **Multi-device message sync** | ❌ Not started | WO-CA3 |
-| Voice notes | 🟩 DM + group capture wired (WO-194 / WO-SX5) | `VoiceNoteRecorder`, `GroupChatView` |
+| E2EE + SX1 ratchet | ✅ | `internal/crypto/kinnami.go`, WO-314 |
+| 1:1 + groups + signals | ✅ | Relay, `ConversationSignalService`, Phase 3 WOs |
+| PSI + contacts | ✅ | WO-220/221 |
+| Search / archive (local) | ✅ | WO-3, 16, 29, 54 |
+| Disappearing + sealed sender | ✅ | WO-38/75, WO-219 |
+| Calls + voice notes | ✅ | WO-5/19, WO-316 |
+| Wallet / staking | ✅ | `/v3/wallet/*`, `validate-wallet.sh` |
+| **Message anchoring (Data L1)** | ✅ | WO-15 — `AnchoringService`, merkle-proof API |
+| **Channels / large files** | backlog | Phase 6 WOs |
+| **Device E2E / App Store** | go-live | WO-233, WO-238 |
 
-**Read:** the planning is thorough; the gap is **execution + sequencing**, not missing design.
+**Read:** messaging MVP is code-complete; remaining work is go-live + WO-15 integrity pipeline.
 
-### Echo Comply — audit backend only, no web surface
+### Echo Comply — service + web portal shipped; verticals backlog
 
 | Area | Status | Where |
 |------|--------|-------|
-| Encrypted audit trail → IPFS + Data L1 | ✅ | `internal/logging/` |
-| Constellation Digital Evidence fingerprinting | ✅ | `internal/evidence/` |
-| Auth audit logging | ✅ | `internal/auth/audit.go` |
-| On-chain org-role credential model | ✅ Data model only | `EchoOrgRoleCredential` in `IdentityTypes.scala` |
-| iOS Enterprise profile | ⚠️ Scaffold (`loadOrganization` TODO) | `ios/.../Enterprise/EnterpriseProfileView.swift` |
-| iOS Evidence service | ⚠️ Mock | `ios/.../Evidence/EvidenceService.swift` |
-| Retention / litigation hold / eDiscovery | ❌ Planned (Phase 7) | WO-250/251 |
-| Compliance dashboard / reporting | ❌ Planned as iOS view | WO-252 |
-| HIPAA / FOIA / law-firm logic | ❌ Planned | WO-253/254/262–264 |
-| SSO / SAML / OIDC / SCIM | ❌ Planned | WO-285 |
-| **Web / admin frontend** | ❌ **None anywhere in the repo** | — |
+| Comply service (retention, hold, eDiscovery API) | ✅ | `internal/services/comply/`, WO-250–252 |
+| Web admin portal + dashboards | ✅ | `web/`, WO-308–313 |
+| eDiscovery / matter UI | 🔄 | WO-309 in progress |
+| HIPAA / FOIA / law-firm / FINRA verticals | backlog | WO-253–307 |
+| Org lifecycle (SSO, billing, org DID) | backlog | WO-281–286 |
+| iOS Comply context coordinator | ✅ | WO-289 |
 
-**Read:** Comply has the integrity/evidence backend but **no operator surface**, and what is planned
-was scoped as iOS views. Comply's buyers (compliance officers, GC, IT admins) do desk work; an
-iOS-only Comply is not enterprise-credible.
+**Read:** operator surface exists; regulated vertical packs and enterprise org onboarding are the Comply program.
 
 ### Echo Passport — mid Wave A
 
@@ -132,12 +121,9 @@ verifier/agent → HTTP 402 Payment Required (x402, CAIP-2 network, price, token
 
 ## Other changes worth making
 
-- **Finish messaging core before widening scope.** Group key distribution (WO-207), calls, media,
-  search (WO-3/16), and multi-device sync (WO-CA3) are the foundation Comply and Passport both ride
-  on. The highest near-term risk is scope-spreading onto a 25%-complete core.
-- **There is no web client at all today.** The Comply portal is the repo's first web surface — stand
-  up the shared web foundation (auth, design system, generated API client from `openapi.yaml`) so a
-  future **web messaging client** (a real competitive gap vs Signal/WhatsApp/Telegram) can reuse it.
+- **Finish messaging go-live before widening scope.** Device E2E, TestFlight, and App Store P0s (WO-233, WO-238) gate launch. Optional parallel: WO-15 message anchoring for integrity claims.
+- **Comply verticals + org lifecycle** are the next product track (WO-309 → WO-281–286 → vertical wedge).
+- **Passport iOS (WO-297)** then Wave B pay-in-chat (WO-298–300).
 - **Privacy-preserving on-device AI (WO-CA1)** remains the strongest differentiator; keep it on the
   roadmap, gated behind messaging core + the bot framework (already sequenced in
   `COMPETITIVE_AUDIT_IMPLEMENTATION_PLAN.md`).
@@ -146,14 +132,9 @@ verifier/agent → HTTP 402 Payment Required (x402, CAIP-2 network, price, token
 
 ## Sequencing roadmap
 
-1. **Messaging core first (gates everything).** Group key distribution (WO-207), calls, media,
-   search (WO-3/16), multi-device sync (WO-CA3) — per
-   `COMPETITIVE_AUDIT_IMPLEMENTATION_PLAN.md` Waves 0–1.
-2. **Comply reporting wedge, in parallel (low coupling).** Ship **WO-309** (web shell) + **WO-313**
-   (read-mostly reporting/analytics/auditing dashboard) first as the wedge, then **WO-310–312/314**
-   (admin console, retention/hold config, eDiscovery, mobile companion).
-3. **Passport x402 / agentic, after pay-in-chat (Wave B).** **WO-315** (x402 verifier) →
-   **WO-316** (agentic GNAP) / **WO-317** (x402 merchant rail).
+1. **Messaging go-live.** Two-client E2E, TestFlight, App Store checklist — [`ECHO_MESSAGING_LAUNCH_STATUS.md`](ECHO_MESSAGING_LAUNCH_STATUS.md).
+2. **Comply program.** Finish **WO-309** → org lifecycle **WO-281–286** → one vertical wedge (law firm or FINRA).
+3. **Passport.** **WO-297** iOS module → Wave B **WO-298–300** (pay-in-chat) → x402/agentic per ADR 0006.
 
 ---
 

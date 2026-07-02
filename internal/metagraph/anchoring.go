@@ -42,13 +42,34 @@ type AnchoringBatcher struct {
 	commitments []Commitment
 	maxBatch    int
 	batches     []AnchoringBatch // completed batches awaiting submission
+	senders     map[string]string
 }
 
 // NewAnchoringBatcher creates a new batcher with default settings.
 func NewAnchoringBatcher() *AnchoringBatcher {
 	return &AnchoringBatcher{
 		maxBatch: MaxBatchSize,
+		senders:  make(map[string]string),
 	}
+}
+
+// SetSender records the sender DID for a message ID (used for WS confirmations).
+func (b *AnchoringBatcher) SetSender(messageID, senderDID string) {
+	if messageID == "" || senderDID == "" {
+		return
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.senders == nil {
+		b.senders = make(map[string]string)
+	}
+	b.senders[messageID] = senderDID
+}
+
+func (b *AnchoringBatcher) senderFor(messageID string) string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.senders[messageID]
 }
 
 // AddCommitment adds a message commitment to the current batch.
@@ -62,10 +83,6 @@ func (b *AnchoringBatcher) AddCommitment(messageID string, hash []byte) {
 		Hash:      hash,
 		Timestamp: time.Now(),
 	})
-
-	if len(b.commitments) >= b.maxBatch {
-		b.flushLocked()
-	}
 }
 
 // Flush manually triggers a batch flush. Returns the batch if one was created.
@@ -84,14 +101,13 @@ func (b *AnchoringBatcher) flushLocked() *AnchoringBatch {
 	batch := b.commitments
 	b.commitments = nil
 
-	// Build leaf hashes
+	// Compute Merkle root (aligned with BuildMerkleTree for proof generation).
 	leafHashes := make([]string, len(batch))
 	for i, c := range batch {
 		leafHashes[i] = hex.EncodeToString(c.Hash)
 	}
-
-	// Compute Merkle root
-	root := ComputeMerkleRoot(leafHashes)
+	tree := BuildMerkleTree(leafHashes)
+	root := tree.Root
 
 	// Compute batch hash (hash of all commitment hashes concatenated)
 	batchData := ""

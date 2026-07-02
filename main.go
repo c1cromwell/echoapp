@@ -354,6 +354,20 @@ func (s *Server) Start() error {
 	router.WSHub.SetOfflineOverflowStorage(backupBlobStore)       // WO-237: queue overflow to encblob
 	router.WSHub.SetBotWebhooks(botWebhooks)                      // WO-11 user→bot webhook dispatch
 
+	if router.DataL1 != nil {
+		memProofs := metagraph.NewMemoryProofStore()
+		proofStore := metagraph.NewRedisProofStore(redisClient, memProofs)
+		anchoring := metagraph.NewAnchoringService(metagraph.AnchoringConfig{
+			DataL1:  router.DataL1,
+			Source:  router.WSHub,
+			Confirm: router.WSHub,
+			Proofs:  proofStore,
+		})
+		router.Anchoring = anchoring
+		go anchoring.Run(context.Background())
+		log.Println("Message integrity anchoring enabled (WO-15)")
+	}
+
 	go startBackgroundMaintenance(db, router.WSHub)
 
 	// WO-53: Start audit log publisher background goroutine.
@@ -400,7 +414,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	return s.server.Shutdown(ctx)
 }
 
-// startBackgroundMaintenance runs periodic offline-queue purge and commitment flush.
+// startBackgroundMaintenance runs periodic offline-queue purge.
 func startBackgroundMaintenance(db database.DB, hub *api.Hub) {
 	ticker := time.NewTicker(5 * time.Minute)
 	go func() {
@@ -411,11 +425,7 @@ func startBackgroundMaintenance(db database.DB, hub *api.Hub) {
 					log.Printf("purged %d expired offline queue entries", n)
 				}
 			}
-			if hub != nil {
-				if batch := hub.FlushCommitments(); len(batch) > 0 {
-					log.Printf("flushed %d message commitments for anchoring", len(batch))
-				}
-			}
+			_ = hub // anchoring flush handled by metagraph.AnchoringService (WO-15)
 		}
 	}()
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 
 	"github.com/thechadcromwell/echoapp/internal/infra"
+	"github.com/thechadcromwell/echoapp/internal/metagraph"
 	"github.com/thechadcromwell/echoapp/internal/services/bots"
 	"github.com/thechadcromwell/echoapp/internal/services/messaging"
 	"github.com/thechadcromwell/echoapp/internal/services/relay"
@@ -267,7 +268,21 @@ type SignalPublisher interface {
 	PublishSignal(to string, msg WSMessage) bool
 }
 
-// PublishSignal marshals msg and delivers it to `to` if they are connected.
+// PublishConfirmation delivers a message-integrity confirmation to the sender (WO-15).
+func (h *Hub) PublishConfirmation(to string, confirmation metagraph.AnchorConfirmation) bool {
+	if h == nil || to == "" {
+		return false
+	}
+	payload, err := json.Marshal(confirmation)
+	if err != nil {
+		return false
+	}
+	return h.PublishSignal(to, WSMessage{
+		Type:    "confirmation",
+		To:      to,
+		Payload: payload,
+	})
+}
 // It fills Timestamp when empty. Returns false if `to` is empty or offline.
 func (h *Hub) PublishSignal(to string, msg WSMessage) bool {
 	if h == nil || to == "" {
@@ -612,7 +627,11 @@ func (c *Client) routeInbound(msg WSMessage) {
 			if messageID == "" {
 				messageID = msg.ConversationID + ":" + msg.Timestamp
 			}
-			c.hub.commitments.Add(messageID, hash)
+			sender := msg.From
+			if sender == "" {
+				sender = c.userID
+			}
+			c.hub.commitments.Add(messageID, sender, hash)
 		}
 	}
 

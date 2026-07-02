@@ -92,6 +92,7 @@ type Router struct {
 	PassportSync         *passport.SyncService            // WO-294 client-encrypted credential sync
 	PassportRecovery     *recovery.Service                // WO-296 social-threshold recovery metadata
 	Comply               *ComplyHandlers                  // WO-250 Comply REST (/comply/*)
+	Anchoring            *metagraph.AnchoringService      // WO-15 message integrity batching
 	tokenService         *auth.TokenService               // ES256 JWT token service
 
 	enrollmentVCMu          sync.Mutex
@@ -572,6 +573,10 @@ func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.HasPrefix(r.URL.Path, "/v1/passport/") {
 		rt.handlePassport(w, r)
+		return
+	}
+	if strings.HasPrefix(r.URL.Path, "/v1/messages/") && (strings.HasSuffix(r.URL.Path, "/merkle-proof") || strings.HasSuffix(r.URL.Path, "/proof")) {
+		rt.handleMessageMerkleProof(w, r)
 		return
 	}
 	switch r.URL.Path {

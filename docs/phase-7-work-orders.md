@@ -2,7 +2,8 @@
 
 **Total Work Orders:** 103  
 **Status Summary:** 40 Completed, 1 In Progress, 62 Backlog  
-**Last synced with Software Factory:** 2026-05-29
+**Last synced with Software Factory:** 2026-05-29  
+**Gap audit:** [`PHASE4_7_GAP_AUDIT.md`](PHASE4_7_GAP_AUDIT.md) — Comply + Passport are primary remaining tracks
 
 ---
 

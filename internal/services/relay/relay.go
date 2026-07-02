@@ -116,7 +116,7 @@ func (s *RelayService) Relay(msg RelayMessage) (*RelayResult, error) {
 
 	// Add commitment to anchoring batch
 	if len(msg.Commitment) > 0 {
-		s.commitments.Add(msg.MessageID, msg.Commitment)
+		s.commitments.Add(msg.MessageID, msg.SenderDID, msg.Commitment)
 	}
 
 	return result, nil
@@ -298,6 +298,7 @@ func (q *OfflineQueue) Depth(did string) int {
 // CommitmentEntry is a message commitment hash pending Merkle anchoring.
 type CommitmentEntry struct {
 	MessageID string
+	SenderDID string
 	Hash      []byte
 	Timestamp time.Time
 }
@@ -314,11 +315,12 @@ func NewCommitmentBatch() *CommitmentBatch {
 }
 
 // Add appends a commitment to the current batch.
-func (cb *CommitmentBatch) Add(messageID string, hash []byte) {
+func (cb *CommitmentBatch) Add(messageID, senderDID string, hash []byte) {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
 	cb.commitments = append(cb.commitments, CommitmentEntry{
 		MessageID: messageID,
+		SenderDID: senderDID,
 		Hash:      hash,
 		Timestamp: time.Now(),
 	})

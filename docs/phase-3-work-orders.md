@@ -1,8 +1,9 @@
 # Phase 3: Messaging Core
 
 **Total Work Orders:** 37  
-**Status Summary:** 24 Completed, 13 Backlog  
-**Last synced with Software Factory:** 2026-05-29
+**Status Summary:** 24 Completed, 13 Backlog (post-MVP enhancements)  
+**Last synced with Software Factory:** 2026-05-29  
+**Messaging MVP:** Core WOs complete — see [`ECHO_MESSAGING_LAUNCH_STATUS.md`](ECHO_MESSAGING_LAUNCH_STATUS.md)
 
 ---
 

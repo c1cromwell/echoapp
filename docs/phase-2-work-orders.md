@@ -1,8 +1,9 @@
 # Phase 2: Onboarding, Identity & Credentials
 
 **Total Work Orders:** 31  
-**Status Summary:** 19 Completed, 10 Backlog, 2 Blocked  
-**Last synced with Software Factory:** 2026-05-29
+**Status Summary:** 20 Completed, 9 Backlog, 2 Blocked  
+**Last synced with Software Factory:** 2026-05-29  
+**Messaging MVP:** See [`ECHO_MESSAGING_LAUNCH_STATUS.md`](ECHO_MESSAGING_LAUNCH_STATUS.md)
 
 ---
 
@@ -1155,6 +1156,8 @@ DID creation and passkey linking events are recorded on the Cardano metagraph wi
 ---
 
 ### WO-204: Build Universal Onboarding UI Flow
+
+**Status:** ✅ Completed (2026-05-29) — MVP superseded by `FirstRunCoordinator` (WO-292); phone-first SMS UI deferred post-launch. See [`ECHO_MESSAGING_LAUNCH_STATUS.md`](ECHO_MESSAGING_LAUNCH_STATUS.md).
 
 **Type:** Build
 
