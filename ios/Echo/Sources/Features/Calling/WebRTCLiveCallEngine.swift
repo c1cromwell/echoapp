@@ -20,6 +20,7 @@ final class WebRTCLiveCallEngine: NSObject, WebRTCCallEngine {
     private var localAudioTrack: RTCAudioTrack?
     private var videoSource: RTCVideoSource?
     private var capturer: RTCCameraVideoCapturer?
+    private var screenCapturer: ScreenShareCapturer?
     private var callType: CallType = .voice
     private var onIceCandidate: ((Data) -> Void)?
     private var onConnected: (() -> Void)?
@@ -98,17 +99,44 @@ final class WebRTCLiveCallEngine: NSObject, WebRTCCallEngine {
     private(set) var isScreenSharing = false
 
     func startScreenShare() async throws {
+        guard callType == .video else {
+            isScreenSharing = true
+            return
+        }
+        capturer?.stopCapture()
+        capturer = nil
+        if videoSource == nil, let peerConnection {
+            let source = Self.factory.videoSource()
+            videoSource = source
+            let videoTrack = Self.factory.videoTrack(with: source, trackId: "echo-screenshare0")
+            localVideoTrack = videoTrack
+            peerConnection.add(videoTrack, streamIds: ["echo-stream0"])
+        }
+        guard let videoSource else { throw ScreenShareError.unavailable }
+        let share = ScreenShareCapturer(videoSource: videoSource)
+        screenCapturer = share
+        try await share.start()
+        if let track = localVideoTrack as? RTCVideoTrack {
+            track.isEnabled = true
+        }
         isScreenSharing = true
     }
 
     func stopScreenShare() {
+        screenCapturer?.stop()
+        screenCapturer = nil
         isScreenSharing = false
+        if callType == .video {
+            startCameraIfNeeded()
+        }
     }
 
     func hangup() {
         phase = .ended
         capturer?.stopCapture()
         capturer = nil
+        screenCapturer?.stop()
+        screenCapturer = nil
         peerConnection?.close()
         peerConnection = nil
         localAudioTrack = nil

@@ -119,5 +119,17 @@ public final class ConversationPreferencesStore {
         var prefs = preferences(for: conversationId)
         prefs.isHidden = hidden
         save(prefs, for: conversationId)
+        #if os(iOS)
+        ConversationThreadStore.migrateStorageEncryption(conversationId: conversationId)
+        if hidden {
+            Task { await HiddenChatsSession.shared.preloadFolderKeys() }
+        }
+        #endif
     }
+
+    #if os(iOS)
+    public func allHiddenConversationIds() -> [String] {
+        ConversationThreadStore.allConversationIds().filter { isHidden($0) }
+    }
+    #endif
 }

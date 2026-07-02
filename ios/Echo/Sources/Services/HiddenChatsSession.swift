@@ -1,4 +1,5 @@
 #if os(iOS)
+import CryptoKit
 import Foundation
 import Observation
 import UIKit
@@ -15,14 +16,31 @@ public final class HiddenChatsSession {
 
     private var unlockedAt: Date?
     private var screenshotObserver: NSObjectProtocol?
+    private var folderKeys: [String: SymmetricKey] = [:]
 
     private init() {}
+
+    func folderKey(for conversationId: String) -> SymmetricKey? {
+        folderKeys[conversationId]
+    }
+
+    func preloadFolderKeys() async {
+        guard isUnlocked, !isDuressMode else { return }
+        for id in ConversationPreferencesStore.shared.allHiddenConversationIds() {
+            if let key = try? await HiddenFolderKeyManager.shared.keyForFolder(id) {
+                folderKeys[id] = key
+            }
+        }
+    }
 
     public func unlock(biometric: Bool = true, duress: Bool = false) {
         isUnlocked = true
         isDuressMode = duress
         unlockedAt = Date()
         HiddenFolderAuditLog.record(duress ? .duressEntry : .unlock)
+        if !duress {
+            Task { await preloadFolderKeys() }
+        }
         if screenshotObserver == nil {
             screenshotObserver = NotificationCenter.default.addObserver(
                 forName: UIApplication.userDidTakeScreenshotNotification,
@@ -42,6 +60,8 @@ public final class HiddenChatsSession {
         isUnlocked = false
         isDuressMode = false
         unlockedAt = nil
+        folderKeys.removeAll()
+        Task { await HiddenFolderKeyManager.shared.purgeCache() }
     }
 
     /// Lock immediately when the app leaves the foreground.

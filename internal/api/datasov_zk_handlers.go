@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/thechadcromwell/echoapp/internal/services/zk"
 )
@@ -94,16 +95,17 @@ func (h *V3Handlers) handleZKVerify(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, res)
 }
 
-// handlePQModeStatus returns post-quantum mode availability (WO-257/258 stub).
+// handlePQModeStatus returns post-quantum mode availability (WO-257/258).
 func (h *V3Handlers) handlePQModeStatus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET", r.Header.Get("X-Request-ID"))
 		return
 	}
+	enabled := os.Getenv("ECHO_PQ_ENABLED") == "true"
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"available": false,
-		"mode":      "stub",
-		"detail":    "Post-quantum cryptography mode is not yet enabled in this build (WO-257).",
+		"available": enabled,
+		"mode":      "mlkem768-hybrid",
+		"detail":    "Hybrid P-256 + ML-KEM-768 ratchet bootstrap (WO-257); opt-in on iOS.",
 	})
 }
 

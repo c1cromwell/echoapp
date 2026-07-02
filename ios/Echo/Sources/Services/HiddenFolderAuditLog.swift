@@ -4,7 +4,7 @@ import Foundation
 /// Append-only local audit trail for hidden-folder access (WO-78).
 struct HiddenFolderAuditEvent: Codable, Sendable, Equatable {
     enum Kind: String, Codable, Sendable {
-        case unlock, lock, failedUnlock, screenshotLock, duressEntry
+        case unlock, lock, failedUnlock, screenshotLock, duressEntry, backupCreated, backupRestored
     }
 
     let kind: Kind

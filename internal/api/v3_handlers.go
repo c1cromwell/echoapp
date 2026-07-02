@@ -26,6 +26,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
 	"github.com/thechadcromwell/echoapp/internal/services/bots"
 	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
+	"github.com/thechadcromwell/echoapp/internal/services/cloudstorage"
 	"github.com/thechadcromwell/echoapp/internal/services/comply"
 	"github.com/thechadcromwell/echoapp/internal/services/contacts"
 	"github.com/thechadcromwell/echoapp/internal/services/datasov"
@@ -68,6 +69,7 @@ type V3Handlers struct {
 	GroupAnchoring           *groups.GroupAnchoringService                 // WO-156 group metadata anchoring
 	DataSov                  *datasov.Service                              // WO-248/249 data sovereignty stub
 	ZKVerifier               *zk.Verifier                                  // WO-236 ZK verification stub
+	CloudStorage             *cloudstorage.Service                         // WO-46 cloud OAuth token registry
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.
@@ -174,6 +176,8 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/v3/broadcasts/", h.handleBroadcastGet)
 	h.WireDataSovZK(mux)
 	h.WirePhase6Extensions(mux)
+	h.WireCloudStorage(mux)
+	h.WireMediaResumable(mux)
 }
 
 // --- Helpers ---
@@ -755,6 +759,8 @@ func (h *V3Handlers) handleMediaGet(w http.ResponseWriter, r *http.Request) {
 		h.handleMediaChunks(w, r, fileID)
 	case len(parts) == 3 && parts[1] == "chunks":
 		h.handleMediaChunkData(w, r, fileID, parts[2])
+	case len(parts) == 2 && parts[1] == "manifest":
+		h.handleMediaManifest(w, r, fileID)
 	case len(parts) == 2 && parts[1] == "scan":
 		h.handleMediaScan(w, r, fileID)
 	default:

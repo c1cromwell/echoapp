@@ -312,6 +312,11 @@
 		P5B005DATASOV000000000005 /* DataSovereigntySettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F005DATASOV000000000005 /* DataSovereigntySettingsStore.swift */; };
 		P5B006PQMODE000000000006 /* PostQuantumModeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F006PQMODE000000000006 /* PostQuantumModeStore.swift */; };
 		P5B007ZKPROOF00000000007 /* ZKProofUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F007ZKPROOF00000000007 /* ZKProofUseCase.swift */; };
+		P5B008HFKEY000000000008 /* HiddenFolderKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F008HFKEY000000000008 /* HiddenFolderKeyManager.swift */; };
+		P5B009HFBKP000000000009 /* HiddenFolderBackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F009HFBKP000000000009 /* HiddenFolderBackupManager.swift */; };
+		P5B010SCHEDCR0000000010 /* ScheduledMessageCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F010SCHEDCR0000000010 /* ScheduledMessageCrypto.swift */; };
+		P6B003CLOUD000000000003 /* CloudStorageIntegrationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F003CLOUD000000000003 /* CloudStorageIntegrationManager.swift */; };
+		P6B004SCREEN00000000004 /* ScreenShareCapturer.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F004SCREEN00000000004 /* ScreenShareCapturer.swift */; };
 		P6B001CHANNELS0000000001 /* ChannelsAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F001CHANNELS0000000001 /* ChannelsAPIClient.swift */; };
 		P6B002CHANNELS0000000002 /* ChannelsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F002CHANNELS0000000002 /* ChannelsListView.swift */; };
 		G7B001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = G7F001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift */; };
@@ -763,6 +768,11 @@
 		P5F005DATASOV000000000005 /* DataSovereigntySettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSovereigntySettingsStore.swift; sourceTree = "<group>"; };
 		P5F006PQMODE000000000006 /* PostQuantumModeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostQuantumModeStore.swift; sourceTree = "<group>"; };
 		P5F007ZKPROOF00000000007 /* ZKProofUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZKProofUseCase.swift; sourceTree = "<group>"; };
+		P5F008HFKEY000000000008 /* HiddenFolderKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderKeyManager.swift; sourceTree = "<group>"; };
+		P5F009HFBKP000000000009 /* HiddenFolderBackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderBackupManager.swift; sourceTree = "<group>"; };
+		P5F010SCHEDCR0000000010 /* ScheduledMessageCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledMessageCrypto.swift; sourceTree = "<group>"; };
+		P6F003CLOUD000000000003 /* CloudStorageIntegrationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudStorageIntegrationManager.swift; sourceTree = "<group>"; };
+		P6F004SCREEN00000000004 /* ScreenShareCapturer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenShareCapturer.swift; sourceTree = "<group>"; };
 		P6F001CHANNELS0000000001 /* ChannelsAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelsAPIClient.swift; sourceTree = "<group>"; };
 		P6F002CHANNELS0000000002 /* ChannelsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelsListView.swift; sourceTree = "<group>"; };
 		G7F001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/GamificationAPIClient.swift; sourceTree = "<group>"; };
@@ -1069,6 +1079,9 @@
 				P5F004HIDDEN000000000004 /* HiddenFolderAuditLog.swift */,
 				P5F005DATASOV000000000005 /* DataSovereigntySettingsStore.swift */,
 				P5F006PQMODE000000000006 /* PostQuantumModeStore.swift */,
+				P5F009HFBKP000000000009 /* HiddenFolderBackupManager.swift */,
+				P5F010SCHEDCR0000000010 /* ScheduledMessageCrypto.swift */,
+				P6F003CLOUD000000000003 /* CloudStorageIntegrationManager.swift */,
 				P6F001CHANNELS0000000001 /* ChannelsAPIClient.swift */,
 				M3F011SYNC00000000000011 /* GroupCallSignalingService.swift */,
 				M3F007BACKUP00000000001 /* BackupCrypto.swift */,
@@ -1161,6 +1174,7 @@
 				DDF6D1C6D0E4EB6697FB6BD1 /* Sources/Services/ConversationPreferencesStore.swift */,
 				3141640DB14B49719F5CD49A /* Sources/Core/Security/StepUpAuthManager.swift */,
 				S5F001HIDDEN000000000001 /* Sources/Core/Security/HiddenThreadCrypto.swift */,
+				P5F008HFKEY000000000008 /* HiddenFolderKeyManager.swift */,
 				S5F007HIDDEN000000000007 /* Sources/Core/Security/ScreenCaptureGuard.swift */,
 				3C4FB342BDBA4A46BCB6A489 /* Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift */,
 				C3F638568F074357AEE51CD9 /* Sources/Features/Onboarding/VIP/VIPPathView.swift */,
@@ -1735,6 +1749,7 @@
 				M4F008CALL00000000000008 /* WebRTCCallEngine.swift */,
 				M4F009CALL00000000000009 /* WebRTCStubCallEngine.swift */,
 				M4F010CALL00000000000010 /* WebRTCLiveCallEngine.swift */,
+				P6F004SCREEN00000000004 /* ScreenShareCapturer.swift */,
 				M4F011CALL00000000000011 /* WebRTCAudioSession.swift */,
 				M4F012CALL00000000000012 /* WebRTCVideoView.swift */,
 				M4F013CALL00000000000013 /* IncomingCallPresenter.swift */,
@@ -2241,6 +2256,11 @@
 				P5B005DATASOV000000000005 /* DataSovereigntySettingsStore.swift in Sources */,
 				P5B006PQMODE000000000006 /* PostQuantumModeStore.swift in Sources */,
 				P5B007ZKPROOF00000000007 /* ZKProofUseCase.swift in Sources */,
+				P5B008HFKEY000000000008 /* HiddenFolderKeyManager.swift in Sources */,
+				P5B009HFBKP000000000009 /* HiddenFolderBackupManager.swift in Sources */,
+				P5B010SCHEDCR0000000010 /* ScheduledMessageCrypto.swift in Sources */,
+				P6B003CLOUD000000000003 /* CloudStorageIntegrationManager.swift in Sources */,
+				P6B004SCREEN00000000004 /* ScreenShareCapturer.swift in Sources */,
 				P6B001CHANNELS0000000001 /* ChannelsAPIClient.swift in Sources */,
 				P6B002CHANNELS0000000002 /* ChannelsListView.swift in Sources */,
 				59377B9DF47C401D5068938A /* AppState.swift in Sources */,

@@ -23,6 +23,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/rewards"
 	"github.com/thechadcromwell/echoapp/internal/services/bots"
 	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
+	"github.com/thechadcromwell/echoapp/internal/services/cloudstorage"
 	"github.com/thechadcromwell/echoapp/internal/services/comply"
 	"github.com/thechadcromwell/echoapp/internal/services/contacts"
 	"github.com/thechadcromwell/echoapp/internal/services/datasov"
@@ -244,6 +245,7 @@ func (s *Server) Start() error {
 	}
 
 	emission := rewards.NewEmissionSchedule(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	storage = wrapFilecoinArchiver(storage)
 	mediaSvc := media.NewService(db, storage)
 	mediaSvc.DataL1 = router.DataL1 // D3: anchor media content roots on Data L1
 
@@ -358,6 +360,7 @@ func (s *Server) Start() error {
 		GroupAnchoring:           groupAnchoring,
 		DataSov:                  datasov.NewService(),
 		ZKVerifier:               zk.NewVerifier(),
+		CloudStorage:             cloudstorage.NewService(),
 	}
 	if os.Getenv("COMPLY_SERVICE_TOKEN") != "" {
 		log.Println("ECHO Comply retention service enabled (WO-250)")
@@ -641,6 +644,15 @@ func (s *Server) initStorage() media.StorageBackend {
 		log.Println("STORAGE_BACKEND not set, using in-memory media storage")
 		return media.NewMemoryStorage()
 	}
+}
+
+func wrapFilecoinArchiver(storage media.StorageBackend) media.StorageBackend {
+	archiver, err := media.NewFilecoinArchiver()
+	if err != nil {
+		return storage
+	}
+	log.Println("Filecoin long-term archival enabled via Estuary (WO-185)")
+	return media.NewArchivingBackend(storage, archiver)
 }
 
 func main() {

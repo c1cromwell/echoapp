@@ -22,11 +22,13 @@ enum ScheduledMessageStore {
     private static let key = "echo.scheduled.messages.v1"
 
     static func all() -> [ScheduledMessageRecord] {
-        guard let data = UserDefaults.standard.data(forKey: key),
-              let rows = try? JSONDecoder().decode([ScheduledMessageRecord].self, from: data) else {
-            return []
+        guard let data = UserDefaults.standard.data(forKey: key) else { return [] }
+        if let rows = try? ScheduledMessageCrypto.decrypt(data) { return rows }
+        if let legacy = try? JSONDecoder().decode([ScheduledMessageRecord].self, from: data) {
+            persist(legacy)
+            return legacy
         }
-        return rows
+        return []
     }
 
     static func pending(now: Date = Date()) -> [ScheduledMessageRecord] {
@@ -70,7 +72,7 @@ enum ScheduledMessageStore {
     }
 
     private static func persist(_ rows: [ScheduledMessageRecord]) {
-        guard let data = try? JSONEncoder().encode(rows) else { return }
+        guard let data = try? ScheduledMessageCrypto.encrypt(rows) else { return }
         UserDefaults.standard.set(data, forKey: key)
     }
 }

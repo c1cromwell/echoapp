@@ -46,6 +46,9 @@ struct OverflowManifest: Decodable, Sendable {
 
 enum MediaEndpoint: APIEndpoint {
     case upload
+    case uploadInit
+    case uploadChunk
+    case uploadComplete
     case chunk(fileId: String, index: Int)
     case overflowManifest(fileId: String)
 
@@ -53,6 +56,12 @@ enum MediaEndpoint: APIEndpoint {
         switch self {
         case .upload:
             return "/v3/media/upload"
+        case .uploadInit:
+            return "/v3/media/upload/init"
+        case .uploadChunk:
+            return "/v3/media/upload/chunk"
+        case .uploadComplete:
+            return "/v3/media/upload/complete"
         case .chunk(let fileId, let index):
             return "/v3/media/\(fileId)/chunks/\(index)"
         case .overflowManifest(let fileId):
@@ -70,13 +79,17 @@ protocol MediaAPIClient: Sendable {
 
 actor LiveMediaAPIClient: MediaAPIClient {
     private let apiClient: APIClient
+    private static let chunkSize = 256 * 1024
 
     init(apiClient: APIClient) {
         self.apiClient = apiClient
     }
 
     func uploadEncrypted(data: Data, mimeType: String, trustTier: Int) async throws -> MediaUploadResponse {
-        try await apiClient.postRaw(
+        if data.count > Self.chunkSize {
+            return try await uploadChunked(data: data, mimeType: mimeType, trustTier: trustTier)
+        }
+        return try await apiClient.postRaw(
             endpoint: MediaEndpoint.upload,
             body: data,
             extraHeaders: [
@@ -84,6 +97,48 @@ actor LiveMediaAPIClient: MediaAPIClient {
                 "X-Encrypted-Size": String(data.count),
                 "X-Trust-Tier": String(trustTier),
             ]
+        )
+    }
+
+    private func uploadChunked(data: Data, mimeType: String, trustTier: Int) async throws -> MediaUploadResponse {
+        struct InitResponse: Decodable {
+            let fileId: String
+            let totalChunks: Int
+            enum CodingKeys: String, CodingKey {
+                case fileId = "file_id"
+                case totalChunks = "total_chunks"
+            }
+        }
+        struct CompleteBody: Encodable {
+            let fileId: String
+            enum CodingKeys: String, CodingKey { case fileId = "file_id" }
+        }
+        let initResp: InitResponse = try await apiClient.postRaw(
+            endpoint: MediaEndpoint.uploadInit,
+            body: Data(),
+            extraHeaders: [
+                "Content-Type": mimeType,
+                "X-Encrypted-Size": String(data.count),
+                "X-Trust-Tier": String(trustTier),
+            ]
+        )
+        let chunkCount = initResp.totalChunks
+        for index in 0..<chunkCount {
+            let start = index * Self.chunkSize
+            let end = min(start + Self.chunkSize, data.count)
+            let slice = data.subdata(in: start..<end)
+            try await apiClient.putRaw(
+                endpoint: MediaEndpoint.uploadChunk,
+                body: slice,
+                extraHeaders: [
+                    "X-File-Id": initResp.fileId,
+                    "X-Chunk-Index": String(index),
+                ]
+            )
+        }
+        return try await apiClient.post(
+            endpoint: MediaEndpoint.uploadComplete,
+            body: CompleteBody(fileId: initResp.fileId)
         )
     }
 

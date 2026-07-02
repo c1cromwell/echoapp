@@ -122,6 +122,20 @@ enum ConversationThreadStore {
         persist(conversationId: conversationId, messages: stored)
     }
 
+    static func replaceStored(conversationId: String, messages: [StoredThreadMessage]) {
+        persist(conversationId: conversationId, messages: messages)
+    }
+
+    static func loadStoredOnly(conversationId: String) -> [StoredThreadMessage] {
+        loadStored(conversationId: conversationId)
+    }
+
+    static func allConversationIds() -> [String] {
+        UserDefaults.standard.dictionaryRepresentation().keys
+            .filter { $0.hasPrefix(keyPrefix) }
+            .map { String($0.dropFirst(keyPrefix.count)) }
+    }
+
     static func appendIfNew(conversationId: String, message: ChatDetailMessage) {
         appendStoredIfNew(conversationId: conversationId, message: StoredThreadMessage(from: message))
     }

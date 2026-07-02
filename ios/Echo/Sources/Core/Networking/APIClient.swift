@@ -315,6 +315,27 @@ actor APIClient {
         return try await performRequest(request)
     }
 
+    func putRaw(
+        endpoint: APIEndpoint,
+        body: Data,
+        extraHeaders: [String: String] = [:]
+    ) async throws {
+        var request = try await buildRequest(endpoint: endpoint, method: .put)
+        request.httpBody = body
+        request.setValue(extraHeaders["Content-Type"] ?? "application/octet-stream", forHTTPHeaderField: "Content-Type")
+        for (key, value) in extraHeaders where key != "Content-Type" {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        for interceptor in interceptors {
+            try await interceptor.intercept(&request)
+        }
+        let (_, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        try validateResponse(httpResponse)
+    }
+
     func getRaw(endpoint: APIEndpoint) async throws -> Data {
         var request = try await buildRequest(endpoint: endpoint, method: .get)
         for interceptor in interceptors {

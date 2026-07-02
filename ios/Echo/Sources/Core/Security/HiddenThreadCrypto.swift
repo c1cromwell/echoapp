@@ -33,6 +33,9 @@ enum HiddenThreadCrypto {
     }
 
     private static func deriveKey(conversationId: String) -> SymmetricKey {
+        if let sessionKey = HiddenChatsSession.shared.folderKey(for: conversationId) {
+            return sessionKey
+        }
         let base = SecureEnclaveManager.shared.deriveStorageKey(keyId: storageKeyId)
         let salt = Data(conversationId.utf8)
         return HKDF<SHA256>.deriveKey(
