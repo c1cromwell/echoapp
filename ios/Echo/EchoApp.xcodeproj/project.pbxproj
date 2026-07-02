@@ -69,6 +69,12 @@
 		3AD2DC71871AA797D5BF5FA2 /* MeshPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2731784B7A2F631BB1935E7 /* MeshPacket.swift */; };
 		3ADA25FCFF9B7B005460980F /* WalletViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B679C97AB41C5A8896B25EF /* WalletViewModel.swift */; };
 		3CE3DDA326CF1AE787EF1EA7 /* Endpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = B53E64017DF46F0C1D4DF28E /* Endpoints.swift */; };
+		3D2111B52FF719C700A5D2E3 /* GamificationAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2111B42FF719C700A5D2E3 /* GamificationAPI.swift */; };
+		3D2111B82FF71A0400A5D2E3 /* QuestGamificationSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2111B72FF71A0400A5D2E3 /* QuestGamificationSection.swift */; };
+		3D2111BA2FF71FB100A5D2E3 /* HiddenFolderKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2111B92FF71FB100A5D2E3 /* HiddenFolderKeyManager.swift */; };
+		3D2111BC2FF71FD000A5D2E3 /* ChannelsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2111BB2FF71FD000A5D2E3 /* ChannelsListView.swift */; };
+		3D2111BE2FF7203C00A5D2E3 /* ScheduleMessageSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2111BD2FF7203C00A5D2E3 /* ScheduleMessageSheet.swift */; };
+		3D2111C02FF7204400A5D2E3 /* DisappearingMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2111BF2FF7204400A5D2E3 /* DisappearingMessageView.swift */; };
 		3D2F15A22FD2E52C0020765D /* EchoWelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2F15A12FD2E52C0020765D /* EchoWelcomeView.swift */; };
 		3D2F15A42FD305E70020765D /* MessagesHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2F15A32FD305E70020765D /* MessagesHubView.swift */; };
 		3D737E97D9F6CBA1C1C0C7C2 /* WalletCredentialEnrollmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB3F2272967F4E123A1DE17B /* WalletCredentialEnrollmentView.swift */; };
@@ -251,6 +257,10 @@
 		D40F41C357A240FD9CC3B02C /* Sources/Features/Onboarding/VIP/VIPSuccessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E53DD00F80A34C11ADAECDD4 /* Sources/Features/Onboarding/VIP/VIPSuccessView.swift */; };
 		D4ED16AF694A4777F6DF850D /* SecureEnclaveSecurityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB96D57D2C2F643B47A52C25 /* SecureEnclaveSecurityTests.swift */; };
 		D5BE1B2D78E207E4DED53DA7 /* AnchoringTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07EB4AC07F9F7A037F2CAFE3 /* AnchoringTracker.swift */; };
+		D7B002DISAPPEAR00000002 /* DisappearingMessageLocalDelete.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F002DISAPPEAR00000002 /* DisappearingMessageLocalDelete.swift */; };
+		D7B003DISAPPEAR00000003 /* DisappearingMessageBGTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F003DISAPPEAR00000003 /* DisappearingMessageBGTask.swift */; };
+		D7B004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift */; };
+		D7B005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift */; };
 		D7F8F5FC0949C989E0D5E542 /* RecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16DE2E198494033E2C064EE9 /* RecoveryView.swift */; };
 		D826E3D45D83E457B76D7EF8 /* StakingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3B759190B29A3A924BBDEA5 /* StakingView.swift */; };
 		D8CCBC09BC79427FABFDFF91 /* Sources/Security/StorageLockedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 404E937D2E5B42EFBF874085 /* Sources/Security/StorageLockedView.swift */; };
@@ -297,37 +307,6 @@
 		F87F0FFF3BDDDE670F5300DE /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 300AF0FDC279A0A6FCD7F651 /* KeychainManager.swift */; };
 		F995E8FAF2297AA73B9133FB /* DeliveryStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78A096DCD53AAA92D864E318 /* DeliveryStatus.swift */; };
 		FA8D3A76C5A6FA0B68E2B99F /* PasskeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F4610B4C101F03754584AB5 /* PasskeyManager.swift */; };
-		M7B004ANCHOR00000000004 /* MerkleProofLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F004ANCHOR00000000004 /* MerkleProofLogic.swift */; };
-		M7B005ANCHOR00000000005 /* DisappearingMessageProof.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F005ANCHOR00000000005 /* DisappearingMessageProof.swift */; };
-		M7B006ANCHOR00000000006 /* MessageAnchorAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F006ANCHOR00000000006 /* MessageAnchorAPI.swift */; };
-		D7B001DISAPPEAR00000001 /* DisappearingMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F001DISAPPEAR00000001 /* DisappearingMessageView.swift */; };
-		D7B002DISAPPEAR00000002 /* DisappearingMessageLocalDelete.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F002DISAPPEAR00000002 /* DisappearingMessageLocalDelete.swift */; };
-		D7B003DISAPPEAR00000003 /* DisappearingMessageBGTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F003DISAPPEAR00000003 /* DisappearingMessageBGTask.swift */; };
-		D7B004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift */; };
-		D7B005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift */; };
-		P5B001SCHED000000000001 /* ScheduledMessageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F001SCHED000000000001 /* ScheduledMessageStore.swift */; };
-		P5B002SCHED000000000002 /* ScheduledMessageBGTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F002SCHED000000000002 /* ScheduledMessageBGTask.swift */; };
-		P5B003SCHED000000000003 /* ScheduleMessageSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F003SCHED000000000003 /* ScheduleMessageSheet.swift */; };
-		P5B004HIDDEN000000000004 /* HiddenFolderAuditLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F004HIDDEN000000000004 /* HiddenFolderAuditLog.swift */; };
-		P5B005DATASOV000000000005 /* DataSovereigntySettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F005DATASOV000000000005 /* DataSovereigntySettingsStore.swift */; };
-		P5B006PQMODE000000000006 /* PostQuantumModeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F006PQMODE000000000006 /* PostQuantumModeStore.swift */; };
-		P5B007ZKPROOF00000000007 /* ZKProofUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F007ZKPROOF00000000007 /* ZKProofUseCase.swift */; };
-		P5B008HFKEY000000000008 /* HiddenFolderKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F008HFKEY000000000008 /* HiddenFolderKeyManager.swift */; };
-		P5B009HFBKP000000000009 /* HiddenFolderBackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F009HFBKP000000000009 /* HiddenFolderBackupManager.swift */; };
-		P5B010SCHEDCR0000000010 /* ScheduledMessageCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F010SCHEDCR0000000010 /* ScheduledMessageCrypto.swift */; };
-		P6B003CLOUD000000000003 /* CloudStorageIntegrationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F003CLOUD000000000003 /* CloudStorageIntegrationManager.swift */; };
-		P6B004SCREEN00000000004 /* ScreenShareCapturer.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F004SCREEN00000000004 /* ScreenShareCapturer.swift */; };
-		P5B011HFSTORE0000000011 /* HiddenFolderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F011HFSTORE0000000011 /* HiddenFolderStore.swift */; };
-		P5B012HFBKPSCH000000012 /* HiddenFolderBackupScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F012HFBKPSCH000000012 /* HiddenFolderBackupScheduler.swift */; };
-		P5B013HFBAKSH0000000013 /* HiddenFolderBackupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F013HFBAKSH0000000013 /* HiddenFolderBackupSheet.swift */; };
-		P6B005MEDRES00000000005 /* MediaUploadResumeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F005MEDRES00000000005 /* MediaUploadResumeStore.swift */; };
-		P6B006CLOUDPICK000000006 /* CloudStoragePickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F006CLOUDPICK000000006 /* CloudStoragePickerSheet.swift */; };
-		P5B014ZKCOMM00000000014 /* ZKCommitmentProof.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F014ZKCOMM00000000014 /* ZKCommitmentProof.swift */; };
-		P6B001CHANNELS0000000001 /* ChannelsAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F001CHANNELS0000000001 /* ChannelsAPIClient.swift */; };
-		P6B002CHANNELS0000000002 /* ChannelsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F002CHANNELS0000000002 /* ChannelsListView.swift */; };
-		G7B001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = G7F001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift */; };
-		G7B002QUESTSECTION000001 /* Sources/Features/Gamification/QuestSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = G7F002QUESTSECTION000001 /* Sources/Features/Gamification/QuestSection.swift */; };
-		G7B003HTTPWALLET00000001 /* Sources/Services/HTTPWalletAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = G7F003HTTPWALLET00000001 /* Sources/Services/HTTPWalletAPIClient.swift */; };
 		G2B001M2GROUPS00000000001 /* GroupsAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F001M2GROUPS00000000001 /* GroupsAPIClient.swift */; };
 		G2B002M2GROUPS00000000002 /* GroupKeyDistributionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F002M2GROUPS00000000002 /* GroupKeyDistributionService.swift */; };
 		G2B003M2GROUPS00000000003 /* GroupMemberResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = G2F003M2GROUPS00000000003 /* GroupMemberResolver.swift */; };
@@ -390,8 +369,11 @@
 		M7B002AI00000000000002 /* PrivacyAIConsentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F002AI00000000000002 /* PrivacyAIConsentStore.swift */; };
 		M7B003AI00000000000003 /* SmartReplyBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F003AI00000000000003 /* SmartReplyBar.swift */; };
 		M7B004AI00000000000004 /* PrivacyAIAuditLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F004AI00000000000004 /* PrivacyAIAuditLog.swift */; };
+		M7B004ANCHOR00000000004 /* MerkleProofLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F004ANCHOR00000000004 /* MerkleProofLogic.swift */; };
 		M7B005AI00000000000005 /* OnDeviceTranslationBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F005AI00000000000005 /* OnDeviceTranslationBridge.swift */; };
+		M7B005ANCHOR00000000005 /* DisappearingMessageProof.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F005ANCHOR00000000005 /* DisappearingMessageProof.swift */; };
 		M7B006AI00000000000006 /* ThreadSummaryBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F006AI00000000000006 /* ThreadSummaryBanner.swift */; };
+		M7B006ANCHOR00000000006 /* MessageAnchorAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F006ANCHOR00000000006 /* MessageAnchorAPI.swift */; };
 		M7B007AI00000000000007 /* PrivacyAISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = M7F007AI00000000000007 /* PrivacyAISettingsView.swift */; };
 		MLKEMBF00000000000001 /* MLKEMNativeSwift in Frameworks */ = {isa = PBXBuildFile; productRef = MLKEM_PROD_DEP00000001 /* MLKEMNativeSwift */; };
 		P3B001012345678901234002 /* PinnedConversationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B001012345678901234001 /* PinnedConversationsStore.swift */; };
@@ -402,6 +384,21 @@
 		P3B00101234567890123400C /* IntegrityExplainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3B00101234567890123400B /* IntegrityExplainerView.swift */; };
 		P3S001012345678901234002 /* ContactThreadHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3S001012345678901234001 /* ContactThreadHelper.swift */; };
 		P3S001012345678901234004 /* ContactsListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3S001012345678901234003 /* ContactsListViewModel.swift */; };
+		P5B001SCHED000000000001 /* ScheduledMessageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F001SCHED000000000001 /* ScheduledMessageStore.swift */; };
+		P5B002SCHED000000000002 /* ScheduledMessageBGTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F002SCHED000000000002 /* ScheduledMessageBGTask.swift */; };
+		P5B004HIDDEN000000000004 /* HiddenFolderAuditLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F004HIDDEN000000000004 /* HiddenFolderAuditLog.swift */; };
+		P5B005DATASOV000000000005 /* DataSovereigntySettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F005DATASOV000000000005 /* DataSovereigntySettingsStore.swift */; };
+		P5B006PQMODE000000000006 /* PostQuantumModeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F006PQMODE000000000006 /* PostQuantumModeStore.swift */; };
+		P5B009HFBKP000000000009 /* HiddenFolderBackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F009HFBKP000000000009 /* HiddenFolderBackupManager.swift */; };
+		P5B010SCHEDCR0000000010 /* ScheduledMessageCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F010SCHEDCR0000000010 /* ScheduledMessageCrypto.swift */; };
+		P5B011HFSTORE0000000011 /* HiddenFolderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F011HFSTORE0000000011 /* HiddenFolderStore.swift */; };
+		P5B012HFBKPSCH000000012 /* HiddenFolderBackupScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F012HFBKPSCH000000012 /* HiddenFolderBackupScheduler.swift */; };
+		P5B013HFBAKSH0000000013 /* HiddenFolderBackupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = P5F013HFBAKSH0000000013 /* HiddenFolderBackupSheet.swift */; };
+		P6B001CHANNELS0000000001 /* ChannelsAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F001CHANNELS0000000001 /* ChannelsAPIClient.swift */; };
+		P6B003CLOUD000000000003 /* CloudStorageIntegrationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F003CLOUD000000000003 /* CloudStorageIntegrationManager.swift */; };
+		P6B004SCREEN00000000004 /* ScreenShareCapturer.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F004SCREEN00000000004 /* ScreenShareCapturer.swift */; };
+		P6B005MEDRES00000000005 /* MediaUploadResumeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F005MEDRES00000000005 /* MediaUploadResumeStore.swift */; };
+		P6B006CLOUDPICK000000006 /* CloudStoragePickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6F006CLOUDPICK000000006 /* CloudStoragePickerSheet.swift */; };
 		S4B001BOT00000000000001 /* BotAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = S4F001BOT00000000000001 /* BotAPIClient.swift */; };
 		S4B002BOT00000000000002 /* BotInstallPermissionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = S4F002BOT00000000000002 /* BotInstallPermissionsSheet.swift */; };
 		S5B001HIDDEN000000000001 /* Sources/Core/Security/HiddenThreadCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = S5F001HIDDEN000000000001 /* Sources/Core/Security/HiddenThreadCrypto.swift */; };
@@ -526,6 +523,12 @@
 		3B75CA8C52C3A9434A8B8279 /* EchoButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoButton.swift; sourceTree = "<group>"; };
 		3C05A999CF9E116DBCB842A7 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		3C4FB342BDBA4A46BCB6A489 /* Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift; sourceTree = "<group>"; };
+		3D2111B42FF719C700A5D2E3 /* GamificationAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamificationAPI.swift; sourceTree = "<group>"; };
+		3D2111B72FF71A0400A5D2E3 /* QuestGamificationSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestGamificationSection.swift; sourceTree = "<group>"; };
+		3D2111B92FF71FB100A5D2E3 /* HiddenFolderKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderKeyManager.swift; sourceTree = "<group>"; };
+		3D2111BB2FF71FD000A5D2E3 /* ChannelsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelsListView.swift; sourceTree = "<group>"; };
+		3D2111BD2FF7203C00A5D2E3 /* ScheduleMessageSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleMessageSheet.swift; sourceTree = "<group>"; };
+		3D2111BF2FF7204400A5D2E3 /* DisappearingMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingMessageView.swift; sourceTree = "<group>"; };
 		3D2F15A12FD2E52C0020765D /* EchoWelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoWelcomeView.swift; sourceTree = "<group>"; };
 		3D2F15A32FD305E70020765D /* MessagesHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesHubView.swift; sourceTree = "<group>"; };
 		3D9852ED2FD2515C00058340 /* NewContactSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewContactSheet.swift; sourceTree = "<group>"; };
@@ -700,6 +703,10 @@
 		D61E569198EEF3B0893C66CA /* AuthCoordinatorVM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthCoordinatorVM.swift; sourceTree = "<group>"; };
 		D67C6100C05E589214298B67 /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
 		D7EA66E9610DBC99DBC16F6E /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		D7F002DISAPPEAR00000002 /* DisappearingMessageLocalDelete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingMessageLocalDelete.swift; sourceTree = "<group>"; };
+		D7F003DISAPPEAR00000003 /* DisappearingMessageBGTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingMessageBGTask.swift; sourceTree = "<group>"; };
+		D7F004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingRestrictionsAPI.swift; sourceTree = "<group>"; };
+		D7F005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingRestrictionsPolicy.swift; sourceTree = "<group>"; };
 		D8DE98A4509C8D92D20F69EE /* MeshChannels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshChannels.swift; sourceTree = "<group>"; };
 		DA39A41A452942E6AA10B8E4 /* Sources/Core/Utilities/Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Core/Utilities/Logger.swift; sourceTree = "<group>"; };
 		DA5B3EDE94287701BC6A1692 /* GlacialTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlacialTheme.swift; sourceTree = "<group>"; };
@@ -759,37 +766,6 @@
 		FE74762315295D6ADAAB0325 /* WalletTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletTypes.swift; sourceTree = "<group>"; };
 		FF63CD1AB50EF7D840F6A9E1 /* CallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallView.swift; sourceTree = "<group>"; };
 		FF7FB602A9668C3DB15C779D /* TrustBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustBadge.swift; sourceTree = "<group>"; };
-		M7F004ANCHOR00000000004 /* MerkleProofLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MerkleProofLogic.swift; sourceTree = "<group>"; };
-		M7F005ANCHOR00000000005 /* DisappearingMessageProof.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingMessageProof.swift; sourceTree = "<group>"; };
-		M7F006ANCHOR00000000006 /* MessageAnchorAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageAnchorAPI.swift; sourceTree = "<group>"; };
-		D7F001DISAPPEAR00000001 /* DisappearingMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingMessageView.swift; sourceTree = "<group>"; };
-		D7F002DISAPPEAR00000002 /* DisappearingMessageLocalDelete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingMessageLocalDelete.swift; sourceTree = "<group>"; };
-		D7F003DISAPPEAR00000003 /* DisappearingMessageBGTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingMessageBGTask.swift; sourceTree = "<group>"; };
-		D7F004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingRestrictionsAPI.swift; sourceTree = "<group>"; };
-		D7F005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingRestrictionsPolicy.swift; sourceTree = "<group>"; };
-		P5F001SCHED000000000001 /* ScheduledMessageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledMessageStore.swift; sourceTree = "<group>"; };
-		P5F002SCHED000000000002 /* ScheduledMessageBGTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledMessageBGTask.swift; sourceTree = "<group>"; };
-		P5F003SCHED000000000003 /* ScheduleMessageSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleMessageSheet.swift; sourceTree = "<group>"; };
-		P5F004HIDDEN000000000004 /* HiddenFolderAuditLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderAuditLog.swift; sourceTree = "<group>"; };
-		P5F005DATASOV000000000005 /* DataSovereigntySettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSovereigntySettingsStore.swift; sourceTree = "<group>"; };
-		P5F006PQMODE000000000006 /* PostQuantumModeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostQuantumModeStore.swift; sourceTree = "<group>"; };
-		P5F007ZKPROOF00000000007 /* ZKProofUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZKProofUseCase.swift; sourceTree = "<group>"; };
-		P5F008HFKEY000000000008 /* HiddenFolderKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderKeyManager.swift; sourceTree = "<group>"; };
-		P5F009HFBKP000000000009 /* HiddenFolderBackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderBackupManager.swift; sourceTree = "<group>"; };
-		P5F010SCHEDCR0000000010 /* ScheduledMessageCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledMessageCrypto.swift; sourceTree = "<group>"; };
-		P6F003CLOUD000000000003 /* CloudStorageIntegrationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudStorageIntegrationManager.swift; sourceTree = "<group>"; };
-		P6F004SCREEN00000000004 /* ScreenShareCapturer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenShareCapturer.swift; sourceTree = "<group>"; };
-		P5F011HFSTORE0000000011 /* HiddenFolderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderStore.swift; sourceTree = "<group>"; };
-		P5F012HFBKPSCH000000012 /* HiddenFolderBackupScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderBackupScheduler.swift; sourceTree = "<group>"; };
-		P5F013HFBAKSH0000000013 /* HiddenFolderBackupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderBackupSheet.swift; sourceTree = "<group>"; };
-		P6F005MEDRES00000000005 /* MediaUploadResumeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaUploadResumeStore.swift; sourceTree = "<group>"; };
-		P6F006CLOUDPICK000000006 /* CloudStoragePickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudStoragePickerSheet.swift; sourceTree = "<group>"; };
-		P5F014ZKCOMM00000000014 /* ZKCommitmentProof.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZKCommitmentProof.swift; sourceTree = "<group>"; };
-		P6F001CHANNELS0000000001 /* ChannelsAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelsAPIClient.swift; sourceTree = "<group>"; };
-		P6F002CHANNELS0000000002 /* ChannelsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelsListView.swift; sourceTree = "<group>"; };
-		G7F001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/GamificationAPIClient.swift; sourceTree = "<group>"; };
-		G7F002QUESTSECTION000001 /* Sources/Features/Gamification/QuestSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Gamification/QuestSection.swift; sourceTree = "<group>"; };
-		G7F003HTTPWALLET00000001 /* Sources/Services/HTTPWalletAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Services/HTTPWalletAPIClient.swift; sourceTree = "<group>"; };
 		G2F001M2GROUPS00000000001 /* GroupsAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupsAPIClient.swift; sourceTree = "<group>"; };
 		G2F002M2GROUPS00000000002 /* GroupKeyDistributionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupKeyDistributionService.swift; sourceTree = "<group>"; };
 		G2F003M2GROUPS00000000003 /* GroupMemberResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupMemberResolver.swift; sourceTree = "<group>"; };
@@ -852,8 +828,11 @@
 		M7F002AI00000000000002 /* PrivacyAIConsentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyAIConsentStore.swift; sourceTree = "<group>"; };
 		M7F003AI00000000000003 /* SmartReplyBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartReplyBar.swift; sourceTree = "<group>"; };
 		M7F004AI00000000000004 /* PrivacyAIAuditLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyAIAuditLog.swift; sourceTree = "<group>"; };
+		M7F004ANCHOR00000000004 /* MerkleProofLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MerkleProofLogic.swift; sourceTree = "<group>"; };
 		M7F005AI00000000000005 /* OnDeviceTranslationBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnDeviceTranslationBridge.swift; sourceTree = "<group>"; };
+		M7F005ANCHOR00000000005 /* DisappearingMessageProof.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisappearingMessageProof.swift; sourceTree = "<group>"; };
 		M7F006AI00000000000006 /* ThreadSummaryBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadSummaryBanner.swift; sourceTree = "<group>"; };
+		M7F006ANCHOR00000000006 /* MessageAnchorAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageAnchorAPI.swift; sourceTree = "<group>"; };
 		M7F007AI00000000000007 /* PrivacyAISettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyAISettingsView.swift; sourceTree = "<group>"; };
 		P3B001012345678901234001 /* PinnedConversationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinnedConversationsStore.swift; sourceTree = "<group>"; };
 		P3B001012345678901234003 /* ContactTrustIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactTrustIndex.swift; sourceTree = "<group>"; };
@@ -863,6 +842,21 @@
 		P3B00101234567890123400B /* IntegrityExplainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntegrityExplainerView.swift; sourceTree = "<group>"; };
 		P3S001012345678901234001 /* ContactThreadHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactThreadHelper.swift; sourceTree = "<group>"; };
 		P3S001012345678901234003 /* ContactsListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsListViewModel.swift; sourceTree = "<group>"; };
+		P5F001SCHED000000000001 /* ScheduledMessageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledMessageStore.swift; sourceTree = "<group>"; };
+		P5F002SCHED000000000002 /* ScheduledMessageBGTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledMessageBGTask.swift; sourceTree = "<group>"; };
+		P5F004HIDDEN000000000004 /* HiddenFolderAuditLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderAuditLog.swift; sourceTree = "<group>"; };
+		P5F005DATASOV000000000005 /* DataSovereigntySettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSovereigntySettingsStore.swift; sourceTree = "<group>"; };
+		P5F006PQMODE000000000006 /* PostQuantumModeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostQuantumModeStore.swift; sourceTree = "<group>"; };
+		P5F009HFBKP000000000009 /* HiddenFolderBackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderBackupManager.swift; sourceTree = "<group>"; };
+		P5F010SCHEDCR0000000010 /* ScheduledMessageCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledMessageCrypto.swift; sourceTree = "<group>"; };
+		P5F011HFSTORE0000000011 /* HiddenFolderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderStore.swift; sourceTree = "<group>"; };
+		P5F012HFBKPSCH000000012 /* HiddenFolderBackupScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderBackupScheduler.swift; sourceTree = "<group>"; };
+		P5F013HFBAKSH0000000013 /* HiddenFolderBackupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderBackupSheet.swift; sourceTree = "<group>"; };
+		P6F001CHANNELS0000000001 /* ChannelsAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelsAPIClient.swift; sourceTree = "<group>"; };
+		P6F003CLOUD000000000003 /* CloudStorageIntegrationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudStorageIntegrationManager.swift; sourceTree = "<group>"; };
+		P6F004SCREEN00000000004 /* ScreenShareCapturer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenShareCapturer.swift; sourceTree = "<group>"; };
+		P6F005MEDRES00000000005 /* MediaUploadResumeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaUploadResumeStore.swift; sourceTree = "<group>"; };
+		P6F006CLOUDPICK000000006 /* CloudStoragePickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudStoragePickerSheet.swift; sourceTree = "<group>"; };
 		S4F001BOT00000000000001 /* BotAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BotAPIClient.swift; sourceTree = "<group>"; };
 		S4F002BOT00000000000002 /* BotInstallPermissionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BotInstallPermissionsSheet.swift; sourceTree = "<group>"; };
 		S5F001HIDDEN000000000001 /* Sources/Core/Security/HiddenThreadCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Core/Security/HiddenThreadCrypto.swift; sourceTree = "<group>"; };
@@ -1067,9 +1061,7 @@
 				D0342874FCF582FC5FF03912 /* MessageSenderAuth.swift */,
 				9FEC6E1333EB7EE114D4A244 /* MessageOpsAPI.swift */,
 				G2F001M2GROUPS00000000001 /* GroupsAPIClient.swift */,
-				G7F001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift */,
 				M7F006ANCHOR00000000006 /* MessageAnchorAPI.swift */,
-				G7F003HTTPWALLET00000001 /* Sources/Services/HTTPWalletAPIClient.swift */,
 				G2F002M2GROUPS00000000002 /* GroupKeyDistributionService.swift */,
 				G2F003M2GROUPS00000000003 /* GroupMemberResolver.swift */,
 				M3F001SYNC00000000000001 /* DeviceIdentityStore.swift */,
@@ -1149,6 +1141,7 @@
 				C0MP001COMPLY000000000002 /* ComplyAPIClient.swift */,
 				449BB08C4DB7AF394D798FE4 /* Service.swift */,
 				B8F4E2A1039C4D7E8F1A0023 /* UsernameAvailabilityService.swift */,
+				3D2111B42FF719C700A5D2E3 /* GamificationAPI.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1161,6 +1154,14 @@
 				5E4CDFB2391F0B722E046A6D /* UseCases */,
 			);
 			path = Domain;
+			sourceTree = "<group>";
+		};
+		3D2111B62FF719D500A5D2E3 /* Gamification */ = {
+			isa = PBXGroup;
+			children = (
+				3D2111B72FF71A0400A5D2E3 /* QuestGamificationSection.swift */,
+			);
+			path = Gamification;
 			sourceTree = "<group>";
 		};
 		3DDB23092FC731B5008D0406 /* Recovered References */ = {
@@ -1181,16 +1182,11 @@
 				41C636DFBEAD5B1D182D3ED4 /* Sources/Features/Personas/PersonaSwitcher.swift */,
 				7A76BD8C20CBD03FDC3EA61B /* Sources/Features/Messaging/MessagesHubView.swift */,
 				C51D1ECD4CDFC07B78CD4037 /* Sources/Features/Messaging/ChatSettingsSheet.swift */,
-				D7F001DISAPPEAR00000001 /* DisappearingMessageView.swift */,
-				P5F003SCHED000000000003 /* ScheduleMessageSheet.swift */,
-				P6F002CHANNELS0000000002 /* ChannelsListView.swift */,
 				B1B896BB33EE967785204A57 /* Sources/Features/Messaging/MessageActionsSheet.swift */,
 				1878FA1FFD4E9EFD1EFB1AE5 /* Sources/Features/Messaging/ChatFolderFilterView.swift */,
 				DDF6D1C6D0E4EB6697FB6BD1 /* Sources/Services/ConversationPreferencesStore.swift */,
 				3141640DB14B49719F5CD49A /* Sources/Core/Security/StepUpAuthManager.swift */,
 				S5F001HIDDEN000000000001 /* Sources/Core/Security/HiddenThreadCrypto.swift */,
-				P5F008HFKEY000000000008 /* HiddenFolderKeyManager.swift */,
-				P5F014ZKCOMM00000000014 /* ZKCommitmentProof.swift */,
 				S5F007HIDDEN000000000007 /* Sources/Core/Security/ScreenCaptureGuard.swift */,
 				3C4FB342BDBA4A46BCB6A489 /* Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift */,
 				C3F638568F074357AEE51CD9 /* Sources/Features/Onboarding/VIP/VIPPathView.swift */,
@@ -1278,6 +1274,7 @@
 				300AF0FDC279A0A6FCD7F651 /* KeychainManager.swift */,
 				4C953E1F71859558CE13ACE0 /* KeychainProtocols.swift */,
 				8D04856F60E43E90AD91F53C /* KinnamiEncryption.swift */,
+				3D2111B92FF71FB100A5D2E3 /* HiddenFolderKeyManager.swift */,
 			);
 			path = Security;
 			sourceTree = "<group>";
@@ -1349,6 +1346,9 @@
 				3D99E73A2FDEBD550094416C /* ChatPollViews.swift */,
 				M7F003AI00000000000003 /* SmartReplyBar.swift */,
 				M7F006AI00000000000006 /* ThreadSummaryBanner.swift */,
+				3D2111BB2FF71FD000A5D2E3 /* ChannelsListView.swift */,
+				3D2111BD2FF7203C00A5D2E3 /* ScheduleMessageSheet.swift */,
+				3D2111BF2FF7204400A5D2E3 /* DisappearingMessageView.swift */,
 			);
 			path = Messaging;
 			sourceTree = "<group>";
@@ -1358,7 +1358,6 @@
 			children = (
 				F1A2B3C4012345678900003 /* RegisterWithVerifiableCredentialUseCase.swift */,
 				A1B2C3D4E5F60718293A4B5D /* Contacts/ContactUseCases.swift */,
-				P5F007ZKPROOF00000000007 /* ZKProofUseCase.swift */,
 				73D743AC0EC9162DF830D09D /* UseCases.swift */,
 			);
 			path = UseCases;
@@ -1402,14 +1401,6 @@
 			path = Evidence;
 			sourceTree = "<group>";
 		};
-		G7G001GAMIFICATIONGRP001 /* Gamification */ = {
-			isa = PBXGroup;
-			children = (
-				G7F002QUESTSECTION000001 /* Sources/Features/Gamification/QuestSection.swift */,
-			);
-			path = Gamification;
-			sourceTree = "<group>";
-		};
 		6D2906521C916B372D792751 /* Features */ = {
 			isa = PBXGroup;
 			children = (
@@ -1421,13 +1412,13 @@
 				BF1632C68CF0501749F36C11 /* Contacts */,
 				C2404B21430179E9B5F6BCBC /* Enterprise */,
 				6B0CC81A630E62A181097B3C /* Evidence */,
-				G7G001GAMIFICATIONGRP001 /* Gamification */,
 				0B1E2E4AB7207DB76EFB239A /* Governance */,
 				5DFB6B074A87A5FE50F1E8A4 /* Messaging */,
 				A24D20969B2C84F1B025AD6B /* Onboarding */,
 				78A9A946D0F6747117867E85 /* Profile */,
 				W0E00101234567890123401D /* Settings */,
 				997A946D691193FEC20A0580 /* Wallet */,
+				3D2111B62FF719D500A5D2E3 /* Gamification */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -2138,6 +2129,7 @@
 				764B6C096AF1ECC0465AD4DD /* LookalikeDetector.swift in Sources */,
 				1BA39D46DBD54ABEB245D9A6 /* ContactSafetyEvaluator.swift in Sources */,
 				2CAB9161B26C83DE3ED7F3AC /* FirstContactStore.swift in Sources */,
+				3D2111BA2FF71FB100A5D2E3 /* HiddenFolderKeyManager.swift in Sources */,
 				060CB3877263509B9F0011FE /* AnonymousMeshCrypto.swift in Sources */,
 				09838600E3696762E85CFFD6 /* MeshLanePolicy.swift in Sources */,
 				0DCA4A70EFD512830BF1F827 /* MeshChannels.swift in Sources */,
@@ -2161,9 +2153,6 @@
 				B26E4D81A5B2A6AD7379A80B /* MessagingAgreementKey.swift in Sources */,
 				B0A3F75FD68731E761E53502 /* MessageSenderAuth.swift in Sources */,
 				558379EC406748B933383F58 /* MessageOpsAPI.swift in Sources */,
-				G7B001GAMIFICATIONAPI001 /* Sources/Services/GamificationAPIClient.swift in Sources */,
-				G7B002QUESTSECTION000001 /* Sources/Features/Gamification/QuestSection.swift in Sources */,
-				G7B003HTTPWALLET00000001 /* Sources/Services/HTTPWalletAPIClient.swift in Sources */,
 				G2B001M2GROUPS00000000001 /* GroupsAPIClient.swift in Sources */,
 				G2B002M2GROUPS00000000002 /* GroupKeyDistributionService.swift in Sources */,
 				G2B003M2GROUPS00000000003 /* GroupMemberResolver.swift in Sources */,
@@ -2218,6 +2207,7 @@
 				M5B002MEDIA000000000002 /* MediaMessageCrypto.swift in Sources */,
 				M5B003MEDIA000000000003 /* MediaMessageService.swift in Sources */,
 				M5B004MEDIA000000000004 /* VoiceNoteRecorder.swift in Sources */,
+				3D2111C02FF7204400A5D2E3 /* DisappearingMessageView.swift in Sources */,
 				29096EF04089EC2BF5EE11F2 /* VoiceNoteCodec.swift in Sources */,
 				M5B005MEDIA000000000005 /* MediaThumbnailCache.swift in Sources */,
 				M5B006MEDIA000000000006 /* WaveformExtractor.swift in Sources */,
@@ -2239,6 +2229,7 @@
 				M7B005AI00000000000005 /* OnDeviceTranslationBridge.swift in Sources */,
 				M7B006AI00000000000006 /* ThreadSummaryBanner.swift in Sources */,
 				M7B007AI00000000000007 /* PrivacyAISettingsView.swift in Sources */,
+				3D2111BE2FF7203C00A5D2E3 /* ScheduleMessageSheet.swift in Sources */,
 				44EEF7274CAF966992DC6C16 /* MessageReceiptsAPI.swift in Sources */,
 				1411B71227274A6D2B383C77 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift in Sources */,
 				438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */,
@@ -2262,19 +2253,15 @@
 				M7B004ANCHOR00000000004 /* MerkleProofLogic.swift in Sources */,
 				M7B005ANCHOR00000000005 /* DisappearingMessageProof.swift in Sources */,
 				M7B006ANCHOR00000000006 /* MessageAnchorAPI.swift in Sources */,
-				D7B001DISAPPEAR00000001 /* DisappearingMessageView.swift in Sources */,
 				D7B002DISAPPEAR00000002 /* DisappearingMessageLocalDelete.swift in Sources */,
 				D7B003DISAPPEAR00000003 /* DisappearingMessageBGTask.swift in Sources */,
 				D7B004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift in Sources */,
 				D7B005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift in Sources */,
 				P5B001SCHED000000000001 /* ScheduledMessageStore.swift in Sources */,
 				P5B002SCHED000000000002 /* ScheduledMessageBGTask.swift in Sources */,
-				P5B003SCHED000000000003 /* ScheduleMessageSheet.swift in Sources */,
 				P5B004HIDDEN000000000004 /* HiddenFolderAuditLog.swift in Sources */,
 				P5B005DATASOV000000000005 /* DataSovereigntySettingsStore.swift in Sources */,
 				P5B006PQMODE000000000006 /* PostQuantumModeStore.swift in Sources */,
-				P5B007ZKPROOF00000000007 /* ZKProofUseCase.swift in Sources */,
-				P5B008HFKEY000000000008 /* HiddenFolderKeyManager.swift in Sources */,
 				P5B009HFBKP000000000009 /* HiddenFolderBackupManager.swift in Sources */,
 				P5B010SCHEDCR0000000010 /* ScheduledMessageCrypto.swift in Sources */,
 				P6B003CLOUD000000000003 /* CloudStorageIntegrationManager.swift in Sources */,
@@ -2284,9 +2271,8 @@
 				P5B013HFBAKSH0000000013 /* HiddenFolderBackupSheet.swift in Sources */,
 				P6B005MEDRES00000000005 /* MediaUploadResumeStore.swift in Sources */,
 				P6B006CLOUDPICK000000006 /* CloudStoragePickerSheet.swift in Sources */,
-				P5B014ZKCOMM00000000014 /* ZKCommitmentProof.swift in Sources */,
+				3D2111BC2FF71FD000A5D2E3 /* ChannelsListView.swift in Sources */,
 				P6B001CHANNELS0000000001 /* ChannelsAPIClient.swift in Sources */,
-				P6B002CHANNELS0000000002 /* ChannelsListView.swift in Sources */,
 				59377B9DF47C401D5068938A /* AppState.swift in Sources */,
 				A1B2C3D401234567890ABC02 /* SessionSignOut.swift in Sources */,
 				F2F596C925B9154A7632E2C1 /* AppleWalletMDLBridge.swift in Sources */,
@@ -2403,6 +2389,7 @@
 				65F44CDA6B1FC54C80653814 /* ProfileScreens.swift in Sources */,
 				4F8234E8D2287C7E9FF3CC29 /* ProposalDetailView.swift in Sources */,
 				1A96CDFFDF6826503BD5A97D /* ProposalListView.swift in Sources */,
+				3D2111B52FF719C700A5D2E3 /* GamificationAPI.swift in Sources */,
 				93C987F95E6D33BC1759142D /* ProposalListViewModel.swift in Sources */,
 				141B61A5C244A38E6CD1888D /* QRIdentityView.swift in Sources */,
 				3973D5EE01A5A461D989AD45 /* RecoveryCoordinator.swift in Sources */,
@@ -2517,6 +2504,7 @@
 				TF001A2B3C4D5E6F7890002 /* EchoAPIBaseURL.swift in Sources */,
 				TF001A2B3C4D5E6F7890004 /* DidKeyDeriver.swift in Sources */,
 				S5B00SCATRENDER000000002 /* Sources/Features/ScreenCatalog/ScreenCatalogRenderer.swift in Sources */,
+				3D2111B82FF71A0400A5D2E3 /* QuestGamificationSection.swift in Sources */,
 				SX1B001DR00000000000001 /* Sources/Core/Security/DoubleRatchet.swift in Sources */,
 				SX1B002DRC0000000000002 /* Sources/Services/DoubleRatchetCoordinator.swift in Sources */,
 				SX1B003DRP0000000000003 /* Sources/Features/Settings/DoubleRatchetPreferences.swift in Sources */,

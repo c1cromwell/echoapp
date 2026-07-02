@@ -52,7 +52,7 @@ enum HiddenFolderBackupScheduler {
               let interval = frequency.interval else { return }
         let last = UserDefaults.standard.object(forKey: lastRunKey) as? Date ?? .distantPast
         guard Date().timeIntervalSince(last) >= interval else { return }
-        guard HiddenChatsSession.shared.isUnlocked, !HiddenChatsSession.shared.isDuressMode else { return }
+        guard await HiddenChatsSession.shared.isUnlocked, await !HiddenChatsSession.shared.isDuressMode else { return }
         do {
             _ = try await HiddenFolderBackupManager.createBackup(phrase: phrase)
             UserDefaults.standard.set(Date(), forKey: lastRunKey)

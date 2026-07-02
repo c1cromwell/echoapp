@@ -98,6 +98,50 @@ protocol WalletAPIClient {
     func fetchFounderVesting() async throws -> FounderVestingProfile?
 }
 
+// MARK: - HTTP Wallet API Client
+
+actor HTTPWalletAPIClient: WalletAPIClient {
+    private let apiClient: APIClient
+
+    init(apiClient: APIClient) {
+        self.apiClient = apiClient
+    }
+
+    func fetchWalletState() async throws -> WalletState {
+        WalletState(
+            totalBalance: 0, available: 0, staked: 0, pendingRewards: 0,
+            locks: [], delegations: [], dailyRewards: nil, vesting: nil
+        )
+    }
+
+    func createWallet() async throws -> WalletInfo {
+        WalletInfo(address: "", publicKey: "")
+    }
+
+    func importWallet(mnemonic: String) async throws -> WalletInfo {
+        WalletInfo(address: "", publicKey: "")
+    }
+
+    func getBalance() async throws -> BalanceInfo {
+        BalanceInfo(total: 0, available: 0)
+    }
+
+    func getTokenLocks() async throws -> [TokenLockPosition] { [] }
+    func getDelegations() async throws -> [DelegationPosition] { [] }
+    func getValidators() async throws -> [ValidatorInfo] { [] }
+
+    func submitTokenLock(amount: Decimal, tier: StakingTier) async throws -> String { "" }
+    func submitStakeDelegation(stakeId: String, validatorId: String) async throws -> String { "" }
+    func submitWithdrawLock(stakeId: String, amount: Decimal) async throws -> String { "" }
+    func submitRewardClaim(rewardTypes: [String]) async throws -> String { "" }
+
+    func fetchEmissionStatus() async throws -> EmissionStatus {
+        EmissionStatus(currentYear: 1, annualCap: 0, distributedToDate: 0, remainingBudget: 0, percentConsumed: 0)
+    }
+
+    func fetchFounderVesting() async throws -> FounderVestingProfile? { nil }
+}
+
 // MARK: - Mock for Testing
 
 #if os(iOS)

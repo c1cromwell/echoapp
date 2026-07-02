@@ -1,56 +1,49 @@
 #if os(iOS)
 import SwiftUI
 
-/// Live countdown for disappearing messages (WO-105).
-struct CountdownTimer: View {
-    let expiresAt: Date
-    let onExpired: () -> Void
-
-    @State private var remaining: TimeInterval = 0
-    @State private var fired = false
-
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-
-    var body: some View {
-        Text(formatted(remaining))
-            .font(.system(size: 11, weight: .medium, design: .monospaced))
-            .foregroundColor(.echoInk55)
-            .onAppear { tick() }
-            .onReceive(timer) { _ in tick() }
-    }
-
-    private func tick() {
-        remaining = max(0, expiresAt.timeIntervalSinceNow)
-        guard remaining <= 0, !fired else { return }
-        fired = true
-        onExpired()
-    }
-
-    private func formatted(_ interval: TimeInterval) -> String {
-        let total = Int(interval.rounded(.up))
-        if total >= 86400 { return "\(total / 86400)d" }
-        if total >= 3600 { return "\(total / 3600)h" }
-        if total >= 60 { return "\(total / 60)m" }
-        return "\(max(0, total))s"
-    }
-}
-
-/// Bubble wrapper that shows countdown and triggers local deletion (WO-105).
+/// Wrapper that tracks expiry of a disappearing message and fires a callback (WO-105).
 struct DisappearingMessageView<Content: View>: View {
     let messageId: String
     let expiresAt: Date?
     let onExpired: (String) -> Void
     @ViewBuilder let content: () -> Content
 
+    @State private var isExpired = false
+
     var body: some View {
-        HStack(alignment: .bottom, spacing: 6) {
+        if !isExpired {
             content()
-            if let expiresAt {
-                CountdownTimer(expiresAt: expiresAt) {
+                .overlay(alignment: .bottomTrailing) {
+                    if let expiresAt {
+                        ExpiryIndicator(expiresAt: expiresAt)
+                    }
+                }
+                .task {
+                    guard let expiresAt else { return }
+                    let remaining = expiresAt.timeIntervalSinceNow
+                    if remaining <= 0 {
+                        isExpired = true
+                        onExpired(messageId)
+                        return
+                    }
+                    try? await Task.sleep(for: .seconds(remaining))
+                    guard !Task.isCancelled else { return }
+                    isExpired = true
                     onExpired(messageId)
                 }
-            }
         }
+    }
+}
+
+/// Small countdown indicator for disappearing messages.
+private struct ExpiryIndicator: View {
+    let expiresAt: Date
+
+    var body: some View {
+        Image(systemName: "timer")
+            .font(.system(size: 10))
+            .foregroundStyle(Color.echoInk40)
+            .padding(4)
     }
 }
 #endif

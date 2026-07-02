@@ -215,10 +215,6 @@ enum ConversationThreadStore {
         loadStored(conversationId: conversationId)
     }
 
-    static func replaceStored(conversationId: String, messages: [StoredThreadMessage]) {
-        persist(conversationId: conversationId, messages: messages)
-    }
-
     /// Idempotent merge: skip message ids already present locally.
     static func mergeMessages(conversationId: String, incoming: [StoredThreadMessage]) {
         guard !conversationId.isEmpty, !incoming.isEmpty else { return }

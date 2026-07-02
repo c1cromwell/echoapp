@@ -14,7 +14,7 @@ struct HiddenFolder: Codable, Identifiable, Equatable, Sendable {
 enum HiddenFolderStore {
     static let maxFolders = 20
     private static let key = "echo.hidden.folders.v1"
-    private static let defaultFolderId = "default"
+    private static let defaultFolderIdentifier = "default"
 
     static func all() -> [HiddenFolder] {
         guard let data = UserDefaults.standard.data(forKey: key),
@@ -28,7 +28,7 @@ enum HiddenFolderStore {
         all().first { $0.id == id }
     }
 
-    static func defaultFolderId() -> String { defaultFolderId }
+    static func defaultFolderId() -> String { defaultFolderIdentifier }
 
     @discardableResult
     static func create(name: String) throws -> HiddenFolder {
@@ -69,18 +69,18 @@ enum HiddenFolderStore {
     }
 
     static func folderId(for conversationId: String) -> String {
-        all().first { $0.conversationIds.contains(conversationId) }?.id ?? defaultFolderId
+        all().first { $0.conversationIds.contains(conversationId) }?.id ?? defaultFolderIdentifier
     }
 
     static func delete(id: String) {
-        guard id != defaultFolderId else { return }
+        guard id != defaultFolderIdentifier else { return }
         var rows = all().filter { $0.id != id }
         if rows.isEmpty { rows = [defaultFolder()] }
         persist(rows)
     }
 
     private static func defaultFolder() -> HiddenFolder {
-        HiddenFolder(id: defaultFolderId, name: "Hidden", createdAt: Date(), conversationIds: [])
+        HiddenFolder(id: defaultFolderIdentifier, name: "Hidden", createdAt: Date(), conversationIds: [])
     }
 
     private static func persist(_ rows: [HiddenFolder]) {

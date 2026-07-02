@@ -10,9 +10,13 @@ enum ScheduledMessageDelivery {
         guard !due.isEmpty else { return }
         guard let signalService = DIContainer.shared.resolveConversationSignalService() else { return }
 
+        let apiClient: APIClient = DIContainer.shared.resolve("networking.apiClient")
+            ?? APIClient(configuration: .default)
+        let textCrypto = TextMessageCrypto(identityResolve: IdentityResolveClient(apiClient: apiClient))
+
         for record in due {
             do {
-                let payload = try await TextMessageCrypto().encryptPayload(
+                let payload = try await textCrypto.encryptPayload(
                     plaintext: record.plaintext,
                     peerDID: record.peerDID,
                     messageId: record.id
@@ -44,6 +48,7 @@ enum ScheduledMessageBGTask {
         }
     }
 
+    @MainActor
     static func scheduleNext(fireAt: Date? = nil) {
         let request = BGProcessingTaskRequest(identifier: taskIdentifier)
         request.requiresNetworkConnectivity = true
@@ -65,7 +70,7 @@ enum ScheduledMessageBGTask {
         scheduleNext()
         task.expirationHandler = {}
         Task {
-            await deliverDueMessages()
+            await ScheduledMessageDelivery.deliverDueMessages()
             task.setTaskCompleted(success: true)
         }
     }

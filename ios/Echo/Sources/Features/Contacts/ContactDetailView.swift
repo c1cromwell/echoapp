@@ -433,6 +433,5 @@ struct SharedMediaPreview: View {
 
 extension Color.Echo {
     static let success = Color(hex: "#16A34A")
-    static let warning = Color(hex: "#F59E0B")
 }
 #endif

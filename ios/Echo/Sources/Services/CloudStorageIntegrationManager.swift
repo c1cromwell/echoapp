@@ -43,7 +43,7 @@ enum CloudStorageIntegrationManager {
     }
 
     static func connectedProviders() async -> [Provider] {
-        guard let client = DIContainer.shared.resolveAPIClient() else { return [] }
+        guard let client = await DIContainer.shared.resolveAPIClient() else { return [] }
         do {
             let resp: ProvidersResponse = try await client.get(endpoint: CloudEndpoint.listProviders)
             return resp.providers.compactMap { Provider(rawValue: $0) }
@@ -53,7 +53,7 @@ enum CloudStorageIntegrationManager {
     }
 
     static func fetchAuthorizeURL(provider: Provider, redirectURI: String = "echo://oauth/cloud") async throws -> URL {
-        guard let client = DIContainer.shared.resolveAPIClient() else {
+        guard let client = await DIContainer.shared.resolveAPIClient() else {
             throw CloudStorageError.clientUnavailable
         }
         let resp: AuthorizeResponse = try await client.get(
@@ -66,7 +66,7 @@ enum CloudStorageIntegrationManager {
     }
 
     static func exchangeCode(_ code: String, provider: Provider, redirectURI: String = "echo://oauth/cloud") async throws {
-        guard let client = DIContainer.shared.resolveAPIClient() else {
+        guard let client = await DIContainer.shared.resolveAPIClient() else {
             throw CloudStorageError.clientUnavailable
         }
         struct Body: Encodable {
@@ -85,7 +85,7 @@ enum CloudStorageIntegrationManager {
     }
 
     static func listFiles(provider: Provider) async throws -> [RemoteFile] {
-        guard let client = DIContainer.shared.resolveAPIClient() else {
+        guard let client = await DIContainer.shared.resolveAPIClient() else {
             throw CloudStorageError.clientUnavailable
         }
         let resp: FilesResponse = try await client.get(endpoint: CloudEndpoint.files(provider: provider))
@@ -93,7 +93,7 @@ enum CloudStorageIntegrationManager {
     }
 
     static func downloadFile(provider: Provider, fileID: String) async throws -> (Data, String) {
-        guard let client = DIContainer.shared.resolveAPIClient() else {
+        guard let client = await DIContainer.shared.resolveAPIClient() else {
             throw CloudStorageError.clientUnavailable
         }
         let data = try await client.getRaw(endpoint: CloudEndpoint.stream(provider: provider, fileID: fileID))

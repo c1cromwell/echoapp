@@ -3,6 +3,7 @@ import Foundation
 import CryptoKit
 
 /// AES-256-GCM encryption for hidden-conversation thread blobs at rest (WO-7/18).
+@MainActor
 enum HiddenThreadCrypto {
     private static let domain = Data("echo.hidden-thread.v1".utf8)
     private static let storageKeyId = "echo-hidden-threads"

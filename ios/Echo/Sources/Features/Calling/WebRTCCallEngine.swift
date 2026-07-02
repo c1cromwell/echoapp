@@ -23,7 +23,7 @@ protocol WebRTCCallEngine: AnyObject {
     func setVideoEnabled(_ enabled: Bool)
     func setSpeakerEnabled(_ enabled: Bool)
     func startScreenShare() async throws
-    func stopScreenShare() async
+    func stopScreenShare()
     var isScreenSharing: Bool { get }
     func hangup()
 }

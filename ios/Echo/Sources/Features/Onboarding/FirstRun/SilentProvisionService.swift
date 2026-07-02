@@ -290,6 +290,16 @@ enum ProvisionError: Error {
     case trustTierUpdateFailed(status: Int)
 }
 
+// MARK: - Real Provision Stargazer
+
+final class RealProvisionStargazer: ProvisionStargazerProtocol, @unchecked Sendable {
+    func createWallet() async throws -> String {
+        let api = await DIContainer.shared.resolveWalletAPI() ?? WalletAPIClientStub()
+        let info = try await api.createWallet()
+        return info.address
+    }
+}
+
 // MARK: - Stub implementations (TestFlight / unit tests)
 
 final class StubProvisionSecureEnclave: ProvisionSecureEnclaveProtocol, @unchecked Sendable {

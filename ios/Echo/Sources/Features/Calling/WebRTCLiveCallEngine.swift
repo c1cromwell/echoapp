@@ -103,7 +103,7 @@ final class WebRTCLiveCallEngine: NSObject, WebRTCCallEngine {
             isScreenSharing = true
             return
         }
-        capturer?.stopCapture()
+        await capturer?.stopCapture()
         capturer = nil
         if videoSource == nil, let peerConnection {
             let source = Self.factory.videoSource()

@@ -24,8 +24,8 @@ enum DisappearingMessageAuditStore {
             messageId: messageId,
             conversationId: conversationId,
             commitmentHex: commitmentHex,
-            expiresAtISO: expiresAt.map { StoredThreadMessage.formatSentAt($0) },
-            deletedAtISO: StoredThreadMessage.formatSentAt(Date())
+            expiresAtISO: expiresAt.flatMap { StoredThreadMessage.formatSentAt($0) },
+            deletedAtISO: StoredThreadMessage.formatSentAt(Date()) ?? ""
         )
         guard let data = try? JSONEncoder().encode(record) else { return }
         UserDefaults.standard.set(data, forKey: prefix + messageId)

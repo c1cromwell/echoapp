@@ -47,31 +47,35 @@ enum HiddenFolderBackupManager {
         let sealed = try AES.GCM.SealedBox(combined: archive.ciphertext)
         let plaintext = try AES.GCM.open(sealed, using: key)
         let payload = try JSONDecoder().decode(BackupPayload.self, from: plaintext)
-        for (conversationId, prefs) in payload.preferences {
-            ConversationPreferencesStore.shared.save(prefs, for: conversationId)
-        }
-        for (conversationId, messages) in payload.threads {
-            ConversationThreadStore.replaceStored(conversationId: conversationId, messages: messages)
+        await MainActor.run {
+            for (conversationId, prefs) in payload.preferences {
+                ConversationPreferencesStore.shared.save(prefs, for: conversationId)
+            }
+            for (conversationId, messages) in payload.threads {
+                ConversationThreadStore.replaceStored(conversationId: conversationId, messages: messages)
+            }
         }
         HiddenFolderAuditLog.record(.backupRestored, detail: "\(payload.conversationIds.count) chats")
     }
 
     private static func collectPayload() async throws -> BackupPayload {
-        let hiddenIds = ConversationPreferencesStore.shared.allHiddenConversationIds()
-        var threads: [String: [StoredThreadMessage]] = [:]
-        for id in hiddenIds {
-            threads[id] = ConversationThreadStore.loadStoredOnly(conversationId: id)
+        await MainActor.run {
+            let hiddenIds = ConversationPreferencesStore.shared.allHiddenConversationIds()
+            var threads: [String: [StoredThreadMessage]] = [:]
+            for id in hiddenIds {
+                threads[id] = ConversationThreadStore.loadStoredOnly(conversationId: id)
+            }
+            var prefs: [String: ConversationPreferences] = [:]
+            for id in hiddenIds {
+                prefs[id] = ConversationPreferencesStore.shared.preferences(for: id)
+            }
+            return BackupPayload(
+                exportedAt: Date(),
+                conversationIds: hiddenIds,
+                threads: threads,
+                preferences: prefs
+            )
         }
-        var prefs: [String: ConversationPreferences] = [:]
-        for id in hiddenIds {
-            prefs[id] = ConversationPreferencesStore.shared.preferences(for: id)
-        }
-        return BackupPayload(
-            exportedAt: Date(),
-            conversationIds: hiddenIds,
-            threads: threads,
-            preferences: prefs
-        )
     }
 
     private static func backupURL() throws -> URL {
