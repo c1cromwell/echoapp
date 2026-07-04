@@ -38,20 +38,16 @@ Privacy invariant:   Zero PII on any blockchain — T0–T7 classification enfor
 
 ### Backend
 
+Full setup (three products, clean DB, all services): **[`CONTRIBUTING.md`](CONTRIBUTING.md)**.
+
+Daily regression and Xcode smoke: **[`docs/E2E_QUICK_START.md`](docs/E2E_QUICK_START.md)**.
+
 ```bash
-# Install dependencies
 make install-deps
-
-# Run dev server (in-memory DB, no Docker required)
-make run
-
-# Run with full Phase-1 cluster (Constellation metagraph + backend)
-make dev
-
-# Run Phase-1 go/no-go validation (requires `make dev` first)
-make validate-phase1
-
-# Release readiness check
+make dev                  # Messaging: metagraph + gateway :8000
+make dev-comply           # Comply API :8011
+make start-identity       # Identity L0/L1 for VC / Passport
+make validate-phase1      # Phase 1 go/no-go
 make release-check
 ```
 

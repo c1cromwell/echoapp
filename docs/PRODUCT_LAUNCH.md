@@ -91,10 +91,18 @@ make dev-comply        # postgres :5433 + comply :8011
 make dev-comply-stop
 ```
 
-**Full stack** (embedded comply routes on gateway + standalone `:8011`):
+**Full stack** (messaging gateway + embedded Comply routes on `:8000`):
 
 ```bash
-make dev               # includes comply service in docker-compose.testnet.yml
+make dev               # metagraph + gateway :8000 (docker-compose.testnet.yml)
+# Set COMPLY_SERVICE_TOKEN in gateway env for embedded /v3/comply/* routes
+```
+
+**Standalone Comply API** (portal + companion app direct calls):
+
+```bash
+make dev-comply        # postgres :5433 + comply :8011
+# Often paired with make dev when testing Data L1 anchoring
 ```
 
 Production: deploy `cmd/comply` container with env:
@@ -148,8 +156,8 @@ Backend requirement: messaging gateway with Identity L0/L1 (`make start-identity
 
 ```bash
 # Local stacks
-make dev                 # Messaging + full backend + comply sidecar
-make dev-comply          # Comply API only
+make dev                 # Messaging metagraph + gateway :8000
+make dev-comply          # Standalone Comply API :8011 (+ portal)
 make start-comply        # Bare-metal comply on :8011
 
 # Release tags
