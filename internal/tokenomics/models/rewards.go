@@ -30,7 +30,12 @@ type RewardEarning struct {
 	ClaimedAt  time.Time
 }
 
-// DailyRewardTracker tracks daily reward limits
+// DailyRewardTracker tracks daily reward activity.
+//
+// Per PRD v2.5.1 the auto-scaling model replaced the old hard daily cap: every
+// message always earns, and the per-message rate scales with network activity
+// (rate = daily budget / total daily activity weight). There is no cutoff after
+// which a user stops earning — mirrors iOS `NetworkActivityTracker`.
 type DailyRewardTracker struct {
 	UserID           string
 	Date             time.Time
@@ -39,9 +44,12 @@ type DailyRewardTracker struct {
 	TotalActions     int
 }
 
-// IsLimitReached checks if daily limits exceeded
+// IsLimitReached is retained for compatibility but always reports false under the
+// auto-scaling model (PRD v2.5.1) — there is no hard daily cap. Kept so existing
+// callers compile; earning throttling is handled by the network-activity rate,
+// not a per-user wall.
 func (drt *DailyRewardTracker) IsLimitReached() bool {
-	return drt.MessagesRewarded >= 500
+	return false
 }
 
 // ReferralInfo tracks referral bonuses
@@ -64,18 +72,23 @@ type TrustScore struct {
 	Components map[string]int
 }
 
-// GetMultiplier returns reward multiplier for trust score
+// GetMultiplier returns the reward multiplier for a trust score.
+//
+// Canonical table (Tokenomics v2.0) — kept in lockstep with iOS
+// `RewardsTrustScore.getMultiplier()` (ios/Echo/Sources/Models/Rewards.swift):
+// Tier 1 (0–19) 1.0×, Tier 2 (20–39) 1.2×, Tier 3 (40–59) 1.5×,
+// Tier 4 (60–79) 2.0×, Tier 5 (80–100) 3.0×.
 func (ts *TrustScore) GetMultiplier() float64 {
 	switch {
 	case ts.Score < 20:
-		return 0.5
-	case ts.Score < 40:
 		return 1.0
+	case ts.Score < 40:
+		return 1.2
 	case ts.Score < 60:
 		return 1.5
 	case ts.Score < 80:
-		return 2.5
+		return 2.0
 	default:
-		return 5.0
+		return 3.0
 	}
 }

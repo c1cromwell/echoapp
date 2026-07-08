@@ -10,7 +10,9 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/governance"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/genesis"
+	"github.com/thechadcromwell/echoapp/internal/tokenomics/leaderboard"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/quests"
+	"github.com/thechadcromwell/echoapp/internal/wallet"
 )
 
 // TokenomicsHandlers serves WO-206/214/215/225/226/271 HTTP endpoints.
@@ -123,11 +125,143 @@ func (h *TokenomicsHandlers) handleQuestClaim(w http.ResponseWriter, r *http.Req
 		WriteError(w, code, errCode, err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
+	// R0 gamification accrual (value-free): count the claimed reward toward the
+	// leaderboard and the claim as daily activity for the streak. Best-effort —
+	// never fails the claim itself.
+	h.accrueGamification(r, didStr, questReward(questID))
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"quest_id":   questID,
 		"tx_hash":    txHash,
 		"request_id": r.Header.Get("X-Request-ID"),
 	})
+}
+
+// handleLeaderboard serves the usage leaderboard (requirements §Mechanic 1).
+// GET /v1/gamification/leaderboard?window=weekly|monthly
+func (h *TokenomicsHandlers) handleLeaderboard(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Service == nil || h.Service.Leaderboard == nil {
+		WriteError(w, http.StatusServiceUnavailable, "TOKENOMICS_UNAVAILABLE", "tokenomics not configured", r.Header.Get("X-Request-ID"))
+		return
+	}
+	window := leaderboard.Window(r.URL.Query().Get("window"))
+	if !window.Valid() {
+		window = leaderboard.WindowWeekly
+	}
+	snap, err := h.Service.Leaderboard.Top(r.Context(), window, leaderboard.DefaultLimit)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "LEADERBOARD_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"snapshot":   snap,
+		"redeemable": false,
+		"request_id": r.Header.Get("X-Request-ID"),
+	})
+}
+
+// handleStreak serves the authenticated user's daily-activity streak
+// (requirements §Mechanic 4). GET /v1/gamification/streak
+func (h *TokenomicsHandlers) handleStreak(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Service == nil || h.Service.Streaks == nil {
+		WriteError(w, http.StatusServiceUnavailable, "TOKENOMICS_UNAVAILABLE", "tokenomics not configured", r.Header.Get("X-Request-ID"))
+		return
+	}
+	did := r.Context().Value(ContextKeyUserID)
+	didStr, _ := did.(string)
+	if didStr == "" {
+		WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "authentication required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	st, err := h.Service.Streaks.Get(r.Context(), didStr)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "STREAK_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"streak":     st,
+		"request_id": r.Header.Get("X-Request-ID"),
+	})
+}
+
+// handleGamificationStatus reports the launch custody/compliance posture so the
+// client can render the authoritative "no cash value" disclaimer. While custody
+// is interim (ECHO_WALLET_REAL_FUNDS unset) the earned token is non-redeemable
+// and non-transferable — see docs/legal/CORPORATE_STRUCTURE_AND_COMPLIANCE.md.
+// GET /v1/gamification/status
+func (h *TokenomicsHandlers) handleGamificationStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	realFunds := wallet.RealFundsEnabled()
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"custody_mode": wallet.CustodyMode(),
+		"redeemable":   realFunds,
+		"transferable": realFunds,
+		"disclaimer":   "ECHO earned in-app has no cash value and cannot be transferred or redeemed.",
+		"request_id":   r.Header.Get("X-Request-ID"),
+	})
+}
+
+// handleActivityPing records a daily-activity signal for the streak (requirements
+// §Mechanic 4). Clients call this on app open. POST /v1/gamification/activity/ping
+func (h *TokenomicsHandlers) handleActivityPing(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Service == nil || h.Service.Streaks == nil {
+		WriteError(w, http.StatusServiceUnavailable, "TOKENOMICS_UNAVAILABLE", "tokenomics not configured", r.Header.Get("X-Request-ID"))
+		return
+	}
+	did := r.Context().Value(ContextKeyUserID)
+	didStr, _ := did.(string)
+	if didStr == "" {
+		WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "authentication required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	st, err := h.Service.Streaks.RecordActivity(r.Context(), didStr, time.Now())
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "STREAK_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"streak":     st,
+		"request_id": r.Header.Get("X-Request-ID"),
+	})
+}
+
+// questReward returns the ECHO datum reward for a quest id, 0 if unknown.
+func questReward(questID string) int64 {
+	if def, ok := quests.ByID(questID); ok {
+		return def.RewardECHO
+	}
+	return 0
+}
+
+// accrueGamification records an earning event toward the leaderboard (amountDatum,
+// if > 0) and counts it as daily activity for the streak. Best-effort: errors are
+// swallowed so a gamification hiccup never fails the originating action.
+func (h *TokenomicsHandlers) accrueGamification(r *http.Request, did string, amountDatum int64) {
+	if h.Service == nil || did == "" {
+		return
+	}
+	now := time.Now()
+	if h.Service.Leaderboard != nil && amountDatum > 0 {
+		tier := TrustTierFromContext(r.Context(), 1)
+		_ = h.Service.Leaderboard.RecordEarning(r.Context(), did, tier, amountDatum, now)
+	}
+	if h.Service.Streaks != nil {
+		_, _ = h.Service.Streaks.RecordActivity(r.Context(), did, now)
+	}
 }
 
 func (h *TokenomicsHandlers) handleVIPAllowSpend(w http.ResponseWriter, r *http.Request) {
@@ -281,6 +415,10 @@ func RegisterTokenomicsRoutes(mux *http.ServeMux, h *TokenomicsHandlers) {
 	mux.HandleFunc("/v1/tokens/vesting", h.handleVesting)
 	mux.HandleFunc("/v1/tokens/governance/voting-power", h.handleGovernanceVotingPower)
 	mux.HandleFunc("/v1/tokens/vip/allow-spend", h.handleVIPAllowSpend)
+	mux.HandleFunc("/v1/gamification/leaderboard", h.handleLeaderboard)
+	mux.HandleFunc("/v1/gamification/streak", h.handleStreak)
+	mux.HandleFunc("/v1/gamification/activity/ping", h.handleActivityPing)
+	mux.HandleFunc("/v1/gamification/status", h.handleGamificationStatus)
 	mux.HandleFunc("/v1/gamification/quests", h.handleQuestsList)
 	mux.HandleFunc("/v1/gamification/quests/", func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/v1/gamification/quests/")
@@ -326,6 +464,14 @@ func (rt *Router) handleTokenomicsSubroutes(w http.ResponseWriter, r *http.Reque
 		rt.Tokenomics.handleGovernanceVotingPower(w, r)
 	case path == "/v1/tokens/vip/allow-spend":
 		rt.Tokenomics.handleVIPAllowSpend(w, r)
+	case path == "/v1/gamification/leaderboard":
+		rt.Tokenomics.handleLeaderboard(w, r)
+	case path == "/v1/gamification/streak":
+		rt.Tokenomics.handleStreak(w, r)
+	case path == "/v1/gamification/activity/ping":
+		rt.Tokenomics.handleActivityPing(w, r)
+	case path == "/v1/gamification/status":
+		rt.Tokenomics.handleGamificationStatus(w, r)
 	case path == "/v1/gamification/quests":
 		rt.Tokenomics.handleQuestsList(w, r)
 	case strings.HasPrefix(path, "/v1/gamification/quests/") && strings.HasSuffix(path, "/claim"):

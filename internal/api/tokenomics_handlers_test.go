@@ -65,3 +65,84 @@ func TestEmissionSchedule_Alignment(t *testing.T) {
 		t.Error("expected positive year 1 budget")
 	}
 }
+
+func TestGamificationStatus_InterimNonRedeemable(t *testing.T) {
+	t.Setenv("ECHO_WALLET_REAL_FUNDS", "")
+	svc, err := tokenomics.NewService(tokenomics.Config{
+		GenesisDate: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := &TokenomicsHandlers{Service: svc}
+	req := httptest.NewRequest(http.MethodGet, "/v1/gamification/status", nil)
+	w := httptest.NewRecorder()
+	h.handleGamificationStatus(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status %d body %s", w.Code, w.Body.String())
+	}
+	var resp map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp["custody_mode"] != "interim" {
+		t.Errorf("custody_mode: got %v want interim", resp["custody_mode"])
+	}
+	if resp["redeemable"] != false || resp["transferable"] != false {
+		t.Errorf("expected non-redeemable/non-transferable, got %+v", resp)
+	}
+}
+
+func TestActivityPing_IncrementsStreakIdempotentSameDay(t *testing.T) {
+	svc, err := tokenomics.NewService(tokenomics.Config{
+		GenesisDate: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := &TokenomicsHandlers{Service: svc}
+	ctx := context.WithValue(context.Background(), ContextKeyUserID, "did:alice")
+
+	ping := func() map[string]interface{} {
+		req := httptest.NewRequest(http.MethodPost, "/v1/gamification/activity/ping", nil).WithContext(ctx)
+		w := httptest.NewRecorder()
+		h.handleActivityPing(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("status %d body %s", w.Code, w.Body.String())
+		}
+		var resp map[string]interface{}
+		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+			t.Fatal(err)
+		}
+		return resp["streak"].(map[string]interface{})
+	}
+
+	s1 := ping()
+	s2 := ping() // same UTC day → idempotent
+	if s1["current_days"].(float64) != 1 || s2["current_days"].(float64) != 1 {
+		t.Errorf("same-day pings should stay at 1 day: %v then %v", s1["current_days"], s2["current_days"])
+	}
+}
+
+func TestLeaderboard_EmptyOK(t *testing.T) {
+	svc, err := tokenomics.NewService(tokenomics.Config{
+		GenesisDate: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := &TokenomicsHandlers{Service: svc}
+	req := httptest.NewRequest(http.MethodGet, "/v1/gamification/leaderboard?window=weekly", nil)
+	w := httptest.NewRecorder()
+	h.handleLeaderboard(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status %d body %s", w.Code, w.Body.String())
+	}
+	var resp map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp["redeemable"] != false {
+		t.Errorf("leaderboard should carry redeemable=false, got %+v", resp["redeemable"])
+	}
+}
