@@ -6,7 +6,14 @@ public struct RewardsDashboardView: View {
     public init() {}
 
     public var body: some View {
-        WalletTab(api: resolvedWalletAPI())
+        // Wave R0: the Rewards tab is the value-free gamification hub. The full
+        // wallet/balance remains reachable from inside the hub. Falls back to the
+        // wallet directly if gamification DI is unavailable.
+        if let gamification = DIContainer.shared.resolveGamificationAPI() {
+            RewardsHubView(gamification: gamification, walletAPI: resolvedWalletAPI())
+        } else {
+            WalletTab(api: resolvedWalletAPI())
+        }
     }
 
     @MainActor
