@@ -140,3 +140,15 @@ Pairs with `ECHO_LAUNCH_CAMPAIGN.md`. Everything here respects the integrity gua
 - TikTok: 1 video/day (batch-shoot weekly; iterate hooks).
 - IG: 3 Reels (repurpose TikTok) + 2 carousels + daily Stories.
 - Weekly review: cut the bottom, clone the top 10% of hooks.
+
+## 10) Competitor counter — Radar.chat (full plan: `ECHO_VS_RADAR.md`)
+Radar = Signal-style messenger + real Bitcoin Lightning payments. **Don't fight on payments;
+change the axis to own-vs-spend.** Extra taglines: "Spend bitcoin — or own the network?" ·
+"A Bitcoin wallet with chat isn't a private life." · "No number. No email. No Bitcoin degree
+required." Extra hashtag: `#OwnNotRent`.
+- **Objection — "But Radar lets me send real Bitcoin.":** "Radar's great if your goal is
+  spending bitcoin. ECHO's goal is a private life you own — verified humans, no phone number,
+  provable messages, and it works when the network doesn't. Owning the network beats renting
+  a payment rail." *(Never promise ECHO real payments or token value.)*
+- 🚫 Don't attack Signal or Bitcoin holders (Radar funds Signal); keep "own" = sovereignty
+  (your identity/data, no ads), **not** an equity/token-value claim (counsel-gated).
