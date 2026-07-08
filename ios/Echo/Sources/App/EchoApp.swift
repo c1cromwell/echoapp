@@ -46,6 +46,7 @@ struct EchoApp: App {
                     )
                     await LocalDatabase.shared.unlock(storageKey: storageKey)
                 }
+                Task { await DebugSeedData.seedIfNeeded() }
 
             case .background:
                 Task {
