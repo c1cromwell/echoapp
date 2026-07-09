@@ -102,6 +102,15 @@ clone top 10% of hooks. All claims follow the integrity guardrail (mesh = beta, 
 
 ---
 
+## Radar.chat counter-beats (fold into existing weeks — see `ECHO_VS_RADAR.md`)
+Radar = Signal-style messenger + real Bitcoin payments. Reinforce existing beats; don't add
+new weeks or fight on payments.
+- **Wk 3–4 (launch/anti-scam):** "No Bitcoin degree required" (Face-ID vs seed-phrase/liquidity)
+  + the anti-scam wedge Radar can't answer ("a payment app can't stop the scammer texting you").
+- **Wk 5–6 (offline hero, BETA):** "works when the network doesn't" — Radar is online-only.
+- **Wk 7–8 (privacy/sovereignty · flywheel):** "Own vs Spend" explainer — own the network vs
+  rent a payment rail. Keep *own* = sovereignty, not a token-value claim.
+
 ## Weekly operating rhythm
 - **Batch-shoot** TikToks once/week; schedule with a free scheduler.
 - **Friday review:** kill bottom performers, clone the top 10% of hooks into next week.
