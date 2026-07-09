@@ -65,11 +65,12 @@ func NewRewardDistributor() *RewardDistributor {
 	}
 }
 
-// CanDistribute checks if user can receive more rewards today
+// CanDistribute reports whether the user may receive more rewards today.
+//
+// Under the auto-scaling model (PRD v2.5.1) there is no hard daily cap — every
+// message always earns, with the per-message rate scaling by network activity —
+// so this always returns true. Retained for compatibility with existing callers.
 func (rd *RewardDistributor) CanDistribute(userID string) bool {
-	if count, exists := rd.DailyLimits[userID]; exists {
-		return count < 500
-	}
 	return true
 }
 

@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		96799DD1170F8377E22BF88B /* RewardsGamificationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 446FCE0FCE63FD438A539C16 /* RewardsGamificationViews.swift */; };
+		A6A660DD9E6627D5252DBE0B /* DebugSeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 712509F603354AFFEE236084 /* DebugSeedData.swift */; };
 		0115B291F78020BAFF4D4534 /* Sources/Features/Contacts/ScannedIdentityParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36EA8623AE0B5A2F4FBCD41D /* Sources/Features/Contacts/ScannedIdentityParser.swift */; };
 		02A5447CFA298C4CFBCC838C /* AuthCoordinatorVM.swift in Sources */ = {isa = PBXBuildFile; fileRef = D61E569198EEF3B0893C66CA /* AuthCoordinatorVM.swift */; };
 		02F0409451F267CF1AF1E7D2 /* MessagesEmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C0560F8802692A2CD9FBAD /* MessagesEmptyStateView.swift */; };
@@ -464,6 +466,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		446FCE0FCE63FD438A539C16 /* RewardsGamificationViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RewardsGamificationViews.swift; sourceTree = "<group>"; };
+		712509F603354AFFEE236084 /* DebugSeedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugSeedData.swift; sourceTree = "<group>"; };
 		009F1BD1BB134BC9F328319B /* EnrollmentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentModels.swift; sourceTree = "<group>"; };
 		0174AD057928239478B42111 /* GovernanceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GovernanceModels.swift; sourceTree = "<group>"; };
 		018BEDD5C1E44DC876A5A18F /* ChatDetailViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatDetailViewModelTests.swift; sourceTree = "<group>"; };
@@ -1056,6 +1060,7 @@
 		339EB235F1F451CB4F00B53E /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				712509F603354AFFEE236084 /* DebugSeedData.swift */,
 				36C7F71F0616D5D048C6E826 /* MessagingKeyRegistrar.swift */,
 				E3D13F1400CB5B57218E8D62 /* MessagingAgreementKey.swift */,
 				D0342874FCF582FC5FF03912 /* MessageSenderAuth.swift */,
@@ -1724,6 +1729,7 @@
 		C1DBF0DE38E076EEBBAAD72F /* Rewards */ = {
 			isa = PBXGroup;
 			children = (
+				446FCE0FCE63FD438A539C16 /* RewardsGamificationViews.swift */,
 				0DC2D26D748DC08F2C29096A /* RewardsScreens.swift */,
 			);
 			path = Rewards;
@@ -2118,6 +2124,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				96799DD1170F8377E22BF88B /* RewardsGamificationViews.swift in Sources */,
+				A6A660DD9E6627D5252DBE0B /* DebugSeedData.swift in Sources */,
 				AB1AED091A1EA1A5973BBAFD /* PaymentMessageEncoding.swift in Sources */,
 				466C2ED52AF9C4D5EAD61E02 /* ContactSafetyBanner.swift in Sources */,
 				E2C1CB34F272D4E64AEAB2C8 /* PaymentRequestSheet.swift in Sources */,

@@ -10,7 +10,9 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/emission"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/founder"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/genesis"
+	"github.com/thechadcromwell/echoapp/internal/tokenomics/leaderboard"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/quests"
+	"github.com/thechadcromwell/echoapp/internal/tokenomics/streaks"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/treasury"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/vip"
 	"github.com/thechadcromwell/echoapp/internal/wallet"
@@ -26,6 +28,8 @@ type Service struct {
 	VIP         *vip.SubscriptionService
 	Revocation  *founder.Coordinator
 	Wallet      *wallet.WalletService
+	Leaderboard *leaderboard.Service
+	Streaks     *streaks.Service
 }
 
 // Config holds tokenomics service dependencies.
@@ -78,6 +82,8 @@ func NewService(cfg Config) (*Service, error) {
 		VIP:         vipSvc,
 		Revocation:  founder.NewCoordinator(),
 		Wallet:      cfg.Wallet,
+		Leaderboard: leaderboard.NewService(nil),
+		Streaks:     streaks.NewService(nil),
 	}, nil
 }
 

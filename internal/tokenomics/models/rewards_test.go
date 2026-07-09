@@ -53,29 +53,19 @@ func TestRewardEarning(t *testing.T) {
 	}
 }
 
-func TestDailyRewardTrackerIsLimitReached(t *testing.T) {
-	tracker := &DailyRewardTracker{
-		UserID:           "user-123",
-		Date:             time.Now(),
-		MessagesRewarded: 500,
-		EchoEarned:       big.NewInt(5000000000),
-	}
-
-	if !tracker.IsLimitReached() {
-		t.Errorf("IsLimitReached: got false, want true")
-	}
-}
-
-func TestDailyRewardTrackerBelowLimit(t *testing.T) {
-	tracker := &DailyRewardTracker{
-		UserID:           "user-123",
-		Date:             time.Now(),
-		MessagesRewarded: 250,
-		EchoEarned:       big.NewInt(2500000000),
-	}
-
-	if tracker.IsLimitReached() {
-		t.Errorf("IsLimitReached: got true, want false")
+// Auto-scaling model (PRD v2.5.1): there is no hard daily cap, so even a very
+// high message count never reports the limit as reached.
+func TestDailyRewardTrackerNoHardCap(t *testing.T) {
+	for _, count := range []int{250, 500, 10000} {
+		tracker := &DailyRewardTracker{
+			UserID:           "user-123",
+			Date:             time.Now(),
+			MessagesRewarded: count,
+			EchoEarned:       big.NewInt(5000000000),
+		}
+		if tracker.IsLimitReached() {
+			t.Errorf("IsLimitReached at %d messages: got true, want false (auto-scale, no cap)", count)
+		}
 	}
 }
 
@@ -85,11 +75,11 @@ func TestTrustScoreMultiplier(t *testing.T) {
 		score      int
 		multiplier float64
 	}{
-		{"Unverified (0-19)", 10, 0.5},
-		{"Newcomer (20-39)", 30, 1.0},
+		{"Unverified (0-19)", 10, 1.0},
+		{"Newcomer (20-39)", 30, 1.2},
 		{"Member (40-59)", 50, 1.5},
-		{"Trusted (60-79)", 70, 2.5},
-		{"Verified (80-100)", 90, 5.0},
+		{"Trusted (60-79)", 70, 2.0},
+		{"Verified (80-100)", 90, 3.0},
 	}
 
 	for _, tt := range tests {
@@ -113,10 +103,10 @@ func TestTrustScoreBoundaries(t *testing.T) {
 		score      int
 		multiplier float64
 	}{
-		{"Score 0", 0, 0.5},
-		{"Score 19", 19, 0.5},
-		{"Score 20", 20, 1.0},
-		{"Score 100", 100, 5.0},
+		{"Score 0", 0, 1.0},
+		{"Score 19", 19, 1.0},
+		{"Score 20", 20, 1.2},
+		{"Score 100", 100, 3.0},
 	}
 
 	for _, tt := range tests {

@@ -52,6 +52,10 @@ struct QuestClaimResponse: Codable, Sendable {
 enum GamificationEndpoint: APIEndpoint {
     case listQuests
     case claim(questId: String)
+    case leaderboard(window: String)
+    case streak
+    case activityPing
+    case status
 
     var path: String {
         switch self {
@@ -59,7 +63,85 @@ enum GamificationEndpoint: APIEndpoint {
             return "/v1/gamification/quests"
         case .claim(let questId):
             return "/v1/gamification/quests/\(questId)/claim"
+        case .leaderboard(let window):
+            return "/v1/gamification/leaderboard?window=\(window)"
+        case .streak:
+            return "/v1/gamification/streak"
+        case .activityPing:
+            return "/v1/gamification/activity/ping"
+        case .status:
+            return "/v1/gamification/status"
         }
+    }
+}
+
+// MARK: - Leaderboard / streak / status models (R0 gamification)
+
+struct LeaderboardEntry: Codable, Sendable, Identifiable {
+    let did: String
+    let trustTier: Int
+    let score: Int64
+    let rank: Int
+    var id: String { did }
+
+    enum CodingKeys: String, CodingKey {
+        case did, score, rank
+        case trustTier = "trust_tier"
+    }
+
+    /// ECHO earned in the window (display-only; no cash value at launch).
+    var scoreAmount: Decimal { EchoDatum.fromDatum(score) }
+}
+
+struct LeaderboardSnapshot: Codable, Sendable {
+    let window: String
+    let bucketKey: String
+    let entries: [LeaderboardEntry]
+    let updatedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case window, entries
+        case bucketKey = "bucket_key"
+        case updatedAt = "updated_at"
+    }
+}
+
+struct LeaderboardResponse: Codable, Sendable {
+    let snapshot: LeaderboardSnapshot
+    let redeemable: Bool
+}
+
+struct StreakInfo: Codable, Sendable {
+    let did: String
+    let currentDays: Int
+    let longestDays: Int
+    let lastActive: String?
+    let multiplier: Double
+    let milestone: String?
+
+    enum CodingKeys: String, CodingKey {
+        case did, multiplier, milestone
+        case currentDays = "current_days"
+        case longestDays = "longest_days"
+        case lastActive = "last_active"
+    }
+}
+
+struct StreakResponse: Codable, Sendable {
+    let streak: StreakInfo
+}
+
+/// Launch compliance posture — drives the persistent "no cash value" disclaimer.
+/// While `custodyMode == "interim"`, `redeemable`/`transferable` are false.
+struct GamificationStatus: Codable, Sendable {
+    let custodyMode: String
+    let redeemable: Bool
+    let transferable: Bool
+    let disclaimer: String?
+
+    enum CodingKeys: String, CodingKey {
+        case redeemable, transferable, disclaimer
+        case custodyMode = "custody_mode"
     }
 }
 
@@ -139,6 +221,10 @@ private struct FounderVestingWire: Codable, Sendable {
 protocol GamificationAPIClient: Sendable {
     func fetchQuestCatalog() async throws -> QuestCatalogResponse
     func claimQuest(_ questId: String) async throws -> QuestClaimResponse
+    func fetchLeaderboard(window: String) async throws -> LeaderboardResponse
+    func fetchStreak() async throws -> StreakResponse
+    func pingActivity() async throws -> StreakResponse
+    func fetchStatus() async throws -> GamificationStatus
 }
 
 // MARK: - Live client
@@ -157,6 +243,23 @@ actor GamificationAPI: GamificationAPIClient {
     func claimQuest(_ questId: String) async throws -> QuestClaimResponse {
         struct Empty: Encodable {}
         return try await apiClient.post(endpoint: GamificationEndpoint.claim(questId: questId), body: Empty())
+    }
+
+    func fetchLeaderboard(window: String) async throws -> LeaderboardResponse {
+        try await apiClient.get(endpoint: GamificationEndpoint.leaderboard(window: window))
+    }
+
+    func fetchStreak() async throws -> StreakResponse {
+        try await apiClient.get(endpoint: GamificationEndpoint.streak)
+    }
+
+    func pingActivity() async throws -> StreakResponse {
+        struct Empty: Encodable {}
+        return try await apiClient.post(endpoint: GamificationEndpoint.activityPing, body: Empty())
+    }
+
+    func fetchStatus() async throws -> GamificationStatus {
+        try await apiClient.get(endpoint: GamificationEndpoint.status)
     }
 }
 
