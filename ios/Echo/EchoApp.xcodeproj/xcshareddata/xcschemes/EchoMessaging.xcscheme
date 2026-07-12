@@ -40,6 +40,17 @@
                ReferencedContainer = "container:EchoApp.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "3DFB71C93004327B002EAC4F"
+               BuildableName = "EchoUITests.xctest"
+               BlueprintName = "EchoUITests"
+               ReferencedContainer = "container:EchoApp.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
