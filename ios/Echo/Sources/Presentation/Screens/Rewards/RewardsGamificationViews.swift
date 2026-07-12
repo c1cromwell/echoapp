@@ -14,7 +14,7 @@ private extension View {
             .padding(Spacing.lg.rawValue)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.echoSurface)
-            .clipShape(RoundedRectangle(cornerRadius: Spacing.lg, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Spacing.lg.rawValue, style: .continuous))
             .glacialShadow()
     }
 }
@@ -42,7 +42,7 @@ struct NoValueDisclaimerBanner: View {
             .padding(Spacing.md.rawValue)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.echoPaperDim)
-            .clipShape(RoundedRectangle(cornerRadius: Spacing.md, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Spacing.md.rawValue, style: .continuous))
         }
     }
 }
@@ -156,7 +156,7 @@ struct LeaderboardSection: View {
         .padding(.vertical, Spacing.sm.rawValue)
         .padding(.horizontal, Spacing.sm.rawValue)
         .background(isSelf ? Color.echoSignalDim.opacity(0.14) : Color.clear)
-        .clipShape(RoundedRectangle(cornerRadius: Spacing.sm, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Spacing.sm.rawValue, style: .continuous))
     }
 
     private func shortDID(_ did: String) -> String {
@@ -204,7 +204,7 @@ struct RewardsHubView: View {
                     .padding(Spacing.lg.rawValue)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color.echoSurface)
-                    .clipShape(RoundedRectangle(cornerRadius: Spacing.lg, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: Spacing.lg.rawValue, style: .continuous))
                     .glacialShadow()
                 }
                 .buttonStyle(.plain)

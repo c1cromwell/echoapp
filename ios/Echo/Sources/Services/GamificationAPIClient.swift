@@ -266,7 +266,7 @@ actor GamificationAPI: GamificationAPIClient {
 // MARK: - Mapping helpers
 
 enum TokenomicsMapping {
-    static func mapEmission(_ wire: EmissionStatusWire) -> EmissionStatus {
+    fileprivate static func mapEmission(_ wire: EmissionStatusWire) -> EmissionStatus {
         EmissionStatus(
             currentYear: wire.currentYear,
             annualCap: EchoDatum.fromDatum(wire.annualCap),
@@ -276,7 +276,7 @@ enum TokenomicsMapping {
         )
     }
 
-    static func mapVesting(_ wire: VestingWire, explorerFallback: String?) -> VestingState {
+    fileprivate static func mapVesting(_ wire: VestingWire, explorerFallback: String?) -> VestingState {
         let urlString = wire.explorerUrl ?? explorerFallback
         return VestingState(
             role: wire.role,
@@ -293,7 +293,7 @@ enum TokenomicsMapping {
         )
     }
 
-    static func mapFounderVesting(_ wire: FounderVestingWire, lockId: String?) -> FounderVestingProfile {
+    fileprivate static func mapFounderVesting(_ wire: FounderVestingWire, lockId: String?) -> FounderVestingProfile {
         let events = wire.revocationEvents.map {
             RevocationEvent(
                 targetFounderDID: $0.targetFounderDID,

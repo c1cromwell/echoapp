@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		96799DD1170F8377E22BF88B /* RewardsGamificationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 446FCE0FCE63FD438A539C16 /* RewardsGamificationViews.swift */; };
-		A6A660DD9E6627D5252DBE0B /* DebugSeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 712509F603354AFFEE236084 /* DebugSeedData.swift */; };
 		0115B291F78020BAFF4D4534 /* Sources/Features/Contacts/ScannedIdentityParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36EA8623AE0B5A2F4FBCD41D /* Sources/Features/Contacts/ScannedIdentityParser.swift */; };
 		02A5447CFA298C4CFBCC838C /* AuthCoordinatorVM.swift in Sources */ = {isa = PBXBuildFile; fileRef = D61E569198EEF3B0893C66CA /* AuthCoordinatorVM.swift */; };
 		02F0409451F267CF1AF1E7D2 /* MessagesEmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C0560F8802692A2CD9FBAD /* MessagesEmptyStateView.swift */; };
@@ -71,8 +69,6 @@
 		3AD2DC71871AA797D5BF5FA2 /* MeshPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2731784B7A2F631BB1935E7 /* MeshPacket.swift */; };
 		3ADA25FCFF9B7B005460980F /* WalletViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B679C97AB41C5A8896B25EF /* WalletViewModel.swift */; };
 		3CE3DDA326CF1AE787EF1EA7 /* Endpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = B53E64017DF46F0C1D4DF28E /* Endpoints.swift */; };
-		3D2111B52FF719C700A5D2E3 /* GamificationAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2111B42FF719C700A5D2E3 /* GamificationAPI.swift */; };
-		3D2111B82FF71A0400A5D2E3 /* QuestGamificationSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2111B72FF71A0400A5D2E3 /* QuestGamificationSection.swift */; };
 		3D2111BA2FF71FB100A5D2E3 /* HiddenFolderKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2111B92FF71FB100A5D2E3 /* HiddenFolderKeyManager.swift */; };
 		3D2111BC2FF71FD000A5D2E3 /* ChannelsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2111BB2FF71FD000A5D2E3 /* ChannelsListView.swift */; };
 		3D2111BE2FF7203C00A5D2E3 /* ScheduleMessageSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2111BD2FF7203C00A5D2E3 /* ScheduleMessageSheet.swift */; };
@@ -94,6 +90,9 @@
 		3DF178762FF47FCC00250EB7 /* NetworkStatusBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF178752FF47FCC00250EB7 /* NetworkStatusBanner.swift */; };
 		3DF178782FF47FCD00250EB7 /* SkeletonViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF178772FF47FCD00250EB7 /* SkeletonViews.swift */; };
 		3DF1787A2FF47FF900250EB7 /* TransactionHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF178792FF47FF900250EB7 /* TransactionHistoryView.swift */; };
+		3DFB71B5300425BC002EAC4F /* QuestSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DFB71B4300425BC002EAC4F /* QuestSection.swift */; };
+		3DFB71B7300425E2002EAC4F /* GamificationAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DFB71B6300425E2002EAC4F /* GamificationAPIClient.swift */; };
+		3DFB71B930042643002EAC4F /* EchoDatum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DFB71B830042643002EAC4F /* EchoDatum.swift */; };
 		41E4C0AFF44DCACEC0011462 /* CallSignalCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0C67EEC31E72248ADC8A437 /* CallSignalCodecTests.swift */; };
 		434BE485735F1D1FAA1760EE /* MessageSearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06276256F13A65E7301FC0E /* MessageSearchTests.swift */; };
 		438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BAE98848BA987C5A80A8C29 /* Sources/Features/Contacts/QRContactAddCoordinator.swift */; };
@@ -176,6 +175,7 @@
 		95C9092E0F1C14893CBA3B09 /* ProfileExpansion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DDDE0CFA48EB34D85DBFEFA /* ProfileExpansion.swift */; };
 		95D6C2A6D3C1DBD19DA8A2DA /* Sources/Services/ConversationPreferencesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF6D1C6D0E4EB6697FB6BD1 /* Sources/Services/ConversationPreferencesStore.swift */; };
 		95F8602AB4560B69A7ED9B70 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44B1E08C6550569D40883115 /* Theme.swift */; };
+		96799DD1170F8377E22BF88B /* RewardsGamificationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 446FCE0FCE63FD438A539C16 /* RewardsGamificationViews.swift */; };
 		97560CFEE37395CB56D2874C /* LocalDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = F557DFD473AAD573AB6603C4 /* LocalDatabase.swift */; };
 		99B712AE2162E885639DE352 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F3E0049B7ADEDE4139F60F8 /* Colors.swift */; };
 		9ADF6348876A119C3368695A /* AuthAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608C077CD78AA0FC9741CB50 /* AuthAPIClient.swift */; };
@@ -195,6 +195,7 @@
 		A4B886E99F5241AC8BAD6ABB /* DeviceManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CA6259F2057343672B320C2 /* DeviceManagementView.swift */; };
 		A5CE60D4C68F69ADB00F7E36 /* BiometricAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0628452B4B7E0BC97FCF5484 /* BiometricAuthManager.swift */; };
 		A5DE8DF23D4876FEEB240DB8 /* MessagesTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE094D49A022E8DDE2F72F1D /* MessagesTabView.swift */; };
+		A6A660DD9E6627D5252DBE0B /* DebugSeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 712509F603354AFFEE236084 /* DebugSeedData.swift */; };
 		A716324DCA20209322F5C113 /* Coordinators.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7C9492974F5BE8B1BA960E /* Coordinators.swift */; };
 		A7232242DDA94916A3314C23 /* Sources/Features/Onboarding/FirstRun/NameAndKeyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53C34095B21043D78FBC6C06 /* Sources/Features/Onboarding/FirstRun/NameAndKeyView.swift */; };
 		A91A538BBFCF43A7BCB34691 /* Sources/Features/Onboarding/VIP/VIPPathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F638568F074357AEE51CD9 /* Sources/Features/Onboarding/VIP/VIPPathView.swift */; };
@@ -466,8 +467,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		446FCE0FCE63FD438A539C16 /* RewardsGamificationViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RewardsGamificationViews.swift; sourceTree = "<group>"; };
-		712509F603354AFFEE236084 /* DebugSeedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugSeedData.swift; sourceTree = "<group>"; };
 		009F1BD1BB134BC9F328319B /* EnrollmentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentModels.swift; sourceTree = "<group>"; };
 		0174AD057928239478B42111 /* GovernanceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GovernanceModels.swift; sourceTree = "<group>"; };
 		018BEDD5C1E44DC876A5A18F /* ChatDetailViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatDetailViewModelTests.swift; sourceTree = "<group>"; };
@@ -527,8 +526,6 @@
 		3B75CA8C52C3A9434A8B8279 /* EchoButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoButton.swift; sourceTree = "<group>"; };
 		3C05A999CF9E116DBCB842A7 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		3C4FB342BDBA4A46BCB6A489 /* Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift; sourceTree = "<group>"; };
-		3D2111B42FF719C700A5D2E3 /* GamificationAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamificationAPI.swift; sourceTree = "<group>"; };
-		3D2111B72FF71A0400A5D2E3 /* QuestGamificationSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestGamificationSection.swift; sourceTree = "<group>"; };
 		3D2111B92FF71FB100A5D2E3 /* HiddenFolderKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderKeyManager.swift; sourceTree = "<group>"; };
 		3D2111BB2FF71FD000A5D2E3 /* ChannelsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelsListView.swift; sourceTree = "<group>"; };
 		3D2111BD2FF7203C00A5D2E3 /* ScheduleMessageSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleMessageSheet.swift; sourceTree = "<group>"; };
@@ -548,6 +545,9 @@
 		3DF178752FF47FCC00250EB7 /* NetworkStatusBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkStatusBanner.swift; sourceTree = "<group>"; };
 		3DF178772FF47FCD00250EB7 /* SkeletonViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonViews.swift; sourceTree = "<group>"; };
 		3DF178792FF47FF900250EB7 /* TransactionHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionHistoryView.swift; sourceTree = "<group>"; };
+		3DFB71B4300425BC002EAC4F /* QuestSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestSection.swift; sourceTree = "<group>"; };
+		3DFB71B6300425E2002EAC4F /* GamificationAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamificationAPIClient.swift; sourceTree = "<group>"; };
+		3DFB71B830042643002EAC4F /* EchoDatum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoDatum.swift; sourceTree = "<group>"; };
 		4023A7E250044C538B50953F /* Sources/Features/Auth/Views/SMSOTPSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Auth/Views/SMSOTPSetupView.swift; sourceTree = "<group>"; };
 		404E937D2E5B42EFBF874085 /* Sources/Security/StorageLockedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Security/StorageLockedView.swift; sourceTree = "<group>"; };
 		415CE72A39C18837771B8B2B /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
@@ -556,6 +556,7 @@
 		42A1185BD0CD5B9A60D72585 /* SecureEnclaveManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureEnclaveManager.swift; sourceTree = "<group>"; };
 		43B3589DB7EEA8AAAE83BEE7 /* ProvisioningStatusBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProvisioningStatusBanner.swift; sourceTree = "<group>"; };
 		441BA27D081ADF1D0B085538 /* SecureThreadIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureThreadIndicator.swift; sourceTree = "<group>"; };
+		446FCE0FCE63FD438A539C16 /* RewardsGamificationViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RewardsGamificationViews.swift; sourceTree = "<group>"; };
 		449BB08C4DB7AF394D798FE4 /* Service.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Service.swift; sourceTree = "<group>"; };
 		44B1E08C6550569D40883115 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		4517F2AB8F38C6D11E9E3D30 /* MeshTransportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshTransportTests.swift; sourceTree = "<group>"; };
@@ -604,6 +605,7 @@
 		6E033C9649007A73EAE2255B /* ProfileScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileScreens.swift; sourceTree = "<group>"; };
 		6E26908B044D2529A3AF3196 /* DriversLicenseEnrollmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DriversLicenseEnrollmentView.swift; sourceTree = "<group>"; };
 		6F3E0049B7ADEDE4139F60F8 /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
+		712509F603354AFFEE236084 /* DebugSeedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugSeedData.swift; sourceTree = "<group>"; };
 		720AB150B7C1EEBD3C0675F9 /* RecoveryPhraseConfirmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPhraseConfirmView.swift; sourceTree = "<group>"; };
 		7246CB638513849A8078572F /* ProposalListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProposalListViewModel.swift; sourceTree = "<group>"; };
 		72BCDD385ED0640FEBAB0448 /* UsernameSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsernameSearchView.swift; sourceTree = "<group>"; };
@@ -1146,7 +1148,7 @@
 				C0MP001COMPLY000000000002 /* ComplyAPIClient.swift */,
 				449BB08C4DB7AF394D798FE4 /* Service.swift */,
 				B8F4E2A1039C4D7E8F1A0023 /* UsernameAvailabilityService.swift */,
-				3D2111B42FF719C700A5D2E3 /* GamificationAPI.swift */,
+				3DFB71B6300425E2002EAC4F /* GamificationAPIClient.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1164,7 +1166,7 @@
 		3D2111B62FF719D500A5D2E3 /* Gamification */ = {
 			isa = PBXGroup;
 			children = (
-				3D2111B72FF71A0400A5D2E3 /* QuestGamificationSection.swift */,
+				3DFB71B4300425BC002EAC4F /* QuestSection.swift */,
 			);
 			path = Gamification;
 			sourceTree = "<group>";
@@ -1847,6 +1849,7 @@
 			children = (
 				5D6853063939468B7D527045 /* StargazerBridge.swift */,
 				FE74762315295D6ADAAB0325 /* WalletTypes.swift */,
+				3DFB71B830042643002EAC4F /* EchoDatum.swift */,
 			);
 			path = Stargazer;
 			sourceTree = "<group>";
@@ -2192,6 +2195,7 @@
 				M3C005BACKUP00000000005 /* BackupSessionKeyStore.swift in Sources */,
 				S5B001HIDDEN000000000001 /* Sources/Core/Security/HiddenThreadCrypto.swift in Sources */,
 				S5B002SEALED000000000002 /* Sources/Services/SealedSenderService.swift in Sources */,
+				3DFB71B5300425BC002EAC4F /* QuestSection.swift in Sources */,
 				S5B003HIDDEN000000000003 /* Sources/Services/HiddenFolderSettingsStore.swift in Sources */,
 				S5B004HIDDEN000000000004 /* Sources/Services/HiddenChatsSession.swift in Sources */,
 				S5B005HIDDEN000000000005 /* Sources/Features/Messaging/HiddenFolderGateSheet.swift in Sources */,
@@ -2253,6 +2257,7 @@
 				805C2AEED804262CA646C317 /* Sources/Features/Messaging/ChatSettingsSheet.swift in Sources */,
 				8F155CD90BFF2A4DC758EE12 /* Sources/Features/Messaging/MessageActionsSheet.swift in Sources */,
 				E64E49293DC680A084CC8D3B /* Sources/Features/Messaging/ChatFolderFilterView.swift in Sources */,
+				3DFB71B930042643002EAC4F /* EchoDatum.swift in Sources */,
 				95D6C2A6D3C1DBD19DA8A2DA /* Sources/Services/ConversationPreferencesStore.swift in Sources */,
 				9D2B7E16BC6C67B39ED53A26 /* UsernameSearchView.swift in Sources */,
 				B3CAF0B450061EFD23000A1F /* APIClient.swift in Sources */,
@@ -2397,7 +2402,6 @@
 				65F44CDA6B1FC54C80653814 /* ProfileScreens.swift in Sources */,
 				4F8234E8D2287C7E9FF3CC29 /* ProposalDetailView.swift in Sources */,
 				1A96CDFFDF6826503BD5A97D /* ProposalListView.swift in Sources */,
-				3D2111B52FF719C700A5D2E3 /* GamificationAPI.swift in Sources */,
 				93C987F95E6D33BC1759142D /* ProposalListViewModel.swift in Sources */,
 				141B61A5C244A38E6CD1888D /* QRIdentityView.swift in Sources */,
 				3973D5EE01A5A461D989AD45 /* RecoveryCoordinator.swift in Sources */,
@@ -2476,6 +2480,7 @@
 				F1A2B3C401234567890000A /* ContactDiscoveryService.swift in Sources */,
 				F1A2B3C401234567890000C /* PhoneNormalizer.swift in Sources */,
 				F1A2B3C401234567890000E /* OPRFClient.swift in Sources */,
+				3DFB71B7300425E2002EAC4F /* GamificationAPIClient.swift in Sources */,
 				F1A2B3C4012345678900010 /* LiveOPRFClient.swift in Sources */,
 				W0E001012345678901234002 /* ConversationStore.swift in Sources */,
 				P3B001012345678901234002 /* PinnedConversationsStore.swift in Sources */,
@@ -2512,7 +2517,6 @@
 				TF001A2B3C4D5E6F7890002 /* EchoAPIBaseURL.swift in Sources */,
 				TF001A2B3C4D5E6F7890004 /* DidKeyDeriver.swift in Sources */,
 				S5B00SCATRENDER000000002 /* Sources/Features/ScreenCatalog/ScreenCatalogRenderer.swift in Sources */,
-				3D2111B82FF71A0400A5D2E3 /* QuestGamificationSection.swift in Sources */,
 				SX1B001DR00000000000001 /* Sources/Core/Security/DoubleRatchet.swift in Sources */,
 				SX1B002DRC0000000000002 /* Sources/Services/DoubleRatchetCoordinator.swift in Sources */,
 				SX1B003DRP0000000000003 /* Sources/Features/Settings/DoubleRatchetPreferences.swift in Sources */,
@@ -2653,12 +2657,14 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Configs/EchoMessaging-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Echo;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -2729,6 +2735,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_DEBUG_DYLIB = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Configs/EchoMessaging-Info.plist";
@@ -2736,6 +2743,7 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -2840,6 +2848,7 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -2867,6 +2876,7 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -3133,6 +3143,7 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -3160,6 +3171,7 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
