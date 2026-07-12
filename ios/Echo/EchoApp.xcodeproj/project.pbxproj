@@ -97,6 +97,7 @@
 		3DFB71BD300428A0002EAC4F /* StargazerSigner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DFB71BC300428A0002EAC4F /* StargazerSigner.swift */; };
 		3DFB71BF300428A1002EAC4F /* WalletKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DFB71BE300428A1002EAC4F /* WalletKeyStore.swift */; };
 		3DFB71C1300428A2002EAC4F /* WalletProvisioner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DFB71C0300428A2002EAC4F /* WalletProvisioner.swift */; };
+		3DFB71C330042A32002EAC4F /* echo-wallet.bundle.js in Resources */ = {isa = PBXBuildFile; fileRef = 3DFB71C230042A32002EAC4F /* echo-wallet.bundle.js */; };
 		41E4C0AFF44DCACEC0011462 /* CallSignalCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0C67EEC31E72248ADC8A437 /* CallSignalCodecTests.swift */; };
 		434BE485735F1D1FAA1760EE /* MessageSearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06276256F13A65E7301FC0E /* MessageSearchTests.swift */; };
 		438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BAE98848BA987C5A80A8C29 /* Sources/Features/Contacts/QRContactAddCoordinator.swift */; };
@@ -556,6 +557,7 @@
 		3DFB71BC300428A0002EAC4F /* StargazerSigner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StargazerSigner.swift; sourceTree = "<group>"; };
 		3DFB71BE300428A1002EAC4F /* WalletKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletKeyStore.swift; sourceTree = "<group>"; };
 		3DFB71C0300428A2002EAC4F /* WalletProvisioner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletProvisioner.swift; sourceTree = "<group>"; };
+		3DFB71C230042A32002EAC4F /* echo-wallet.bundle.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "echo-wallet.bundle.js"; sourceTree = "<group>"; };
 		4023A7E250044C538B50953F /* Sources/Features/Auth/Views/SMSOTPSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Auth/Views/SMSOTPSetupView.swift; sourceTree = "<group>"; };
 		404E937D2E5B42EFBF874085 /* Sources/Security/StorageLockedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Security/StorageLockedView.swift; sourceTree = "<group>"; };
 		415CE72A39C18837771B8B2B /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
@@ -1471,6 +1473,7 @@
 		7FAD8E9B6523B82CFD5D0E0D = {
 			isa = PBXGroup;
 			children = (
+				3DFB71C230042A32002EAC4F /* echo-wallet.bundle.js */,
 				CF8FBBC5A8A613FEA6825F54 /* Resources */,
 				930B0F85E8C631514258FECB /* Phase3Tests */,
 				S5G00SCATALOG0000000007 /* ScreenCatalog */,
@@ -2126,6 +2129,7 @@
 				B065AFDE1621C82E56E932D8 /* GeistMono-Regular.ttf in Resources */,
 				2CE3BE0652752192805580B2 /* GeistMono-Medium.ttf in Resources */,
 				CC6DF012449E81DC5BDAFEEF /* GeistMono-SemiBold.ttf in Resources */,
+				3DFB71C330042A32002EAC4F /* echo-wallet.bundle.js in Resources */,
 				2D95FEEB0B8CCF25BE8138E0 /* GeistMono-Bold.ttf in Resources */,
 				53095D989D17A71946D9603B /* GeistMono-OFL.txt in Resources */,
 				65AC9600566B2AAEE349E4E8 /* bip39_english.txt in Resources */,
