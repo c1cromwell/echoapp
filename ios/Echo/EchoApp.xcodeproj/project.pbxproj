@@ -93,6 +93,10 @@
 		3DFB71B5300425BC002EAC4F /* QuestSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DFB71B4300425BC002EAC4F /* QuestSection.swift */; };
 		3DFB71B7300425E2002EAC4F /* GamificationAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DFB71B6300425E2002EAC4F /* GamificationAPIClient.swift */; };
 		3DFB71B930042643002EAC4F /* EchoDatum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DFB71B830042643002EAC4F /* EchoDatum.swift */; };
+		3DFB71BB3004289F002EAC4F /* HTTPWalletAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DFB71BA3004289F002EAC4F /* HTTPWalletAPIClient.swift */; };
+		3DFB71BD300428A0002EAC4F /* StargazerSigner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DFB71BC300428A0002EAC4F /* StargazerSigner.swift */; };
+		3DFB71BF300428A1002EAC4F /* WalletKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DFB71BE300428A1002EAC4F /* WalletKeyStore.swift */; };
+		3DFB71C1300428A2002EAC4F /* WalletProvisioner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DFB71C0300428A2002EAC4F /* WalletProvisioner.swift */; };
 		41E4C0AFF44DCACEC0011462 /* CallSignalCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0C67EEC31E72248ADC8A437 /* CallSignalCodecTests.swift */; };
 		434BE485735F1D1FAA1760EE /* MessageSearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06276256F13A65E7301FC0E /* MessageSearchTests.swift */; };
 		438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BAE98848BA987C5A80A8C29 /* Sources/Features/Contacts/QRContactAddCoordinator.swift */; };
@@ -548,6 +552,10 @@
 		3DFB71B4300425BC002EAC4F /* QuestSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestSection.swift; sourceTree = "<group>"; };
 		3DFB71B6300425E2002EAC4F /* GamificationAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamificationAPIClient.swift; sourceTree = "<group>"; };
 		3DFB71B830042643002EAC4F /* EchoDatum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoDatum.swift; sourceTree = "<group>"; };
+		3DFB71BA3004289F002EAC4F /* HTTPWalletAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPWalletAPIClient.swift; sourceTree = "<group>"; };
+		3DFB71BC300428A0002EAC4F /* StargazerSigner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StargazerSigner.swift; sourceTree = "<group>"; };
+		3DFB71BE300428A1002EAC4F /* WalletKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletKeyStore.swift; sourceTree = "<group>"; };
+		3DFB71C0300428A2002EAC4F /* WalletProvisioner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletProvisioner.swift; sourceTree = "<group>"; };
 		4023A7E250044C538B50953F /* Sources/Features/Auth/Views/SMSOTPSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Auth/Views/SMSOTPSetupView.swift; sourceTree = "<group>"; };
 		404E937D2E5B42EFBF874085 /* Sources/Security/StorageLockedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Security/StorageLockedView.swift; sourceTree = "<group>"; };
 		415CE72A39C18837771B8B2B /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
@@ -1149,6 +1157,7 @@
 				449BB08C4DB7AF394D798FE4 /* Service.swift */,
 				B8F4E2A1039C4D7E8F1A0023 /* UsernameAvailabilityService.swift */,
 				3DFB71B6300425E2002EAC4F /* GamificationAPIClient.swift */,
+				3DFB71BA3004289F002EAC4F /* HTTPWalletAPIClient.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1850,6 +1859,9 @@
 				5D6853063939468B7D527045 /* StargazerBridge.swift */,
 				FE74762315295D6ADAAB0325 /* WalletTypes.swift */,
 				3DFB71B830042643002EAC4F /* EchoDatum.swift */,
+				3DFB71BC300428A0002EAC4F /* StargazerSigner.swift */,
+				3DFB71BE300428A1002EAC4F /* WalletKeyStore.swift */,
+				3DFB71C0300428A2002EAC4F /* WalletProvisioner.swift */,
 			);
 			path = Stargazer;
 			sourceTree = "<group>";
@@ -2213,6 +2225,7 @@
 				M4B011CALL00000000000011 /* WebRTCAudioSession.swift in Sources */,
 				M4B012CALL00000000000012 /* WebRTCVideoView.swift in Sources */,
 				M4B013CALL00000000000013 /* IncomingCallPresenter.swift in Sources */,
+				3DFB71BB3004289F002EAC4F /* HTTPWalletAPIClient.swift in Sources */,
 				M4B004CALL00000000000004 /* CallICEAPIClient.swift in Sources */,
 				M4B005CALL00000000000005 /* CallSignalingService.swift in Sources */,
 				M5B001MEDIA000000000001 /* MediaAPIClient.swift in Sources */,
@@ -2230,6 +2243,7 @@
 				M6B005SRCH0000000000005 /* SearchHistoryStore.swift in Sources */,
 				M6B006SRCH0000000000006 /* ConversationArchiveStore.swift in Sources */,
 				M6B007SRCH0000000000007 /* ConversationArchiveAPIClient.swift in Sources */,
+				3DFB71BF300428A1002EAC4F /* WalletKeyStore.swift in Sources */,
 				M6B008SRCH0000000000008 /* ScreenshotAlertService.swift in Sources */,
 				M6B009SRCH0000000000009 /* SearchIndexSyncService.swift in Sources */,
 				M6B010SRCH0000000000010 /* PollService.swift in Sources */,
@@ -2246,6 +2260,7 @@
 				1411B71227274A6D2B383C77 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift in Sources */,
 				438B28DE2D565831089C4ECD /* Sources/Features/Contacts/QRContactAddCoordinator.swift in Sources */,
 				0115B291F78020BAFF4D4534 /* Sources/Features/Contacts/ScannedIdentityParser.swift in Sources */,
+				3DFB71C1300428A2002EAC4F /* WalletProvisioner.swift in Sources */,
 				C6D8F4344B7978E226BA8A35 /* Sources/Features/Settings/PrivacySettingsStore.swift in Sources */,
 				B0348ED6A55C057E29CFE2C0 /* Sources/Services/TextMessageCrypto.swift in Sources */,
 				5AF3B8087411248D3FABABC8 /* Sources/Services/IdentityResolveClient.swift in Sources */,
@@ -2301,6 +2316,7 @@
 				039C188FE65DE1D3AEE79D84 /* AvatarView.swift in Sources */,
 				F7B3F99A5D6E98C8A2D4CAED /* BIP39Wordlist.swift in Sources */,
 				2EAF9D71E765B033D83EB30F /* BackupView.swift in Sources */,
+				3DFB71BD300428A0002EAC4F /* StargazerSigner.swift in Sources */,
 				A5CE60D4C68F69ADB00F7E36 /* BiometricAuthManager.swift in Sources */,
 				62DBE95FAAB67442B3B5EED9 /* BiometricIntegrityService.swift in Sources */,
 				CD1AC1E671D7F6AD85E098B9 /* BotManagementView.swift in Sources */,

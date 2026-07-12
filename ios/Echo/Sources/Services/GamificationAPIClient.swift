@@ -161,7 +161,7 @@ enum TokenomicsEndpoint: APIEndpoint {
 
 // MARK: - Wire models for vesting + emission
 
-private struct EmissionStatusWire: Codable, Sendable {
+struct EmissionStatusWire: Codable, Sendable {
     let currentYear: Int
     let annualCap: Int64
     let distributedToDate: Int64
@@ -177,7 +177,7 @@ private struct EmissionStatusWire: Codable, Sendable {
     }
 }
 
-private struct VestingWire: Codable, Sendable {
+struct TokenomicsVestingWire: Codable, Sendable {
     let role: String
     let totalAllocated: Int64
     let vested: Int64
@@ -191,7 +191,7 @@ private struct VestingWire: Codable, Sendable {
     let explorerUrl: String?
 }
 
-private struct RevocationEventWire: Codable, Sendable {
+struct RevocationEventWire: Codable, Sendable {
     let targetFounderDID: String
     let revokedAmount: Int64
     let revokerDIDs: [String]
@@ -200,10 +200,10 @@ private struct RevocationEventWire: Codable, Sendable {
     let destinationPool: String
 }
 
-private struct FounderVestingWire: Codable, Sendable {
+struct FounderVestingWire: Codable, Sendable {
     let did: String
     let isFounder: Bool
-    let vesting: VestingWire
+    let vesting: TokenomicsVestingWire
     let revocationEvents: [RevocationEventWire]
     let explorerUrl: String
 
@@ -266,7 +266,7 @@ actor GamificationAPI: GamificationAPIClient {
 // MARK: - Mapping helpers
 
 enum TokenomicsMapping {
-    fileprivate static func mapEmission(_ wire: EmissionStatusWire) -> EmissionStatus {
+    static func mapEmission(_ wire: EmissionStatusWire) -> EmissionStatus {
         EmissionStatus(
             currentYear: wire.currentYear,
             annualCap: EchoDatum.fromDatum(wire.annualCap),
@@ -276,7 +276,7 @@ enum TokenomicsMapping {
         )
     }
 
-    fileprivate static func mapVesting(_ wire: VestingWire, explorerFallback: String?) -> VestingState {
+    static func mapVesting(_ wire: TokenomicsVestingWire, explorerFallback: String?) -> VestingState {
         let urlString = wire.explorerUrl ?? explorerFallback
         return VestingState(
             role: wire.role,
@@ -293,7 +293,7 @@ enum TokenomicsMapping {
         )
     }
 
-    fileprivate static func mapFounderVesting(_ wire: FounderVestingWire, lockId: String?) -> FounderVestingProfile {
+    static func mapFounderVesting(_ wire: FounderVestingWire, lockId: String?) -> FounderVestingProfile {
         let events = wire.revocationEvents.map {
             RevocationEvent(
                 targetFounderDID: $0.targetFounderDID,

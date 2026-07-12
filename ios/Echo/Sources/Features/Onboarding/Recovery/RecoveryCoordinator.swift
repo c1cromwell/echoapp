@@ -106,38 +106,8 @@ public struct RestoredIdentity: Sendable {
 
 // MARK: - Stargazer bridge extension for recovery
 
-/// Adapts the existing StargazerBridge actor for recovery-specific operations.
-// MARK: - Wallet Key Store
-
-/// Manages BIP-39 mnemonic storage and wallet key derivation via Keychain.
-/// In production this wraps the Stargazer SDK's dag4 signer.
-actor WalletKeyStore {
-    static let shared = WalletKeyStore()
-
-    struct WalletAccount {
-        let address: String
-        let publicKey: String
-    }
-
-    private init() {}
-
-    func exportMnemonic() async throws -> String {
-        guard let mnemonic = try? await KeychainManager.shared.retrieve(key: "echo.wallet.mnemonic") else {
-            throw RecoveryError.walletDerivationFailed
-        }
-        return mnemonic
-    }
-
-    func restore(mnemonic: String) async throws -> WalletAccount {
-        try await KeychainManager.shared.store(key: "echo.wallet.mnemonic", value: mnemonic)
-        let address = "DAG\(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(36))"
-        return WalletAccount(address: address, publicKey: "")
-    }
-
-    nonisolated func markBackedUp() {
-        UserDefaults.standard.set(true, forKey: "echo.wallet.backedUp")
-    }
-}
+/// The live `WalletKeyStore` (dag4 mnemonic custody) lives in
+/// Sources/Core/Stargazer/WalletKeyStore.swift.
 
 /// In production this delegates to the Stargazer SDK's BIP-39 export/import APIs.
 actor StargazerBridgeForRecovery {

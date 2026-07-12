@@ -290,15 +290,8 @@ enum ProvisionError: Error {
     case trustTierUpdateFailed(status: Int)
 }
 
-// MARK: - Real Provision Stargazer
-
-final class RealProvisionStargazer: ProvisionStargazerProtocol, @unchecked Sendable {
-    func createWallet() async throws -> String {
-        let api = await DIContainer.shared.resolveWalletAPI() ?? WalletAPIClientStub()
-        let info = try await api.createWallet()
-        return info.address
-    }
-}
+// `RealProvisionStargazer` (the live first-run wallet adapter) lives in
+// Sources/Core/Stargazer/WalletProvisioner.swift.
 
 // MARK: - Stub implementations (TestFlight / unit tests)
 
