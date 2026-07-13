@@ -9,6 +9,7 @@ struct EchoApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        UITestSupport.applyIfNeeded()
         #if ECHO_PRODUCT_MESSAGING
         DisappearingMessageBGTask.register()
         ScheduledMessageBGTask.register()

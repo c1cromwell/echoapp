@@ -4,6 +4,7 @@
 
 import SwiftUI
 import Observation
+import UIKit
 
 @MainActor
 @Observable
@@ -46,6 +47,10 @@ final class AppState {
     }
 
     private static func initialRoot() -> Root {
+        // Deterministic entry point for XCUITest runs (see EchoUITests).
+        if UITestSupport.isActive {
+            return UITestSupport.startAuthenticated ? .authenticated : .firstRun
+        }
         let hasCompleted = UserDefaults.standard.bool(forKey: "echo.hasCompletedFirstRun")
         guard hasCompleted else { return .firstRun }
         return .login
@@ -107,6 +112,31 @@ final class AppState {
 }
 
 enum AppTab: String { case messages, wallet, me }
+
+// MARK: - UI test support
+
+/// Deterministic launch behaviour for automated QA/QE (XCUITest). Driven only by
+/// launch arguments that the `EchoUITests` bundle passes, so it stays inert in
+/// normal use. See `scripts/qa-record.sh` and `EchoUXFlowUITests`.
+enum UITestSupport {
+    /// True when launched by the UI-test runner (`-uiTestMode`).
+    static var isActive: Bool {
+        ProcessInfo.processInfo.arguments.contains("-uiTestMode")
+    }
+
+    /// `-uiTestAuthenticated` lands directly on the main tabs; otherwise a
+    /// UI-test launch starts at first-run onboarding.
+    static var startAuthenticated: Bool {
+        ProcessInfo.processInfo.arguments.contains("-uiTestAuthenticated")
+    }
+
+    /// Call as early as possible during app launch. Disables animations so
+    /// XCUITest queries settle immediately instead of racing transitions.
+    @MainActor static func applyIfNeeded() {
+        guard isActive else { return }
+        UIView.setAnimationsEnabled(false)
+    }
+}
 
 // MARK: - Root View
 

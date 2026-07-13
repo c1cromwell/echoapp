@@ -21,11 +21,6 @@ final class EchoUXFlowUITests: XCTestCase {
         super.setUp()
         continueAfterFailure = false
         app = XCUIApplication()
-        // Deterministic QA state. Wire these up in AppState to seed fixtures /
-        // skip animations for stable, fast runs (see NOTES at bottom).
-        app.launchArguments += ["-uiTestMode", "1"]
-        app.launchEnvironment["ECHO_UITEST"] = "1"
-        app.launch()
     }
 
     override func tearDown() {
@@ -33,8 +28,19 @@ final class EchoUXFlowUITests: XCTestCase {
         super.tearDown()
     }
 
+    /// Launches under UI-test mode (deterministic, animations disabled). With
+    /// `authenticated: true` the app lands on the main tabs; otherwise it starts
+    /// at first-run onboarding. Backed by `UITestSupport` in AppState.swift.
+    private func launch(authenticated: Bool = false) {
+        app.launchArguments += ["-uiTestMode"]
+        if authenticated { app.launchArguments += ["-uiTestAuthenticated"] }
+        app.launchEnvironment["ECHO_UITEST"] = "1"
+        app.launch()
+    }
+
     /// Onboarding entry: first-run welcome → begin setup → username entry.
     func testOnboardingWelcomeToUsername() {
+        launch()
         snap("01-welcome")
 
         // Welcome screen (EchoWelcomeView): primary CTA is "Let's Go".
@@ -61,6 +67,7 @@ final class EchoUXFlowUITests: XCTestCase {
 
     /// "Already have an account" branch from the welcome screen.
     func testWelcomeAlreadyHaveAccountBranch() {
+        launch()
         let existing = app.buttons["I already have an account"]
         XCTAssertTrue(existing.waitForExistence(timeout: 10), "Recovery entry CTA not found")
         existing.tap()
@@ -68,12 +75,13 @@ final class EchoUXFlowUITests: XCTestCase {
         // Extend: assert the recovery/login screen, drive phrase entry, etc.
     }
 
-    /// Smoke sweep of the main tab bar once past onboarding. Skips cleanly until
-    /// -uiTestMode lands the app straight on the main tabs.
+    /// Smoke sweep of the main tab bar. Launches straight onto the tabs via
+    /// `-uiTestAuthenticated`.
     func testMainTabsSmoke() throws {
+        launch(authenticated: true)
         let tabBar = app.tabBars.firstMatch
-        guard tabBar.waitForExistence(timeout: 8) else {
-            throw XCTSkip("Not on main tabs — enable -uiTestMode to seed a signed-in session")
+        guard tabBar.waitForExistence(timeout: 10) else {
+            throw XCTSkip("Main tabs did not appear (authenticated launch may need a seeded session)")
         }
         for button in tabBar.buttons.allElementsBoundByIndex {
             button.tap()
@@ -94,14 +102,9 @@ final class EchoUXFlowUITests: XCTestCase {
 }
 
 // ---------------------------------------------------------------- NOTES -------
-// Deterministic launch state: read the flag early in app startup, e.g. in
-// AppState / EchoApp:
-//
-//   if ProcessInfo.processInfo.arguments.contains("-uiTestMode") {
-//       // seed fixtures, disable network, skip to a known screen,
-//       UIView.setAnimationsEnabled(false)
-//   }
-//
-// Without it these flows only cover the first-run path; with it you can land
-// directly on any journey (main tabs, wallet, a seeded chat) for stable QA.
+// `-uiTestMode` / `-uiTestAuthenticated` are handled by UITestSupport in
+// AppState.swift: uiTestMode disables animations and forces first-run; adding
+// uiTestAuthenticated lands directly on the main tabs. Extend UITestSupport to
+// seed fixtures / stub the network for deeper deterministic journeys (wallet
+// send, a seeded chat).
 #endif
