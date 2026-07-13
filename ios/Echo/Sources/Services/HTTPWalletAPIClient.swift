@@ -195,9 +195,10 @@ actor HTTPWalletAPIClient: WalletAPIClient {
     func submitTokenLock(amount: Decimal, tier: StakingTier) async throws -> String {
         let datum = EchoDatum.toDatum(amount)
         // Real-funds: sign the TokenLock locally and let the backend relay it.
-        // Falls back to the server-originated path when signing isn't possible
-        // (interim mode / no tx-context).
-        if let signed = try? await buildSignedTx(type: "tokenLock", extra: ["amount": datum]) {
+        // Gated by the real-funds kill-switch; also falls back to the
+        // server-originated path when signing isn't possible (no tx-context).
+        if WalletFeatureFlags.realFundsSigningEnabled,
+           let signed = try? await buildSignedTx(type: "tokenLock", extra: ["amount": datum]) {
             let proof = (try? await buildProofHeader()) ?? [:]
             let result: TxResultWire = try await apiClient.postJSON(
                 endpoint: WalletEndpoint.stake,
@@ -217,7 +218,8 @@ actor HTTPWalletAPIClient: WalletAPIClient {
         guard let lock = wire.locks.first(where: { $0.id == stakeId }) else {
             throw StargazerError.transactionFailed("Stake position not found")
         }
-        if let signed = try? await buildSignedTx(type: "delegatedStake", extra: [
+        if WalletFeatureFlags.realFundsSigningEnabled,
+           let signed = try? await buildSignedTx(type: "delegatedStake", extra: [
             "nodeId": validatorId, "amount": lock.amount, "fee": 0, "tokenLockRef": stakeId,
         ]) {
             let proof = (try? await buildProofHeader()) ?? [:]
@@ -236,7 +238,8 @@ actor HTTPWalletAPIClient: WalletAPIClient {
 
     func submitWithdrawLock(stakeId: String, amount: Decimal) async throws -> String {
         let datum = EchoDatum.toDatum(amount)
-        if let signed = try? await buildSignedTx(type: "withdrawDelegatedStake", extra: ["stakeRef": stakeId]) {
+        if WalletFeatureFlags.realFundsSigningEnabled,
+           let signed = try? await buildSignedTx(type: "withdrawDelegatedStake", extra: ["stakeRef": stakeId]) {
             let proof = (try? await buildProofHeader()) ?? [:]
             let result: TxResultWire = try await apiClient.postJSON(
                 endpoint: WalletEndpoint.unstake,

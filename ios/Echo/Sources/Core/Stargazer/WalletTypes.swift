@@ -244,6 +244,34 @@ struct WalletTransaction: Identifiable, Equatable {
     }
 }
 
+// MARK: - Wallet Feature Flags
+
+/// Kill-switch for client-signed, real-funds Constellation transactions.
+///
+/// OFF by default (interim custody): wallet actions — TokenLock, DelegatedStake,
+/// WithdrawDelegatedStake — take the server-originated path and no private key is
+/// used to sign a real transaction. Turn ON to have the device sign locally with
+/// the dag4 key (moves real funds). Backed by `UserDefaults` so it can be toggled
+/// from a settings/debug screen or seeded at launch; QA/UI-test runs can force it
+/// on via the `-realFundsSigning` launch arg or `ECHO_REAL_FUNDS=1` environment.
+enum WalletFeatureFlags {
+    static let realFundsSigningKey = "echo.wallet.realFundsSigning"
+
+    /// Whether wallet actions should be signed locally (real funds). Defaults to
+    /// false when unset, so the safe interim path is the default everywhere.
+    static var realFundsSigningEnabled: Bool {
+        let info = ProcessInfo.processInfo
+        if info.arguments.contains("-realFundsSigning") { return true }
+        if info.environment["ECHO_REAL_FUNDS"] == "1" { return true }
+        return UserDefaults.standard.bool(forKey: realFundsSigningKey)
+    }
+
+    /// Persist the operator's choice (e.g. from a settings toggle).
+    static func setRealFundsSigning(_ enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: realFundsSigningKey)
+    }
+}
+
 // MARK: - Stargazer Error
 
 enum StargazerError: Error, LocalizedError {
