@@ -78,14 +78,19 @@ final class EchoUXFlowUITests: XCTestCase {
     /// UITabBar, so we key off the `tab.<name>` identifiers.
     func testMainTabsSmoke() throws {
         launch(authenticated: true)
-        guard app.otherElements["mainTabBar"].waitForExistence(timeout: 10) else {
+        _ = app.wait(for: .runningForeground, timeout: 8)
+        snap("00-authenticated-launch")
+        // Match by accessibility label — the custom HStack tab buttons expose
+        // their label reliably (the identifier doesn't survive the nested VStack).
+        let tabs = ["Messages", "Contacts", "Rewards", "Settings"]
+        guard app.buttons[tabs[0]].waitForExistence(timeout: 12) else {
             throw XCTSkip("Main tabs did not appear (authenticated launch may need a seeded session)")
         }
-        for tab in ["messages", "contacts", "rewards", "settings"] {
-            let button = app.buttons["tab.\(tab)"]
-            XCTAssertTrue(button.waitForExistence(timeout: 5), "Missing tab: \(tab)")
+        for label in tabs {
+            let button = app.buttons[label]
+            XCTAssertTrue(button.waitForExistence(timeout: 5), "Missing tab: \(label)")
             button.tap()
-            snap("tab-\(tab)")
+            snap("tab-\(label.lowercased())")
         }
     }
 
