@@ -17,6 +17,9 @@ struct WalletTab: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    if !WalletFeatureFlags.realFundsSigningEnabled {
+                        InterimModeBadge()
+                    }
                     if viewModel.isLoading && viewModel.walletState == nil {
                         BalanceCardSkeleton()
                         SkeletonList(count: 3) { ConversationRowSkeleton() }
@@ -114,6 +117,27 @@ struct WalletTab: View {
                 await viewModel.loadWallet()
             }
         }
+    }
+}
+
+// MARK: - Interim Mode Badge
+
+/// Shown on wallet surfaces while real-funds signing is off (WalletFeatureFlags):
+/// transactions take the interim server path instead of being signed on-device.
+struct InterimModeBadge: View {
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "info.circle.fill")
+                .foregroundStyle(Color.echoInfo)
+            Text("Interim mode — transactions use the secure server path. Turn on real-funds signing in Settings → Wallet & Advanced.")
+                .typographyStyle(.caption, color: .echoInk70)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.echoInfo.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 

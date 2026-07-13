@@ -3372,6 +3372,7 @@ struct WalletAdvancedSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var realFundsOn = WalletFeatureFlags.realFundsSigningEnabled
     @State private var errorMessage: String?
+    @State private var showEnableConfirm = false
 
     var body: some View {
         ZStack {
@@ -3421,6 +3422,14 @@ struct WalletAdvancedSettingsView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .alert("Enable real-funds signing?", isPresented: $showEnableConfirm) {
+            Button("Cancel", role: .cancel) { }
+            Button("Enable", role: .destructive) {
+                Task { await enableWithAuth() }
+            }
+        } message: {
+            Text("Wallet actions will be signed on this device and move real ECHO. You'll confirm with Face ID / passcode next.")
+        }
     }
 
     private var toggleBinding: Binding<Bool> {
@@ -3428,7 +3437,8 @@ struct WalletAdvancedSettingsView: View {
             get: { realFundsOn },
             set: { newValue in
                 if newValue {
-                    Task { await enableWithAuth() }
+                    // Confirm intent before the biometric prompt.
+                    showEnableConfirm = true
                 } else {
                     realFundsOn = false
                     WalletFeatureFlags.setRealFundsSigning(false)
