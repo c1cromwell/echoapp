@@ -100,6 +100,7 @@ public struct DisplayNameEntryView: View {
                 .kerning(-0.3)
                 .foregroundStyle(Color.Echo.onSurface)
                 .lineSpacing(2)
+                .accessibilityIdentifier("username.title")
             Text("3–30 characters: letters, numbers, and underscores. Must be unique.")
                 .font(.system(size: 13))
                 .foregroundStyle(Color.Echo.onSurfaceVariant)
@@ -124,6 +125,7 @@ public struct DisplayNameEntryView: View {
                 }
                 .accessibilityLabel("Username")
                 .accessibilityHint("Your public handle on Echo")
+                .accessibilityIdentifier("username.field")
 
             availabilityIcon
 

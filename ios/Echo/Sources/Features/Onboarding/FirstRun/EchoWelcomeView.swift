@@ -50,11 +50,13 @@ public struct EchoWelcomeView: View {
                         .padding(.vertical, 16)
                         .background(Color.echoSignal, in: RoundedRectangle(cornerRadius: 14))
                     }
+                    .accessibilityIdentifier("welcome.getStarted")
 
                     Button("I already have an account", action: onAlreadyHaveAccount)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Color.echoInk55)
                         .padding(.vertical, 6)
+                        .accessibilityIdentifier("welcome.haveAccount")
                 }
                 .padding(.horizontal, 28)
                 .padding(.bottom, 16)

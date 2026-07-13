@@ -95,6 +95,7 @@ struct GlacialTabBar: View {
             tabButton(.rewards, icon: "gift", label: "Rewards")
             tabButton(.settings, icon: "gearshape", label: "Settings")
         }
+        .accessibilityIdentifier("mainTabBar")
         .padding(.top, 10)
         .padding(.bottom, 28)
         .background(
@@ -137,6 +138,7 @@ struct GlacialTabBar: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(badge > 0 ? "\(label), \(badge) unread" : label)
+        .accessibilityIdentifier("tab.\(tab.rawValue)")
     }
 }
 

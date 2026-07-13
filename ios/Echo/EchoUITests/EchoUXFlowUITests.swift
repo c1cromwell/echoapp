@@ -10,10 +10,10 @@ import XCTest
 /// and attach to the app, so they can't `@testable import Echo` — they see only
 /// the on-screen UI.
 ///
-/// SELECTOR NOTE: the app currently exposes no `accessibilityIdentifier`s, so
-/// these flows key off visible text, which is brittle (breaks on copy/locale
-/// changes). Hardening step: add `.accessibilityIdentifier("…")` to the key
-/// controls and switch the queries below to `app.buttons["id"]`.
+/// SELECTORS: these flows key off stable `accessibilityIdentifier`s set on the
+/// app's controls (welcome.getStarted, welcome.haveAccount, username.title,
+/// username.field, mainTabBar, tab.<name>) so they don't break on copy/locale
+/// changes.
 final class EchoUXFlowUITests: XCTestCase {
     private var app: XCUIApplication!
 
@@ -43,21 +43,19 @@ final class EchoUXFlowUITests: XCTestCase {
         launch()
         snap("01-welcome")
 
-        // Welcome screen (EchoWelcomeView): primary CTA is "Let's Go".
-        let letsGo = app.buttons["Let's Go"]
-        XCTAssertTrue(letsGo.waitForExistence(timeout: 10), "Welcome CTA not found")
-        letsGo.tap()
+        let getStarted = app.buttons["welcome.getStarted"]
+        XCTAssertTrue(getStarted.waitForExistence(timeout: 10), "Welcome CTA not found")
+        getStarted.tap()
 
         // DisplayNameEntryView.
-        let usernameHeading = app.staticTexts["Choose username"]
+        let heading = app.staticTexts["username.title"]
         XCTAssertTrue(
-            usernameHeading.waitForExistence(timeout: 8),
-            "Did not reach the username step after tapping Let's Go"
+            heading.waitForExistence(timeout: 8),
+            "Did not reach the username step after tapping Get Started"
         )
         snap("02-username")
 
-        // Type a username if a field is present (identifier TBD — add one).
-        let field = app.textFields.firstMatch
+        let field = app.textFields["username.field"]
         if field.waitForExistence(timeout: 3) {
             field.tap()
             field.typeText("qa_chad")
@@ -68,24 +66,26 @@ final class EchoUXFlowUITests: XCTestCase {
     /// "Already have an account" branch from the welcome screen.
     func testWelcomeAlreadyHaveAccountBranch() {
         launch()
-        let existing = app.buttons["I already have an account"]
+        let existing = app.buttons["welcome.haveAccount"]
         XCTAssertTrue(existing.waitForExistence(timeout: 10), "Recovery entry CTA not found")
         existing.tap()
         snap("01-recovery-entry")
         // Extend: assert the recovery/login screen, drive phrase entry, etc.
     }
 
-    /// Smoke sweep of the main tab bar. Launches straight onto the tabs via
-    /// `-uiTestAuthenticated`.
+    /// Smoke sweep of the (custom) main tab bar. Launches straight onto the tabs
+    /// via `-uiTestAuthenticated`. The bar is a custom HStack of buttons, not a
+    /// UITabBar, so we key off the `tab.<name>` identifiers.
     func testMainTabsSmoke() throws {
         launch(authenticated: true)
-        let tabBar = app.tabBars.firstMatch
-        guard tabBar.waitForExistence(timeout: 10) else {
+        guard app.otherElements["mainTabBar"].waitForExistence(timeout: 10) else {
             throw XCTSkip("Main tabs did not appear (authenticated launch may need a seeded session)")
         }
-        for button in tabBar.buttons.allElementsBoundByIndex {
+        for tab in ["messages", "contacts", "rewards", "settings"] {
+            let button = app.buttons["tab.\(tab)"]
+            XCTAssertTrue(button.waitForExistence(timeout: 5), "Missing tab: \(tab)")
             button.tap()
-            snap("tab-\(button.label.replacingOccurrences(of: " ", with: "-").lowercased())")
+            snap("tab-\(tab)")
         }
     }
 
