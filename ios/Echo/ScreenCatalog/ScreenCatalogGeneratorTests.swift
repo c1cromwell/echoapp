@@ -57,6 +57,56 @@ final class ScreenCatalogGeneratorTests: XCTestCase {
             title: "Biometric soft lockout",
             e2eRef: "E2E §6.2 step 3"
         )
+        try ScreenCatalogRenderer.render(
+            CatalogGlacialLoginNormalPreview(),
+            journey: "auth",
+            stepId: "03-glacial-login-normal",
+            title: "Glacial login (saved user)",
+            e2eRef: "GlacialLoginScreen · normal"
+        )
+        try ScreenCatalogRenderer.render(
+            CatalogGlacialLoginNoAccountPreview(),
+            journey: "auth",
+            stepId: "04-glacial-login-no-account",
+            title: "Glacial login (no account)",
+            e2eRef: "GlacialLoginScreen · noAccount"
+        )
+        try ScreenCatalogRenderer.render(
+            CatalogGlacialLoginSoftLockPreview(),
+            journey: "auth",
+            stepId: "05-glacial-login-soft-lock",
+            title: "Glacial login (soft lock)",
+            e2eRef: "GlacialLoginScreen · softLocked"
+        )
+
+        try ScreenCatalogRenderer.render(
+            CatalogContactsListPreview(),
+            journey: "tabs",
+            stepId: "01-contacts",
+            title: "Contacts tab",
+            e2eRef: "MainTabView · Contacts"
+        )
+        try ScreenCatalogRenderer.render(
+            CatalogMessagesHubPopulatedPreview(),
+            journey: "tabs",
+            stepId: "02-messages-hub",
+            title: "Messages hub (populated)",
+            e2eRef: "MainTabView · Messages"
+        )
+        try ScreenCatalogRenderer.render(
+            CatalogRewardsPreview(),
+            journey: "tabs",
+            stepId: "03-rewards",
+            title: "Rewards tab",
+            e2eRef: "MainTabView · Rewards / WalletTab"
+        )
+        try ScreenCatalogRenderer.render(
+            CatalogSettingsPreview(),
+            journey: "tabs",
+            stepId: "04-settings",
+            title: "Settings tab",
+            e2eRef: "MainTabView · Settings"
+        )
 
         try ScreenCatalogRenderer.render(
             MessagesEmptyStateView(
@@ -105,6 +155,149 @@ final class ScreenCatalogGeneratorTests: XCTestCase {
             title: "Create group",
             e2eRef: "GroupCreateSheet"
         )
+        try ScreenCatalogRenderer.render(
+            CatalogFullChatPreview(),
+            journey: "messaging",
+            stepId: "07-full-chat",
+            title: "Full DM chat (ChatView chrome)",
+            e2eRef: "ChatView composite"
+        )
+        try ScreenCatalogRenderer.render(
+            CatalogGroupChatPreview(),
+            journey: "messaging",
+            stepId: "08-group-chat",
+            title: "Group chat thread",
+            e2eRef: "GroupChatView composite"
+        )
+        try ScreenCatalogRenderer.render(
+            ChatSettingsSheet(
+                contactName: "Jordan",
+                conversationId: "catalog-conv",
+                preferences: ConversationPreferences(isMuted: false, disappearing: .h24),
+                onChange: { _ in },
+                onArchiveChange: { _ in }
+            ),
+            journey: "messaging",
+            stepId: "09-chat-settings",
+            title: "Chat settings sheet",
+            e2eRef: "ChatSettingsSheet"
+        )
+        try ScreenCatalogRenderer.render(
+            MessageActionsSheet(
+                messagePreview: "Yes! End-to-end encrypted on this thread.",
+                isOwnMessage: true,
+                sentWithinEditWindow: true,
+                showTranslate: true,
+                onAction: { _ in }
+            ),
+            journey: "messaging",
+            stepId: "10-message-actions",
+            title: "Message actions sheet",
+            e2eRef: "MessageActionsSheet"
+        )
+
+        try ScreenCatalogRenderer.render(
+            CatalogVIPPathPreview(),
+            journey: "vip",
+            stepId: "01-path",
+            title: "VIP verification path",
+            e2eRef: "VIPPathView"
+        )
+        try ScreenCatalogRenderer.render(
+            CatalogVIPStandardIDVPreview(),
+            journey: "vip",
+            stepId: "02-standard-idv",
+            title: "Standard IDV — scan ID",
+            e2eRef: "VIPStandardIDVView"
+        )
+        try ScreenCatalogRenderer.render(
+            VIPSuccessView(trustTier: 2, onContinue: {}),
+            journey: "vip",
+            stepId: "03-success-verified",
+            title: "VIP success (T2 Verified)",
+            e2eRef: "VIPSuccessView"
+        )
+        try ScreenCatalogRenderer.render(
+            VIPSuccessView(trustTier: 4, onContinue: {}),
+            journey: "vip",
+            stepId: "04-success-trusted",
+            title: "VIP success (T4 Trusted)",
+            e2eRef: "VIPSuccessView"
+        )
+        try ScreenCatalogRenderer.render(
+            CatalogVIPSubscriptionPreview(),
+            journey: "vip",
+            stepId: "05-subscription",
+            title: "ECHO VIP subscription",
+            e2eRef: "VIPSubscriptionView"
+        )
+
+        try ScreenCatalogRenderer.render(
+            CatalogLinkDeviceQRPreview(),
+            journey: "device",
+            stepId: "01-link-qr",
+            title: "Link new device — QR",
+            e2eRef: "LinkNewDeviceQRView"
+        )
+        try ScreenCatalogRenderer.render(
+            CatalogLinkDeviceScanPreview(),
+            journey: "device",
+            stepId: "02-link-scan",
+            title: "Link device — scan",
+            e2eRef: "LinkDeviceScanView"
+        )
+        try ScreenCatalogRenderer.render(
+            CatalogLinkDeviceSuccessPreview(),
+            journey: "device",
+            stepId: "03-link-success",
+            title: "Device linked",
+            e2eRef: "LinkDeviceScanView · success"
+        )
+
+        try ScreenCatalogRenderer.render(
+            CatalogCallConnectingPreview(),
+            journey: "calls",
+            stepId: "01-connecting",
+            title: "Voice call — connecting",
+            e2eRef: "CallView · outgoing"
+        )
+        try ScreenCatalogRenderer.render(
+            CatalogCallActivePreview(),
+            journey: "calls",
+            stepId: "02-active",
+            title: "Voice call — active",
+            e2eRef: "CallView · active"
+        )
+        try ScreenCatalogRenderer.render(
+            CatalogCallIncomingPreview(),
+            journey: "calls",
+            stepId: "03-incoming",
+            title: "Incoming voice call",
+            e2eRef: "CallView · incoming"
+        )
+
+        try ScreenCatalogRenderer.render(
+            CatalogStakingPreview(),
+            journey: "wallet",
+            stepId: "01-staking",
+            title: "Stake ECHO",
+            e2eRef: "StakingView"
+        )
+
+        try ScreenCatalogRenderer.render(
+            CatalogProposalListPreview(),
+            journey: "governance",
+            stepId: "01-proposals",
+            title: "Governance proposals",
+            e2eRef: "ProposalListView"
+        )
+        try ScreenCatalogRenderer.render(
+            CatalogProposalDetailPreview(),
+            journey: "governance",
+            stepId: "02-proposal-detail",
+            title: "Proposal detail",
+            e2eRef: "ProposalDetailView composite"
+        )
 
         try ScreenCatalogRenderer.render(
             CatalogSOCKSProxyPreview(),
@@ -148,6 +341,41 @@ final class ScreenCatalogGeneratorTests: XCTestCase {
             stepId: "02-username-search",
             title: "Add contact by username",
             e2eRef: "TESTFLIGHT A2"
+        )
+
+        try ScreenCatalogRenderer.render(
+            IdentityCardView(
+                displayName: "Alex Cromwell",
+                username: "alex",
+                did: "did:key:z6MkhaXgBZDv7Doxv5c5nPgYt3KuoAihXhWbcXdKq7t6C",
+                trustTier: 2
+            ),
+            journey: "profile",
+            stepId: "01-identity-card",
+            title: "Identity card",
+            e2eRef: "Profile · IdentityCardView"
+        )
+
+        try ScreenCatalogRenderer.render(
+            BackupView(),
+            journey: "utility",
+            stepId: "01-backup",
+            title: "Backup & recovery",
+            e2eRef: "BackupView"
+        )
+        try ScreenCatalogRenderer.render(
+            CatalogSearchPreview(),
+            journey: "utility",
+            stepId: "02-search",
+            title: "Message search",
+            e2eRef: "SearchView"
+        )
+        try ScreenCatalogRenderer.render(
+            CatalogNotificationsPreview(),
+            journey: "utility",
+            stepId: "03-notifications",
+            title: "Notification center",
+            e2eRef: "NotificationCenterView"
         )
     }
 }
