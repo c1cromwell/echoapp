@@ -286,6 +286,23 @@ public struct ProfileTabView: View {
                 Divider().padding(.leading, 52)
                 SettingsNavRow(icon: "internaldrive.fill", title: "Storage & Data", action: onStorageSettings)
                 Divider().padding(.leading, 52)
+                NavigationLink {
+                    WalletAdvancedSettingsView()
+                } label: {
+                    HStack(spacing: Spacing.md.rawValue) {
+                        Image(systemName: "wallet.pass.fill")
+                            .frame(width: 24)
+                            .foregroundColor(.echoPrimary)
+                        Text("Wallet & Advanced")
+                            .typographyStyle(.body, color: .echoPrimaryText)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.echoGray400)
+                    }
+                    .padding(Spacing.md.rawValue)
+                }
+                Divider().padding(.leading, 52)
                 SettingsNavRow(icon: "questionmark.circle.fill", title: "Help & Support", action: onHelpSupport)
                 Divider().padding(.leading, 52)
                 SettingsNavRow(icon: "info.circle.fill", title: "About Echo", action: onAbout)
@@ -3342,6 +3359,94 @@ struct ProfileScreens_Previews: PreviewProvider {
                     echoRewards: 142.5
                 )
             )
+        }
+    }
+}
+
+// MARK: - Wallet & Advanced (real-funds kill-switch)
+
+/// Operator control for the real-funds signing kill-switch (WalletFeatureFlags).
+/// Turning it ON is gated behind biometric/passcode auth because it makes wallet
+/// actions sign and move real ECHO; turning it OFF is always allowed.
+struct WalletAdvancedSettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var realFundsOn = WalletFeatureFlags.realFundsSigningEnabled
+    @State private var errorMessage: String?
+
+    var body: some View {
+        ZStack {
+            Color.echoBackground.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                EchoNavBar(
+                    title: "Wallet & Advanced",
+                    showBackButton: true,
+                    onBackPressed: { dismiss() }
+                )
+
+                ScrollView {
+                    VStack(spacing: Spacing.lg.rawValue) {
+                        SettingsSectionView(title: "Real Funds") {
+                            VStack(alignment: .leading, spacing: 0) {
+                                Toggle(isOn: toggleBinding) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Real-funds signing")
+                                            .typographyStyle(.body, color: .echoPrimaryText)
+                                        Text(realFundsOn
+                                             ? "On — wallet actions are signed on this device."
+                                             : "Off — wallet actions use the interim server path.")
+                                            .typographyStyle(.caption, color: .echoSecondaryText)
+                                    }
+                                }
+                                .tint(.echoSignal)
+                                .padding(Spacing.lg.rawValue)
+
+                                Text("When enabled, staking and delegation transactions are signed locally with your wallet key and move real ECHO. Leave off during testing. Enabling requires Face ID / passcode.")
+                                    .typographyStyle(.caption, color: .echoSecondaryText)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .padding(.horizontal, Spacing.lg.rawValue)
+                                    .padding(.bottom, Spacing.md.rawValue)
+
+                                if let errorMessage {
+                                    Text(errorMessage)
+                                        .typographyStyle(.caption, color: .echoError)
+                                        .padding(.horizontal, Spacing.lg.rawValue)
+                                        .padding(.bottom, Spacing.md.rawValue)
+                                }
+                            }
+                        }
+                    }
+                    .padding(Spacing.lg.rawValue)
+                }
+            }
+        }
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private var toggleBinding: Binding<Bool> {
+        Binding(
+            get: { realFundsOn },
+            set: { newValue in
+                if newValue {
+                    Task { await enableWithAuth() }
+                } else {
+                    realFundsOn = false
+                    WalletFeatureFlags.setRealFundsSigning(false)
+                    errorMessage = nil
+                }
+            }
+        )
+    }
+
+    @MainActor
+    private func enableWithAuth() async {
+        errorMessage = nil
+        let bio = DIContainer.shared.resolveBiometricAuth() ?? BiometricAuthManager()
+        let approved = await bio.authenticate(reason: "Enable real-funds transaction signing")
+        realFundsOn = approved
+        WalletFeatureFlags.setRealFundsSigning(approved)
+        if !approved {
+            errorMessage = "Face ID / passcode is required to enable real-funds signing."
         }
     }
 }
