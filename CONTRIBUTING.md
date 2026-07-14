@@ -17,6 +17,8 @@ Deeper references:
 | [`docs/PRODUCT_LAUNCH.md`](docs/PRODUCT_LAUNCH.md) | Release tags, CI/CD, production deploy |
 | [`AGENTS.md`](AGENTS.md) | Cursor agent entry + MCP |
 
+> **Working on the iOS app only?** Jump to **§4** — build and iterate with just Xcode, no backend required.
+
 ---
 
 ## 1. Prerequisites
@@ -125,7 +127,84 @@ Comply web portal (:3000) ──server-side──▶ Comply API :8011
 
 ---
 
-## 4. Clean slate (reset all data)
+## 4. iOS-only setup (mobile developers)
+
+For contributors working on **only the iOS app** (`ios/Echo/`). You can build, preview, and iterate on UI with **just Xcode** — no backend, metagraph, Docker, or web stack. A backend is needed only for live end-to-end flows (§4d).
+
+### 4a. Minimal prerequisites
+
+| Tool | Needed for iOS-only? |
+|------|----------------------|
+| **macOS 14+**, **Xcode 15+** (16 recommended) | ✅ required |
+| Go, JDK/sbt/Scala, Docker, Node, Euclid (`setup-euclid.sh`) | ❌ not needed |
+
+### 4b. Open the project
+
+```bash
+git clone git@github.com:c1cromwell/echoapp.git && cd echoapp
+open ios/Echo/EchoApp.xcodeproj
+```
+
+- Xcode **auto-resolves** the two Swift Package deps on first open — **MLKEMNativeSwift** and **`stasel/WebRTC`** (both public). Wait for "Resolving Packages" to finish, or File → Packages → Resolve Package Versions. No CocoaPods/Carthage.
+- Scheme: **`EchoMessaging`** (not the legacy `EchoApp` alias). Pick an iPhone simulator (e.g. iPhone 17). **⌘B** build · **⌘R** run · **⌘U** test.
+- `EchoOPRF.xcframework` (PSI) is **optional** — the app falls back to a mock when it's absent. Skip `make echooprf-ios` unless you're working on PSI.
+
+### 4c. Work without a backend (UI-only)
+
+The app **compiles** with no backend; at runtime, network calls degrade to empty/error states (it is not a designed offline mode). The productive backend-free loops:
+
+- **SwiftUI Previews** — 44+ `#Preview`s under `ios/Echo/Sources`; the fastest loop for a single view.
+- **Screen catalog** — `make screen-catalog`, then `open docs/screen_catalog/index.html`. Renders every screen to PNG via the simulator; Xcode only, no backend.
+- **DEBUG-seeded Messages** — a DEBUG build auto-populates the Messages tab (4 DMs, 2 groups, 2 hidden folders) via device-local stores — see `ios/Echo/Sources/Services/DebugSeedData.swift`. No backend; seeds once, after first-run creates a local identity.
+
+> First-run onboarding/login calls the backend. For pure UI work, stay in Previews / screen-catalog, or point at a backend (§4d).
+
+### 4d. Point at a shared backend (live flows)
+
+To exercise real login, messaging, wallet, etc., point the app at a backend. Resolution precedence (`ios/Echo/Sources/Core/Networking/EchoAPIBaseURL.swift`): **`ECHO_API_URL`** → **`API_URL`** → Info.plist `$(API_URL)` → fallback `https://api.echo.local` (placeholder). The `EchoMessaging` scheme presets `API_URL=http://localhost:8000`.
+
+- **Shared/staging backend (recommended for mobile-only devs):** Xcode → Product → Scheme → Edit Scheme → Run → Arguments → Environment Variables → set `ECHO_API_URL=https://<your-team-staging>`.
+  <!-- TODO: replace <your-team-staging> with the team's hosted dev/staging backend URL. -->
+- **Physical device:** use a LAN-reachable URL, not `localhost`.
+- **Run the whole stack yourself:** see §6 (Echo Messaging — full E2E setup) — requires Go + Docker + metagraph, beyond "iOS-only."
+
+### 4e. Build & test gates (iOS-only)
+
+> ⚠️ Do **not** run `make ios-preflight` without a backend — it curls `/health` and exits 1. Use a plain Xcode build instead.
+
+```bash
+# Build (simulator; no backend, no signing) — or just ⌘B in Xcode
+cd ios/Echo
+xcodebuild build -project EchoApp.xcodeproj -scheme EchoMessaging \
+  -destination 'platform=iOS Simulator,name=iPhone 17' CODE_SIGNING_ALLOWED=NO
+
+# Backend-free unit tests (crypto/auth + messaging logic)
+swift test --filter EchoSecurityTests
+swift test --filter EchoPhase3Tests
+```
+
+Prefer `EchoSecurityTests` / `EchoPhase3Tests`; the legacy `EchoTests` target has compile issues (see §13).
+
+### 4f. Adding new Swift files
+
+The project is a **classic checked-in `.xcodeproj`** (no XcodeGen). Register new files in the pbxproj:
+
+```bash
+python3 scripts/xcode-add-sources.py ios/Echo/EchoApp.xcodeproj/project.pbxproj <GROUPID>:NewFile.swift
+```
+
+Find `<GROUPID>` by grepping a sibling file's group in `project.pbxproj`. Idempotent; writes a `.bak`. (The SwiftPM `Package.swift` globs `Sources/` automatically — only the `.xcodeproj` needs the manual entry.)
+
+### 4g. Design system & guardrails
+
+- **Use design tokens**, never raw hex: `Color.echo*`, `Spacing`, `Typography`, `.glacialShadow()` — source of truth `ios/Echo/Sources/DesignSystem/`.
+- **Onboarding & login are frozen** (`FirstRunCoordinator`, `GlacialLoginScreen`) — do not redesign ([`AGENTS.md`](AGENTS.md)).
+- The **`echo-ios-design` skill** (`.cursor/skills/echo-ios-design/` for Cursor, `.agents/skills/echo-ios-design/` for Claude Code) encodes these rules + the screen-catalog loop, and delegates generic SwiftUI review to `swiftui-pro` / `swiftui-expert`.
+- Xcode smoke path (with a backend): [`docs/E2E_QUICK_START.md` §7](docs/E2E_QUICK_START.md).
+
+---
+
+## 5. Clean slate (reset all data)
 
 Run this when you need fresh Postgres, Redis, object storage, and chain state.
 
@@ -159,7 +238,7 @@ DATABASE_HOST=localhost DATABASE_NAME=echoapp DATABASE_USER=echoapp \
 
 ---
 
-## 5. Echo Messaging — full E2E setup
+## 6. Echo Messaging — full E2E setup
 
 **Goal:** Two simulators/devices can register, DM, and pass Phase 1 go/no-go.
 
@@ -234,7 +313,7 @@ cd ../euclid-development-environment && scripts/hydra stop
 
 ---
 
-## 6. Echo Comply — full E2E setup
+## 7. Echo Comply — full E2E setup
 
 Comply is **three surfaces**: embedded gateway routes (retention/holds for messaging users), standalone **Comply API** (`:8011`), and **web admin portal** (`web/`).
 
@@ -307,7 +386,7 @@ Retention and hold APIs also mount on `:8000` when `COMPLY_SERVICE_TOKEN` is set
 
 ---
 
-## 7. Echo Passport — full E2E setup
+## 8. Echo Passport — full E2E setup
 
 Passport uses **gateway routes** (`/credentials`, OIDC4VC, sync) — no separate microservice.
 
@@ -351,7 +430,7 @@ See [`docs/ECHO_PASSPORT_PLAN.md`](docs/ECHO_PASSPORT_PLAN.md) and ADR [`docs/ad
 
 ---
 
-## 8. Quick start matrix (which commands when)
+## 9. Quick start matrix (which commands when)
 
 | I am working on… | Start | iOS scheme | Verify |
 |------------------|-------|------------|--------|
@@ -365,7 +444,7 @@ See [`docs/ECHO_PASSPORT_PLAN.md`](docs/ECHO_PASSPORT_PLAN.md) and ADR [`docs/ad
 
 ---
 
-## 9. Builds and test gates (all products)
+## 10. Builds and test gates (all products)
 
 ### Backend (every PR)
 
@@ -407,7 +486,7 @@ make regression-with-phase1
 
 ---
 
-## 10. Daily workflow
+## 11. Daily workflow
 
 ```bash
 make dev && make dev-status     # start of day
@@ -425,7 +504,7 @@ Regression by milestone: [`docs/E2E_QUICK_START.md` §0](docs/E2E_QUICK_START.md
 
 ---
 
-## 11. Repository layout
+## 12. Repository layout
 
 ```text
 echoapp/
@@ -447,7 +526,7 @@ echoapp/
 
 ---
 
-## 12. Known gaps and doc drift (2026-05)
+## 13. Known gaps and doc drift (2026-05)
 
 | Topic | Reality | Action |
 |-------|---------|--------|
@@ -462,7 +541,7 @@ Phase gap audits: [`docs/PHASE4_7_GAP_AUDIT.md`](docs/PHASE4_7_GAP_AUDIT.md).
 
 ---
 
-## 13. Troubleshooting
+## 14. Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|
@@ -479,10 +558,10 @@ Full table: [`docs/E2E_QUICK_START.md` §11](docs/E2E_QUICK_START.md).
 
 ---
 
-## 14. Contributing code
+## 15. Contributing code
 
 1. Branch from `main`.
-2. Run gates in §9 for surfaces you touched.
+2. Run gates in §10 for surfaces you touched.
 3. Follow [`docs/data-classification.md`](docs/data-classification.md) (T0–T7) for anything chain-adjacent or logged.
 4. Phase 1–2 identity: **`did:key` only** — no Cardano/PRISM ([ADR-0001](docs/adr/0001-phase1-identity-method.md)).
 5. Open PR; ensure CI green.
