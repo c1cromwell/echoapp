@@ -65,6 +65,19 @@ type PendingRewards struct {
 	Timestamp    time.Time        `json:"timestamp"`
 }
 
+// Engagement event weights (activity units toward auto-scale + pending accrual).
+// Channel engagement pays from the same community emission pool as messaging.
+const (
+	EngagementWeightChannelPost   = 2.0
+	EngagementWeightChannelReact  = 0.5
+	EngagementWeightChannelSub    = 1.0
+	EngagementWeightChannelView   = 0.1
+	EngagementWeightChannelComment = 1.0
+
+	// Base micro-ECHO (1e8 = 1 ECHO) credited per engagement unit before trust multiplier.
+	EngagementBaseMicroPerUnit = int64(5_000_000) // 0.05 ECHO per unit at full rate
+)
+
 // DailyStats shows network-wide daily distribution statistics.
 type DailyStats struct {
 	Date                 string    `json:"date"`
@@ -89,6 +102,8 @@ type Service struct {
 	rolloverBudget      int64
 	lastResetDate       string
 	currentEmissionYear int
+	// pendingEngagement accrues channel/community engagement units per DID until claimed.
+	pendingEngagement map[string]float64
 }
 
 // NewService creates a reward service with emission schedule and anti-gaming protections.
@@ -100,6 +115,7 @@ func NewService(db database.DB, emission *internalrewards.EmissionSchedule) *Ser
 		antiGaming:          internalrewards.NewAntiGamingDetector(),
 		lastResetDate:       now.Format("2006-01-02"),
 		currentEmissionYear: emission.CurrentYear(),
+		pendingEngagement:   make(map[string]float64),
 	}
 }
 
@@ -164,6 +180,9 @@ func (s *Service) Claim(ctx context.Context, req ClaimRequest) (*ClaimResult, er
 		}
 		s.todayActivityWeight += multiplier * float64(messageCount)
 	}
+	if req.RewardType == "channel_engagement" {
+		delete(s.pendingEngagement, req.DID)
+	}
 
 	return &ClaimResult{
 		ClaimID:    uuid.New().String(),
@@ -189,8 +208,18 @@ func (s *Service) GetPending(ctx context.Context, did string, trustTier int) (*P
 	}
 	pendingMessaging := int64(float64(rate) * multiplier)
 
+	s.mu.Lock()
+	engagementUnits := s.pendingEngagement[did]
+	s.mu.Unlock()
+	pendingEngagement := int64(float64(EngagementBaseMicroPerUnit) * engagementUnits * multiplier)
+	if rate < InitialRatePerMessage && InitialRatePerMessage > 0 {
+		// Apply network auto-scale to engagement the same way as messaging.
+		pendingEngagement = int64(float64(pendingEngagement) * float64(rate) / float64(InitialRatePerMessage))
+	}
+
 	pending := map[string]int64{
-		"messaging": pendingMessaging,
+		"messaging":           pendingMessaging,
+		"channel_engagement":  pendingEngagement,
 	}
 	var total int64
 	for _, amt := range pending {
@@ -271,6 +300,42 @@ func (s *Service) RecordMessage() {
 	s.todayActivityWeight += 1.0
 }
 
+// RecordEngagement accrues channel/community engagement for a DID and bumps
+// network activity weight so auto-scale reflects community usage.
+// eventType: channel_post | channel_react | channel_subscribe | channel_view | channel_comment
+func (s *Service) RecordEngagement(did, eventType string) float64 {
+	weight := engagementWeight(eventType)
+	if weight <= 0 || did == "" {
+		return 0
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.resetDailyIfNeeded()
+	if s.pendingEngagement == nil {
+		s.pendingEngagement = make(map[string]float64)
+	}
+	s.pendingEngagement[did] += weight
+	s.todayActivityWeight += weight
+	return weight
+}
+
+func engagementWeight(eventType string) float64 {
+	switch eventType {
+	case "channel_post":
+		return EngagementWeightChannelPost
+	case "channel_react":
+		return EngagementWeightChannelReact
+	case "channel_subscribe":
+		return EngagementWeightChannelSub
+	case "channel_view":
+		return EngagementWeightChannelView
+	case "channel_comment":
+		return EngagementWeightChannelComment
+	default:
+		return 0
+	}
+}
+
 func (s *Service) calculateReward(req ClaimRequest, multiplier float64) int64 {
 	switch req.RewardType {
 	case "messaging":
@@ -283,6 +348,20 @@ func (s *Service) calculateReward(req ClaimRequest, multiplier float64) int64 {
 			rate = InitialRatePerMessage
 		}
 		return int64(float64(rate) * multiplier * float64(count))
+	case "channel_engagement":
+		units := s.pendingEngagement[req.DID]
+		if units <= 0 {
+			return 0
+		}
+		rate := s.autoScaleRateLocked()
+		if rate > InitialRatePerMessage {
+			rate = InitialRatePerMessage
+		}
+		amount := int64(float64(EngagementBaseMicroPerUnit) * units * multiplier)
+		if InitialRatePerMessage > 0 {
+			amount = int64(float64(amount) * float64(rate) / float64(InitialRatePerMessage))
+		}
+		return amount
 	case "referral":
 		return int64(float64(50_00000000) * multiplier) // 50 ECHO base
 	case "staking":

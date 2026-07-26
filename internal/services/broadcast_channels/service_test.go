@@ -305,8 +305,9 @@ func TestSubscribe(t *testing.T) {
 		t.Errorf("expected user-1, got %s", sub.SubscriberID)
 	}
 
-	if channel.SubscriberCount != 1 {
-		t.Error("channel subscriber count should be 1")
+	// Creator is auto-subscribed on create; user-1 is the second subscriber.
+	if channel.SubscriberCount != 2 {
+		t.Errorf("channel subscriber count should be 2 (creator + user), got %d", channel.SubscriberCount)
 	}
 }
 
@@ -315,9 +316,12 @@ func TestSubscribeDuplicate(t *testing.T) {
 	channel, _ := cs.CreateChannel("Test", "test", "creator-1", ChannelTypeNews)
 
 	cs.Subscribe(channel.ID, "user-1")
-	_, err := cs.Subscribe(channel.ID, "user-1")
-	if err == nil {
-		t.Error("should reject duplicate subscription")
+	sub, err := cs.Subscribe(channel.ID, "user-1")
+	if err != nil {
+		t.Fatalf("duplicate subscribe should be idempotent: %v", err)
+	}
+	if sub.SubscriberID != "user-1" {
+		t.Error("should return existing subscriber")
 	}
 }
 
@@ -331,8 +335,9 @@ func TestUnsubscribe(t *testing.T) {
 		t.Fatalf("failed to unsubscribe: %v", err)
 	}
 
-	if channel.SubscriberCount != 0 {
-		t.Error("channel subscriber count should be 0")
+	// Creator remains subscribed.
+	if channel.SubscriberCount != 1 {
+		t.Errorf("channel subscriber count should be 1 (creator), got %d", channel.SubscriberCount)
 	}
 }
 
@@ -583,10 +588,10 @@ func TestFullChannelWorkflow(t *testing.T) {
 		t.Error("post should be deleted")
 	}
 
-	// 7. Unsubscribe
+	// 7. Unsubscribe (creator + user-2 remain)
 	cs.Unsubscribe(channel.ID, "user-1")
-	if channel.SubscriberCount != 1 {
-		t.Error("subscriber count should decrease")
+	if channel.SubscriberCount != 2 {
+		t.Errorf("subscriber count should be 2 after unsubscribe, got %d", channel.SubscriberCount)
 	}
 }
 
@@ -621,12 +626,13 @@ func TestChannelWithMultipleSubscribers(t *testing.T) {
 	}
 
 	subs := cs.GetChannelSubscribers(channel.ID)
-	if len(subs) != 5 {
-		t.Errorf("expected 5 subscribers, got %d", len(subs))
+	// Creator auto-subscribed + 5 users
+	if len(subs) != 6 {
+		t.Errorf("expected 6 subscribers, got %d", len(subs))
 	}
 
-	if channel.SubscriberCount != 5 {
-		t.Errorf("channel count should be 5, got %d", channel.SubscriberCount)
+	if channel.SubscriberCount != 6 {
+		t.Errorf("channel count should be 6, got %d", channel.SubscriberCount)
 	}
 }
 
@@ -651,8 +657,9 @@ func TestConcurrentSubscriptions(t *testing.T) {
 	}
 
 	subs := cs.GetChannelSubscribers(channel.ID)
-	if len(subs) != 10 {
-		t.Errorf("expected 10 subscribers, got %d", len(subs))
+	// Creator auto-subscribed + 10 concurrent users
+	if len(subs) != 11 {
+		t.Errorf("expected 11 subscribers, got %d", len(subs))
 	}
 }
 

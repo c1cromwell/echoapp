@@ -316,3 +316,47 @@ func TestDailyReset(t *testing.T) {
 		t.Errorf("expected 0 after daily reset, got %d", stats.TotalDistributed)
 	}
 }
+
+func TestRecordEngagement_AndClaim(t *testing.T) {
+	svc := newTestService()
+	ctx := context.Background()
+
+	w := svc.RecordEngagement("did:alice", "channel_post")
+	if w != EngagementWeightChannelPost {
+		t.Fatalf("expected post weight %v, got %v", EngagementWeightChannelPost, w)
+	}
+	svc.RecordEngagement("did:alice", "channel_react")
+	svc.RecordEngagement("did:alice", "channel_subscribe")
+
+	pending, err := svc.GetPending(ctx, "did:alice", 3)
+	if err != nil {
+		t.Fatalf("GetPending: %v", err)
+	}
+	if pending.Pending["channel_engagement"] <= 0 {
+		t.Fatalf("expected accrued channel_engagement, got %d", pending.Pending["channel_engagement"])
+	}
+
+	result, err := svc.Claim(ctx, ClaimRequest{
+		DID:        "did:alice",
+		RewardType: "channel_engagement",
+		TrustTier:  3,
+	})
+	if err != nil {
+		t.Fatalf("Claim: %v", err)
+	}
+	if result.Amount <= 0 {
+		t.Fatalf("expected positive engagement claim, got %d", result.Amount)
+	}
+
+	pending2, _ := svc.GetPending(ctx, "did:alice", 3)
+	if pending2.Pending["channel_engagement"] != 0 {
+		t.Errorf("expected engagement cleared after claim, got %d", pending2.Pending["channel_engagement"])
+	}
+}
+
+func TestRecordEngagement_UnknownType(t *testing.T) {
+	svc := newTestService()
+	if w := svc.RecordEngagement("did:alice", "unknown"); w != 0 {
+		t.Errorf("expected 0 weight for unknown type, got %v", w)
+	}
+}

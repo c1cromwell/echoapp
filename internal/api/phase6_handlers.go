@@ -142,9 +142,49 @@ func (h *V3Handlers) handleBroadcastPosts(w http.ResponseWriter, r *http.Request
 	}
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
 	posts := h.Broadcasts.GetChannelPosts(channelID, limit, offset)
+	_ = h.Broadcasts.RecordView(channelID)
+	if h.Rewards != nil {
+		if did := h.getDID(r); did != "" {
+			h.Rewards.RecordEngagement(did, "channel_view")
+		}
+	}
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"channelId": channelID,
 		"posts":     posts,
+	})
+}
+
+func (h *V3Handlers) handleBroadcastReact(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Broadcasts == nil {
+		WriteError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "broadcasts unavailable", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		PostID string `json:"postId"`
+		Emoji  string `json:"emoji"`
+	}
+	if err := h.readJSON(r, &req); err != nil || req.PostID == "" {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "postId required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	post, err := h.Broadcasts.GetPost(req.PostID)
+	if err != nil {
+		WriteError(w, http.StatusNotFound, "POST_NOT_FOUND", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	did := h.getDID(r)
+	if h.Rewards != nil && did != "" {
+		h.Rewards.RecordEngagement(did, "channel_react")
+	}
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"postId":    post.ID,
+		"channelId": post.ChannelID,
+		"emoji":     req.Emoji,
+		"status":    "recorded",
 	})
 }
 
@@ -152,6 +192,7 @@ func (h *V3Handlers) handleBroadcastPosts(w http.ResponseWriter, r *http.Request
 func (h *V3Handlers) WirePhase6Extensions(mux *http.ServeMux) {
 	mux.HandleFunc("/v3/broadcasts/list", h.handleBroadcastList)
 	mux.HandleFunc("/v3/broadcasts/posts", h.handleBroadcastPosts)
+	mux.HandleFunc("/v3/broadcasts/react", h.handleBroadcastReact)
 	mux.HandleFunc("/v3/groups/members/mute", h.handleGroupMuteMember)
 	mux.HandleFunc("/v3/groups/members/ban", h.handleGroupBanMember)
 	mux.HandleFunc("/v3/groups/members/unmute", h.handleGroupUnmuteMember)

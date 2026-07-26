@@ -58,6 +58,12 @@ func (cs *ChannelService) CreateChannel(name, topic string, creatorID string, ch
 	cs.subscriberLookup[channel.ID] = make(map[string]*ChannelSubscriber)
 	cs.postIndex[channel.ID] = []string{}
 
+	// Creator is auto-subscribed as admin so they can post immediately.
+	sub := NewChannelSubscriber(channel.ID, creatorID)
+	sub.Role = SubscriberRoleAdmin
+	cs.subscriberLookup[channel.ID][creatorID] = sub
+	channel.SubscriberCount = 1
+
 	return channel, nil
 }
 
@@ -301,8 +307,8 @@ func (cs *ChannelService) Subscribe(channelID, subscriberID string) (*ChannelSub
 	}
 
 	// Check for duplicate
-	if _, exists := subscribers[subscriberID]; exists {
-		return nil, fmt.Errorf("already subscribed")
+	if existing, exists := subscribers[subscriberID]; exists {
+		return existing, nil
 	}
 
 	sub := NewChannelSubscriber(channelID, subscriberID)
