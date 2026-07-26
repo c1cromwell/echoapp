@@ -64,6 +64,7 @@ struct ChatDestinationView: View {
 
     private func makeGroupChatViewModel(groupId: String) -> GroupChatViewModel? {
         guard let keys = DIContainer.shared.resolveGroupKeyManager(),
+              let senderKeys = DIContainer.shared.resolveGroupSenderKeys(),
               let signals = DIContainer.shared.resolveConversationSignalService(),
               let distribution = DIContainer.shared.resolveGroupKeyDistribution() else {
             return nil
@@ -73,6 +74,7 @@ struct ChatDestinationView: View {
             groupName: conversation.contactName,
             currentUserDID: currentUserDID,
             keyManager: keys,
+            senderKeys: senderKeys,
             signalService: signals,
             keyDistribution: distribution
         )

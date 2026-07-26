@@ -12,9 +12,11 @@ Quick entry point for Cursor agents working in this repo. Read this first, then 
 | Update work order status | Skill: **`echo-work-order-sync`** + MCP `software-factory-echo` |
 | Chain / submission / PII review | Skill: **`echo-t0-t7-review`** + `docs/data-classification.md` |
 | Local cluster / validate / release check | MCP **`echo-local-dev`** (see `.cursor/mcp.json`) |
-| TestFlight / Phase 1 go-no-go | Skill: **`echo-phase1-validate`** + [`docs/E2E_LAUNCH_AND_TESTING.md`](docs/E2E_LAUNCH_AND_TESTING.md) |
+| Sept 1 Messaging go-live | [`docs/GO_LIVE_SEPT_1_2026.md`](docs/GO_LIVE_SEPT_1_2026.md) |
+| Signal vs Echo parity (post-launch waves) | [`docs/SIGNAL_ECHO_PARITY.md`](docs/SIGNAL_ECHO_PARITY.md) |
+| TestFlight / Phase 1 go-no-go | Skill: **`echo-phase1-validate`** + [`docs/E2E_TESTING.md`](docs/E2E_TESTING.md) |
 | App Store / IAP / privacy submission | [`docs/APP_STORE_SUBMISSION.md`](docs/APP_STORE_SUBMISSION.md) |
-| Launch & regression testing (full matrix) | Skill: **`echo-testing`** + [`docs/E2E_QUICK_START.md`](docs/E2E_QUICK_START.md) (start here) / [`docs/E2E_LAUNCH_AND_TESTING.md`](docs/E2E_LAUNCH_AND_TESTING.md) |
+| Launch & regression testing (full matrix) | Skill: **`echo-testing`** + [`docs/E2E_TESTING.md`](docs/E2E_TESTING.md) (canonical; old E2E_* files redirect here) |
 | Phase 2 onboarding / VC / contacts | Skill: **`echo-phase2-gaps`** |
 | Phase 3 messaging UI (Xcode wiring) | Skill: **`echo-phase3-ios-wire`** |
 | UI/UX design + full iOS feature map | [`docs/ux-spec.md`](docs/ux-spec.md) + [`docs/ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](docs/ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) |
@@ -68,7 +70,7 @@ make metagraph-test         # Scala L1 tests
 cd ios/Echo && swift test --filter EchoPhase3Tests
 ```
 
-Full setup & daily regression: [`docs/E2E_QUICK_START.md`](docs/E2E_QUICK_START.md). Launch & sign-off: [`docs/E2E_LAUNCH_AND_TESTING.md`](docs/E2E_LAUNCH_AND_TESTING.md).
+E2E (canonical): [`docs/E2E_TESTING.md`](docs/E2E_TESTING.md). Sept 1 go-live: [`docs/GO_LIVE_SEPT_1_2026.md`](docs/GO_LIVE_SEPT_1_2026.md). Production deploy (backend + metagraph + iOS): [`docs/ZERO_TO_PRODUCTION.md`](docs/ZERO_TO_PRODUCTION.md).
 
 ## Agent constraints
 

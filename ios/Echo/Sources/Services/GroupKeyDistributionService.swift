@@ -5,17 +5,20 @@ import CryptoKit
 /// Orchestrates group symmetric key generation, per-member sealing, and relay fan-out (M2 / WO-207).
 actor GroupKeyDistributionService {
     private let keyManager: GroupKeyManager
+    private let senderKeys: GroupSenderKeyStore
     private let groupsAPI: any GroupsAPIClient
     private let encryption: KinnamiEncryption
     private let secureEnclave: SecureEnclaveManager
 
     init(
         keyManager: GroupKeyManager,
+        senderKeys: GroupSenderKeyStore = GroupSenderKeyStore(),
         groupsAPI: any GroupsAPIClient,
         encryption: KinnamiEncryption,
         secureEnclave: SecureEnclaveManager
     ) {
         self.keyManager = keyManager
+        self.senderKeys = senderKeys
         self.groupsAPI = groupsAPI
         self.encryption = encryption
         self.secureEnclave = secureEnclave
@@ -31,6 +34,12 @@ actor GroupKeyDistributionService {
             groupId: groupId,
             members: members,
             encryption: encryption
+        )
+        await senderKeys.seedChain(
+            groupId: groupId,
+            senderDID: distributedBy,
+            groupKeyVersion: info.version,
+            rootKey: info.key
         )
         return try await groupsAPI.distributeKeys(
             groupId: groupId,
@@ -54,6 +63,15 @@ actor GroupKeyDistributionService {
             encryption: encryption
         )
         await keyManager.storeReceivedKey(groupId: groupId, version: version, keyData: keyData)
+        let localDID = await CurrentUserSession.currentDID() ?? ""
+        if !localDID.isEmpty {
+            await senderKeys.seedChain(
+                groupId: groupId,
+                senderDID: localDID,
+                groupKeyVersion: version,
+                rootKey: SymmetricKey(data: keyData)
+            )
+        }
     }
 
     /// Admin: rotate and distribute after membership change when API returns requires_rekey.

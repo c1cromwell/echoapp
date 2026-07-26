@@ -6,6 +6,8 @@
 
 **Implementation plan:** [`COMPETITIVE_AUDIT_IMPLEMENTATION_PLAN.md`](COMPETITIVE_AUDIT_IMPLEMENTATION_PLAN.md) — prioritized waves, dependencies, and 90-day sprint mapping.
 
+**See also:** [`SIGNAL_ECHO_PARITY.md`](SIGNAL_ECHO_PARITY.md) — deep review of vendored **libsignal / Signal-Server / Signal-iOS** vs Echo; post-launch Waves S1–S5 (sync/backup, sealed-sender, Sender Keys, calls, UX).
+
 **See also:** [`COMPETITIVE_AUDIT_SIMPLEX_2026-06.md`](COMPETITIVE_AUDIT_SIMPLEX_2026-06.md) — a follow-up audit of **SimpleX Chat** (the identity-free privacy messenger), covering the crypto/metadata gaps this audit didn't: Double Ratchet forward secrecy, PQ-hybrid, metadata minimization / sealed-sender, private routing/Tor (provisional WO-SX1…SX7).
 
 **See also:** [`marketing/ECHO_VS_RADAR.md`](marketing/ECHO_VS_RADAR.md) — competitive marketing plan vs **Radar.chat** (July 2026: Signal-Protocol messenger + self-custodial Bitcoin Lightning payments, ex-Cake Wallet). Direct messaging+wallet competitor; the plan is a counter-positioning play ("own the network" vs "spend bitcoin"), not a feature-add — ECHO does not chase Bitcoin payments.

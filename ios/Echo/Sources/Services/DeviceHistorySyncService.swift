@@ -115,11 +115,25 @@ enum DeviceHistorySyncError: LocalizedError {
 }
 
 /// Fire-and-forget pull after unlock; applies history + WO-73 search index (S4).
+/// Wave S1: surface failures in UserDefaults / DEBUG log (no silent swallow).
 enum DeviceHistorySyncBootstrap {
     static func pullIfNeeded() {
         Task { @MainActor in
             guard let service = DIContainer.shared.resolveDeviceHistorySync() else { return }
-            _ = try? await service.pullAndApplyPendingHistory()
+            do {
+                let applied = try await service.pullAndApplyPendingHistory()
+                if applied > 0 {
+                    UserDefaults.standard.set(applied, forKey: "echo.sync.lastPullAppliedCount")
+                    UserDefaults.standard.set(Date(), forKey: "echo.sync.lastPullAt")
+                }
+                UserDefaults.standard.removeObject(forKey: "echo.sync.lastPullError")
+            } catch {
+                UserDefaults.standard.set(error.localizedDescription, forKey: "echo.sync.lastPullError")
+                UserDefaults.standard.set(Date(), forKey: "echo.sync.lastPullErrorAt")
+                #if DEBUG
+                print("[DeviceHistorySync] pull failed: \(error)")
+                #endif
+            }
         }
     }
 }

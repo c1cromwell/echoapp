@@ -126,11 +126,36 @@ public struct ChatSettingsSheet: View {
                 .tint(.echoSignal)
             }
 
-            // Verify (DID safety number analog)
+            // Verify (DID safety number — Signal Parity Wave S2)
             Button(action: onVerify) {
-                row(icon: "checkmark.shield", title: "Verify identity", showChevron: true) { EmptyView() }
+                row(icon: "checkmark.shield", title: "Verify safety number", showChevron: true) { EmptyView() }
             }
             .buttonStyle(.plain)
+
+            #if os(iOS)
+            // Chat wallpaper (Wave S4)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: Spacing.md.rawValue) {
+                    Image(systemName: "photo").frame(width: 24).foregroundColor(.echoInk55)
+                    Text("Chat wallpaper")
+                        .font(.system(size: 15))
+                        .foregroundColor(.echoInk)
+                    Spacer()
+                }
+                Picker("", selection: Binding(
+                    get: { ChatWallpaperStore.style(for: conversationId) },
+                    set: { ChatWallpaperStore.set($0, for: conversationId) }
+                )) {
+                    ForEach(ChatWallpaperStyle.allCases) { style in
+                        Text(style.title).tag(style)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+            .padding(.horizontal, Spacing.lg.rawValue)
+            .padding(.vertical, Spacing.md.rawValue)
+            .overlay(Divider(), alignment: .bottom)
+            #endif
 
             // Block / report
             Button(action: onBlock) {

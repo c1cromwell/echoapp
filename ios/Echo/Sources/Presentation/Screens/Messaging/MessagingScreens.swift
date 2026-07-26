@@ -159,6 +159,11 @@ struct ChatView: View {
     @State private var showScheduleMessage = false
     @State private var scheduleSourceText = ""
     @State private var showCloudPicker = false
+    @State private var showSafetyNumber = false
+    @State private var showKeyChangeBanner = false
+    @State private var isMessageRequestPending = false
+    @State private var sendMediaViewOnce = false
+    @State private var showGifPicker = false
 
     let contactName: String
     let conversationId: String
@@ -202,7 +207,7 @@ struct ChatView: View {
 
     var body: some View {
         ZStack {
-            Color.echoPaper.ignoresSafeArea()
+            ChatWallpaperStore.style(for: conversationId).background.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 chatNavigationBar
@@ -224,6 +229,44 @@ struct ChatView: View {
                     .padding(.horizontal, Spacing.lg.rawValue)
                     .padding(.vertical, 8)
                     .background(Color.echoAlert.opacity(0.08))
+                }
+
+                #if os(iOS)
+                if showKeyChangeBanner {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.shield")
+                        Text("Safety number changed — verify \(contactName)")
+                            .font(.system(size: 13, weight: .medium))
+                        Spacer()
+                        Button("Verify") { showSafetyNumber = true }
+                            .font(.system(size: 13, weight: .semibold))
+                        Button {
+                            showKeyChangeBanner = false
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
+                    }
+                    .foregroundColor(.echoAlert)
+                    .padding(.horizontal, Spacing.lg.rawValue)
+                    .padding(.vertical, 8)
+                    .background(Color.echoAlert.opacity(0.08))
+                }
+                #endif
+
+                if isMessageRequestPending {
+                    MessageRequestBanner(
+                        peerDID: peerDID,
+                        displayName: contactName,
+                        onAccept: {
+                            MessageRequestStore.accept(peerDID: peerDID)
+                            isMessageRequestPending = false
+                        },
+                        onDecline: {
+                            MessageRequestStore.decline(peerDID: peerDID)
+                            isMessageRequestPending = false
+                        }
+                    )
+                    .padding(.vertical, 6)
                 }
 
                 ScrollViewReader { proxy in
@@ -344,13 +387,34 @@ struct ChatView: View {
                             ConversationArchiveStore.setArchived(archived, conversationId: conversationId)
                         }
                     }
+                },
+                onVerify: {
+                    showChatSettings = false
+                    showSafetyNumber = true
                 }
             )
             .presentationDetents([.medium, .large])
         }
+        #if os(iOS)
+        .sheet(isPresented: $showSafetyNumber) {
+            SafetyNumberCompareView(
+                contactName: contactName,
+                localDID: currentUserDID,
+                peerDID: peerDID,
+                onDismiss: { showSafetyNumber = false }
+            )
+        }
+        #endif
         .sheet(isPresented: $showCreatePoll) {
             CreatePollSheet { question, options in
                 Task { await viewModel.createPoll(question: question, optionTexts: options) }
+            }
+            .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showGifPicker) {
+            GifPickerSheet { result in
+                showGifPicker = false
+                Task { await sendGif(result) }
             }
             .presentationDetents([.medium, .large])
         }
@@ -415,6 +479,9 @@ struct ChatView: View {
             ActiveChatRegistry.openConversationId = conversationId
             ConversationStore.shared.clearUnread(conversationId: conversationId)
             #if os(iOS)
+            if let signal: ConversationSignalService = DIContainer.shared.resolveConversationSignalService() {
+                ScreenshotAlertService.shared.configure(signalService: signal)
+            }
             ScreenshotAlertService.shared.setActiveChat(conversationId: conversationId, peerDID: peerDID)
             #endif
             viewModel.configure(
@@ -428,6 +495,7 @@ struct ChatView: View {
                 opsAPI: ops,
                 onSend: onSendMessage
             )
+            isMessageRequestPending = MessageRequestStore.isPending(peerDID: peerDID)
             if let token = try? await KeychainManager.shared.getAuthToken() {
                 await viewModel.connect(accessToken: token)
             }
@@ -443,6 +511,16 @@ struct ChatView: View {
             #endif
             await refreshSmartReplies()
             await refreshThreadSummary()
+            #if os(iOS)
+            if SafetyNumber.didPeerKeyChange(
+                conversationId: conversationId,
+                localDID: currentUserDID,
+                peerDID: peerDID
+            ) {
+                showKeyChangeBanner = true
+            }
+            ScreenshotAlertService.shared.startMonitoring()
+            #endif
         }
         .onChange(of: viewModel.messages.count) { _, _ in
             Task {
@@ -718,7 +796,15 @@ struct ChatView: View {
                 AttachmentPickerView(
                     isPresented: $showAttachmentPicker,
                     onImageSelected: { data, mime in
-                        Task { await viewModel.sendMedia(data: data, mimeType: mime, mediaKind: .image) }
+                        Task {
+                            await viewModel.sendMedia(
+                                data: data,
+                                mimeType: mime,
+                                mediaKind: .image,
+                                viewOnce: sendMediaViewOnce
+                            )
+                            sendMediaViewOnce = false
+                        }
                     },
                     onVideoSelected: { data, mime in
                         Task { await viewModel.sendMedia(data: data, mimeType: mime, mediaKind: .video) }
@@ -736,12 +822,20 @@ struct ChatView: View {
                         showAttachmentPicker = false
                         showCreatePoll = true
                     },
+                    onGifTapped: {
+                        showGifPicker = true
+                    },
                     onPaymentTapped: WalletTransferAvailability.inChatPaymentsEnabled ? {
                         showAttachmentPicker = false
                         showPaymentSheet = true
                     } : nil
                 )
                 .transition(.move(edge: .bottom).combined(with: .opacity))
+                Toggle("View once", isOn: $sendMediaViewOnce)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color.echoInk70)
+                    .padding(.horizontal, Spacing.md.rawValue)
+                    .padding(.bottom, 6)
             }
 
             HStack(spacing: Spacing.md.rawValue) {
@@ -1085,12 +1179,64 @@ struct ChatView: View {
         case .anchorVerificationFailed: return .failed
         }
     }
+
+    private func sendGif(_ gif: GifSearchService.GifResult) async {
+        guard let url = gif.previewURL else {
+            await viewModel.sendMessage("GIF: \(gif.title)")
+            return
+        }
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+                throw URLError(.badServerResponse)
+            }
+            await viewModel.sendMedia(data: data, mimeType: "image/gif", mediaKind: .image)
+        } catch {
+            await viewModel.sendMessage("GIF: \(gif.title)")
+        }
+    }
 }
 
 private struct ReactorDetailItem: Identifiable {
     let id = UUID()
     let emoji: String
     let reactors: [String]
+}
+
+private struct GifPickerSheet: View {
+    let onSelect: (GifSearchService.GifResult) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+    @State private var results: [GifSearchService.GifResult] = []
+
+    var body: some View {
+        NavigationStack {
+            List(results) { gif in
+                Button {
+                    onSelect(gif)
+                    dismiss()
+                } label: {
+                    HStack {
+                        Image(systemName: gif.previewURL == nil ? "face.smiling" : "photo")
+                            .foregroundStyle(Color.echoSignal)
+                        Text(gif.title)
+                            .foregroundStyle(Color.echoInk)
+                    }
+                }
+            }
+            .navigationTitle("GIFs")
+            .searchable(text: $query)
+            .onChange(of: query, initial: true) {
+                Task { results = await GifSearchService.shared.search(query: query) }
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
+    }
 }
 
 struct ChatMessage: Identifiable {

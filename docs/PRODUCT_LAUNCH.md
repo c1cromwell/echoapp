@@ -67,10 +67,15 @@ Download the `.xcarchive` artifact from GitHub Actions, then sign and upload to 
 
 ## Echo Messaging — deploy
 
-**Stack:** full Phase-1 cluster.
+> **Production deploy (backend gateway + Constellation metagraph):** see
+> **[`ZERO_TO_PRODUCTION.md`](ZERO_TO_PRODUCTION.md)** — Hetzner k3s + `deploy/k8s` (§2) and the metagraph
+> genesis→integrationnet→mainnet path (§4). The `make dev` below is the **local** cluster only (not a
+> production deploy).
+
+**Local stack:** full Phase-1 cluster.
 
 ```bash
-make dev          # metagraph + gateway :8000
+make dev          # metagraph + gateway :8000  (LOCAL dev, not production)
 make validate-phase1
 ```
 
@@ -168,4 +173,4 @@ git push origin <product>@v<version>
 EchoMessaging | EchoComplyCompanion | EchoPassport
 ```
 
-See also: [`docs/E2E_LAUNCH_AND_TESTING.md`](E2E_LAUNCH_AND_TESTING.md), [`web/README.md`](../web/README.md).
+See also: **[`GO_LIVE_SEPT_1_2026.md`](GO_LIVE_SEPT_1_2026.md)** (Sept 1 Messaging plan), [`E2E_TESTING.md`](E2E_TESTING.md), [`web/README.md`](../web/README.md).

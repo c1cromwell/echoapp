@@ -221,6 +221,8 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
     /// AES-256-GCM ciphertext sealed with the group symmetric key (M2).
     let groupCiphertext: Data?
     let groupKeyVersion: Int?
+    /// Sender-key chain iteration for a group ciphertext. Omitted for legacy group-key payloads.
+    let groupSenderKeyIteration: UInt32?
     /// Client-encrypted media relay reference (M5). Cleartext only in legacy/dev paths.
     let media: MediaAttachmentRef?
     /// Sender authentication (1:1): the sender's DID and a P-256 signature over
@@ -238,6 +240,7 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
         case encrypted
         case groupCiphertext = "group_ciphertext"
         case groupKeyVersion = "group_key_version"
+        case groupSenderKeyIteration = "group_sender_key_iteration"
         case media
         case senderDID = "sender_did"
         case signature
@@ -251,6 +254,7 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
         encrypted: EncryptedMessageWithPublicKey? = nil,
         groupCiphertext: Data? = nil,
         groupKeyVersion: Int? = nil,
+        groupSenderKeyIteration: UInt32? = nil,
         media: MediaAttachmentRef? = nil,
         senderDID: String? = nil,
         signature: Data? = nil,
@@ -262,6 +266,7 @@ struct TextMessagePayload: Codable, Sendable, Equatable {
         self.encrypted = encrypted
         self.groupCiphertext = groupCiphertext
         self.groupKeyVersion = groupKeyVersion
+        self.groupSenderKeyIteration = groupSenderKeyIteration
         self.media = media
         self.senderDID = senderDID
         self.signature = signature
@@ -280,6 +285,8 @@ struct MediaAttachmentRef: Codable, Sendable, Equatable {
     let caption: String?
     /// Precomputed playback bars (amplitude only, not speech content).
     let waveformBars: [Float]?
+    /// The recipient burns the local plaintext after its first successful open.
+    let viewOnce: Bool?
 
     enum CodingKeys: String, CodingKey {
         case fileId = "file_id"
@@ -289,6 +296,7 @@ struct MediaAttachmentRef: Codable, Sendable, Equatable {
         case chunkCount = "chunk_count"
         case caption
         case waveformBars = "waveform_bars"
+        case viewOnce = "view_once"
     }
 
     init(
@@ -298,7 +306,8 @@ struct MediaAttachmentRef: Codable, Sendable, Equatable {
         byteSize: Int,
         chunkCount: Int,
         caption: String?,
-        waveformBars: [Float]? = nil
+        waveformBars: [Float]? = nil,
+        viewOnce: Bool = false
     ) {
         self.fileId = fileId
         self.mimeType = mimeType
@@ -307,6 +316,7 @@ struct MediaAttachmentRef: Codable, Sendable, Equatable {
         self.chunkCount = chunkCount
         self.caption = caption
         self.waveformBars = waveformBars
+        self.viewOnce = viewOnce
     }
 }
 

@@ -45,6 +45,27 @@ func TestCallsICEServers_IncludesTURNWhenConfigured(t *testing.T) {
 	}
 }
 
+func TestCallRelaysAliasReportsTURNConfiguration(t *testing.T) {
+	t.Setenv("ECHO_TURN_URL", "turn:turn.example.com:3478")
+	mux := http.NewServeMux()
+	(&V3Handlers{}).RegisterV3Routes(mux)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v3/calls/relays", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		TURNConfigured bool             `json:"turn_configured"`
+		Relays         []map[string]any `json:"relays"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if !resp.TURNConfigured || len(resp.Relays) < 3 {
+		t.Fatalf("expected TURN-configured relays, got %+v", resp)
+	}
+}
+
 func TestCallSignalRoutesToPeer(t *testing.T) {
 	hub := NewHub()
 	alice := &Client{hub: hub, userID: "did:alice", send: make(chan []byte, 2)}

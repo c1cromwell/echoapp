@@ -10,9 +10,10 @@ description: >-
 # Echo testing (launch + regression)
 
 | Doc | Use |
-|-----|-----|
-| **[`docs/E2E_QUICK_START.md`](../../docs/E2E_QUICK_START.md)** | **Default** — setup, daily regression by milestone, rebuild, iOS smoke |
-| [`docs/E2E_LAUNCH_AND_TESTING.md`](../../docs/E2E_LAUNCH_AND_TESTING.md) | Feature matrix, full E2E procedures, TestFlight, sign-off |
+|-----|------|
+| **[`docs/E2E_TESTING.md`](../../docs/E2E_TESTING.md)** | **Canonical** — daily gates, Week A/B, sign-off, TestFlight |
+| [`docs/GO_LIVE_SEPT_1_2026.md`](../../docs/GO_LIVE_SEPT_1_2026.md) | Sept 1 calendar, corporate, competitive readiness |
+| Old `E2E_QUICK_START.md` / `E2E_LAUNCH_AND_TESTING.md` | Redirect stubs → `E2E_TESTING.md` |
 
 ## Agent workflow (iOS testing help)
 
@@ -22,9 +23,9 @@ When the user struggles with iOS E2E, run **in order**:
 2. `make ios-preflight` — or MCP `run_ios_preflight`
 3. If iOS code changed: `make ios-preflight BUILD=1 TESTS=1`
 4. If onboarding/API fails: MCP `smoke_ios_backend`
-5. Point user to **E2E_QUICK_START §2** (15 min Xcode checklist) — agents cannot tap Simulator UI
+5. Point user to **E2E_TESTING.md §5** (Week A checklist) — agents cannot tap Simulator UI
 
-Do **not** dump the full E2E doc — use the quick start.
+Do **not** dump the full E2E doc — use §1 daily gates + §5 Week A.
 
 **Do not** suggest redesigning onboarding/login from the design prototype — those iOS flows are frozen ([`ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](../../docs/ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) §0).
 
@@ -33,9 +34,9 @@ Do **not** dump the full E2E doc — use the quick start.
 | Cadence | Automated | Manual (Mac + Xcode) |
 |---------|-----------|----------------------|
 | Every PR / push | CI: Go + iOS SPM | — |
-| Pre-merge / weekly | `make regression` | Spot-check quick start §2 |
-| Before Xcode session | `make ios-preflight BUILD=1` | Quick start §2 |
-| Pre-TestFlight | `make regression-with-phase1` | Quick start + device + §9 sign-off |
+| Pre-merge / weekly | `make regression` | Spot-check `E2E_TESTING.md` §5 |
+| Before Xcode session | `make ios-preflight BUILD=1` | `E2E_TESTING.md` §5 |
+| Pre-TestFlight | `make regression-with-phase1` | `E2E_TESTING.md` §5–§10 + device |
 
 ## Commands
 
