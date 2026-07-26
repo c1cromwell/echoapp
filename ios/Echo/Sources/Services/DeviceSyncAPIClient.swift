@@ -93,10 +93,33 @@ struct SyncRevokeResponse: Codable, Sendable {
 
 // MARK: - Client
 
+struct SyncAckRequest: Codable, Sendable {
+    let deviceId: String
+    let throughSeq: Int64
+
+    enum CodingKeys: String, CodingKey {
+        case deviceId = "device_id"
+        case throughSeq = "through_seq"
+    }
+}
+
+struct SyncAckResponse: Codable, Sendable {
+    let deviceId: String?
+    let throughSeq: Int64?
+    let acked: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case deviceId = "device_id"
+        case throughSeq = "through_seq"
+        case acked
+    }
+}
+
 protocol DeviceSyncAPIClient: Sendable {
     func push(targetDeviceId: String, ciphertext: Data, entryType: String) async throws -> Int64
     func pull(deviceId: String, after: Int64, limit: Int) async throws -> SyncPullResponse
     func head(deviceId: String) async throws -> Int64
+    func ack(deviceId: String, throughSeq: Int64) async throws
     func revoke(targetDeviceId: String) async throws
 }
 
@@ -106,6 +129,7 @@ enum DeviceSyncEndpoint: APIEndpoint {
     case push
     case pull(deviceId: String, after: Int64, limit: Int)
     case head(deviceId: String)
+    case ack
     case revoke
 
     var path: String {
@@ -118,6 +142,8 @@ enum DeviceSyncEndpoint: APIEndpoint {
         case .head(let deviceId):
             let encoded = deviceId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? deviceId
             return "/v3/sync/head?device_id=\(encoded)"
+        case .ack:
+            return "/v3/sync/ack"
         case .revoke:
             return "/v3/sync/revoke"
         }
@@ -148,6 +174,13 @@ actor LiveDeviceSyncAPIClient: DeviceSyncAPIClient {
     func head(deviceId: String) async throws -> Int64 {
         let resp: SyncHeadResponse = try await apiClient.get(endpoint: DeviceSyncEndpoint.head(deviceId: deviceId))
         return resp.seq
+    }
+
+    func ack(deviceId: String, throughSeq: Int64) async throws {
+        let _: SyncAckResponse = try await apiClient.post(
+            endpoint: DeviceSyncEndpoint.ack,
+            body: SyncAckRequest(deviceId: deviceId, throughSeq: throughSeq)
+        )
     }
 
     func revoke(targetDeviceId: String) async throws {

@@ -41,6 +41,8 @@ type DeviceSyncStore interface {
 	SyncHead(ctx context.Context, controllerDID, targetDeviceID string) (int64, error)
 	// RevokeDeviceStream closes a device's stream and purges its entries.
 	RevokeDeviceStream(ctx context.Context, controllerDID, targetDeviceID string) error
+	// AckSyncEntries deletes entries with seq <= throughSeq after the client has applied them.
+	AckSyncEntries(ctx context.Context, controllerDID, targetDeviceID string, throughSeq int64) error
 	// IsDeviceStreamActive reports whether the stream is active (not revoked).
 	IsDeviceStreamActive(ctx context.Context, controllerDID, targetDeviceID string) (bool, error)
 }
@@ -78,6 +80,26 @@ func (m *MemoryDB) AppendSyncEntry(_ context.Context, entry *SyncEntry) (int64, 
 	}
 	m.syncStreams[entry.ControllerDID][entry.TargetDeviceID] = stream
 	return seq, nil
+}
+
+func (m *MemoryDB) AckSyncEntries(_ context.Context, controllerDID, targetDeviceID string, throughSeq int64) error {
+	if throughSeq <= 0 {
+		return nil
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	stream := m.syncStreams[controllerDID][targetDeviceID]
+	if len(stream) == 0 {
+		return nil
+	}
+	kept := stream[:0]
+	for _, e := range stream {
+		if e.Seq > throughSeq {
+			kept = append(kept, e)
+		}
+	}
+	m.syncStreams[controllerDID][targetDeviceID] = kept
+	return nil
 }
 
 func (m *MemoryDB) PullSyncEntries(_ context.Context, controllerDID, targetDeviceID string, afterSeq int64, limit int) ([]*SyncEntry, error) {

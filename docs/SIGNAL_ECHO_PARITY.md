@@ -133,7 +133,7 @@ Tickets: [`SIGNAL_PARITY_WORK_ORDERS.md`](SIGNAL_PARITY_WORK_ORDERS.md) — epic
 | Wave | WO | Window | Focus | Implementation (2026-07-26) |
 |------|-----|--------|-------|------------------------------|
 | Now | WO-321… | → Sept 1 2026 | E2E + App Store P0 only | Go-live children |
-| **S1** | **WO-333** | Sept–Oct | History sync + cloud backup | Postgres SyncStore; restore-after-recovery; sync pull errors |
+| **S1** | **WO-333** | Sept–Oct | History sync + cloud backup | Postgres SyncStore; msg-agreement sync identity; `/v3/sync/ack` + PG trim; pull-error banner; restore-after-recovery |
 | **S2** | **WO-331** | Oct–Nov | Sealed-sender + Sender Keys + safety numbers | Redact `sender_did`; sender-key group path; safety-number UX |
 | **S3** | **WO-334** | Nov–Dec | Group signals + calls polish | Group typing/reactions UI; `/v3/calls/relays` |
 | **S4** | **WO-332** | Parallel / Q1 | View-once, requests, polls, GIF, NSE, wallpaper | Wired banner/GIF/view-once/wallpaper; NSE skeleton (Xcode target TBD) |

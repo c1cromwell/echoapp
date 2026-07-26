@@ -20,6 +20,7 @@ import (
 //	POST /v3/sync/push    body {target_device_id, ciphertext, entry_type?}  -> {seq}
 //	GET  /v3/sync/pull?device_id=&after=&limit=                              -> {entries, next_cursor}
 //	GET  /v3/sync/head?device_id=                                           -> {seq}
+//	POST /v3/sync/ack     body {device_id, through_seq}                       -> {acked:true}
 //	POST /v3/sync/revoke  body {target_device_id}                          -> {revoked:true}
 
 func (h *V3Handlers) handleSyncPush(w http.ResponseWriter, r *http.Request) {
@@ -133,6 +134,43 @@ func (h *V3Handlers) handleSyncHead(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"device_id": deviceID,
 		"seq":       seq,
+	})
+}
+
+func (h *V3Handlers) handleSyncAck(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	did := h.getDID(r)
+	if did == "" {
+		WriteError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "authentication required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		DeviceID   string `json:"device_id"`
+		ThroughSeq int64  `json:"through_seq"`
+	}
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "malformed JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err := validation.ValidateDeviceID(req.DeviceID); err != nil {
+		WriteError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	if req.ThroughSeq < 0 {
+		WriteError(w, http.StatusBadRequest, "VALIDATION_ERROR", "through_seq must be >= 0", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err := h.DB.AckSyncEntries(r.Context(), did, req.DeviceID, req.ThroughSeq); err != nil {
+		WriteError(w, http.StatusInternalServerError, "SYNC_ACK_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"device_id":   req.DeviceID,
+		"through_seq": req.ThroughSeq,
+		"acked":       true,
 	})
 }
 

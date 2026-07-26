@@ -22,6 +22,7 @@ struct MessagesTabView: View {
     @State private var showCreateGroup = false
     @State private var showMessageSearch = false
     @State private var messageSearchSeed = ""
+    @State private var syncPullError: String?
 
     private var personaFilteredConversations: [StoredConversation] {
         conversationStore.conversations.filter {
@@ -32,60 +33,88 @@ struct MessagesTabView: View {
 
     var body: some View {
         NavigationStack(path: $chatPath) {
-            Group {
-                if !hasSentFirstMessage {
-                    MessagesEmptyStateView(
-                        displayName: appState.displayName,
-                        trustTier: currentTrustTier,
-                        onComposeTapped: { composeSheetPresented = true },
-                        onUpgradeTrustTapped: { enrollmentSheetPresented = true }
-                    )
-                    .navigationTitle("Messages")
-                    .navigationBarTitleDisplayMode(.inline)
-                } else {
-                    MessagesHubView(
-                        conversations: personaFilteredConversations,
-                        hiddenConversations: hiddenConversations,
-                        personas: appState.personas,
-                        activePersona: appState.activePersona,
-                        trustTier: { conversationId in
-                            guard let conv = conversationStore.conversation(id: conversationId) else { return 1 }
-                            return ContactTrustIndex.shared.tier(conversationId: conversationId, peerDID: conv.peerDID)
-                        },
-                        mutedIDs: mutedConversationIDs,
-                        hiddenUnlocked: hiddenSession.isUnlocked,
-                        isDuressHiddenVault: hiddenSession.isDuressMode,
-                        onSelectConversation: { id in
-                            if let conversation = conversationStore.conversation(id: id) {
-                                chatPath.append(conversation)
-                            }
-                        },
-                        onCompose: { composeSheetPresented = true },
-                        onComposeHidden: { composeHiddenPresented = true },
-                        onOpenHidden: { showBiometricGate = true },
-                        onLockHidden: { hiddenSession.lock() },
-                        onOpenHiddenSettings: { showHiddenSettings = true },
-                        onSwitchPersona: { appState.switchPersona($0) },
-                        onSelectHiddenPersona: { _ in showBiometricGate = true },
-                        onToggleArchive: { conversationId, archived in
-                            Task {
-                                if let client = DIContainer.shared.resolveAPIClient().map({
-                                    LiveConversationArchiveAPIClient(apiClient: $0)
-                                }) {
-                                    try? await client.setArchived(archived, conversationId: conversationId)
-                                } else {
-                                    ConversationArchiveStore.setArchived(archived, conversationId: conversationId)
-                                }
-                            }
-                        },
-                        onOpenMessageSearch: { query in
-                            messageSearchSeed = query
-                            showMessageSearch = true
-                        },
-                        onGroupCreated: { groupId, name in
-                            openGroupConversation(groupId: groupId, name: name)
+            VStack(spacing: 0) {
+                if let syncPullError {
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text("History sync failed: \(syncPullError)")
+                            .font(.footnote)
+                            .foregroundStyle(.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Button("Retry") {
+                            DeviceHistorySyncBootstrap.pullIfNeeded()
+                            syncPullError = UserDefaults.standard.string(forKey: "echo.sync.lastPullError")
                         }
-                    )
+                        .font(.footnote.weight(.semibold))
+                        Button {
+                            UserDefaults.standard.removeObject(forKey: "echo.sync.lastPullError")
+                            syncPullError = nil
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .accessibilityLabel("Dismiss sync error")
+                    }
+                    .padding(12)
+                    .background(Color.orange.opacity(0.12))
+                }
+
+                Group {
+                    if !hasSentFirstMessage {
+                        MessagesEmptyStateView(
+                            displayName: appState.displayName,
+                            trustTier: currentTrustTier,
+                            onComposeTapped: { composeSheetPresented = true },
+                            onUpgradeTrustTapped: { enrollmentSheetPresented = true }
+                        )
+                        .navigationTitle("Messages")
+                        .navigationBarTitleDisplayMode(.inline)
+                    } else {
+                        MessagesHubView(
+                            conversations: personaFilteredConversations,
+                            hiddenConversations: hiddenConversations,
+                            personas: appState.personas,
+                            activePersona: appState.activePersona,
+                            trustTier: { conversationId in
+                                guard let conv = conversationStore.conversation(id: conversationId) else { return 1 }
+                                return ContactTrustIndex.shared.tier(conversationId: conversationId, peerDID: conv.peerDID)
+                            },
+                            mutedIDs: mutedConversationIDs,
+                            hiddenUnlocked: hiddenSession.isUnlocked,
+                            isDuressHiddenVault: hiddenSession.isDuressMode,
+                            onSelectConversation: { id in
+                                if let conversation = conversationStore.conversation(id: id) {
+                                    chatPath.append(conversation)
+                                }
+                            },
+                            onCompose: { composeSheetPresented = true },
+                            onComposeHidden: { composeHiddenPresented = true },
+                            onOpenHidden: { showBiometricGate = true },
+                            onLockHidden: { hiddenSession.lock() },
+                            onOpenHiddenSettings: { showHiddenSettings = true },
+                            onSwitchPersona: { appState.switchPersona($0) },
+                            onSelectHiddenPersona: { _ in showBiometricGate = true },
+                            onToggleArchive: { conversationId, archived in
+                                Task {
+                                    if let client = DIContainer.shared.resolveAPIClient().map({
+                                        LiveConversationArchiveAPIClient(apiClient: $0)
+                                    }) {
+                                        try? await client.setArchived(archived, conversationId: conversationId)
+                                    } else {
+                                        ConversationArchiveStore.setArchived(archived, conversationId: conversationId)
+                                    }
+                                }
+                            },
+                            onOpenMessageSearch: { query in
+                                messageSearchSeed = query
+                                showMessageSearch = true
+                            },
+                            onGroupCreated: { groupId, name in
+                                openGroupConversation(groupId: groupId, name: name)
+                            }
+                        )
+                    }
                 }
             }
             .navigationDestination(for: StoredConversation.self) { conversation in
@@ -142,12 +171,16 @@ struct MessagesTabView: View {
             }
             DeviceHistorySyncBootstrap.pullIfNeeded()
             SearchIndexSyncBootstrap.pullIfNeeded()
+            syncPullError = UserDefaults.standard.string(forKey: "echo.sync.lastPullError")
             ContactDiscoveryScheduler.runIfDue()
             BackupScheduler.runIfDue()
             if let code = appState.pendingInviteCode {
                 pendingInviteCode = code
                 appState.pendingInviteCode = nil
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
+            syncPullError = UserDefaults.standard.string(forKey: "echo.sync.lastPullError")
         }
         .task {
             await connectSharedMessageRelay()

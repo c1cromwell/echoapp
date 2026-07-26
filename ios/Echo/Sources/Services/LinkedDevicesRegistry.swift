@@ -37,6 +37,8 @@ actor LinkedDevicesRegistry {
         let myStreamId = await DeviceIdentityStore.currentDeviceId()
         var out: [DeviceLinkAPIClient.RegisteredDevice] = []
         for device in devices {
+            // Incremental sync ciphertext is ECDH-wrapped to msg-agreement keys only.
+            guard (device.deviceLabel ?? "") == MessagingAgreementKey.deviceLabel else { continue }
             if await DeviceIdentityStore.isLocalDevice(publicKeyHex: device.publicKeyHex) {
                 continue
             }
