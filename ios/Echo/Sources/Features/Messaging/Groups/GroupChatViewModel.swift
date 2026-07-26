@@ -20,16 +20,22 @@ final class GroupChatViewModel {
     var messages: [GroupMessage] = []
     var composerText = ""
     var errorMessage: String?
+    /// Wave S3 — group Phase 3 signal parity with 1:1 chat.
+    var peerIsTyping = false
+    var reactionByMessage: [String: [String]] = [:]
 
     private let keyManager: GroupKeyManager
+    private let senderKeys: GroupSenderKeyStore
     private let signalService: ConversationSignalService
     private let keyDistribution: GroupKeyDistributionService
+    private var typingClearTask: Task<Void, Never>?
 
     init(
         groupId: String,
         groupName: String,
         currentUserDID: String,
         keyManager: GroupKeyManager,
+        senderKeys: GroupSenderKeyStore,
         signalService: ConversationSignalService,
         keyDistribution: GroupKeyDistributionService
     ) {
@@ -38,6 +44,7 @@ final class GroupChatViewModel {
         self.conversationId = "group:\(groupId)"
         self.currentUserDID = currentUserDID
         self.keyManager = keyManager
+        self.senderKeys = senderKeys
         self.signalService = signalService
         self.keyDistribution = keyDistribution
     }
@@ -64,6 +71,34 @@ final class GroupChatViewModel {
         try? await signalService.connect(accessToken: accessToken)
     }
 
+    func onInputChanged(_ text: String) {
+        Task {
+            // Broadcast typing to group conversation (peerDID unused for group fanout on server).
+            try? await signalService.sendTyping(
+                conversationId: conversationId,
+                peerDID: currentUserDID,
+                state: text.isEmpty ? .stop : .start
+            )
+        }
+    }
+
+    func toggleReaction(messageId: String, emoji: String) async {
+        var current = reactionByMessage[messageId] ?? []
+        if current.contains(emoji) {
+            current.removeAll { $0 == emoji }
+        } else {
+            current.append(emoji)
+        }
+        reactionByMessage[messageId] = current
+        // Group fanout uses conversationId; peerDID required by envelope contract.
+        try? await signalService.sendReaction(
+            conversationId: conversationId,
+            peerDID: currentUserDID,
+            messageId: messageId,
+            emoji: emoji
+        )
+    }
+
     func sendMessage() async {
         let text = composerText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
@@ -84,12 +119,13 @@ final class GroupChatViewModel {
 
         do {
             let plaintext = Data(text.utf8)
-            let ciphertext = try await keyManager.encryptForGroup(plaintext: plaintext, groupId: groupId)
-            let keyVersion = await keyManager.latestKeyVersion(groupId: groupId)
+            let (ciphertext, keyVersion, iteration) = try await encryptForGroup(plaintext)
             let payload = TextMessagePayload(
                 messageId: messageId,
                 groupCiphertext: ciphertext,
-                groupKeyVersion: keyVersion
+                groupKeyVersion: keyVersion,
+                groupSenderKeyIteration: iteration,
+                senderDID: currentUserDID
             )
             try await signalService.sendGroupTextMessage(
                 conversationId: conversationId,
@@ -141,12 +177,13 @@ final class GroupChatViewModel {
             }
             let wire = MediaMessageWire(messageId: messageId, media: ref, caption: nil)
             let plaintext = try JSONEncoder().encode(wire)
-            let ciphertext = try await keyManager.encryptForGroup(plaintext: plaintext, groupId: groupId)
-            let keyVersion = await keyManager.latestKeyVersion(groupId: groupId)
+            let (ciphertext, keyVersion, iteration) = try await encryptForGroup(plaintext)
             let payload = TextMessagePayload(
                 messageId: messageId,
                 groupCiphertext: ciphertext,
                 groupKeyVersion: keyVersion,
+                groupSenderKeyIteration: iteration,
+                senderDID: currentUserDID,
                 media: ref
             )
             try await signalService.sendGroupTextMessage(
@@ -160,6 +197,33 @@ final class GroupChatViewModel {
     }
 
     private func handleSignal(_ event: ConversationSignalEvent) async {
+        switch event {
+        case .typing(let typingEvent):
+            guard typingEvent.conversationId == conversationId else { return }
+            guard typingEvent.peerDID != currentUserDID else { return }
+            peerIsTyping = typingEvent.state == .start
+            typingClearTask?.cancel()
+            if peerIsTyping {
+                typingClearTask = Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 6_000_000_000)
+                    peerIsTyping = false
+                }
+            }
+            return
+        case .reaction(let reactionEvent):
+            guard reactionEvent.conversationId == conversationId else { return }
+            var current = reactionByMessage[reactionEvent.messageId] ?? []
+            if !current.contains(reactionEvent.emoji) {
+                current.append(reactionEvent.emoji)
+                reactionByMessage[reactionEvent.messageId] = current
+            }
+            return
+        case .textMessage:
+            break // handled below
+        default:
+            return
+        }
+
         guard case .textMessage(let textEvent) = event else { return }
         guard textEvent.conversationId == conversationId else { return }
         guard textEvent.peerDID != currentUserDID else { return }
@@ -170,11 +234,36 @@ final class GroupChatViewModel {
            let ciphertext = wire.groupCiphertext,
            let version = wire.groupKeyVersion {
             do {
-                let plain = try await keyManager.decryptFromGroup(
-                    ciphertext: ciphertext,
-                    groupId: groupId,
-                    keyVersion: version
-                )
+                let plain: Data
+                if let iteration = wire.groupSenderKeyIteration {
+                    let senderDID = wire.senderDID ?? textEvent.peerDID
+                    if !(await senderKeys.hasChain(
+                        groupId: groupId,
+                        senderDID: senderDID,
+                        groupKeyVersion: version
+                    )), let rootKey = await keyManager.key(groupId: groupId, version: version)?.key {
+                        await senderKeys.seedChain(
+                            groupId: groupId,
+                            senderDID: senderDID,
+                            groupKeyVersion: version,
+                            rootKey: rootKey
+                        )
+                    }
+                    plain = try await senderKeys.decrypt(
+                        ciphertext: ciphertext,
+                        groupId: groupId,
+                        senderDID: senderDID,
+                        groupKeyVersion: version,
+                        iteration: iteration
+                    )
+                } else {
+                    // Compatibility with payloads sent before Wave S2 sender-key rollout.
+                    plain = try await keyManager.decryptFromGroup(
+                        ciphertext: ciphertext,
+                        groupId: groupId,
+                        keyVersion: version
+                    )
+                }
                 if let parsed = MediaMessageService.parseWire(from: String(data: plain, encoding: .utf8) ?? "") {
                     body = parsed.caption ?? TextMessagePayload.mediaPlaceholder(for: parsed.media)
                     mediaRef = parsed.media
@@ -199,6 +288,41 @@ final class GroupChatViewModel {
             isOutgoing: false,
             mediaRef: mediaRef
         ))
+    }
+
+    /// Uses a sender chain when the current group root is available. Group-key encryption
+    /// remains the compatibility fallback for members that have not received a chain seed.
+    private func encryptForGroup(_ plaintext: Data) async throws -> (Data, Int?, UInt32?) {
+        guard let keyInfo = await keyManager.latestKey(groupId: groupId) else {
+            throw GroupKeyError.noGroupKey
+        }
+        if !(await senderKeys.hasChain(
+            groupId: groupId,
+            senderDID: currentUserDID,
+            groupKeyVersion: keyInfo.version
+        )) {
+            await senderKeys.seedChain(
+                groupId: groupId,
+                senderDID: currentUserDID,
+                groupKeyVersion: keyInfo.version,
+                rootKey: keyInfo.key
+            )
+        }
+        do {
+            let encrypted = try await senderKeys.encrypt(
+                plaintext: plaintext,
+                groupId: groupId,
+                senderDID: currentUserDID,
+                groupKeyVersion: keyInfo.version
+            )
+            return (encrypted.ciphertext, keyInfo.version, encrypted.iteration)
+        } catch GroupSenderKeyError.missingChain {
+            return (
+                try await keyManager.encryptForGroup(plaintext: plaintext, groupId: groupId),
+                keyInfo.version,
+                nil
+            )
+        }
     }
 }
 #endif

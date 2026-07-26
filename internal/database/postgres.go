@@ -301,6 +301,10 @@ func (p *PostgresDB) MarkDelivered(ctx context.Context, messageID string) error 
 		}
 		return ErrNotFound
 	}
+	// Wave S2 / Signal Parity: minimize durable social-graph metadata after delivery
+	// by clearing sender_did (recipient still needed for offline queue ownership).
+	_, _ = p.pool.Exec(ctx,
+		`UPDATE message_queue SET sender_did = '' WHERE message_id = $1 AND status = 'delivered'`, messageID)
 	return nil
 }
 

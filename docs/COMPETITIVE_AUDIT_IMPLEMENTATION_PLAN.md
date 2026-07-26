@@ -246,9 +246,10 @@ Adjust if TestFlight launch slips — Wave 0 always wins.
 
 ## Related docs
 
+- [`SIGNAL_ECHO_PARITY.md`](SIGNAL_ECHO_PARITY.md) — Signal repos deep review; Waves S1–S5 (sync/backup → crypto → calls → UX)
 - [`COMPETITIVE_AUDIT_2026-05.md`](COMPETITIVE_AUDIT_2026-05.md) — source analysis
 - [`PHASE2_GAP_AUDIT.md`](PHASE2_GAP_AUDIT.md) — Phase 2 truth table
-- [`E2E_LAUNCH_AND_TESTING.md`](E2E_LAUNCH_AND_TESTING.md) — E2E gates per wave
+- [`E2E_TESTING.md`](E2E_TESTING.md) — E2E gates per wave
 - [`phase-3-work-orders.md`](phase-3-work-orders.md) — WO-CA3 stub
 - [`phase-5-work-orders.md`](phase-5-work-orders.md) — WO-CA2 stub
 - [`phase-7-work-orders.md`](phase-7-work-orders.md) — WO-CA1 / WO-CA4 stubs

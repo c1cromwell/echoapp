@@ -268,7 +268,16 @@ func (s *Server) Start() error {
 	if fallback, err := encblob.NewFallbackStorage(); err == nil {
 		backupBlobStore = fallback
 	}
-	messageBackupSvc := passport.NewSyncService(passport.NewMemSyncStore(), backupBlobStore)
+	// Wave S1 / WO-CA2: persist message-backup metadata in Postgres when available
+	// (MemSyncStore loses cloud backups on process restart).
+	var messageBackupStore passport.SyncStore = passport.NewMemSyncStore()
+	if pgDB != nil {
+		messageBackupStore = pgDB
+		log.Println("Message backup SyncStore backed by PostgreSQL (Signal Parity S1)")
+	} else {
+		log.Println("Message backup SyncStore: in-memory (set DATABASE_URL for durable cloud backups)")
+	}
+	messageBackupSvc := passport.NewSyncService(messageBackupStore, backupBlobStore)
 
 	complyIntegration := comply.LoadIntegrationFromEnv()
 	complySvc := comply.NewService(db, comply.Deps{

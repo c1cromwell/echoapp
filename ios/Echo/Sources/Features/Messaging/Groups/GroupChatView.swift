@@ -23,10 +23,29 @@ struct GroupChatView: View {
                                     deliveryStatus: nil
                                 )
                             } else {
-                                Text(msg.text)
-                                    .padding(12)
-                                    .background(msg.isOutgoing ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.12))
-                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                                VStack(alignment: msg.isOutgoing ? .trailing : .leading, spacing: 4) {
+                                    Text(msg.text)
+                                        .padding(12)
+                                        .background(msg.isOutgoing ? Color.echoSignal.opacity(0.15) : Color.echoPaperDim)
+                                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                                    if let reactions = viewModel.reactionByMessage[msg.id], !reactions.isEmpty {
+                                        HStack(spacing: 4) {
+                                            ForEach(reactions, id: \.self) { emoji in
+                                                Button(emoji) {
+                                                    Task { await viewModel.toggleReaction(messageId: msg.id, emoji: emoji) }
+                                                }
+                                                .font(.caption)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 3)
+                                                .background(Color.echoPaper)
+                                                .clipShape(Capsule())
+                                            }
+                                        }
+                                    }
+                                }
+                                .onLongPressGesture {
+                                    Task { await viewModel.toggleReaction(messageId: msg.id, emoji: "👍") }
+                                }
                             }
                             if !msg.isOutgoing { Spacer(minLength: 40) }
                         }
@@ -67,10 +86,21 @@ struct GroupChatView: View {
                 }
                 TextField("Message", text: $viewModel.composerText, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
+                    .onChange(of: viewModel.composerText) { _, text in
+                        viewModel.onInputChanged(text)
+                    }
                 Button("Send") { Task { await viewModel.sendMessage() } }
                     .disabled(viewModel.composerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             .padding()
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if viewModel.peerIsTyping {
+                TypingIndicatorView(label: "Someone is typing…")
+                    .padding(.horizontal, Spacing.md.rawValue)
+                    .padding(.vertical, 4)
+                    .background(Color.echoPaperDim)
+            }
         }
         .navigationTitle(viewModel.groupName)
         .navigationBarTitleDisplayMode(.inline)

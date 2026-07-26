@@ -624,7 +624,8 @@ final class ChatDetailViewModel {
         mimeType: String,
         mediaKind: MediaKind,
         caption: String = "",
-        waveformBars: [Float]? = nil
+        waveformBars: [Float]? = nil,
+        viewOnce: Bool = false
     ) async -> String? {
         guard !data.isEmpty else { return nil }
         let trimmedCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -669,7 +670,8 @@ final class ChatDetailViewModel {
                 messageId: message.id,
                 peerDID: peerDID,
                 conversationId: conversationId,
-                waveformBars: waveformBars
+                waveformBars: waveformBars,
+                viewOnce: viewOnce
             )
             if let idx = messages.firstIndex(where: { $0.id == message.id }) {
                 messages[idx].deliveryStatus = .sent
@@ -963,6 +965,9 @@ final class ChatDetailViewModel {
     }
 
     private func appendInboundText(_ e: TextMessageSignalEvent) async {
+        if !MessageRequestStore.isAccepted(peerDID: e.peerDID) {
+            MessageRequestStore.enqueue(peerDID: e.peerDID)
+        }
         let resolved = await InboundTextMessageResolver.resolveBody(for: e)
         let body = resolved.body
         let inbound = ChatDetailMessage(

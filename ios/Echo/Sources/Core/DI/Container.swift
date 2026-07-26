@@ -149,6 +149,10 @@ final class DIContainer {
             return GroupKeyManager(encryption: encryption)
         }
 
+        registerFactory(ServiceKeys.groupSenderKeys) {
+            GroupSenderKeyStore()
+        }
+
         registerFactory(ServiceKeys.groupsAPI) { [weak self] () -> LiveGroupsAPIClient in
             let client: APIClient = self?.resolve(ServiceKeys.apiClient)
                 ?? APIClient(configuration: .default)
@@ -158,6 +162,8 @@ final class DIContainer {
         registerFactory(ServiceKeys.groupKeyDistribution) { [weak self] () -> GroupKeyDistributionService in
             let keys: GroupKeyManager = self?.resolve(ServiceKeys.groupKeyManager)
                 ?? GroupKeyManager(encryption: KinnamiEncryption())
+            let senderKeys: GroupSenderKeyStore = self?.resolve(ServiceKeys.groupSenderKeys)
+                ?? GroupSenderKeyStore()
             let groups: LiveGroupsAPIClient = self?.resolve(ServiceKeys.groupsAPI)
                 ?? LiveGroupsAPIClient(apiClient: APIClient(configuration: .default))
             let encryption: KinnamiEncryption = self?.resolve(ServiceKeys.kinnamiEncryption)
@@ -166,6 +172,7 @@ final class DIContainer {
                 ?? SecureEnclaveManager.shared
             return GroupKeyDistributionService(
                 keyManager: keys,
+                senderKeys: senderKeys,
                 groupsAPI: groups,
                 encryption: encryption,
                 secureEnclave: enclave
@@ -405,6 +412,7 @@ enum ServiceKeys {
     static let messageAnchorAPI = "networking.messageAnchorAPI"
     static let anchoringTracker = "relay.anchoringTracker"
     static let groupKeyManager = "relay.groupKeyManager"
+    static let groupSenderKeys = "relay.groupSenderKeys"
     static let groupsAPI = "networking.groupsAPI"
     static let groupKeyDistribution = "services.groupKeyDistribution"
     static let deviceSyncAPI = "networking.deviceSyncAPI"
@@ -575,6 +583,10 @@ extension DIContainer {
 
     func resolveGroupKeyManager() -> GroupKeyManager? {
         resolve(ServiceKeys.groupKeyManager)
+    }
+
+    func resolveGroupSenderKeys() -> GroupSenderKeyStore? {
+        resolve(ServiceKeys.groupSenderKeys)
     }
 
     func resolveGroupsAPI() -> LiveGroupsAPIClient? {

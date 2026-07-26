@@ -10,7 +10,7 @@
 | Track | Status |
 |-------|--------|
 | **Messaging MVP (code)** | ✅ Shipped in `main` — encryption, DMs, groups, signals, search, voice notes, wallet/rewards |
-| **Device E2E / TestFlight** | 🔜 Go-live — manual two-client matrix ([`E2E_LAUNCH_AND_TESTING.md`](E2E_LAUNCH_AND_TESTING.md)) |
+| **Device E2E / TestFlight** | 🔜 Go-live — [`E2E_TESTING.md`](E2E_TESTING.md) + [`GO_LIVE_SEPT_1_2026.md`](GO_LIVE_SEPT_1_2026.md) |
 | **App Store submission** | 🔜 Go-live — see [`APP_STORE_SUBMISSION.md`](APP_STORE_SUBMISSION.md) (WO-233) |
 | **ECHO Comply** | 📋 Active — Phase 7 vertical WOs + org lifecycle (WO-281–307, WO-309 in progress) |
 | **ECHO Passport** | 📋 Active — Wave A backend ✅; **WO-297** iOS module backlog |
@@ -70,7 +70,7 @@ Full gap matrix: [`PHASE4_7_GAP_AUDIT.md`](PHASE4_7_GAP_AUDIT.md).
 
 | Item | WO / doc |
 |------|----------|
-| Two-device Phase 3 E2E | [`E2E_QUICK_START.md`](E2E_QUICK_START.md) |
+| Two-device Phase 3 E2E | [`E2E_TESTING.md`](E2E_TESTING.md) |
 | `make validate-phase1` + wallet script | WO-230 |
 | TestFlight build + regression | [`echo-phase1-validate`](../.cursor/skills/echo-phase1-validate/SKILL.md) |
 | App Store security gates | WO-233, [`APP_STORE_SUBMISSION.md`](APP_STORE_SUBMISSION.md) |

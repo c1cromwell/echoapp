@@ -14,7 +14,8 @@ Deeper references:
 |-----|-----|
 | [`docs/E2E_QUICK_START.md`](docs/E2E_QUICK_START.md) | Daily regression matrix, Xcode smoke paths, troubleshooting |
 | [`docs/E2E_LAUNCH_AND_TESTING.md`](docs/E2E_LAUNCH_AND_TESTING.md) | TestFlight, feature matrix, launch sign-off |
-| [`docs/PRODUCT_LAUNCH.md`](docs/PRODUCT_LAUNCH.md) | Release tags, CI/CD, production deploy |
+| [`docs/PRODUCT_LAUNCH.md`](docs/PRODUCT_LAUNCH.md) | Release tags, CI/CD per product |
+| [`docs/ZERO_TO_PRODUCTION.md`](docs/ZERO_TO_PRODUCTION.md) | **Local → staging → production** runbook: backend (Hetzner k3s), Constellation metagraph (genesis→integrationnet→mainnet), iOS App Store |
 | [`AGENTS.md`](AGENTS.md) | Cursor agent entry + MCP |
 
 > **Working on the iOS app only?** Jump to **§4** — build and iterate with just Xcode, no backend required.

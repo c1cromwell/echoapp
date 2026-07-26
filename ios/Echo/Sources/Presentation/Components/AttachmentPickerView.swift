@@ -7,10 +7,11 @@ struct AttachmentPickerView: View {
     var onImageSelected: (Data, String) -> Void
     var onVideoSelected: (Data, String) -> Void
     var onFileSelected: (Data, String) -> Void
-    var onCloudTapped: (() -> Void)?
+    var onCloudTapped: (() -> Void)? = nil
     var onVoiceNoteTapped: () -> Void
-    var onPollTapped: (() -> Void)?
-    var onPaymentTapped: (() -> Void)?
+    var onPollTapped: (() -> Void)? = nil
+    var onPaymentTapped: (() -> Void)? = nil
+    var onGifTapped: (() -> Void)? = nil
 
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showPhotoPicker = false
@@ -39,6 +40,12 @@ struct AttachmentPickerView: View {
                     attachmentButton(icon: "chart.bar", label: "Poll") {
                         isPresented = false
                         onPollTapped()
+                    }
+                }
+                if let onGifTapped {
+                    attachmentButton(icon: "face.smiling", label: "GIF") {
+                        isPresented = false
+                        onGifTapped()
                     }
                 }
                 if let onPaymentTapped {

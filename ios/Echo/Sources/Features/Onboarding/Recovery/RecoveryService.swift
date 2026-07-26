@@ -52,11 +52,31 @@ final class RecoveryService {
 
         RecoveryPromptScheduler.shared.cancelAllPendingReminders()
 
+        // Wave S1 / WO-CA2: best-effort cloud message restore after identity restore.
+        // Failure must not block account recovery (no backup, offline, empty store).
+        await Self.attemptCloudMessageRestore(phrase: phrase)
+
         return RestoredIdentity(
             did: response.did,
             walletAddress: walletAddress,
             displayName: response.displayName
         )
+    }
+
+    /// Pulls `/v3/backup/pull`, decrypts with the recovery phrase, merges into ConversationStore.
+    private static func attemptCloudMessageRestore(phrase: RecoveryPhrase) async {
+        do {
+            let api = LiveBackupAPIClient(apiClient: APIClient(configuration: .default))
+            let service = MessageBackupService(backupAPI: api)
+            let count = try await service.restoreCloudBackup(phrase: phrase)
+            if count > 0 {
+                UserDefaults.standard.set(true, forKey: "echo.backup.restoredAfterRecovery")
+                UserDefaults.standard.set(count, forKey: "echo.backup.restoredConversationCount")
+            }
+        } catch {
+            // Expected when no cloud backup exists yet.
+            UserDefaults.standard.set(false, forKey: "echo.backup.restoredAfterRecovery")
+        }
     }
 
     // MARK: - Backend call

@@ -6,7 +6,8 @@ ECHO messaging should add, filtered through ECHO's privacy-first, decentralized,
 trust-tier + tokenomics thesis.
 **Relationship to other docs:** complements the prior competitor audit
 ([`COMPETITIVE_AUDIT_2026-05.md`](COMPETITIVE_AUDIT_2026-05.md), which covered
-WhatsApp/Telegram/Signal/XChat) and the messaging security review
+WhatsApp/Telegram/Signal/XChat), the Signal tree parity matrix
+([`SIGNAL_ECHO_PARITY.md`](SIGNAL_ECHO_PARITY.md)), and the messaging security review
 ([`MESSAGING_SR_REVIEW_2026-06.md`](MESSAGING_SR_REVIEW_2026-06.md)). SimpleX was the most important
 omission from the first audit because it is the **purest privacy-first messenger** and sits at the
 **opposite pole from ECHO on identity** — which is exactly what makes it worth studying.

@@ -156,6 +156,7 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 
 	// WebRTC call signaling (M4)
 	mux.HandleFunc("/v3/calls/ice-servers", h.handleCallsICEServers)
+	mux.HandleFunc("/v3/calls/relays", h.handleCallsICEServers) // Signal Parity Wave S3 alias
 
 	// Bots (Stage 4 / WO-11 foundation)
 	mux.HandleFunc("/v3/bots/", h.handleBotsSubroute)
@@ -1973,6 +1974,10 @@ func (h *V3Handlers) handleBroadcastCreate(w http.ResponseWriter, r *http.Reques
 		WriteError(w, http.StatusBadRequest, "CHANNEL_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
+	// Creator must be subscribed to post (service rule); auto-subscribe on create.
+	if _, err := h.Broadcasts.Subscribe(channel.ID, creatorDID); err != nil {
+		// Non-fatal if already subscribed; still return channel.
+	}
 	WriteJSON(w, http.StatusCreated, channel)
 }
 
@@ -2018,6 +2023,9 @@ func (h *V3Handlers) handleBroadcastPost(w http.ResponseWriter, r *http.Request)
 		WriteError(w, http.StatusBadRequest, "POST_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
+	if h.Rewards != nil {
+		h.Rewards.RecordEngagement(creatorDID, "channel_post")
+	}
 	WriteJSON(w, http.StatusCreated, post)
 }
 
@@ -2038,10 +2046,15 @@ func (h *V3Handlers) handleBroadcastSubscribe(w http.ResponseWriter, r *http.Req
 		return
 	}
 	subscriberDID := h.getDID(r)
+	_, alreadyErr := h.Broadcasts.GetSubscriber(req.ChannelID, subscriberDID)
+	wasNew := alreadyErr != nil
 	sub, err := h.Broadcasts.Subscribe(req.ChannelID, subscriberDID)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "SUBSCRIBE_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
+	}
+	if wasNew && h.Rewards != nil {
+		h.Rewards.RecordEngagement(subscriberDID, "channel_subscribe")
 	}
 	WriteJSON(w, http.StatusCreated, sub)
 }
