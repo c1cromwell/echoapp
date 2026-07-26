@@ -145,6 +145,7 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/v3/sync/push", h.handleSyncPush)
 	mux.HandleFunc("/v3/sync/pull", h.handleSyncPull)
 	mux.HandleFunc("/v3/sync/head", h.handleSyncHead)
+	mux.HandleFunc("/v3/sync/ack", h.handleSyncAck)
 	mux.HandleFunc("/v3/sync/revoke", h.handleSyncRevoke)
 
 	// Encrypted message backup (WO-64 / WO-CA2) — phrase-encrypted blob relay

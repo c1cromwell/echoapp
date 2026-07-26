@@ -146,3 +146,22 @@ func TestSync_Head(t *testing.T) {
 		t.Fatalf("expected head seq 2, got %d", r.Seq)
 	}
 }
+
+// TestSync_AckTrimsAppliedEntries: client ack deletes seq <= through_seq (Wave S1).
+func TestSync_AckTrimsAppliedEntries(t *testing.T) {
+	db := database.NewMemoryDB()
+	mux := v3Mux(syncRouter(db))
+	pushEntry(t, mux, "did:alice", "ipad", "h1")
+	pushEntry(t, mux, "did:alice", "ipad", "h2")
+	pushEntry(t, mux, "did:alice", "ipad", "h3")
+
+	if rec := postJSON(mux, "/v3/sync/ack", "did:alice",
+		map[string]any{"device_id": "ipad", "through_seq": 2}); rec.Code != http.StatusOK {
+		t.Fatalf("ack want 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	r := pull(t, mux, "did:alice", "ipad", 0)
+	if len(r.Entries) != 1 || string(r.Entries[0].Ciphertext) != "h3" {
+		t.Fatalf("expected only h3 after ack through 2, got %+v", r.Entries)
+	}
+}

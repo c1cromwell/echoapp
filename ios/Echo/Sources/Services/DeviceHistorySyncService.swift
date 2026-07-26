@@ -80,6 +80,8 @@ final class DeviceHistorySyncService {
 
             cursor = page.nextCursor
             SyncCursorStore.save(deviceId: deviceId, cursor: cursor)
+            // Best-effort server ack so Postgres can drop applied ciphertext.
+            try? await syncAPI.ack(deviceId: deviceId, throughSeq: cursor)
             if page.entries.count < pullPageSize { break }
         }
 

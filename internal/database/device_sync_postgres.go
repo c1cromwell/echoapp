@@ -34,7 +34,29 @@ func (p *PostgresDB) AppendSyncEntry(ctx context.Context, entry *SyncEntry) (int
 	if err != nil {
 		return 0, fmt.Errorf("append sync entry: %w", err)
 	}
+	// Bound pending stream (match MemSyncStore); oldest unacked entries fall off.
+	_, _ = p.pool.Exec(ctx,
+		`DELETE FROM device_sync_log
+		  WHERE controller_did = $1 AND target_device_id = $2
+		    AND seq <= (
+		      SELECT COALESCE(MAX(seq), 0) - $3 FROM device_sync_log
+		       WHERE controller_did = $1 AND target_device_id = $2
+		    )`,
+		entry.ControllerDID, entry.TargetDeviceID, MaxSyncEntriesPerDevice)
 	return seq, nil
+}
+
+func (p *PostgresDB) AckSyncEntries(ctx context.Context, controllerDID, targetDeviceID string, throughSeq int64) error {
+	if throughSeq <= 0 {
+		return nil
+	}
+	if _, err := p.pool.Exec(ctx,
+		`DELETE FROM device_sync_log
+		  WHERE controller_did = $1 AND target_device_id = $2 AND seq <= $3`,
+		controllerDID, targetDeviceID, throughSeq); err != nil {
+		return fmt.Errorf("ack sync entries: %w", err)
+	}
+	return nil
 }
 
 func (p *PostgresDB) PullSyncEntries(ctx context.Context, controllerDID, targetDeviceID string, afterSeq int64, limit int) ([]*SyncEntry, error) {

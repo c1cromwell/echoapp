@@ -99,7 +99,11 @@ struct LinkNewDeviceQRView: View {
                 try? await Task.sleep(nanoseconds: 3_000_000_000)
                 if Task.isCancelled { return }
                 guard let devices = try? await link.listRegisteredDevices(did: did) else { continue }
-                let fresh = devices.filter { !knownPublicKeys.contains($0.publicKeyHex.lowercased()) }
+                // Seed only msg-agreement keys (ECDH-capable). Identity SE keys cannot unwrap sync.
+                let fresh = devices.filter {
+                    !knownPublicKeys.contains($0.publicKeyHex.lowercased())
+                        && ($0.deviceLabel ?? "") == MessagingAgreementKey.deviceLabel
+                }
                 for device in fresh {
                     do {
                         try await sync.seedAllToDevice(publicKeyHex: device.publicKeyHex)
@@ -107,7 +111,7 @@ struct LinkNewDeviceQRView: View {
                         knownPublicKeys.insert(device.publicKeyHex.lowercased())
                         syncStatus = "History and search index sent to \(device.deviceLabel ?? "new device")."
                     } catch {
-                        syncStatus = "New device linked. Open Messages to finish history sync."
+                        syncStatus = "History sync failed: \(error.localizedDescription). Retry from Settings → Devices."
                     }
                 }
             }
@@ -201,16 +205,21 @@ struct LinkDeviceScanView: View {
         defer { isRegistering = false }
 
         do {
+            // Identity link uses SE signing key; sync stream must use MessagingAgreementKey (ECDH).
             let pubBase64 = try await SecureEnclaveManager.shared
                 .generateBiometricProtectedKey(id: "echo-identity-signing-linked")
-            let hex = try DeviceLinkAPIClient.publicKeyHex(fromBase64PublicKey: pubBase64)
-            await DeviceIdentityStore.assignSyncDeviceId(fromPublicKeyHex: hex)
+            let signingHex = try DeviceLinkAPIClient.publicKeyHex(fromBase64PublicKey: pubBase64)
             let client = DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
             _ = try await DeviceLinkAPIClient(apiClient: client).completeLink(
                 token: token,
-                newPublicKeyHex: hex,
+                newPublicKeyHex: signingHex,
                 deviceLabel: UIDevice.current.name
             )
+            let agreementHex = try await MessagingAgreementKey.publicKeyHex()
+            await DeviceIdentityStore.pinLocalPublicKey(hex: agreementHex)
+            if let did = await CurrentUserSession.currentDID() {
+                await MessagingKeyRegistrar().ensureRegistered(did: did)
+            }
             success = true
         } catch {
             errorMessage = error.localizedDescription
