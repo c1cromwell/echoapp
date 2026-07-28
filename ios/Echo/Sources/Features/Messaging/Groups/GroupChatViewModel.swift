@@ -183,8 +183,8 @@ final class GroupChatViewModel {
                 groupCiphertext: ciphertext,
                 groupKeyVersion: keyVersion,
                 groupSenderKeyIteration: iteration,
-                senderDID: currentUserDID,
-                media: ref
+                media: ref,
+                senderDID: currentUserDID
             )
             try await signalService.sendGroupTextMessage(
                 conversationId: conversationId,

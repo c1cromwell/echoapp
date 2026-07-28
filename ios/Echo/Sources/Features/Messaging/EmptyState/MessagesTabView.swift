@@ -34,11 +34,11 @@ struct MessagesTabView: View {
     var body: some View {
         NavigationStack(path: $chatPath) {
             VStack(spacing: 0) {
-                if let syncPullError {
+                if let error = syncPullError {
                     HStack(alignment: .top, spacing: 10) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
-                        Text("History sync failed: \(syncPullError)")
+                        Text("History sync failed: \(error)")
                             .font(.footnote)
                             .foregroundStyle(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)

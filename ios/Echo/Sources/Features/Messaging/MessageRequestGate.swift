@@ -4,13 +4,14 @@ import SwiftUI
 
 /// First-contact message request gate (Signal Parity Wave S4).
 /// Non-contacts must be accepted before their messages appear in the main hub.
+@MainActor
 enum MessageRequestStore {
     private static let pendingKey = "echo.messageRequests.pending"
     private static let acceptedKey = "echo.messageRequests.accepted"
 
     static func isAccepted(peerDID: String) -> Bool {
         accepted().contains(peerDID)
-            || ContactStore.shared.hasContact(did: peerDID)
+            || ContactStore.hasContact(did: peerDID)
     }
 
     static func isPending(peerDID: String) -> Bool {
@@ -59,6 +60,7 @@ enum MessageRequestStore {
 }
 
 /// Minimal contact lookup used by the request gate (avoids hard dependency cycles).
+@MainActor
 enum ContactStore {
     static func hasContact(did: String) -> Bool {
         // Contacts are also mirrored into ConversationStore as dm: threads with known peers.

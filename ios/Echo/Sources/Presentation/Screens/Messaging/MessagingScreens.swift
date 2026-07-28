@@ -822,13 +822,13 @@ struct ChatView: View {
                         showAttachmentPicker = false
                         showCreatePoll = true
                     },
-                    onGifTapped: {
-                        showGifPicker = true
-                    },
                     onPaymentTapped: WalletTransferAvailability.inChatPaymentsEnabled ? {
                         showAttachmentPicker = false
                         showPaymentSheet = true
-                    } : nil
+                    } : nil,
+                    onGifTapped: {
+                        showGifPicker = true
+                    }
                 )
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 Toggle("View once", isOn: $sendMediaViewOnce)
