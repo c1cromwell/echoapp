@@ -150,7 +150,13 @@ struct MessagesTabView: View {
             )
         }
         .sheet(isPresented: $showMessageSearch) {
-            MessageSearchSheet(initialQuery: messageSearchSeed)
+            GlobalSearchSheet(
+                initialQuery: messageSearchSeed,
+                initialTab: messageSearchSeed.hasPrefix("@") ? .people : .messages
+            )
+        }
+        .task {
+            _ = await SavedMessagesStore.ensureConversation()
         }
         .sheet(isPresented: $recoveryPromptPresented) {
             recoveryExportSheet
