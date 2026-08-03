@@ -4,6 +4,7 @@ import Foundation
 
 enum DeviceSyncEntryType {
     static let history = "history"
+    static let historyChunk = "history_chunk"
     static let message = "message"
     static let tombstone = "tombstone"
     static let searchIndex = "search_index"

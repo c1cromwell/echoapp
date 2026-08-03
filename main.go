@@ -272,7 +272,7 @@ func (s *Server) Start() error {
 	// (MemSyncStore loses cloud backups on process restart).
 	var messageBackupStore passport.SyncStore = passport.NewMemSyncStore()
 	if pgDB != nil {
-		messageBackupStore = pgDB
+		messageBackupStore = &database.MessageBackupSyncStore{DB: pgDB}
 		log.Println("Message backup SyncStore backed by PostgreSQL (Signal Parity S1)")
 	} else {
 		log.Println("Message backup SyncStore: in-memory (set DATABASE_URL for durable cloud backups)")
@@ -299,6 +299,11 @@ func (s *Server) Start() error {
 		log.Println("Groups service backed by PostgreSQL (migration 022_groups)")
 	}
 	groupSvc := groups.NewGroupService(groupOpts...)
+	broadcastOpts := []broadcast_channels.ChannelServiceOption{}
+	if pgDB != nil {
+		broadcastOpts = append(broadcastOpts, broadcast_channels.WithStore(broadcast_channels.NewPostgresStore(pgDB.Pool())))
+		log.Println("Broadcast channels backed by PostgreSQL (migration 028)")
+	}
 	var groupAnchoring *groups.GroupAnchoringService
 	if router.DataL1 != nil {
 		groupAnchoring = groups.NewGroupAnchoringService(router.DataL1)
@@ -351,7 +356,7 @@ func (s *Server) Start() error {
 		Media:                    mediaSvc,
 		Rewards:                  rewardsService,
 		Groups:                   groupSvc,
-		Broadcasts:               broadcast_channels.NewChannelService(),
+		Broadcasts:               broadcast_channels.NewChannelService(broadcastOpts...),
 		RateLimiter:              rateLimiter,
 		IdentityL1:               router.IdentityL1, // D1: anchor @username -> DID on registration
 		Signals:                  router.WSHub,      // WO-10/192: live reaction + read-receipt fan-out over WS

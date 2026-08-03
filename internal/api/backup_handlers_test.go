@@ -45,6 +45,9 @@ func TestBackupPushPullRoundTrip(t *testing.T) {
 	if resp["ciphertext_base64"] == "" {
 		t.Fatal("expected ciphertext_base64 in pull response")
 	}
+	if got, ok := resp["ciphertext_base64"].(string); !ok || got != base64.RawURLEncoding.EncodeToString([]byte("encrypted-backup")) {
+		t.Fatalf("MemSyncStore returned unexpected backup ciphertext: %v", resp["ciphertext_base64"])
+	}
 }
 
 func TestBackupPullNotFound(t *testing.T) {

@@ -53,8 +53,8 @@ Echo:    iOS ── Kinnami/Ratchet ── Go gateway ── Metagraph (trust/re
 
 | Gap | Signal reference | Echo today | Done when |
 |-----|------------------|------------|-----------|
-| Full history sync | Link’n’Sync + sync messages | Scaffold: `device_sync.go`, `DeviceHistorySyncService.swift` | Two-device seed/pull/revoke E2E; durable Postgres; surfaced errors |
-| Secure cloud backup | Backups + SVR / AEP | Scaffold: `backup_handlers.go`, `MessageBackupService.swift`, `BackupCrypto.swift` | Postgres SyncStore (not Mem); restore after phrase recovery; round-trip across restart |
+| Full history sync | Link’n’Sync + sync messages | `device_sync.go`, `DeviceHistorySyncService` (`history` / `history_chunk`), `/v3/sync/ack` + PG trim | Two-device seed/pull/revoke E2E on device; config sync follow-on |
+| Secure cloud backup | Backups + SVR / AEP | `backup_handlers.go` + dedicated `message_backup_blob` (027); restore diagnostics on recovery | Round-trip across restart with `DATABASE_URL`; BackupView UX polish |
 | Config sync | Storage Service | Partial | Privacy prefs / blocked / pins sync messages (follow-on) |
 
 **Key paths:** `migrations/019_device_sync.sql`, `internal/api/sync_handlers.go`, `internal/api/backup_handlers.go`, `pkg/passport/sync.go`, `main.go` (SyncService wiring), `BackupView.swift`, `RecoveryService.swift`.
@@ -133,7 +133,7 @@ Tickets: [`SIGNAL_PARITY_WORK_ORDERS.md`](SIGNAL_PARITY_WORK_ORDERS.md) — epic
 | Wave | WO | Window | Focus | Implementation (2026-07-26) |
 |------|-----|--------|-------|------------------------------|
 | Now | WO-321… | → Sept 1 2026 | E2E + App Store P0 only | Go-live children |
-| **S1** | **WO-333** | Sept–Oct | History sync + cloud backup | Postgres SyncStore; msg-agreement sync identity; `/v3/sync/ack` + PG trim; pull-error banner; restore-after-recovery |
+| **S1** | **WO-333** | Sept–Oct | History sync + cloud backup | Isolated `message_backup_blob` (027); history chunking; `/v3/sync/ack` + PG trim; restore diagnostics after phrase recovery |
 | **S2** | **WO-331** | Oct–Nov | Sealed-sender + Sender Keys + safety numbers | Redact `sender_did`; sender-key group path; safety-number UX |
 | **S3** | **WO-334** | Nov–Dec | Group signals + calls polish | Group typing/reactions UI; `/v3/calls/relays` |
 | **S4** | **WO-332** | Parallel / Q1 | View-once, requests, polls, GIF, NSE, wallpaper | Wired banner/GIF/view-once/wallpaper; NSE skeleton (Xcode target TBD) |

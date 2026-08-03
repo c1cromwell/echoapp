@@ -4,6 +4,8 @@ import Foundation
 /// Orchestrates WO-CA3 history seed (primary → linked device) and pull/apply (new device).
 @MainActor
 final class DeviceHistorySyncService {
+    /// Leaves room for encrypted envelope overhead below the server's payload limit.
+    private static let maximumHistoryCiphertextBytes = 3_670_016
     private let syncAPI: DeviceSyncAPIClient
     private let crypto: DeviceSyncCrypto
     private let conversationStore: ConversationStore
@@ -36,10 +38,19 @@ final class DeviceHistorySyncService {
         let bundle = HistorySyncBundleBuilder.build(from: conversationStore)
         let plaintext = try bundle.encoded()
         let ciphertext = try await crypto.wrap(plaintext: plaintext, recipientPublicKey: recipientKey)
-        _ = try await syncAPI.push(
+        if ciphertext.count <= Self.maximumHistoryCiphertextBytes {
+            _ = try await syncAPI.push(
+                targetDeviceId: targetDeviceId,
+                ciphertext: ciphertext,
+                entryType: DeviceSyncEntryType.history
+            )
+            return
+        }
+
+        try await pushHistoryChunks(
+            bundle,
             targetDeviceId: targetDeviceId,
-            ciphertext: ciphertext,
-            entryType: DeviceSyncEntryType.history
+            recipientKey: recipientKey
         )
     }
 
@@ -57,7 +68,7 @@ final class DeviceHistorySyncService {
 
             for entry in page.entries {
                 switch entry.entryType ?? DeviceSyncEntryType.history {
-                case DeviceSyncEntryType.history:
+                case DeviceSyncEntryType.history, DeviceSyncEntryType.historyChunk:
                     let plaintext = try await crypto.unwrapWithLocalKey(ciphertext: entry.ciphertext)
                     let bundle = try HistorySyncBundle.decode(from: plaintext)
                     HistorySyncBundleMerger.apply(bundle, to: conversationStore)
@@ -88,6 +99,65 @@ final class DeviceHistorySyncService {
         return appliedEntries
     }
 
+    /// Rebuilds the export into valid, independently mergeable conversation bundles.
+    /// A single conversation larger than the transport ceiling is rejected rather
+    /// than silently truncating history.
+    private func pushHistoryChunks(
+        _ bundle: HistorySyncBundle,
+        targetDeviceId: String,
+        recipientKey: Data
+    ) async throws {
+        let conversationIDs = Set(bundle.conversations.map(\.id))
+        let orphanIDs = Set(bundle.threads.keys).union(bundle.pollsByConversation.keys)
+            .subtracting(conversationIDs)
+
+        for conversationID in orphanIDs {
+            // History stores can contain a thread before its conversation metadata;
+            // preserve it in a standalone valid mini-bundle.
+            try await pushHistoryChunk(
+                HistorySyncBundle(
+                    conversations: [],
+                    threads: bundle.threads[conversationID].map { [conversationID: $0] } ?? [:],
+                    pollsByConversation: bundle.pollsByConversation[conversationID].map { [conversationID: $0] } ?? [:]
+                ),
+                targetDeviceId: targetDeviceId,
+                recipientKey: recipientKey
+            )
+        }
+
+        for conversation in bundle.conversations {
+            let conversationID = conversation.id
+            try await pushHistoryChunk(
+                HistorySyncBundle(
+                    conversations: [conversation],
+                    threads: bundle.threads[conversationID].map { [conversationID: $0] } ?? [:],
+                    pollsByConversation: bundle.pollsByConversation[conversationID].map { [conversationID: $0] } ?? [:]
+                ),
+                targetDeviceId: targetDeviceId,
+                recipientKey: recipientKey
+            )
+        }
+    }
+
+    private func pushHistoryChunk(
+        _ chunk: HistorySyncBundle,
+        targetDeviceId: String,
+        recipientKey: Data
+    ) async throws {
+        let ciphertext = try await crypto.wrap(
+            plaintext: try chunk.encoded(),
+            recipientPublicKey: recipientKey
+        )
+        guard ciphertext.count <= Self.maximumHistoryCiphertextBytes else {
+            throw DeviceHistorySyncError.historyChunkTooLarge
+        }
+        _ = try await syncAPI.push(
+            targetDeviceId: targetDeviceId,
+            ciphertext: ciphertext,
+            entryType: DeviceSyncEntryType.historyChunk
+        )
+    }
+
     private func applyIncremental(_ envelope: DeviceSyncMessageEnvelope) {
         switch envelope.operation {
         case .upsert:
@@ -108,10 +178,12 @@ final class DeviceHistorySyncService {
 
 enum DeviceHistorySyncError: LocalizedError {
     case missingPublicKey
+    case historyChunkTooLarge
 
     var errorDescription: String? {
         switch self {
         case .missingPublicKey: return "Linked device public key is missing."
+        case .historyChunkTooLarge: return "A conversation history chunk exceeds the device sync limit."
         }
     }
 }
