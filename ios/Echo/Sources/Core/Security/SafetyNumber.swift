@@ -1,7 +1,5 @@
-#if os(iOS)
 import Foundation
 import CryptoKit
-import SwiftUI
 
 /// Echo safety numbers (Signal Parity Wave S2) — comparable to Signal Safety Numbers.
 /// Fingerprint is derived from both parties' `did:key` material (sorted) so either
@@ -53,6 +51,9 @@ enum SafetyNumber {
         return previous != current
     }
 }
+
+#if os(iOS)
+import SwiftUI
 
 /// Glacial-styled safety number compare sheet.
 struct SafetyNumberCompareView: View {

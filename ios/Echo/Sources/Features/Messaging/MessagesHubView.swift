@@ -52,6 +52,8 @@ struct MessagesHubView: View {
     @State private var showEditPins = false
     @State private var showIntegrityExplainer = false
     @State private var showCreateGroup = false
+    @State private var savedMessages: StoredConversation?
+    @State private var localDID: String = ""
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -63,7 +65,7 @@ struct MessagesHubView: View {
                 secureBar
                 Color.clear.frame(height: 12)
                 if showSearch { searchField }
-                if showSearch && searchText.trimmingCharacters(in: .whitespacesAndNewlines).count >= 2 {
+                if showSearch && searchText.trimmingCharacters(in: .whitespacesAndNewlines).count >= 1 {
                     Button {
                         onOpenMessageSearch(searchText.trimmingCharacters(in: .whitespacesAndNewlines))
                         withAnimation { showSearch = false }
@@ -71,9 +73,11 @@ struct MessagesHubView: View {
                         searchFocused = false
                     } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: "text.magnifyingglass")
-                            Text("Search messages for \"\(searchText)\"")
+                            Image(systemName: "magnifyingglass")
+                            Text("Search people & messages for \"\(searchText)\"")
                             Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
                         }
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.echoSignal)
@@ -138,10 +142,17 @@ struct MessagesHubView: View {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { segment = .chats }
             }
         }
+        .task {
+            localDID = await CurrentUserSession.currentDID() ?? ""
+            savedMessages = await SavedMessagesStore.ensureConversation()
+        }
     }
 
     private var directConversations: [StoredConversation] {
-        conversations.filter { !Self.isGroupConversation($0) }
+        conversations.filter {
+            !Self.isGroupConversation($0)
+                && !SavedMessagesStore.isSavedMessages($0, localDID: localDID)
+        }
     }
 
     private var groupConversations: [StoredConversation] {
@@ -300,13 +311,18 @@ struct MessagesHubView: View {
 
     @ViewBuilder
     private var chatsContent: some View {
+        if let saved = savedMessages {
+            savedMessagesRow(saved)
+            Divider().background(Color.echoHair).padding(.horizontal, 18)
+        }
+
         if !pinnedConversations.isEmpty {
             pinnedStrip
         }
 
         Spacer().frame(height: 6)
 
-        if filtered.isEmpty {
+        if filtered.isEmpty && savedMessages == nil {
             placeholder(icon: "bubble.left.and.bubble.right", text: "No conversations yet.")
         } else {
             ForEach(filtered) { conv in
@@ -330,6 +346,38 @@ struct MessagesHubView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    private func savedMessagesRow(_ conv: StoredConversation) -> some View {
+        Button { onSelectConversation(conv.id) } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.echoSignal)
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "bookmark.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(SavedMessagesStore.displayName)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.echoInk)
+                    Text(conv.lastMessage.isEmpty ? "Notes and forwards" : conv.lastMessage)
+                        .font(.system(size: 13))
+                        .foregroundColor(.echoInk55)
+                        .lineLimit(1)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.echoInk40)
+            }
+            .padding(.horizontal, Spacing.lg.rawValue)
+            .padding(.vertical, 12)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Saved Messages")
     }
 
     private var pinnedStrip: some View {

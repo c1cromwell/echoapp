@@ -1,4 +1,3 @@
-#if os(iOS)
 import Foundation
 
 /// View-once media flag (Signal Parity Wave S4).
@@ -34,4 +33,3 @@ extension TextMessagePayload {
     /// Placeholder body for view-once media after burn.
     static var viewOnceBurnedPlaceholder: String { "••• View-once media" }
 }
-#endif

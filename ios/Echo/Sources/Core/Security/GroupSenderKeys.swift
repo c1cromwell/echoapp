@@ -1,4 +1,3 @@
-#if os(iOS)
 import Foundation
 import CryptoKit
 
@@ -126,4 +125,3 @@ enum GroupSenderKeyError: LocalizedError {
         }
     }
 }
-#endif

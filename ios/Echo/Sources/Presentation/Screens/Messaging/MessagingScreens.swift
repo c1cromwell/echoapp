@@ -508,6 +508,10 @@ struct ChatView: View {
             await loadGroupsInCommonSummary()
             #if os(iOS)
             pinnedMessageId = ConversationPinnedMessageStore.pinnedMessageId(conversationId: conversationId)
+            if messageText.isEmpty {
+                let draft = ComposerDraftStore.load(conversationId: conversationId)
+                if !draft.isEmpty { messageText = draft }
+            }
             #endif
             await refreshSmartReplies()
             await refreshThreadSummary()
@@ -567,6 +571,7 @@ struct ChatView: View {
                 ActiveChatRegistry.openConversationId = nil
             }
             #if os(iOS)
+            ComposerDraftStore.save(conversationId: conversationId, text: messageText)
             ScreenshotAlertService.shared.setActiveChat(conversationId: nil, peerDID: nil)
             #endif
             Task { await viewModel.disconnect() }
@@ -858,11 +863,17 @@ struct ChatView: View {
                     .overlay(Capsule().strokeBorder(Color.echoHair, lineWidth: 1))
                     .onChange(of: messageText) { _, newValue in
                         viewModel.onInputChanged(newValue)
+                        #if os(iOS)
+                        ComposerDraftStore.save(conversationId: conversationId, text: newValue)
+                        #endif
                     }
 
                 Button {
                     let text = messageText
                     messageText = ""
+                    #if os(iOS)
+                    ComposerDraftStore.clear(conversationId: conversationId)
+                    #endif
                     Task {
                         if let editId = viewModel.editingMessageId {
                             _ = await viewModel.applyEdit(messageId: editId, newText: text)
@@ -1086,14 +1097,20 @@ struct ChatView: View {
 
     @ViewBuilder
     private func replyQuoteBubble(_ quote: String, isFromCurrentUser: Bool) -> some View {
-        Text(quote)
-            .font(.system(size: 12))
-            .foregroundColor(.echoInk55)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(Color.echoPaperDim)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .frame(maxWidth: 280, alignment: isFromCurrentUser ? .trailing : .leading)
+        HStack(spacing: 0) {
+            Rectangle()
+                .fill(Color.echoSignal)
+                .frame(width: 3)
+            Text(quote)
+                .font(.system(size: 12))
+                .foregroundColor(.echoInk55)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(Color.echoPaperDim)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .frame(maxWidth: 280, alignment: isFromCurrentUser ? .trailing : .leading)
     }
 
     @ViewBuilder
@@ -1162,6 +1179,14 @@ struct ChatView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .frame(maxWidth: 280, alignment: message.isFromCurrentUser ? .trailing : .leading)
                 }
+                #if os(iOS)
+                if MessageLinkPreview.firstURL(in: message.content) != nil {
+                    ChatInlineLinkPreview(
+                        text: message.content,
+                        alignTrailing: message.isFromCurrentUser
+                    )
+                }
+                #endif
             }
         }
     }
