@@ -15,7 +15,7 @@
 | Question | Answer for Sept 1 |
 |----------|-------------------|
 | **What ships?** | Consumer messaging MVP: onboarding, DMs, Phase 3 signals, groups/calls baseline, wallet **earn/stake/claim** (no buy crypto), invite/QR discovery |
-| **What does *not* ship as “done”?** | Production Postgres channels, cloud chat backup, full multi-device history sync, in-chat tips, StoreKit VIP, private AI, token Foundation |
+| **What does *not* ship as “done”?** | Production-proven cloud chat backup / multi-device history E2E, in-chat tips, StoreKit VIP, private AI, token Foundation (channels: Postgres when `DATABASE_URL` set — don’t market until soak) |
 | **Code vs E2E?** | Messaging code is largely on `main`; **go-live is gated by device E2E + App Store P0 + legal entity** — not more feature inventing |
 | **Competitive bar?** | Launch as **verifiable-identity privacy messenger** (ahead on `did:key` / trust / no ads). Match SimpleX/Signal crypto *already coded* (Double Ratchet, sealed-sender, Tor option). Defer Telegram Stars / Grok AI / Signal cloud backup to post-Sept waves |
 | **Corporate?** | Form Wyoming HoldCo + bank + IP assignment + published ToS/Privacy **before external TestFlight** |
@@ -330,7 +330,7 @@ Legend: ✅ coded & shippable for Sept 1 if E2E green · 🟡 coded but incomple
 | Multi-device login | Signal | ✅ WO-288 link QR | ✅ Must |
 | Full history sync new device | Signal | ⬜ WO-CA3 | ❌ Post-Sept |
 | Encrypted cloud backup | Signal Secure Backup | ⬜ WO-CA2 | ❌ Post-Sept |
-| Channels / communities | WA / TG | 🟡 in-memory + iOS MVP | ❌ Don’t market as prod |
+| Channels / communities | WA / TG | 🟡 Postgres store (028) + iOS MVP | ❌ Don’t market as prod until soak |
 | In-chat payments / Stars | Telegram / Radar BTC | ⬜ tips CA4; pay WO-299 off | ❌ Off |
 | In-chat AI | Grok / Meta AI | ⬜ WO-CA1 | ❌ Never cloud plaintext |
 | Ads / tracking | WhatsApp | ❌ Rejected by thesis | ❌ Never |
