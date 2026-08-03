@@ -1,7 +1,9 @@
 package broadcast_channels
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -10,6 +12,8 @@ import (
 // ChannelService manages broadcast channels
 type ChannelService struct {
 	mu sync.RWMutex
+
+	store ChannelStore
 
 	// Core stores
 	channels         map[string]*Channel
@@ -22,9 +26,19 @@ type ChannelService struct {
 	creatorChannels  map[string][]string                      // creatorID -> channelIDs
 }
 
+// ChannelServiceOption configures optional durable channel storage.
+type ChannelServiceOption func(*ChannelService)
+
+// WithStore enables durable channel storage while retaining the in-memory hot cache.
+func WithStore(store ChannelStore) ChannelServiceOption {
+	return func(service *ChannelService) {
+		service.store = store
+	}
+}
+
 // NewChannelService creates a new channel service
-func NewChannelService() *ChannelService {
-	return &ChannelService{
+func NewChannelService(opts ...ChannelServiceOption) *ChannelService {
+	service := &ChannelService{
 		channels:         make(map[string]*Channel),
 		posts:            make(map[string]*ChannelPost),
 		subscribers:      make(map[string]*ChannelSubscriber),
@@ -33,6 +47,38 @@ func NewChannelService() *ChannelService {
 		analytics:        make(map[string]*ChannelAnalytics),
 		subscriberLookup: make(map[string]map[string]*ChannelSubscriber),
 		creatorChannels:  make(map[string][]string),
+	}
+	for _, opt := range opts {
+		opt(service)
+	}
+	if service.store != nil {
+		service.loadWarmCache()
+	}
+	return service
+}
+
+func (cs *ChannelService) loadWarmCache() {
+	channels, posts, subs, err := cs.store.LoadAll(context.Background())
+	if err != nil {
+		log.Printf("broadcast channel cache warm-up failed: %v", err)
+		return
+	}
+	for _, channel := range channels {
+		cs.channels[channel.ID] = channel
+		cs.postIndex[channel.ID] = []string{}
+		cs.subscriberLookup[channel.ID] = make(map[string]*ChannelSubscriber)
+		cs.creatorChannels[channel.CreatorID] = append(cs.creatorChannels[channel.CreatorID], channel.ID)
+	}
+	for _, post := range posts {
+		cs.posts[post.ID] = post
+		cs.postIndex[post.ChannelID] = append(cs.postIndex[post.ChannelID], post.ID)
+	}
+	for _, sub := range subs {
+		cs.subscribers[sub.ID] = sub
+		if cs.subscriberLookup[sub.ChannelID] == nil {
+			cs.subscriberLookup[sub.ChannelID] = make(map[string]*ChannelSubscriber)
+		}
+		cs.subscriberLookup[sub.ChannelID][sub.SubscriberID] = sub
 	}
 }
 
@@ -62,8 +108,17 @@ func (cs *ChannelService) CreateChannel(name, topic string, creatorID string, ch
 	sub := NewChannelSubscriber(channel.ID, creatorID)
 	sub.Role = SubscriberRoleAdmin
 	cs.subscriberLookup[channel.ID][creatorID] = sub
+	cs.subscribers[sub.ID] = sub
 	channel.SubscriberCount = 1
 
+	if cs.store != nil {
+		if err := cs.store.SaveChannel(context.Background(), channel); err != nil {
+			return nil, fmt.Errorf("persist channel: %w", err)
+		}
+		if err := cs.store.SaveSubscriber(context.Background(), sub); err != nil {
+			return nil, fmt.Errorf("persist creator subscription: %w", err)
+		}
+	}
 	return channel, nil
 }
 
@@ -98,6 +153,11 @@ func (cs *ChannelService) UpdateChannel(channelID string, updates map[string]int
 		channel.TrustScore = trustScore.(float64)
 	}
 
+	if cs.store != nil {
+		if err := cs.store.SaveChannel(context.Background(), channel); err != nil {
+			return nil, fmt.Errorf("persist channel: %w", err)
+		}
+	}
 	return channel, nil
 }
 
@@ -118,7 +178,7 @@ func (cs *ChannelService) DeleteChannel(channelID string) error {
 		delete(cs.postIndex, channelID)
 	}
 
-	delete(cs.subscriberLookup[channelID], "subscribers")
+	delete(cs.subscriberLookup, channelID)
 
 	// Remove from creator's channels
 	for i, id := range cs.creatorChannels[channel.CreatorID] {
@@ -132,6 +192,11 @@ func (cs *ChannelService) DeleteChannel(channelID string) error {
 	}
 
 	delete(cs.channels, channelID)
+	if cs.store != nil {
+		if err := cs.store.DeleteChannel(context.Background(), channelID); err != nil {
+			return fmt.Errorf("delete persisted channel: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -215,6 +280,14 @@ func (cs *ChannelService) CreatePost(channelID, creatorID, content string, conte
 	cs.posts[post.ID] = post
 	cs.postIndex[channelID] = append(cs.postIndex[channelID], post.ID)
 
+	if cs.store != nil {
+		if err := cs.store.SavePost(context.Background(), post); err != nil {
+			return nil, fmt.Errorf("persist post: %w", err)
+		}
+		if err := cs.store.SaveChannel(context.Background(), channel); err != nil {
+			return nil, fmt.Errorf("persist channel post count: %w", err)
+		}
+	}
 	return post, nil
 }
 
@@ -245,8 +318,18 @@ func (cs *ChannelService) PublishPost(postID string) (*ChannelPost, error) {
 	// Update channel post count
 	if channel, ok := cs.channels[post.ChannelID]; ok {
 		channel.TotalPostCount++
+		if cs.store != nil {
+			if err := cs.store.SaveChannel(context.Background(), channel); err != nil {
+				return nil, fmt.Errorf("persist channel post count: %w", err)
+			}
+		}
 	}
 
+	if cs.store != nil {
+		if err := cs.store.SavePost(context.Background(), post); err != nil {
+			return nil, fmt.Errorf("persist post: %w", err)
+		}
+	}
 	return post, nil
 }
 
@@ -260,6 +343,11 @@ func (cs *ChannelService) DeletePost(postID string) error {
 	}
 
 	post.PublishStatus = PublishStatusDeleted
+	if cs.store != nil {
+		if err := cs.store.DeletePost(context.Background(), postID); err != nil {
+			return fmt.Errorf("delete persisted post: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -313,8 +401,17 @@ func (cs *ChannelService) Subscribe(channelID, subscriberID string) (*ChannelSub
 
 	sub := NewChannelSubscriber(channelID, subscriberID)
 	subscribers[subscriberID] = sub
+	cs.subscribers[sub.ID] = sub
 	channel.SubscriberCount++
 
+	if cs.store != nil {
+		if err := cs.store.SaveSubscriber(context.Background(), sub); err != nil {
+			return nil, fmt.Errorf("persist subscription: %w", err)
+		}
+		if err := cs.store.SaveChannel(context.Background(), channel); err != nil {
+			return nil, fmt.Errorf("persist channel subscriber count: %w", err)
+		}
+	}
 	return sub, nil
 }
 
@@ -332,13 +429,23 @@ func (cs *ChannelService) Unsubscribe(channelID, subscriberID string) error {
 		return fmt.Errorf("no subscribers")
 	}
 
-	if _, exists := subscribers[subscriberID]; !exists {
+	sub, exists := subscribers[subscriberID]
+	if !exists {
 		return fmt.Errorf("not subscribed")
 	}
 
 	delete(subscribers, subscriberID)
+	delete(cs.subscribers, sub.ID)
 	channel.SubscriberCount--
 
+	if cs.store != nil {
+		if err := cs.store.DeleteSubscriber(context.Background(), channelID, subscriberID); err != nil {
+			return fmt.Errorf("delete persisted subscription: %w", err)
+		}
+		if err := cs.store.SaveChannel(context.Background(), channel); err != nil {
+			return fmt.Errorf("persist channel subscriber count: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -374,6 +481,11 @@ func (cs *ChannelService) UpdateSubscriberRole(channelID, subscriberID string, r
 	}
 
 	sub.Role = role
+	if cs.store != nil {
+		if err := cs.store.SaveSubscriber(context.Background(), sub); err != nil {
+			return fmt.Errorf("persist subscriber role: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -409,6 +521,11 @@ func (cs *ChannelService) MuteSubscriber(channelID, subscriberID string) error {
 	}
 
 	sub.IsMuted = true
+	if cs.store != nil {
+		if err := cs.store.SaveSubscriber(context.Background(), sub); err != nil {
+			return fmt.Errorf("persist muted subscriber: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -427,6 +544,11 @@ func (cs *ChannelService) UnmuteSubscriber(channelID, subscriberID string) error
 	}
 
 	sub.IsMuted = false
+	if cs.store != nil {
+		if err := cs.store.SaveSubscriber(context.Background(), sub); err != nil {
+			return fmt.Errorf("persist unmuted subscriber: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -445,6 +567,11 @@ func (cs *ChannelService) BlockSubscriber(channelID, subscriberID string) error 
 	}
 
 	sub.IsBlocked = true
+	if cs.store != nil {
+		if err := cs.store.SaveSubscriber(context.Background(), sub); err != nil {
+			return fmt.Errorf("persist blocked subscriber: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -470,6 +597,11 @@ func (cs *ChannelService) ReportPost(channelID, postID, reporterID string, reaso
 	action.ReasonCode = reason
 	cs.moderations[action.ID] = action
 
+	if cs.store != nil {
+		if err := cs.store.SavePost(context.Background(), post); err != nil {
+			return nil, fmt.Errorf("persist moderated post: %w", err)
+		}
+	}
 	return action, nil
 }
 
@@ -490,8 +622,18 @@ func (cs *ChannelService) ApprovePost(postID string) error {
 	// Update channel post count
 	if channel, ok := cs.channels[post.ChannelID]; ok {
 		channel.TotalPostCount++
+		if cs.store != nil {
+			if err := cs.store.SaveChannel(context.Background(), channel); err != nil {
+				return fmt.Errorf("persist channel post count: %w", err)
+			}
+		}
 	}
 
+	if cs.store != nil {
+		if err := cs.store.SavePost(context.Background(), post); err != nil {
+			return fmt.Errorf("persist approved post: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -507,6 +649,11 @@ func (cs *ChannelService) RejectPost(postID string, reason string) error {
 	post.PublishStatus = PublishStatusArchived
 	post.ModStatus = ModStatusRejected
 	post.ModNotes = reason
+	if cs.store != nil {
+		if err := cs.store.SavePost(context.Background(), post); err != nil {
+			return fmt.Errorf("persist rejected post: %w", err)
+		}
+	}
 
 	return nil
 }
@@ -540,6 +687,11 @@ func (cs *ChannelService) RecordView(channelID string) error {
 		float64(channel.SubscriberCount)/100.0,
 	)
 
+	if cs.store != nil {
+		if err := cs.store.SaveChannel(context.Background(), channel); err != nil {
+			return fmt.Errorf("persist channel view count: %w", err)
+		}
+	}
 	return nil
 }
 

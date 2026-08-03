@@ -73,9 +73,13 @@ final class RecoveryService {
                 UserDefaults.standard.set(true, forKey: "echo.backup.restoredAfterRecovery")
                 UserDefaults.standard.set(count, forKey: "echo.backup.restoredConversationCount")
             }
+            UserDefaults.standard.set(count, forKey: "echo.backup.lastRestoreCount")
+            UserDefaults.standard.removeObject(forKey: "echo.backup.lastRestoreError")
         } catch {
             // Expected when no cloud backup exists yet.
             UserDefaults.standard.set(false, forKey: "echo.backup.restoredAfterRecovery")
+            UserDefaults.standard.set(0, forKey: "echo.backup.lastRestoreCount")
+            UserDefaults.standard.set(error.localizedDescription, forKey: "echo.backup.lastRestoreError")
         }
     }
 
