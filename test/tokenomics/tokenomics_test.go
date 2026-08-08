@@ -68,18 +68,19 @@ func TestAllocationBreakdown(t *testing.T) {
 	}
 }
 
-// TestTrustScoreMultiplier verifies reward multipliers based on trust score
+// TestTrustScoreMultiplier verifies reward multipliers based on trust score.
+// Canonical table (Tokenomics v2.0) — see models.TrustScore.GetMultiplier.
 func TestTrustScoreMultiplier(t *testing.T) {
 	tests := []struct {
 		name         string
 		trustScore   int
 		expectedMult float64
 	}{
-		{"Unverified", 10, 0.5},
-		{"Newcomer", 30, 1.0},
+		{"Unverified", 10, 1.0},
+		{"Newcomer", 30, 1.2},
 		{"Member", 50, 1.5},
-		{"Trusted", 70, 2.5},
-		{"Verified", 90, 5.0},
+		{"Trusted", 70, 2.0},
+		{"Verified", 90, 3.0},
 	}
 
 	for _, tt := range tests {
@@ -207,7 +208,7 @@ func TestStakingRewardCalculation(t *testing.T) {
 	}
 }
 
-// TestDailyRewardTracker verifies daily limit tracking
+// TestDailyRewardTracker verifies PRD v2.5.1 auto-scaling: no hard daily cap.
 func TestDailyRewardTracker(t *testing.T) {
 	tracker := &models.DailyRewardTracker{
 		UserID:           "user_123",
@@ -217,15 +218,13 @@ func TestDailyRewardTracker(t *testing.T) {
 		TotalActions:     300,
 	}
 
-	// Should not be at limit yet (250 < 500)
 	if tracker.IsLimitReached() {
 		t.Error("Limit should not be reached at 250 messages")
 	}
 
-	// Reach the limit
 	tracker.MessagesRewarded = 500
-	if !tracker.IsLimitReached() {
-		t.Error("Limit should be reached at 500 messages")
+	if tracker.IsLimitReached() {
+		t.Error("IsLimitReached should stay false under auto-scaling (no hard 500-message cap)")
 	}
 }
 
