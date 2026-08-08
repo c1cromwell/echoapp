@@ -22,7 +22,8 @@ func TestBucketKeyWeeklyMonthly(t *testing.T) {
 func TestRankingOrderAndTiebreak(t *testing.T) {
 	svc := NewService(nil)
 	ctx := context.Background()
-	at := time.Date(2026, 7, 8, 0, 0, 0, 0, time.UTC)
+	// Top() reads the current weekly bucket (time.Now); record into that same window.
+	at := time.Now().UTC()
 	_ = svc.RecordEarning(ctx, "did:b", 3, 300, at)
 	_ = svc.RecordEarning(ctx, "did:a", 3, 500, at)
 	_ = svc.RecordEarning(ctx, "did:a", 3, 100, at) // did:a total 600
