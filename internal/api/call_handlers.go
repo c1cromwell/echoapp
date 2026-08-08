@@ -31,8 +31,8 @@ func (h *V3Handlers) handleCallsICEServers(w http.ResponseWriter, r *http.Reques
 		servers = append(servers, entry)
 	}
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"ice_servers":      servers,
-		"turn_configured":  turnConfigured,
-		"relays":           servers, // alias for Signal-style clients / CallICEAPIClient
+		"ice_servers":     servers,
+		"turn_configured": turnConfigured,
+		"relays":          servers, // alias for Signal-style clients / CallICEAPIClient
 	})
 }

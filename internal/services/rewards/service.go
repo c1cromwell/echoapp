@@ -68,10 +68,10 @@ type PendingRewards struct {
 // Engagement event weights (activity units toward auto-scale + pending accrual).
 // Channel engagement pays from the same community emission pool as messaging.
 const (
-	EngagementWeightChannelPost   = 2.0
-	EngagementWeightChannelReact  = 0.5
-	EngagementWeightChannelSub    = 1.0
-	EngagementWeightChannelView   = 0.1
+	EngagementWeightChannelPost    = 2.0
+	EngagementWeightChannelReact   = 0.5
+	EngagementWeightChannelSub     = 1.0
+	EngagementWeightChannelView    = 0.1
 	EngagementWeightChannelComment = 1.0
 
 	// Base micro-ECHO (1e8 = 1 ECHO) credited per engagement unit before trust multiplier.
@@ -218,8 +218,8 @@ func (s *Service) GetPending(ctx context.Context, did string, trustTier int) (*P
 	}
 
 	pending := map[string]int64{
-		"messaging":           pendingMessaging,
-		"channel_engagement":  pendingEngagement,
+		"messaging":          pendingMessaging,
+		"channel_engagement": pendingEngagement,
 	}
 	var total int64
 	for _, amt := range pending {
