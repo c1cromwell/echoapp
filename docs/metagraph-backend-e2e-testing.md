@@ -28,7 +28,8 @@ scripts/hydra start-genesis
 scripts/hydra status
 ```
 
-Wait until **Global L0**, **Metagraph L0**, **Currency L1**, **Data L1**, **Identity L0**, and **Identity L1** are up.
+Wait until **Global L0**, **Metagraph L0**, **Currency L1**, and **Data L1** are up.  
+**Identity L0/L1 are not managed by hydra** — after `make dev`, build JARs and run `make start-identity` (L0 `:9600`, L1 `:9500`).
 
 ### Quick health checks (all should return JSON or HTTP 200)
 

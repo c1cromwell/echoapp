@@ -78,12 +78,35 @@ make validate-phase1    # or document skips if simulator-only PR
 
 ### 2.2 Start stack
 
+Identity L0/L1 are **not** part of Euclid `hydra` / `make dev`. Start them only when you need VC, Passport, or `validate-phase1` step 3 (trust-tier).
+
 ```bash
-make dev                 # metagraph + gateway :8000
-make dev-status          # health
+# Core cluster (Global L0 :9000, Metagraph L0 :9200, Currency L1 :9300, Data L1 :9400 + API :8000)
+make dev
+make dev-status
+
+# Identity metagraph (optional — separate Docker compose)
+cd metagraph && sbt identityL0/assembly identityL1/assembly   # once / after Scala changes
+make start-identity   # Identity L0 :9600, Identity L1 :9500
+# Stop: make stop-identity
+
 # iOS Simulator API_URL (scheme): http://localhost:8000
 # Physical device: http://<LAN-IP>:8000
 ```
+
+| Layer | URL | Started by |
+|-------|-----|------------|
+| Global L0 | `http://localhost:9000/node/info` | `make dev` (hydra) |
+| Metagraph L0 | `http://localhost:9200/node/info` | `make dev` |
+| Currency L1 | `http://localhost:9300/node/info` | `make dev` |
+| Data L1 | `http://localhost:9400/node/info` | `make dev` |
+| Identity L0 | `http://localhost:9600/node/info` | `make start-identity` |
+| Identity L1 | `http://localhost:9500/node/info` | `make start-identity` |
+| Backend | `http://localhost:8000/health` | `make dev` |
+
+`start-identity` requires: assembly JARs under `metagraph/modules/identity_l*/target/…`, Docker image `metagraph-base-image:latest` (from `make dev`), and Global L0 already up on `:9000`.
+
+Cluster deep dive: [`metagraph-backend-e2e-testing.md`](metagraph-backend-e2e-testing.md).
 
 Scheme: **EchoApp** / product **EchoMessaging**. Agents cannot tap Simulator UI — humans run §5–§8.
 
