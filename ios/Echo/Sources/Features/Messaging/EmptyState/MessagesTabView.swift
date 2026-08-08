@@ -23,6 +23,7 @@ struct MessagesTabView: View {
     @State private var showMessageSearch = false
     @State private var messageSearchSeed = ""
     @State private var syncPullError: String?
+    @State private var showPersonaManager = false
 
     private var personaFilteredConversations: [StoredConversation] {
         conversationStore.conversations.filter {
@@ -95,6 +96,7 @@ struct MessagesTabView: View {
                             onOpenHiddenSettings: { showHiddenSettings = true },
                             onSwitchPersona: { appState.switchPersona($0) },
                             onSelectHiddenPersona: { _ in showBiometricGate = true },
+                            onCreatePersona: { showPersonaManager = true },
                             onToggleArchive: { conversationId, archived in
                                 Task {
                                     if let client = DIContainer.shared.resolveAPIClient().map({
@@ -120,6 +122,9 @@ struct MessagesTabView: View {
             .navigationDestination(for: StoredConversation.self) { conversation in
                 ChatDestinationView(conversation: conversation)
             }
+        }
+        .sheet(isPresented: $showPersonaManager) {
+            NavigationStack { PersonaSettingsView() }
         }
         .sheet(isPresented: $composeSheetPresented) {
             NewConversationSheet(

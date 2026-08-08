@@ -94,6 +94,43 @@ final class EchoUXFlowUITests: XCTestCase {
         }
     }
 
+    /// Persona management: from the Settings tab, open Personas and add one.
+    func testCreatePersonaFromSettings() throws {
+        launch(authenticated: true)
+        let settingsTab = app.buttons["Settings"]
+        guard settingsTab.waitForExistence(timeout: 12) else {
+            throw XCTSkip("Main tabs did not appear (authenticated launch may need a seeded session)")
+        }
+        settingsTab.tap()
+
+        let personas = app.buttons["settings.personas"]
+        XCTAssertTrue(personas.waitForExistence(timeout: 6), "Personas row not found in Settings")
+        personas.tap()
+        snap("personas-list")
+
+        let add = app.buttons["personas.add"]
+        XCTAssertTrue(add.waitForExistence(timeout: 6), "Add Persona button not found")
+        add.tap()
+
+        // Editor sheet opened — gate on its nav title so the field is present.
+        // (firstMatch is unusable: MainTabView keeps all tabs in the hierarchy,
+        // so a background "Search contacts" field ranks first.)
+        XCTAssertTrue(app.navigationBars["New Persona"].waitForExistence(timeout: 6), "Persona editor did not open")
+        let byId = app.textFields["persona.nameField"]
+        _ = byId.waitForExistence(timeout: 4)
+        let field = byId.exists ? byId : app.textFields["Persona name"]
+        XCTAssertTrue(field.waitForExistence(timeout: 3), "Persona name field not found")
+        field.tap()
+        field.typeText("Gaming")
+        app.buttons["Save"].tap()
+
+        XCTAssertTrue(
+            app.staticTexts["Gaming"].waitForExistence(timeout: 6),
+            "Newly created persona did not appear in the list"
+        )
+        snap("persona-created")
+    }
+
     // MARK: - Helpers
 
     /// Screenshot attached to the test, kept in the .xcresult and exported by

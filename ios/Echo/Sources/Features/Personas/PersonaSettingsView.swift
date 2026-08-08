@@ -62,6 +62,7 @@ struct PersonaSettingsView: View {
                             .background(Color.echoSignal)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
+                        .accessibilityIdentifier("personas.add")
 
                         Text("Your primary persona is your main profile — it can be renamed but not removed. Add personas to keep different sides of your life separate.")
                             .typographyStyle(.caption, color: .echoSecondaryText)
@@ -210,6 +211,7 @@ private struct PersonaEditorSheet: View {
                     TextField("Persona name", text: $name)
                         .focused($nameFocused)
                         .autocorrectionDisabled(true)
+                        .accessibilityIdentifier("persona.nameField")
                 }
 
                 // The primary persona's color is derived from the profile; only

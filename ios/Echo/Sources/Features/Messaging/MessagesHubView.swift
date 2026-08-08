@@ -39,6 +39,7 @@ struct MessagesHubView: View {
     var onOpenHiddenSettings: () -> Void = {}
     let onSwitchPersona: (PersonaSummary) -> Void
     let onSelectHiddenPersona: (PersonaSummary) -> Void
+    var onCreatePersona: () -> Void = {}
     let onToggleArchive: (String, Bool) -> Void
     let onOpenMessageSearch: (String) -> Void
     let onGroupCreated: (String, String) -> Void
@@ -113,7 +114,8 @@ struct MessagesHubView: View {
                 personas: personas,
                 activeID: activePersona.id,
                 onSelect: { showPersonaSheet = false; onSwitchPersona($0) },
-                onSelectHidden: { showPersonaSheet = false; onSelectHiddenPersona($0) }
+                onSelectHidden: { showPersonaSheet = false; onSelectHiddenPersona($0) },
+                onCreate: { showPersonaSheet = false; onCreatePersona() }
             )
         }
         .sheet(isPresented: $showEditPins) {

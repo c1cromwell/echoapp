@@ -2852,6 +2852,7 @@ public struct AboutView: View {
                                     value: "\(appState.manageablePersonas.count)"
                                 )
                             }
+                            .accessibilityIdentifier("settings.personas")
                             Divider().padding(.leading, 52)
                             NavigationLink {
                                 VIPSubscriptionView()
