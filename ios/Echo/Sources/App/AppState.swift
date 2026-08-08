@@ -24,7 +24,7 @@ final class AppState {
     var pendingInviteCode: String?
 
     var personas: [PersonaSummary] = []
-    var activePersona: PersonaSummary = PersonaSummary(id: "default", name: "Me", initials: "ME")
+    var activePersona: PersonaSummary = PersonaSummary(id: "default", name: "You", initials: "")
 
     let provisionService: SilentProvisionService
 
@@ -34,7 +34,7 @@ final class AppState {
         self.trustTier = UserDefaults.standard.integer(forKey: "echo.trustTier")
         self.root = Self.initialRoot()
 
-        self.personas = PersonaSessionStore.defaultPersonas(displayName: displayName)
+        self.personas = PersonaSessionStore.personas(displayName: displayName)
         self.activePersona = PersonaSessionStore.resolveActive(in: personas)
     }
 
@@ -70,11 +70,15 @@ final class AppState {
         // (GlacialLoginScreen) recognises the account and shows Face ID — not
         // the "Create account" screen.
         Task { try? await KeychainManager.shared.store(key: "echo.username.current", value: displayName) }
+        // Name the primary persona after the chosen username (not "Me").
+        applyPrimaryName(displayName)
         root = .authenticated
     }
 
     func firstRunRestoreCompleted(_ identity: RestoredIdentity) {
         self.displayName = identity.displayName
+        UserDefaults.standard.set(identity.displayName, forKey: "echo.displayName")
+        applyPrimaryName(identity.displayName)
         root = .authenticated
     }
 
@@ -108,6 +112,73 @@ final class AppState {
     func switchPersona(_ persona: PersonaSummary) {
         activePersona = persona
         PersonaSessionStore.setActivePersonaId(persona.id)
+    }
+
+    // MARK: - Persona management (Persona Settings)
+
+    /// Personas the user can manage (excludes the biometric-gated hidden vault persona).
+    var manageablePersonas: [PersonaSummary] {
+        personas.filter { $0.id != PersonaSessionStore.hiddenPersonaId }
+    }
+
+    /// Renames the primary persona and the profile display name. Used by
+    /// "edit username" (local display name only — the account handle is unchanged).
+    func renamePrimaryPersona(_ name: String) {
+        let clean = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return }
+        displayName = clean
+        UserDefaults.standard.set(clean, forKey: "echo.displayName")
+        applyPrimaryName(clean)
+    }
+
+    func addPersona(name: String, colorHex: UInt32, trustLevel: String = "Trusted") {
+        let clean = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return }
+        let persona = PersonaSummary(
+            id: PersonaSessionStore.newPersonaId(),
+            name: clean,
+            initials: PersonaSessionStore.initials(from: clean),
+            trustLevel: trustLevel,
+            colorHex: colorHex
+        )
+        personas = PersonaSessionStore.add(persona, to: personas)
+    }
+
+    func updatePersona(id: String, name: String, colorHex: UInt32, trustLevel: String) {
+        guard let existing = personas.first(where: { $0.id == id }) else { return }
+        let clean = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return }
+        // The primary persona keeps its display name in sync with the profile.
+        if id == PersonaSessionStore.primaryPersonaId {
+            renamePrimaryPersona(clean)
+            return
+        }
+        let updated = PersonaSummary(
+            id: existing.id,
+            name: clean,
+            initials: PersonaSessionStore.initials(from: clean),
+            trustLevel: trustLevel,
+            isHidden: existing.isHidden,
+            colorHex: colorHex
+        )
+        personas = PersonaSessionStore.update(updated, in: personas)
+        if activePersona.id == id { activePersona = updated }
+    }
+
+    func deletePersona(id: String) {
+        guard !PersonaSessionStore.isSystemPersona(id) else { return }
+        personas = PersonaSessionStore.delete(id: id, from: personas)
+        // If the active persona was removed, fall back to primary.
+        if activePersona.id == id {
+            let primary = personas.first { $0.id == PersonaSessionStore.primaryPersonaId } ?? personas.first!
+            switchPersona(primary)
+        }
+    }
+
+    /// Renames the primary persona in the persisted list and refreshes live state.
+    private func applyPrimaryName(_ name: String) {
+        personas = PersonaSessionStore.renamePrimary(name: name, in: PersonaSessionStore.personas(displayName: name))
+        activePersona = PersonaSessionStore.resolveActive(in: personas)
     }
 }
 

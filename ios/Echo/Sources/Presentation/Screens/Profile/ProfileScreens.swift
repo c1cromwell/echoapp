@@ -2762,7 +2762,10 @@ public struct AboutView: View {
 
  struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(AppState.self) private var appState
     @State private var showSignOutAlert = false
+    @State private var showRenameProfile = false
+    @State private var renameText = ""
     @State private var vipStatusLabel = VIPSubscriptionStore.statusLabel
 
     let onAccountSettings: () -> Void
@@ -2811,7 +2814,45 @@ public struct AboutView: View {
 
                 ScrollView {
                     VStack(spacing: Spacing.lg.rawValue) {
+                        // Profile header — display name (primary persona) + edit.
+                        HStack(spacing: Spacing.md.rawValue) {
+                            Circle()
+                                .fill(Color(hex: appState.activePersona.colorHex))
+                                .frame(width: 52, height: 52)
+                                .overlay(
+                                    Text(appState.activePersona.initials)
+                                        .font(.system(size: 19, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                )
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(appState.displayName.isEmpty ? appState.activePersona.name : appState.displayName)
+                                    .typographyStyle(.h4, color: .echoPrimaryText)
+                                Text("Your profile display name")
+                                    .typographyStyle(.caption, color: .echoSecondaryText)
+                            }
+                            Spacer()
+                            Button("Edit") {
+                                renameText = appState.displayName.isEmpty ? appState.activePersona.name : appState.displayName
+                                showRenameProfile = true
+                            }
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.echoSignal)
+                        }
+                        .padding(Spacing.md.rawValue)
+                        .background(Color.echoSurface)
+                        .cornerRadius(12)
+
                         VStack(spacing: 0) {
+                            NavigationLink {
+                                PersonaSettingsView()
+                            } label: {
+                                SettingsNavLinkLabel(
+                                    icon: "person.2.circle.fill",
+                                    title: "Personas",
+                                    value: "\(appState.manageablePersonas.count)"
+                                )
+                            }
+                            Divider().padding(.leading, 52)
                             NavigationLink {
                                 VIPSubscriptionView()
                             } label: {
@@ -2839,7 +2880,11 @@ public struct AboutView: View {
                                 SettingsNavLinkLabel(icon: "lock.fill", title: "Privacy & Security")
                             }
                             Divider().padding(.leading, 52)
-                            SettingsNavRow(icon: "bell.fill", title: "Notifications", action: onNotificationSettings)
+                            NavigationLink {
+                                NotificationPreferencesView()
+                            } label: {
+                                SettingsNavLinkLabel(icon: "bell.fill", title: "Notifications")
+                            }
                             Divider().padding(.leading, 52)
                             SettingsNavRow(icon: "paintbrush.fill", title: "Appearance", action: onAppearanceSettings)
                             Divider().padding(.leading, 52)
@@ -2893,6 +2938,13 @@ public struct AboutView: View {
             Button("Continue", role: .destructive) { onNewAccountSetup() }
         } message: {
             Text("Starts onboarding again on this device. Your existing passkey identity may still be in the Secure Enclave — use a second simulator for a clean second account if onboarding fails.")
+        }
+        .alert("Display name", isPresented: $showRenameProfile) {
+            TextField("Name", text: $renameText)
+            Button("Cancel", role: .cancel) {}
+            Button("Save") { appState.renamePrimaryPersona(renameText) }
+        } message: {
+            Text("This is the name shown on your primary persona across Echo.")
         }
         .onAppear { vipStatusLabel = VIPSubscriptionStore.statusLabel }
     }
