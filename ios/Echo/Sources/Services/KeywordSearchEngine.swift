@@ -104,8 +104,10 @@ actor KeywordSearchEngine {
     private func matchesFilter(_ contentType: String, filter: SearchFilter) -> Bool {
         switch filter {
         case .all: return true
+        case .media: return contentType == "image" || contentType == "video"
+            || contentType == "audio" || contentType == "file"
         case .files: return contentType == "file"
-        case .photos: return contentType == "image"
+        case .photos: return contentType == "image" || contentType == "video"
         case .links: return contentType == "link"
         case .voice: return contentType == "audio"
         }

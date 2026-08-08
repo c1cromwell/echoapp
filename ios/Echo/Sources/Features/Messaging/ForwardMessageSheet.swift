@@ -2,12 +2,44 @@
 import SwiftUI
 
 /// Pick one or more conversations (including Saved Messages) to forward into.
+/// Forwards one or many messages (multi-select) to each chosen destination.
 struct ForwardMessageSheet: View {
-    let messagePreview: String
-    let sourceMessageId: String?
+    struct Item: Identifiable, Hashable {
+        let id: String       // source message id
+        let preview: String  // content to forward
+    }
+
+    let items: [Item]
     let sourceConversationId: String?
     let excludingConversationId: String
     let onForwarded: () -> Void
+
+    /// Single-message convenience (existing call sites).
+    init(
+        messagePreview: String,
+        sourceMessageId: String?,
+        sourceConversationId: String?,
+        excludingConversationId: String,
+        onForwarded: @escaping () -> Void
+    ) {
+        self.items = [Item(id: sourceMessageId ?? UUID().uuidString, preview: messagePreview)]
+        self.sourceConversationId = sourceConversationId
+        self.excludingConversationId = excludingConversationId
+        self.onForwarded = onForwarded
+    }
+
+    /// Multi-message initializer (selection mode).
+    init(
+        items: [Item],
+        sourceConversationId: String?,
+        excludingConversationId: String,
+        onForwarded: @escaping () -> Void
+    ) {
+        self.items = items
+        self.sourceConversationId = sourceConversationId
+        self.excludingConversationId = excludingConversationId
+        self.onForwarded = onForwarded
+    }
 
     @Environment(\.dismiss) private var dismiss
     @Bindable private var conversationStore = ConversationStore.shared
@@ -46,7 +78,7 @@ struct ForwardMessageSheet: View {
                     .listStyle(.plain)
                 }
             }
-            .navigationTitle("Forward to")
+            .navigationTitle(items.count > 1 ? "Forward \(items.count) messages" : "Forward to")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -130,12 +162,14 @@ struct ForwardMessageSheet: View {
         guard !targets.isEmpty else { return }
 
         for conversation in targets {
-            await MessageForwarder.forward(
-                content: messagePreview,
-                to: conversation,
-                fromMessageId: sourceMessageId,
-                fromConversationId: sourceConversationId
-            )
+            for item in items {
+                await MessageForwarder.forward(
+                    content: item.preview,
+                    to: conversation,
+                    fromMessageId: item.id,
+                    fromConversationId: sourceConversationId
+                )
+            }
         }
         onForwarded()
         dismiss()

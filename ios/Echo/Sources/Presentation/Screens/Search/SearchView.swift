@@ -128,11 +128,12 @@ public struct SearchView: View {
 // MARK: - Search Filter
 
 enum SearchFilter: String, CaseIterable {
-    case all, files, photos, links, voice
+    case all, media, photos, files, links, voice
 
     var displayName: String {
         switch self {
         case .all: return "All"
+        case .media: return "Media"
         case .files: return "Files"
         case .photos: return "Photos"
         case .links: return "Links"

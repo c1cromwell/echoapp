@@ -164,6 +164,9 @@ struct ChatView: View {
     @State private var isMessageRequestPending = false
     @State private var sendMediaViewOnce = false
     @State private var showGifPicker = false
+    @State private var isSelecting = false
+    @State private var selectedMessageIds: Set<String> = []
+    @State private var showMultiForward = false
 
     let contactName: String
     let conversationId: String
@@ -310,7 +313,24 @@ struct ChatView: View {
                                 .listRowBackground(Color.clear)
                         }
                         ForEach(viewModel.messages) { message in
-                            messageRow(for: message)
+                            HStack(spacing: 8) {
+                                if isSelecting {
+                                    Image(systemName: selectedMessageIds.contains(message.id) ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(selectedMessageIds.contains(message.id) ? .echoSignal : .echoInk40)
+                                        .padding(.leading, 12)
+                                }
+                                messageRow(for: message)
+                                    .allowsHitTesting(!isSelecting)
+                            }
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(.init())
+                            .listRowBackground(Color.clear)
+                            .contentShape(Rectangle())
+                            .gesture(
+                                TapGesture().onEnded { toggleSelect(message.id) },
+                                including: isSelecting ? .gesture : .subviews
+                            )
                         }
                     }
                     .listStyle(.plain)
@@ -545,6 +565,14 @@ struct ChatView: View {
                 }
             )
         }
+        .sheet(isPresented: $showMultiForward) {
+            ForwardMessageSheet(
+                items: selectedForwardItems,
+                sourceConversationId: conversationId,
+                excludingConversationId: conversationId,
+                onForwarded: { exitSelection() }
+            )
+        }
         .sheet(isPresented: $showScheduleMessage) {
             ScheduleMessageSheet(initialText: scheduleSourceText) { fireAt in
                 _ = ScheduledMessageStore.schedule(
@@ -616,22 +644,60 @@ struct ChatView: View {
 
             Spacer()
 
-            Button { showVideoCall = true } label: {
-                Image(systemName: "video")
-                    .font(.system(size: 18))
-                    .foregroundColor(.echoInk70)
-            }
-            .buttonStyle(.plain)
+            if isSelecting {
+                Button(selectedMessageIds.isEmpty ? "Forward" : "Forward (\(selectedMessageIds.count))") {
+                    showMultiForward = true
+                }
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(.echoSignal)
+                .disabled(selectedMessageIds.isEmpty)
 
-            Button { showVoiceCall = true } label: {
-                Image(systemName: "phone")
-                    .font(.system(size: 18))
+                Button("Cancel") { exitSelection() }
+                    .font(.system(size: 15))
                     .foregroundColor(.echoInk70)
+            } else {
+                Button { isSelecting = true } label: {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 18))
+                        .foregroundColor(.echoInk70)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Select messages")
+
+                Button { showVideoCall = true } label: {
+                    Image(systemName: "video")
+                        .font(.system(size: 18))
+                        .foregroundColor(.echoInk70)
+                }
+                .buttonStyle(.plain)
+
+                Button { showVoiceCall = true } label: {
+                    Image(systemName: "phone")
+                        .font(.system(size: 18))
+                        .foregroundColor(.echoInk70)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
         .padding(.horizontal, Spacing.md.rawValue)
         .padding(.vertical, 10)
+    }
+
+    private func toggleSelect(_ id: String) {
+        if selectedMessageIds.contains(id) { selectedMessageIds.remove(id) }
+        else { selectedMessageIds.insert(id) }
+    }
+
+    private func exitSelection() {
+        isSelecting = false
+        selectedMessageIds = []
+    }
+
+    /// Selected messages as forward items, in conversation order.
+    private var selectedForwardItems: [ForwardMessageSheet.Item] {
+        viewModel.messages
+            .filter { selectedMessageIds.contains($0.id) }
+            .map { ForwardMessageSheet.Item(id: $0.id, preview: $0.content) }
     }
 
     private var contactProfileCard: some View {
