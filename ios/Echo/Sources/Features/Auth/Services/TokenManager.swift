@@ -39,7 +39,7 @@ final class TokenManager: ObservableObject {
             try keychain.save(data, for: Self.refreshTokenKey)
         }
 
-        isAuthenticated = true
+        setAuthenticated(true)
     }
 
     // MARK: - Get Valid Access Token (auto-refresh)
@@ -94,10 +94,23 @@ final class TokenManager: ObservableObject {
         accessToken = nil
         accessTokenExpiry = nil
         try? keychain.delete(for: Self.refreshTokenKey)
-        isAuthenticated = false
+        setAuthenticated(false)
     }
 
     // MARK: - Helpers
+
+    /// Publishes `isAuthenticated` on the main thread. Token refresh runs inside
+    /// a detached `Task`, so `storeTokens`/`clearTokens` can be invoked off-main;
+    /// `@Published` must only change on the main thread.
+    private func setAuthenticated(_ value: Bool) {
+        if Thread.isMainThread {
+            isAuthenticated = value
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                self?.isAuthenticated = value
+            }
+        }
+    }
 
     private func hasStoredRefreshToken() -> Bool {
         (try? keychain.load(for: Self.refreshTokenKey)) != nil

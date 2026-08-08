@@ -106,7 +106,7 @@ struct EchoTabBar_Previews: PreviewProvider {
                 tabs: [
                     TabBarItem(title: "Messages", icon: Image(systemName: "message.fill"), badge: 3),
                     TabBarItem(title: "Contacts", icon: Image(systemName: "person.2.fill")),
-                    TabBarItem(title: "Trust", icon: Image(systemName: "shield.checkmark.fill")),
+                    TabBarItem(title: "Trust", icon: Image(systemName: "checkmark.shield.fill")),
                     TabBarItem(title: "Rewards", icon: Image(systemName: "star.fill")),
                     TabBarItem(title: "Profile", icon: Image(systemName: "person.circle.fill"))
                 ]
