@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -695,6 +696,35 @@ func (p *PostgresDB) UpdateNotificationPrefs(ctx context.Context, prefs *Notific
 		prefs.DID, prefs.PushEnabled, prefs.MessagePreview, prefs.GroupNotifications, prefs.ChannelNotifications)
 	if err != nil {
 		return fmt.Errorf("update notification prefs: %w", err)
+	}
+	return nil
+}
+
+// --- ChatFolderStore ---
+
+func (p *PostgresDB) GetChatFolders(ctx context.Context, did string) (json.RawMessage, error) {
+	var raw []byte
+	err := p.pool.QueryRow(ctx,
+		`SELECT folders FROM chat_folders WHERE did = $1`, did).Scan(&raw)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return json.RawMessage("[]"), nil
+		}
+		return nil, fmt.Errorf("get chat folders: %w", err)
+	}
+	return json.RawMessage(raw), nil
+}
+
+func (p *PostgresDB) SetChatFolders(ctx context.Context, did string, folders json.RawMessage) error {
+	if len(folders) == 0 {
+		folders = json.RawMessage("[]")
+	}
+	_, err := p.pool.Exec(ctx,
+		`INSERT INTO chat_folders (did, folders) VALUES ($1, $2)
+		 ON CONFLICT (did) DO UPDATE SET folders = $2, updated_at = NOW()`,
+		did, []byte(folders))
+	if err != nil {
+		return fmt.Errorf("set chat folders: %w", err)
 	}
 	return nil
 }

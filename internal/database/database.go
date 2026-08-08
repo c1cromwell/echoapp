@@ -3,6 +3,7 @@ package database
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -225,6 +226,10 @@ type NotificationStore interface {
 	UpdateAPNsToken(ctx context.Context, deviceID, token string) error
 	GetNotificationPrefs(ctx context.Context, did string) (*NotificationPrefs, error)
 	UpdateNotificationPrefs(ctx context.Context, prefs *NotificationPrefs) error
+	// GetChatFolders returns the user's chat-folder list as an opaque JSON array
+	// (empty array if none). SetChatFolders stores it verbatim (last-write-wins).
+	GetChatFolders(ctx context.Context, did string) (json.RawMessage, error)
+	SetChatFolders(ctx context.Context, did string, folders json.RawMessage) error
 }
 
 type LogIndexStore interface {
@@ -324,6 +329,7 @@ type MemoryDB struct {
 	devices           map[string]*UserDevice
 	devicesByDID      map[string][]*UserDevice
 	notificationPrefs map[string]*NotificationPrefs
+	chatFolders       map[string]json.RawMessage
 
 	logIndex []*LogIndexEntry
 
@@ -378,6 +384,7 @@ func NewMemoryDB() *MemoryDB {
 		devices:             make(map[string]*UserDevice),
 		devicesByDID:        make(map[string][]*UserDevice),
 		notificationPrefs:   make(map[string]*NotificationPrefs),
+		chatFolders:         make(map[string]json.RawMessage),
 		smsRecoveryByDID:    make(map[string]string),
 		smsRecoveryByPhone:  make(map[string]string),
 		reactions:           make(map[string]map[string]string),
@@ -1022,6 +1029,22 @@ func (m *MemoryDB) UpdateNotificationPrefs(ctx context.Context, prefs *Notificat
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.notificationPrefs[prefs.DID] = prefs
+	return nil
+}
+
+func (m *MemoryDB) GetChatFolders(ctx context.Context, did string) (json.RawMessage, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if raw, ok := m.chatFolders[did]; ok {
+		return raw, nil
+	}
+	return json.RawMessage("[]"), nil
+}
+
+func (m *MemoryDB) SetChatFolders(ctx context.Context, did string, folders json.RawMessage) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.chatFolders[did] = folders
 	return nil
 }
 

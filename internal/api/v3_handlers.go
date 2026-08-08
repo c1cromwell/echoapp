@@ -124,6 +124,7 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/v3/notifications/register", h.handleNotificationsRegister)
 	mux.HandleFunc("/v3/notifications/send", h.handleNotificationsSend)
 	mux.HandleFunc("/v3/notifications/preferences/", h.handleNotificationsPreferences)
+	mux.HandleFunc("/v3/chat-folders", h.handleChatFolders)
 
 	// Media endpoints
 	mux.HandleFunc("/v3/media/upload", h.handleMediaUpload)
@@ -705,6 +706,57 @@ func (h *V3Handlers) handleNotificationsPreferences(w http.ResponseWriter, r *ht
 			return
 		}
 		WriteJSON(w, http.StatusOK, prefs)
+
+	default:
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "GET or PUT required", r.Header.Get("X-Request-ID"))
+	}
+}
+
+// chatFoldersBody is the wire envelope for the per-user chat-folder list. The
+// folder array is stored/returned verbatim (opaque to the server), preserving
+// the client's shape ({id,name,order,conversation_ids}).
+type chatFoldersBody struct {
+	Folders json.RawMessage `json:"folders"`
+}
+
+// handleChatFolders GET/PUT the caller's Telegram-style chat folders (WO: folders).
+func (h *V3Handlers) handleChatFolders(w http.ResponseWriter, r *http.Request) {
+	did := h.getDID(r)
+	if did == "" {
+		WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Missing identity", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.DB == nil {
+		WriteError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Storage unavailable", r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		raw, err := h.DB.GetChatFolders(r.Context(), did)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "FOLDERS_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+			return
+		}
+		if len(raw) == 0 {
+			raw = json.RawMessage("[]")
+		}
+		WriteJSON(w, http.StatusOK, chatFoldersBody{Folders: raw})
+
+	case http.MethodPut:
+		var body chatFoldersBody
+		if err := h.readJSON(r, &body); err != nil {
+			WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+			return
+		}
+		if len(body.Folders) == 0 {
+			body.Folders = json.RawMessage("[]")
+		}
+		if err := h.DB.SetChatFolders(r.Context(), did, body.Folders); err != nil {
+			WriteError(w, http.StatusInternalServerError, "FOLDERS_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+			return
+		}
+		WriteJSON(w, http.StatusOK, chatFoldersBody{Folders: body.Folders})
 
 	default:
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "GET or PUT required", r.Header.Get("X-Request-ID"))
