@@ -46,6 +46,8 @@ struct MessagesHubView: View {
     var onRefresh: (() async -> Void)? = nil
 
     @Bindable private var pinnedStore = PinnedConversationsStore.shared
+    @Bindable private var folderStore = ChatFolderStore.shared
+    @State private var showFolders = false
     @State private var searchText = ""
     @State private var showSearch = false
     @State private var segment: Segment = .chats
@@ -88,6 +90,7 @@ struct MessagesHubView: View {
                     .buttonStyle(.plain)
                 }
                 segmentBar
+                if segment == .chats { folderChips }
 
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -147,7 +150,54 @@ struct MessagesHubView: View {
         .task {
             localDID = await CurrentUserSession.currentDID() ?? ""
             savedMessages = await SavedMessagesStore.ensureConversation()
+            await folderStore.hydrateFromServer()
         }
+        .sheet(isPresented: $showFolders) {
+            ChatFoldersView(conversations: directConversations)
+        }
+    }
+
+    // MARK: - Folder chips (Telegram-style custom folders)
+
+    private var folderChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                folderChip(title: "All", isSelected: folderStore.selectedFolderId == nil) {
+                    folderStore.selectedFolderId = nil
+                }
+                ForEach(folderStore.sortedFolders) { folder in
+                    folderChip(title: folder.name, isSelected: folderStore.selectedFolderId == folder.id) {
+                        folderStore.selectedFolderId = (folderStore.selectedFolderId == folder.id) ? nil : folder.id
+                    }
+                }
+                Button { showFolders = true } label: {
+                    Image(systemName: "folder.badge.plus")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.echoSignal)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.echoPaperDim)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("folders.manage")
+            }
+            .padding(.horizontal, Spacing.lg.rawValue)
+        }
+        .padding(.bottom, Spacing.sm.rawValue)
+    }
+
+    private func folderChip(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 13, weight: isSelected ? .semibold : .medium))
+                .foregroundColor(isSelected ? .echoPaper : .echoInk55)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .background(isSelected ? Color.echoInk : Color.echoPaperDim)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 
     private var directConversations: [StoredConversation] {
@@ -167,12 +217,14 @@ struct MessagesHubView: View {
 
     private var filtered: [StoredConversation] {
         let archived = ConversationArchiveStore.archivedIds()
+        let folderIds = folderStore.selectedConversationIds
         let unpinned = directConversations.filter { !pinnedStore.isPinned($0.id) && !archived.contains($0.id) }
         return unpinned.filter { conv in
+            let matchesFolder = folderIds == nil || folderIds!.contains(conv.id)
             let matchesSearch = searchText.isEmpty
                 || conv.contactName.localizedCaseInsensitiveContains(searchText)
                 || conv.lastMessage.localizedCaseInsensitiveContains(searchText)
-            return matchesSearch
+            return matchesFolder && matchesSearch
         }
         .sorted { ($0.unreadCount > 0) && ($1.unreadCount == 0) }
     }
