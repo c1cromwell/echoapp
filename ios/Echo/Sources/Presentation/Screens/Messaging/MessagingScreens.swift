@@ -432,10 +432,16 @@ struct ChatView: View {
             .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showGifPicker) {
-            GifPickerSheet { result in
-                showGifPicker = false
-                Task { await sendGif(result) }
-            }
+            GifPickerSheet(
+                onSelectGif: { result in
+                    showGifPicker = false
+                    Task { await sendGif(result) }
+                },
+                onSelectSticker: { sticker in
+                    showGifPicker = false
+                    Task { await viewModel.sendMessage(sticker) }
+                }
+            )
             .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showPaymentSheet) {
@@ -1295,37 +1301,118 @@ private struct ReactorDetailItem: Identifiable {
 }
 
 private struct GifPickerSheet: View {
-    let onSelect: (GifSearchService.GifResult) -> Void
+    let onSelectGif: (GifSearchService.GifResult) -> Void
+    let onSelectSticker: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @State private var tab: Tab = .gifs
     @State private var query = ""
     @State private var results: [GifSearchService.GifResult] = []
 
+    private enum Tab: String, CaseIterable, Identifiable { case gifs = "GIFs", stickers = "Stickers"; var id: String { rawValue } }
+    private let columns = [GridItem(.adaptive(minimum: 84), spacing: 8)]
+
+    /// Offline emoji "stickers" — sent as an emoji message (no CDN needed).
+    private static let stickers: [String] = [
+        "👍","🔥","🎉","❤️","😂","😮","😢","🙏","👏","💯","🥳","😎",
+        "🚀","✨","👀","🤝","💪","🙌","☕️","🌙","⭐️","🍀","🎂","💌",
+    ]
+
     var body: some View {
         NavigationStack {
-            List(results) { gif in
-                Button {
-                    onSelect(gif)
-                    dismiss()
-                } label: {
-                    HStack {
-                        Image(systemName: gif.previewURL == nil ? "face.smiling" : "photo")
-                            .foregroundStyle(Color.echoSignal)
-                        Text(gif.title)
-                            .foregroundStyle(Color.echoInk)
-                    }
+            VStack(spacing: 0) {
+                Picker("", selection: $tab) {
+                    ForEach(Tab.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, Spacing.lg.rawValue)
+                .padding(.vertical, 8)
+
+                if tab == .gifs {
+                    gifsGrid
+                } else {
+                    stickersGrid
                 }
             }
-            .navigationTitle("GIFs")
-            .searchable(text: $query)
-            .onChange(of: query, initial: true) {
-                Task { results = await GifSearchService.shared.search(query: query) }
-            }
+            .navigationTitle(tab.rawValue)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
             }
+        }
+    }
+
+    private var gifsGrid: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass").foregroundStyle(Color.echoInk40)
+                TextField("Search GIFs", text: $query)
+                    .textFieldStyle(.plain)
+            }
+            .padding(10)
+            .background(Color.echoPaperDim)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .padding(.horizontal, Spacing.lg.rawValue)
+            .padding(.bottom, 8)
+
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: 8) {
+                    ForEach(results) { gif in
+                        Button {
+                            onSelectGif(gif)
+                            dismiss()
+                        } label: {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 10).fill(Color.echoPaperDim)
+                                if let url = gif.previewURL {
+                                    AsyncImage(url: url) { img in
+                                        img.resizable().scaledToFill()
+                                    } placeholder: {
+                                        ProgressView()
+                                    }
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                } else {
+                                    VStack(spacing: 4) {
+                                        Image(systemName: "face.smiling").font(.title2)
+                                        Text(gif.title).font(.caption2).lineLimit(1)
+                                    }
+                                    .foregroundStyle(Color.echoInk55)
+                                }
+                            }
+                            .frame(height: 84)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, Spacing.lg.rawValue)
+            }
+            .onChange(of: query, initial: true) {
+                Task { results = await GifSearchService.shared.search(query: query) }
+            }
+        }
+    }
+
+    private var stickersGrid: some View {
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 8) {
+                ForEach(Self.stickers, id: \.self) { sticker in
+                    Button {
+                        onSelectSticker(sticker)
+                        dismiss()
+                    } label: {
+                        Text(sticker)
+                            .font(.system(size: 40))
+                            .frame(width: 84, height: 84)
+                            .background(Color.echoPaperDim)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, Spacing.lg.rawValue)
+            .padding(.top, 4)
         }
     }
 }
