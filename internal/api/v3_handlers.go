@@ -188,6 +188,9 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/v3/broadcasts/block", h.handleBroadcastBlock)
 	mux.HandleFunc("/v3/broadcasts/pending-posts", h.handleBroadcastPendingPosts)
 	mux.HandleFunc("/v3/broadcasts/post-decision", h.handleBroadcastPostDecision)
+	mux.HandleFunc("/v3/broadcasts/comment", h.handleBroadcastComment)
+	mux.HandleFunc("/v3/broadcasts/comments", h.handleBroadcastComments)
+	mux.HandleFunc("/v3/broadcasts/comment-delete", h.handleBroadcastCommentDelete)
 	mux.HandleFunc("/v3/broadcasts/", h.handleBroadcastGet)
 	h.WireDataSovZK(mux)
 	h.WirePhase6Extensions(mux)
@@ -2409,6 +2412,87 @@ func (h *V3Handlers) handleBroadcastPostDecision(w http.ResponseWriter, r *http.
 		return
 	}
 	WriteJSON(w, http.StatusOK, map[string]any{"postId": req.PostID, "approved": req.Approve})
+}
+
+// --- Channel comments (discussion) ---
+
+func (h *V3Handlers) handleBroadcastComment(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Broadcasts == nil {
+		WriteError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Broadcast service not initialized", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		ChannelID string `json:"channelId"`
+		PostID    string `json:"postId"`
+		Content   string `json:"content"`
+	}
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	author := h.getDID(r)
+	if author == "" {
+		WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Missing identity", r.Header.Get("X-Request-ID"))
+		return
+	}
+	comment, err := h.Broadcasts.AddComment(req.ChannelID, req.PostID, author, req.Content)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "COMMENT_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Rewards != nil {
+		h.Rewards.RecordEngagement(author, "channel_comment")
+	}
+	WriteJSON(w, http.StatusCreated, comment)
+}
+
+func (h *V3Handlers) handleBroadcastComments(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Broadcasts == nil {
+		WriteError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Broadcast service not initialized", r.Header.Get("X-Request-ID"))
+		return
+	}
+	postID := r.URL.Query().Get("postId")
+	if postID == "" {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "postId required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	comments, err := h.Broadcasts.ListComments(postID)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "COMMENTS_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]any{"comments": comments})
+}
+
+func (h *V3Handlers) handleBroadcastCommentDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Broadcasts == nil {
+		WriteError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Broadcast service not initialized", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		CommentID string `json:"commentId"`
+	}
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err := h.Broadcasts.DeleteComment(req.CommentID, h.getDID(r)); err != nil {
+		WriteError(w, http.StatusForbidden, "COMMENT_DELETE_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]any{"deleted": req.CommentID})
 }
 
 func (h *V3Handlers) handleBroadcastUnsubscribe(w http.ResponseWriter, r *http.Request) {

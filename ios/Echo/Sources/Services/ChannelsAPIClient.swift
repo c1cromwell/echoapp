@@ -56,6 +56,18 @@ struct ChannelPostsListResponse: Codable, Sendable {
     let posts: [BroadcastPostWire]
 }
 
+struct ChannelCommentWire: Codable, Identifiable, Sendable, Hashable {
+    let id: String
+    let channelId: String?
+    let postId: String?
+    let authorId: String?
+    let content: String
+}
+
+struct ChannelCommentsResponse: Codable, Sendable {
+    let comments: [ChannelCommentWire]
+}
+
 struct ChannelAnalyticsWire: Codable, Sendable {
     let totalSubscribers: Int?
     let postCount: Int?
@@ -181,6 +193,25 @@ enum ChannelsAPIClient {
         let encoded = channelId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? channelId
         guard let data = await get(path: "/v3/broadcasts/analytics?channelId=\(encoded)") else { return nil }
         return try? decoder.decode(ChannelAnalyticsWire.self, from: data)
+    }
+
+    // MARK: - Comments (discussion)
+
+    static func listComments(postId: String) async -> [ChannelCommentWire] {
+        let encoded = postId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? postId
+        guard let data = await get(path: "/v3/broadcasts/comments?postId=\(encoded)") else { return [] }
+        return (try? decoder.decode(ChannelCommentsResponse.self, from: data))?.comments ?? []
+    }
+
+    static func addComment(channelId: String, postId: String, content: String) async -> ChannelCommentWire? {
+        guard let data = await post(path: "/v3/broadcasts/comment",
+                                    body: ["channelId": channelId, "postId": postId, "content": content]) else { return nil }
+        return try? decoder.decode(ChannelCommentWire.self, from: data)
+    }
+
+    @discardableResult
+    static func deleteComment(commentId: String) async -> Bool {
+        await post(path: "/v3/broadcasts/comment-delete", body: ["commentId": commentId]) != nil
     }
 
     // MARK: - Moderation (owner/admin only)

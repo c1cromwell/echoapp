@@ -24,5 +24,10 @@ type ChannelStore interface {
 	ListJoinRequests(ctx context.Context, channelID string, status JoinRequestStatus) ([]*ChannelJoinRequest, error)
 	DeleteJoinRequest(ctx context.Context, channelID, subscriberID string) error
 
+	SaveComment(ctx context.Context, comment *ChannelComment) error
+	ListComments(ctx context.Context, postID string) ([]*ChannelComment, error)
+	GetComment(ctx context.Context, commentID string) (*ChannelComment, error)
+	DeleteComment(ctx context.Context, commentID string) error
+
 	LoadAll(ctx context.Context) (channels []*Channel, posts []*ChannelPost, subs []*ChannelSubscriber, err error)
 }

@@ -232,6 +232,7 @@ struct ChannelDetailView: View {
     @State private var statusMessage: String?
     @State private var currentDID = ""
     @State private var showAdmin = false
+    @State private var commentsPost: BroadcastPostWire?
 
     private var isOwner: Bool {
         !currentDID.isEmpty && channel.creatorId == currentDID
@@ -283,6 +284,11 @@ struct ChannelDetailView: View {
         .sheet(isPresented: $showAdmin) {
             NavigationStack { ChannelAdminView(channel: channel) }
         }
+        .sheet(item: $commentsPost) { post in
+            NavigationStack {
+                ChannelPostCommentsView(channel: channel, post: post, currentDID: currentDID)
+            }
+        }
         .task {
             currentDID = await CurrentUserSession.currentDID() ?? ""
             await load()
@@ -323,6 +329,16 @@ struct ChannelDetailView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(Color.echoSignal)
+
+                Button {
+                    commentsPost = post
+                } label: {
+                    Label("Comment", systemImage: "bubble.left")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.echoInk55)
+
                 Spacer()
             }
         }
@@ -371,6 +387,120 @@ struct ChannelDetailView: View {
         } else {
             statusMessage = "Couldn't post — subscribe first or check connection"
         }
+    }
+}
+
+/// Discussion thread for a single channel post: view + add comments, delete own
+/// (or as owner/admin). Backed by the /v3/broadcasts/comment(s) endpoints.
+struct ChannelPostCommentsView: View {
+    let channel: BroadcastChannelWire
+    let post: BroadcastPostWire
+    let currentDID: String
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var comments: [ChannelCommentWire] = []
+    @State private var draft = ""
+    @State private var isLoading = true
+
+    private var isOwner: Bool { !currentDID.isEmpty && channel.creatorId == currentDID }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 10) {
+                    Text(post.content)
+                        .font(.subheadline)
+                        .foregroundStyle(Color.echoInk55)
+                        .padding(.bottom, 4)
+                    Divider()
+                    if comments.isEmpty && !isLoading {
+                        Text("No comments yet — start the discussion.")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.echoInk55)
+                            .padding(.top, 8)
+                    }
+                    ForEach(comments) { comment in
+                        commentRow(comment)
+                    }
+                }
+                .padding(16)
+            }
+            composer
+        }
+        .background(Color.echoPaper)
+        .navigationTitle("Comments")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+        }
+        .overlay { if isLoading && comments.isEmpty { ProgressView() } }
+        .task { await load() }
+    }
+
+    private func commentRow(_ comment: ChannelCommentWire) -> some View {
+        let canDelete = isOwner || comment.authorId == currentDID
+        return HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(shortDID(comment.authorId ?? "unknown"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.echoInk70)
+                Text(comment.content)
+                    .font(.body)
+                    .foregroundStyle(Color.echoInk)
+            }
+            Spacer()
+            if canDelete {
+                Button {
+                    Task {
+                        _ = await ChannelsAPIClient.deleteComment(commentId: comment.id)
+                        await load()
+                    }
+                } label: {
+                    Image(systemName: "trash").font(.caption)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.echoError)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var composer: some View {
+        HStack(spacing: 10) {
+            TextField("Add a comment…", text: $draft, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(1...4)
+            Button {
+                Task { await send() }
+            } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 26))
+                    .foregroundStyle(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.echoInk40 : Color.echoSignal)
+            }
+            .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        .padding(12)
+        .background(Color.echoPaperDim)
+    }
+
+    private func load() async {
+        isLoading = true
+        comments = await ChannelsAPIClient.listComments(postId: post.id)
+        isLoading = false
+    }
+
+    private func send() async {
+        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        if let c = await ChannelsAPIClient.addComment(channelId: channel.id, postId: post.id, content: text) {
+            comments.append(c)
+            draft = ""
+        }
+    }
+
+    private func shortDID(_ did: String) -> String {
+        guard did.count > 20 else { return did }
+        return String(did.prefix(12)) + "…" + String(did.suffix(6))
     }
 }
 #endif

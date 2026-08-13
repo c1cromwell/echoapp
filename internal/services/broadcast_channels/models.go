@@ -438,6 +438,20 @@ func generateAnalyticsID() string {
 	return "ana_" + randString(16)
 }
 
+func generateCommentID() string {
+	return "cmt_" + randString(16)
+}
+
+// ChannelComment is a discussion comment on a channel post.
+type ChannelComment struct {
+	ID        string    `json:"id"`
+	ChannelID string    `json:"channel_id"`
+	PostID    string    `json:"post_id"`
+	AuthorID  string    `json:"author_id"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 func randString(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	seeded := rand.New(rand.NewSource(time.Now().UnixNano()))

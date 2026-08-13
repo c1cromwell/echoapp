@@ -219,6 +219,54 @@ func (p *PostgresStore) DeleteJoinRequest(ctx context.Context, channelID, subscr
 	return err
 }
 
+func (p *PostgresStore) SaveComment(ctx context.Context, c *ChannelComment) error {
+	if c == nil || c.ID == "" || c.PostID == "" {
+		return errors.New("comment id and post id required")
+	}
+	_, err := p.pool.Exec(ctx, `
+		INSERT INTO broadcast_channel_comments (id, channel_id, post_id, author_id, content, created_at)
+		VALUES ($1,$2,$3,$4,$5,$6)
+		ON CONFLICT (id) DO UPDATE SET content=EXCLUDED.content`,
+		c.ID, c.ChannelID, c.PostID, c.AuthorID, c.Content, c.CreatedAt)
+	return err
+}
+
+func (p *PostgresStore) ListComments(ctx context.Context, postID string) ([]*ChannelComment, error) {
+	rows, err := p.pool.Query(ctx,
+		`SELECT id, channel_id, post_id, author_id, content, created_at
+		 FROM broadcast_channel_comments WHERE post_id = $1 ORDER BY created_at`, postID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*ChannelComment
+	for rows.Next() {
+		var c ChannelComment
+		if err := rows.Scan(&c.ID, &c.ChannelID, &c.PostID, &c.AuthorID, &c.Content, &c.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, &c)
+	}
+	return out, rows.Err()
+}
+
+func (p *PostgresStore) GetComment(ctx context.Context, commentID string) (*ChannelComment, error) {
+	var c ChannelComment
+	err := p.pool.QueryRow(ctx,
+		`SELECT id, channel_id, post_id, author_id, content, created_at
+		 FROM broadcast_channel_comments WHERE id = $1`, commentID).
+		Scan(&c.ID, &c.ChannelID, &c.PostID, &c.AuthorID, &c.Content, &c.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	return &c, err
+}
+
+func (p *PostgresStore) DeleteComment(ctx context.Context, commentID string) error {
+	_, err := p.pool.Exec(ctx, `DELETE FROM broadcast_channel_comments WHERE id = $1`, commentID)
+	return err
+}
+
 func (p *PostgresStore) LoadAll(ctx context.Context) ([]*Channel, []*ChannelPost, []*ChannelSubscriber, error) {
 	channels, err := p.ListChannels(ctx, 1_000_000, 0)
 	if err != nil {

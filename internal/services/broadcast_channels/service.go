@@ -25,6 +25,7 @@ type ChannelService struct {
 	subscriberLookup map[string]map[string]*ChannelSubscriber   // channelID -> subscriberID -> subscriber
 	creatorChannels  map[string][]string                        // creatorID -> channelIDs
 	joinRequests     map[string]map[string]*ChannelJoinRequest  // channelID -> subscriberID -> request (in-memory fallback)
+	comments         map[string][]*ChannelComment               // postID -> comments (in-memory fallback)
 }
 
 // ChannelServiceOption configures optional durable channel storage.
@@ -49,6 +50,7 @@ func NewChannelService(opts ...ChannelServiceOption) *ChannelService {
 		subscriberLookup: make(map[string]map[string]*ChannelSubscriber),
 		creatorChannels:  make(map[string][]string),
 		joinRequests:     make(map[string]map[string]*ChannelJoinRequest),
+		comments:         make(map[string][]*ChannelComment),
 	}
 	for _, opt := range opts {
 		opt(service)
@@ -544,6 +546,114 @@ func (cs *ChannelService) clearJoinRequest(channelID, subscriberID string) {
 // RemoveSubscriber is an admin-initiated removal (kick). Delegates to Unsubscribe.
 func (cs *ChannelService) RemoveSubscriber(channelID, subscriberID string) error {
 	return cs.Unsubscribe(channelID, subscriberID)
+}
+
+// AddComment records a discussion comment on a post (channel must allow comments).
+func (cs *ChannelService) AddComment(channelID, postID, authorID, content string) (*ChannelComment, error) {
+	cs.mu.RLock()
+	ch, exists := cs.channels[channelID]
+	cs.mu.RUnlock()
+	if !exists {
+		return nil, fmt.Errorf("channel not found")
+	}
+	if !ch.AllowComments {
+		return nil, fmt.Errorf("comments are disabled for this channel")
+	}
+	if strings.TrimSpace(content) == "" {
+		return nil, fmt.Errorf("comment is empty")
+	}
+	c := &ChannelComment{
+		ID:        generateCommentID(),
+		ChannelID: channelID,
+		PostID:    postID,
+		AuthorID:  authorID,
+		Content:   content,
+		CreatedAt: time.Now(),
+	}
+	cs.mu.Lock()
+	cs.comments[postID] = append(cs.comments[postID], c)
+	if post, ok := cs.posts[postID]; ok {
+		post.CommentCount++
+	}
+	cs.mu.Unlock()
+	if cs.store != nil {
+		if err := cs.store.SaveComment(context.Background(), c); err != nil {
+			return nil, fmt.Errorf("persist comment: %w", err)
+		}
+	}
+	return c, nil
+}
+
+// ListComments returns comments on a post in chronological order.
+func (cs *ChannelService) ListComments(postID string) ([]*ChannelComment, error) {
+	if cs.store != nil {
+		return cs.store.ListComments(context.Background(), postID)
+	}
+	cs.mu.RLock()
+	defer cs.mu.RUnlock()
+	return cs.comments[postID], nil
+}
+
+// DeleteComment removes a comment; allowed for the author or a channel
+// owner/admin/moderator.
+func (cs *ChannelService) DeleteComment(commentID, requesterDID string) error {
+	var target *ChannelComment
+	if cs.store != nil {
+		c, err := cs.store.GetComment(context.Background(), commentID)
+		if err != nil {
+			return err
+		}
+		target = c
+	} else {
+		cs.mu.RLock()
+		for _, list := range cs.comments {
+			for _, c := range list {
+				if c.ID == commentID {
+					target = c
+				}
+			}
+		}
+		cs.mu.RUnlock()
+	}
+	if target == nil {
+		return fmt.Errorf("comment not found")
+	}
+
+	allowed := target.AuthorID == requesterDID
+	if !allowed {
+		cs.mu.RLock()
+		if ch, ok := cs.channels[target.ChannelID]; ok && ch.CreatorID == requesterDID {
+			allowed = true
+		}
+		if subs, ok := cs.subscriberLookup[target.ChannelID]; ok {
+			if s, ok := subs[requesterDID]; ok && (s.Role == SubscriberRoleAdmin || s.Role == SubscriberRoleModerator) {
+				allowed = true
+			}
+		}
+		cs.mu.RUnlock()
+	}
+	if !allowed {
+		return fmt.Errorf("not authorized to delete this comment")
+	}
+
+	cs.mu.Lock()
+	if list, ok := cs.comments[target.PostID]; ok {
+		filtered := make([]*ChannelComment, 0, len(list))
+		for _, c := range list {
+			if c.ID != commentID {
+				filtered = append(filtered, c)
+			}
+		}
+		cs.comments[target.PostID] = filtered
+	}
+	if post, ok := cs.posts[target.PostID]; ok && post.CommentCount > 0 {
+		post.CommentCount--
+	}
+	cs.mu.Unlock()
+	if cs.store != nil {
+		_ = cs.store.DeleteComment(context.Background(), commentID)
+	}
+	return nil
 }
 
 func (cs *ChannelService) GetSubscriber(channelID, subscriberID string) (*ChannelSubscriber, error) {
