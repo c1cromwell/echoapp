@@ -28,6 +28,7 @@ enum NotificationPreferencesStore {
 
     static func set(_ value: Bool, for key: Key) {
         UserDefaults.standard.set(value, forKey: key.rawValue)
+        PreferenceSync.push()
     }
 }
 

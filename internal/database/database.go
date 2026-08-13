@@ -230,6 +230,10 @@ type NotificationStore interface {
 	// (empty array if none). SetChatFolders stores it verbatim (last-write-wins).
 	GetChatFolders(ctx context.Context, did string) (json.RawMessage, error)
 	SetChatFolders(ctx context.Context, did string, folders json.RawMessage) error
+	// GetUserPrefs/SetUserPrefs roam app preferences as an opaque JSON object
+	// (empty object if none), last-write-wins.
+	GetUserPrefs(ctx context.Context, did string) (json.RawMessage, error)
+	SetUserPrefs(ctx context.Context, did string, prefs json.RawMessage) error
 }
 
 type LogIndexStore interface {
@@ -330,6 +334,7 @@ type MemoryDB struct {
 	devicesByDID      map[string][]*UserDevice
 	notificationPrefs map[string]*NotificationPrefs
 	chatFolders       map[string]json.RawMessage
+	userPrefs         map[string]json.RawMessage
 
 	logIndex []*LogIndexEntry
 
@@ -385,6 +390,7 @@ func NewMemoryDB() *MemoryDB {
 		devicesByDID:        make(map[string][]*UserDevice),
 		notificationPrefs:   make(map[string]*NotificationPrefs),
 		chatFolders:         make(map[string]json.RawMessage),
+		userPrefs:           make(map[string]json.RawMessage),
 		smsRecoveryByDID:    make(map[string]string),
 		smsRecoveryByPhone:  make(map[string]string),
 		reactions:           make(map[string]map[string]string),
@@ -1045,6 +1051,22 @@ func (m *MemoryDB) SetChatFolders(ctx context.Context, did string, folders json.
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.chatFolders[did] = folders
+	return nil
+}
+
+func (m *MemoryDB) GetUserPrefs(ctx context.Context, did string) (json.RawMessage, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if raw, ok := m.userPrefs[did]; ok {
+		return raw, nil
+	}
+	return json.RawMessage("{}"), nil
+}
+
+func (m *MemoryDB) SetUserPrefs(ctx context.Context, did string, prefs json.RawMessage) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.userPrefs[did] = prefs
 	return nil
 }
 

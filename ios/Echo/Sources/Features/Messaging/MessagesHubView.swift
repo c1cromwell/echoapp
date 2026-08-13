@@ -151,6 +151,7 @@ struct MessagesHubView: View {
             localDID = await CurrentUserSession.currentDID() ?? ""
             savedMessages = await SavedMessagesStore.ensureConversation()
             await folderStore.hydrateFromServer()
+            await PreferenceSync.hydrate()
         }
         .sheet(isPresented: $showFolders) {
             ChatFoldersView(conversations: directConversations)

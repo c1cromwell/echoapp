@@ -729,6 +729,32 @@ func (p *PostgresDB) SetChatFolders(ctx context.Context, did string, folders jso
 	return nil
 }
 
+func (p *PostgresDB) GetUserPrefs(ctx context.Context, did string) (json.RawMessage, error) {
+	var raw []byte
+	err := p.pool.QueryRow(ctx, `SELECT prefs FROM user_prefs WHERE did = $1`, did).Scan(&raw)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return json.RawMessage("{}"), nil
+		}
+		return nil, fmt.Errorf("get user prefs: %w", err)
+	}
+	return json.RawMessage(raw), nil
+}
+
+func (p *PostgresDB) SetUserPrefs(ctx context.Context, did string, prefs json.RawMessage) error {
+	if len(prefs) == 0 {
+		prefs = json.RawMessage("{}")
+	}
+	_, err := p.pool.Exec(ctx,
+		`INSERT INTO user_prefs (did, prefs) VALUES ($1, $2)
+		 ON CONFLICT (did) DO UPDATE SET prefs = $2, updated_at = NOW()`,
+		did, []byte(prefs))
+	if err != nil {
+		return fmt.Errorf("set user prefs: %w", err)
+	}
+	return nil
+}
+
 // --- LogIndexStore ---
 
 func (p *PostgresDB) StoreLogIndex(ctx context.Context, entry *LogIndexEntry) error {
