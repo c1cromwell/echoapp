@@ -230,6 +230,12 @@ struct ChannelDetailView: View {
     @State private var isLoading = true
     @State private var isSubscribed = false
     @State private var statusMessage: String?
+    @State private var currentDID = ""
+    @State private var showAdmin = false
+
+    private var isOwner: Bool {
+        !currentDID.isEmpty && channel.creatorId == currentDID
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -262,7 +268,23 @@ struct ChannelDetailView: View {
         .background(Color.echoPaper)
         .navigationTitle(channel.name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if isOwner {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showAdmin = true
+                    } label: {
+                        Image(systemName: "slider.horizontal.3")
+                    }
+                    .accessibilityLabel("Manage channel")
+                }
+            }
+        }
+        .sheet(isPresented: $showAdmin) {
+            NavigationStack { ChannelAdminView(channel: channel) }
+        }
         .task {
+            currentDID = await CurrentUserSession.currentDID() ?? ""
             await load()
             isSubscribed = await ChannelsAPIClient.subscribe(channelId: channel.id)
         }

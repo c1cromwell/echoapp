@@ -28,6 +28,37 @@ struct BroadcastPostWire: Codable, Identifiable, Sendable, Hashable {
     let creatorId: String?
 }
 
+// MARK: - Channel admin wire models
+
+struct ChannelMemberWire: Codable, Identifiable, Sendable, Hashable {
+    let subscriberId: String
+    let role: String?
+    let isMuted: Bool?
+    var id: String { subscriberId }
+}
+
+struct ChannelMembersResponse: Codable, Sendable {
+    let members: [ChannelMemberWire]
+}
+
+struct ChannelJoinRequestWire: Codable, Identifiable, Sendable, Hashable {
+    let channelId: String
+    let subscriberId: String
+    let status: String?
+    var id: String { subscriberId }
+}
+
+struct ChannelJoinRequestsResponse: Codable, Sendable {
+    let requests: [ChannelJoinRequestWire]
+}
+
+struct ChannelAnalyticsWire: Codable, Sendable {
+    let totalSubscribers: Int?
+    let postCount: Int?
+    let averageEngagement: Double?
+    let viewCount: Int?
+}
+
 /// Live broadcast channels client (JWT Bearer — matches gateway auth middleware).
 enum ChannelsAPIClient {
     private static var baseURL: URL { APIConfiguration.default.baseURL }
@@ -102,6 +133,50 @@ enum ChannelsAPIClient {
         guard let (_, response) = try? await URLSession.shared.data(for: request),
               let http = response as? HTTPURLResponse else { return false }
         return (200...299).contains(http.statusCode)
+    }
+
+    // MARK: - Channel admin (owner/admin only)
+
+    static func listMembers(channelId: String) async -> [ChannelMemberWire] {
+        let encoded = channelId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? channelId
+        guard let data = await get(path: "/v3/broadcasts/members?channelId=\(encoded)") else { return [] }
+        return (try? decoder.decode(ChannelMembersResponse.self, from: data))?.members ?? []
+    }
+
+    @discardableResult
+    static func setRole(channelId: String, memberId: String, role: String) async -> Bool {
+        await post(path: "/v3/broadcasts/role",
+                   body: ["channelId": channelId, "memberId": memberId, "role": role]) != nil
+    }
+
+    @discardableResult
+    static func removeMember(channelId: String, memberId: String) async -> Bool {
+        await post(path: "/v3/broadcasts/remove-member",
+                   body: ["channelId": channelId, "memberId": memberId]) != nil
+    }
+
+    static func listJoinRequests(channelId: String) async -> [ChannelJoinRequestWire] {
+        let encoded = channelId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? channelId
+        guard let data = await get(path: "/v3/broadcasts/join-requests?channelId=\(encoded)") else { return [] }
+        return (try? decoder.decode(ChannelJoinRequestsResponse.self, from: data))?.requests ?? []
+    }
+
+    @discardableResult
+    static func approveMember(channelId: String, memberId: String) async -> Bool {
+        await post(path: "/v3/broadcasts/approve",
+                   body: ["channelId": channelId, "memberId": memberId]) != nil
+    }
+
+    @discardableResult
+    static func denyMember(channelId: String, memberId: String) async -> Bool {
+        await post(path: "/v3/broadcasts/deny",
+                   body: ["channelId": channelId, "memberId": memberId]) != nil
+    }
+
+    static func analytics(channelId: String) async -> ChannelAnalyticsWire? {
+        let encoded = channelId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? channelId
+        guard let data = await get(path: "/v3/broadcasts/analytics?channelId=\(encoded)") else { return nil }
+        return try? decoder.decode(ChannelAnalyticsWire.self, from: data)
     }
 
     private static func get(path: String) async -> Data? {
