@@ -184,6 +184,10 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/v3/broadcasts/approve", h.handleBroadcastApprove)
 	mux.HandleFunc("/v3/broadcasts/deny", h.handleBroadcastDeny)
 	mux.HandleFunc("/v3/broadcasts/analytics", h.handleBroadcastAnalytics)
+	mux.HandleFunc("/v3/broadcasts/mute", h.handleBroadcastMute)
+	mux.HandleFunc("/v3/broadcasts/block", h.handleBroadcastBlock)
+	mux.HandleFunc("/v3/broadcasts/pending-posts", h.handleBroadcastPendingPosts)
+	mux.HandleFunc("/v3/broadcasts/post-decision", h.handleBroadcastPostDecision)
 	mux.HandleFunc("/v3/broadcasts/", h.handleBroadcastGet)
 	h.WireDataSovZK(mux)
 	h.WirePhase6Extensions(mux)
@@ -2305,6 +2309,106 @@ func (h *V3Handlers) handleBroadcastAnalytics(w http.ResponseWriter, r *http.Req
 		return
 	}
 	WriteJSON(w, http.StatusOK, analytics)
+}
+
+func (h *V3Handlers) handleBroadcastMute(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		ChannelID string `json:"channelId"`
+		MemberID  string `json:"memberId"`
+		Muted     bool   `json:"muted"`
+	}
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if !h.requireChannelAdmin(w, r, req.ChannelID) {
+		return
+	}
+	var err error
+	if req.Muted {
+		err = h.Broadcasts.MuteSubscriber(req.ChannelID, req.MemberID)
+	} else {
+		err = h.Broadcasts.UnmuteSubscriber(req.ChannelID, req.MemberID)
+	}
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "MUTE_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]any{"memberId": req.MemberID, "muted": req.Muted})
+}
+
+func (h *V3Handlers) handleBroadcastBlock(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		ChannelID string `json:"channelId"`
+		MemberID  string `json:"memberId"`
+	}
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if !h.requireChannelAdmin(w, r, req.ChannelID) {
+		return
+	}
+	if ch, _ := h.Broadcasts.GetChannel(req.ChannelID); ch != nil && ch.CreatorID == req.MemberID {
+		WriteError(w, http.StatusBadRequest, "OWNER_IMMUTABLE", "The channel owner cannot be blocked", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err := h.Broadcasts.BlockSubscriber(req.ChannelID, req.MemberID); err != nil {
+		WriteError(w, http.StatusBadRequest, "BLOCK_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]any{"memberId": req.MemberID, "blocked": true})
+}
+
+func (h *V3Handlers) handleBroadcastPendingPosts(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	channelID := r.URL.Query().Get("channelId")
+	if !h.requireChannelAdmin(w, r, channelID) {
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]any{"posts": h.Broadcasts.ListPendingPosts(channelID)})
+}
+
+func (h *V3Handlers) handleBroadcastPostDecision(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		ChannelID string `json:"channelId"`
+		PostID    string `json:"postId"`
+		Approve   bool   `json:"approve"`
+		Reason    string `json:"reason"`
+	}
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if !h.requireChannelAdmin(w, r, req.ChannelID) {
+		return
+	}
+	var err error
+	if req.Approve {
+		err = h.Broadcasts.ApprovePost(req.PostID)
+	} else {
+		err = h.Broadcasts.RejectPost(req.PostID, req.Reason)
+	}
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "POST_DECISION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]any{"postId": req.PostID, "approved": req.Approve})
 }
 
 func (h *V3Handlers) handleBroadcastUnsubscribe(w http.ResponseWriter, r *http.Request) {

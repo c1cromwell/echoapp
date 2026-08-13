@@ -702,6 +702,17 @@ func (cs *ChannelService) ReportPost(channelID, postID, reporterID string, reaso
 	return action, nil
 }
 
+// ListPendingPosts returns posts awaiting moderation approval for a channel.
+func (cs *ChannelService) ListPendingPosts(channelID string) []*ChannelPost {
+	var pending []*ChannelPost
+	for _, p := range cs.GetChannelPosts(channelID, 1000, 0) {
+		if p.PublishStatus == PublishStatusPending {
+			pending = append(pending, p)
+		}
+	}
+	return pending
+}
+
 func (cs *ChannelService) ApprovePost(postID string) error {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()

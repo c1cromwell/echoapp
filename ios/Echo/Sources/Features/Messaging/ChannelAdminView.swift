@@ -11,6 +11,7 @@ struct ChannelAdminView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var members: [ChannelMemberWire] = []
     @State private var requests: [ChannelJoinRequestWire] = []
+    @State private var pendingPosts: [BroadcastPostWire] = []
     @State private var analytics: ChannelAnalyticsWire?
     @State private var isLoading = true
     @State private var busyId: String?
@@ -54,6 +55,25 @@ struct ChannelAdminView: View {
                     Text("Join requests (\(requests.count))")
                 } footer: {
                     Text("This channel requires approval — new members wait here until you approve them.")
+                }
+            }
+
+            if !pendingPosts.isEmpty {
+                Section("Posts awaiting approval (\(pendingPosts.count))") {
+                    ForEach(pendingPosts) { post in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(post.content).font(.subheadline)
+                            HStack {
+                                Button("Approve") { decidePost(post.id, approve: true) }
+                                    .buttonStyle(.borderedProminent).tint(.echoSignal)
+                                Button("Reject") { decidePost(post.id, approve: false) }
+                                    .buttonStyle(.bordered).tint(.echoError)
+                                Spacer()
+                            }
+                            .disabled(busyId == post.id)
+                        }
+                        .padding(.vertical, 2)
+                    }
                 }
             }
 
@@ -104,6 +124,10 @@ struct ChannelAdminView: View {
                         }
                     }
                     Divider()
+                    Button((member.isMuted ?? false) ? "Unmute" : "Mute") {
+                        setMuted(member.subscriberId, muted: !(member.isMuted ?? false))
+                    }
+                    Button("Block", role: .destructive) { block(member.subscriberId) }
                     Button("Remove", role: .destructive) { remove(member.subscriberId) }
                 } label: {
                     Image(systemName: "ellipsis.circle")
@@ -133,11 +157,40 @@ struct ChannelAdminView: View {
         isLoading = true
         async let m = ChannelsAPIClient.listMembers(channelId: channel.id)
         async let r = ChannelsAPIClient.listJoinRequests(channelId: channel.id)
+        async let p = ChannelsAPIClient.listPendingPosts(channelId: channel.id)
         async let a = ChannelsAPIClient.analytics(channelId: channel.id)
         members = await m
         requests = await r
+        pendingPosts = await p
         analytics = await a
         isLoading = false
+    }
+
+    private func setMuted(_ memberId: String, muted: Bool) {
+        busyId = memberId
+        Task {
+            _ = await ChannelsAPIClient.setMuted(channelId: channel.id, memberId: memberId, muted: muted)
+            await reload()
+            busyId = nil
+        }
+    }
+
+    private func block(_ memberId: String) {
+        busyId = memberId
+        Task {
+            _ = await ChannelsAPIClient.blockMember(channelId: channel.id, memberId: memberId)
+            await reload()
+            busyId = nil
+        }
+    }
+
+    private func decidePost(_ postId: String, approve: Bool) {
+        busyId = postId
+        Task {
+            _ = await ChannelsAPIClient.decidePost(channelId: channel.id, postId: postId, approve: approve)
+            await reload()
+            busyId = nil
+        }
     }
 
     private func decide(_ memberId: String, approve: Bool) {

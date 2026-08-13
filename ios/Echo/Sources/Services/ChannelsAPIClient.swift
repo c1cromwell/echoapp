@@ -52,6 +52,10 @@ struct ChannelJoinRequestsResponse: Codable, Sendable {
     let requests: [ChannelJoinRequestWire]
 }
 
+struct ChannelPostsListResponse: Codable, Sendable {
+    let posts: [BroadcastPostWire]
+}
+
 struct ChannelAnalyticsWire: Codable, Sendable {
     let totalSubscribers: Int?
     let postCount: Int?
@@ -179,6 +183,32 @@ enum ChannelsAPIClient {
         return try? decoder.decode(ChannelAnalyticsWire.self, from: data)
     }
 
+    // MARK: - Moderation (owner/admin only)
+
+    @discardableResult
+    static func setMuted(channelId: String, memberId: String, muted: Bool) async -> Bool {
+        await postJSON(path: "/v3/broadcasts/mute",
+                       body: ["channelId": channelId, "memberId": memberId, "muted": muted]) != nil
+    }
+
+    @discardableResult
+    static func blockMember(channelId: String, memberId: String) async -> Bool {
+        await post(path: "/v3/broadcasts/block",
+                   body: ["channelId": channelId, "memberId": memberId]) != nil
+    }
+
+    static func listPendingPosts(channelId: String) async -> [BroadcastPostWire] {
+        let encoded = channelId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? channelId
+        guard let data = await get(path: "/v3/broadcasts/pending-posts?channelId=\(encoded)") else { return [] }
+        return (try? decoder.decode(ChannelPostsListResponse.self, from: data))?.posts ?? []
+    }
+
+    @discardableResult
+    static func decidePost(channelId: String, postId: String, approve: Bool, reason: String = "") async -> Bool {
+        await postJSON(path: "/v3/broadcasts/post-decision",
+                       body: ["channelId": channelId, "postId": postId, "approve": approve, "reason": reason]) != nil
+    }
+
     private static func get(path: String) async -> Data? {
         guard let token = try? await KeychainManager.shared.getAuthToken(),
               let url = URL(string: baseURL.absoluteString + path) else { return nil }
@@ -195,6 +225,22 @@ enum ChannelsAPIClient {
         guard let token = try? await KeychainManager.shared.getAuthToken(),
               let url = URL(string: baseURL.absoluteString + path),
               let httpBody = try? JSONEncoder().encode(body) else { return nil }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = httpBody
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let http = response as? HTTPURLResponse,
+              (200...299).contains(http.statusCode) else { return nil }
+        return data
+    }
+
+    /// POST with a mixed-type JSON body (bools/strings), for admin/moderation endpoints.
+    private static func postJSON(path: String, body: [String: Any]) async -> Data? {
+        guard let token = try? await KeychainManager.shared.getAuthToken(),
+              let url = URL(string: baseURL.absoluteString + path),
+              let httpBody = try? JSONSerialization.data(withJSONObject: body) else { return nil }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
