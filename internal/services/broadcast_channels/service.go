@@ -22,8 +22,9 @@ type ChannelService struct {
 	postIndex        map[string][]string // channelID -> postIDs
 	moderations      map[string]*ModerationAction
 	analytics        map[string]*ChannelAnalytics
-	subscriberLookup map[string]map[string]*ChannelSubscriber // channelID -> subscriberID -> subscriber
-	creatorChannels  map[string][]string                      // creatorID -> channelIDs
+	subscriberLookup map[string]map[string]*ChannelSubscriber   // channelID -> subscriberID -> subscriber
+	creatorChannels  map[string][]string                        // creatorID -> channelIDs
+	joinRequests     map[string]map[string]*ChannelJoinRequest  // channelID -> subscriberID -> request (in-memory fallback)
 }
 
 // ChannelServiceOption configures optional durable channel storage.
@@ -47,6 +48,7 @@ func NewChannelService(opts ...ChannelServiceOption) *ChannelService {
 		analytics:        make(map[string]*ChannelAnalytics),
 		subscriberLookup: make(map[string]map[string]*ChannelSubscriber),
 		creatorChannels:  make(map[string][]string),
+		joinRequests:     make(map[string]map[string]*ChannelJoinRequest),
 	}
 	for _, opt := range opts {
 		opt(service)
@@ -447,6 +449,101 @@ func (cs *ChannelService) Unsubscribe(channelID, subscriberID string) error {
 		}
 	}
 	return nil
+}
+
+// RequestJoin adds the caller to the channel. If the channel requires approval,
+// a pending join request is recorded (returns approved=false); otherwise the
+// caller is subscribed immediately (approved=true). This wires channel
+// RequireApproval to membership (previously it only gated posts).
+func (cs *ChannelService) RequestJoin(channelID, subscriberID string) (approved bool, err error) {
+	cs.mu.RLock()
+	channel, exists := cs.channels[channelID]
+	needsApproval := exists && channel.RequireApproval
+	// Already a subscriber? Treat as approved (idempotent).
+	if subs, ok := cs.subscriberLookup[channelID]; ok {
+		if _, subbed := subs[subscriberID]; subbed {
+			cs.mu.RUnlock()
+			return true, nil
+		}
+	}
+	cs.mu.RUnlock()
+
+	if !exists {
+		return false, fmt.Errorf("channel not found")
+	}
+	if !needsApproval {
+		if _, err := cs.Subscribe(channelID, subscriberID); err != nil {
+			return false, err
+		}
+		return true, nil
+	}
+
+	req := &ChannelJoinRequest{
+		ChannelID:    channelID,
+		SubscriberID: subscriberID,
+		Status:       JoinRequestStatusPending,
+		RequestedAt:  time.Now(),
+	}
+	cs.mu.Lock()
+	if cs.joinRequests[channelID] == nil {
+		cs.joinRequests[channelID] = make(map[string]*ChannelJoinRequest)
+	}
+	cs.joinRequests[channelID][subscriberID] = req
+	cs.mu.Unlock()
+
+	if cs.store != nil {
+		if err := cs.store.SaveJoinRequest(context.Background(), req); err != nil {
+			return false, fmt.Errorf("persist join request: %w", err)
+		}
+	}
+	return false, nil
+}
+
+// ListPendingJoinRequests returns pending membership requests for a channel.
+func (cs *ChannelService) ListPendingJoinRequests(channelID string) ([]*ChannelJoinRequest, error) {
+	if cs.store != nil {
+		return cs.store.ListJoinRequests(context.Background(), channelID, JoinRequestStatusPending)
+	}
+	cs.mu.RLock()
+	defer cs.mu.RUnlock()
+	var out []*ChannelJoinRequest
+	for _, req := range cs.joinRequests[channelID] {
+		if req.Status == JoinRequestStatusPending {
+			out = append(out, req)
+		}
+	}
+	return out, nil
+}
+
+// ApproveJoinRequest subscribes the requester and clears the pending request.
+func (cs *ChannelService) ApproveJoinRequest(channelID, subscriberID string) error {
+	if _, err := cs.Subscribe(channelID, subscriberID); err != nil {
+		return err
+	}
+	cs.clearJoinRequest(channelID, subscriberID)
+	return nil
+}
+
+// DenyJoinRequest clears a pending request without subscribing.
+func (cs *ChannelService) DenyJoinRequest(channelID, subscriberID string) error {
+	cs.clearJoinRequest(channelID, subscriberID)
+	return nil
+}
+
+func (cs *ChannelService) clearJoinRequest(channelID, subscriberID string) {
+	cs.mu.Lock()
+	if reqs, ok := cs.joinRequests[channelID]; ok {
+		delete(reqs, subscriberID)
+	}
+	cs.mu.Unlock()
+	if cs.store != nil {
+		_ = cs.store.DeleteJoinRequest(context.Background(), channelID, subscriberID)
+	}
+}
+
+// RemoveSubscriber is an admin-initiated removal (kick). Delegates to Unsubscribe.
+func (cs *ChannelService) RemoveSubscriber(channelID, subscriberID string) error {
+	return cs.Unsubscribe(channelID, subscriberID)
 }
 
 func (cs *ChannelService) GetSubscriber(channelID, subscriberID string) (*ChannelSubscriber, error) {

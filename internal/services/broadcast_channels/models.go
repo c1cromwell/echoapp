@@ -63,6 +63,24 @@ const (
 	SubscriberRoleAdmin      SubscriberRole = "admin"
 )
 
+// JoinRequestStatus tracks a pending membership request for channels that
+// require approval (channel.RequireApproval).
+type JoinRequestStatus string
+
+const (
+	JoinRequestStatusPending  JoinRequestStatus = "pending"
+	JoinRequestStatusApproved JoinRequestStatus = "approved"
+	JoinRequestStatusDenied   JoinRequestStatus = "denied"
+)
+
+// ChannelJoinRequest is a pending request to join an approval-gated channel.
+type ChannelJoinRequest struct {
+	ChannelID    string            `json:"channel_id"`
+	SubscriberID string            `json:"subscriber_id"`
+	Status       JoinRequestStatus `json:"status"`
+	RequestedAt  time.Time         `json:"requested_at"`
+}
+
 type NotificationMode string
 
 const (

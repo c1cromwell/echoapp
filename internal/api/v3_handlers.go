@@ -176,6 +176,14 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/v3/broadcasts/post", h.handleBroadcastPost)
 	mux.HandleFunc("/v3/broadcasts/subscribe", h.handleBroadcastSubscribe)
 	mux.HandleFunc("/v3/broadcasts/unsubscribe", h.handleBroadcastUnsubscribe)
+	// Channel admin (owner/admin only)
+	mux.HandleFunc("/v3/broadcasts/members", h.handleBroadcastMembers)
+	mux.HandleFunc("/v3/broadcasts/role", h.handleBroadcastRole)
+	mux.HandleFunc("/v3/broadcasts/remove-member", h.handleBroadcastRemoveMember)
+	mux.HandleFunc("/v3/broadcasts/join-requests", h.handleBroadcastJoinRequests)
+	mux.HandleFunc("/v3/broadcasts/approve", h.handleBroadcastApprove)
+	mux.HandleFunc("/v3/broadcasts/deny", h.handleBroadcastDeny)
+	mux.HandleFunc("/v3/broadcasts/analytics", h.handleBroadcastAnalytics)
 	mux.HandleFunc("/v3/broadcasts/", h.handleBroadcastGet)
 	h.WireDataSovZK(mux)
 	h.WirePhase6Extensions(mux)
@@ -2101,15 +2109,202 @@ func (h *V3Handlers) handleBroadcastSubscribe(w http.ResponseWriter, r *http.Req
 	subscriberDID := h.getDID(r)
 	_, alreadyErr := h.Broadcasts.GetSubscriber(req.ChannelID, subscriberDID)
 	wasNew := alreadyErr != nil
-	sub, err := h.Broadcasts.Subscribe(req.ChannelID, subscriberDID)
+	// Route through RequireApproval: approved channels subscribe immediately;
+	// approval-gated channels record a pending join request.
+	approved, err := h.Broadcasts.RequestJoin(req.ChannelID, subscriberDID)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "SUBSCRIBE_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
-	if wasNew && h.Rewards != nil {
+	if approved && wasNew && h.Rewards != nil {
 		h.Rewards.RecordEngagement(subscriberDID, "channel_subscribe")
 	}
-	WriteJSON(w, http.StatusCreated, sub)
+	WriteJSON(w, http.StatusOK, map[string]any{"approved": approved, "pending": !approved})
+}
+
+// --- Channel Admin (owner/admin only) ---
+
+// isChannelAdmin reports whether did is the channel owner or has the admin role.
+func (h *V3Handlers) isChannelAdmin(channelID, did string) bool {
+	if did == "" || h.Broadcasts == nil {
+		return false
+	}
+	ch, err := h.Broadcasts.GetChannel(channelID)
+	if err != nil || ch == nil {
+		return false
+	}
+	if ch.CreatorID == did {
+		return true
+	}
+	sub, err := h.Broadcasts.GetSubscriber(channelID, did)
+	if err != nil || sub == nil {
+		return false
+	}
+	return sub.Role == broadcast_channels.SubscriberRoleAdmin
+}
+
+// requireChannelAdmin guards admin endpoints; writes an error and returns false
+// when the channel is unavailable or the caller isn't owner/admin.
+func (h *V3Handlers) requireChannelAdmin(w http.ResponseWriter, r *http.Request, channelID string) bool {
+	if h.Broadcasts == nil {
+		WriteError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Broadcast service not initialized", r.Header.Get("X-Request-ID"))
+		return false
+	}
+	if channelID == "" {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "channelId required", r.Header.Get("X-Request-ID"))
+		return false
+	}
+	if !h.isChannelAdmin(channelID, h.getDID(r)) {
+		WriteError(w, http.StatusForbidden, "FORBIDDEN", "Owner or admin role required", r.Header.Get("X-Request-ID"))
+		return false
+	}
+	return true
+}
+
+func (h *V3Handlers) handleBroadcastMembers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	channelID := r.URL.Query().Get("channelId")
+	if !h.requireChannelAdmin(w, r, channelID) {
+		return
+	}
+	members := h.Broadcasts.GetChannelSubscribers(channelID)
+	WriteJSON(w, http.StatusOK, map[string]any{"members": members})
+}
+
+func (h *V3Handlers) handleBroadcastRole(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		ChannelID string `json:"channelId"`
+		MemberID  string `json:"memberId"`
+		Role      string `json:"role"`
+	}
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if !h.requireChannelAdmin(w, r, req.ChannelID) {
+		return
+	}
+	role := broadcast_channels.SubscriberRole(req.Role)
+	if role != broadcast_channels.SubscriberRoleSubscriber &&
+		role != broadcast_channels.SubscriberRoleModerator &&
+		role != broadcast_channels.SubscriberRoleAdmin {
+		WriteError(w, http.StatusBadRequest, "INVALID_ROLE", "role must be subscriber, moderator, or admin", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if ch, _ := h.Broadcasts.GetChannel(req.ChannelID); ch != nil && ch.CreatorID == req.MemberID {
+		WriteError(w, http.StatusBadRequest, "OWNER_IMMUTABLE", "The channel owner's role cannot be changed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err := h.Broadcasts.UpdateSubscriberRole(req.ChannelID, req.MemberID, role); err != nil {
+		WriteError(w, http.StatusBadRequest, "ROLE_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]any{"memberId": req.MemberID, "role": req.Role})
+}
+
+func (h *V3Handlers) handleBroadcastRemoveMember(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		ChannelID string `json:"channelId"`
+		MemberID  string `json:"memberId"`
+	}
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if !h.requireChannelAdmin(w, r, req.ChannelID) {
+		return
+	}
+	if ch, _ := h.Broadcasts.GetChannel(req.ChannelID); ch != nil && ch.CreatorID == req.MemberID {
+		WriteError(w, http.StatusBadRequest, "OWNER_IMMUTABLE", "The channel owner cannot be removed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err := h.Broadcasts.RemoveSubscriber(req.ChannelID, req.MemberID); err != nil {
+		WriteError(w, http.StatusBadRequest, "REMOVE_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]any{"removed": req.MemberID})
+}
+
+func (h *V3Handlers) handleBroadcastJoinRequests(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	channelID := r.URL.Query().Get("channelId")
+	if !h.requireChannelAdmin(w, r, channelID) {
+		return
+	}
+	requests, err := h.Broadcasts.ListPendingJoinRequests(channelID)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "REQUESTS_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]any{"requests": requests})
+}
+
+func (h *V3Handlers) handleBroadcastApprove(w http.ResponseWriter, r *http.Request) {
+	h.handleJoinDecision(w, r, true)
+}
+
+func (h *V3Handlers) handleBroadcastDeny(w http.ResponseWriter, r *http.Request) {
+	h.handleJoinDecision(w, r, false)
+}
+
+func (h *V3Handlers) handleJoinDecision(w http.ResponseWriter, r *http.Request, approve bool) {
+	if r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	var req struct {
+		ChannelID string `json:"channelId"`
+		MemberID  string `json:"memberId"`
+	}
+	if err := h.readJSON(r, &req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if !h.requireChannelAdmin(w, r, req.ChannelID) {
+		return
+	}
+	var err error
+	if approve {
+		err = h.Broadcasts.ApproveJoinRequest(req.ChannelID, req.MemberID)
+	} else {
+		err = h.Broadcasts.DenyJoinRequest(req.ChannelID, req.MemberID)
+	}
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "DECISION_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]any{"memberId": req.MemberID, "approved": approve})
+}
+
+func (h *V3Handlers) handleBroadcastAnalytics(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	channelID := r.URL.Query().Get("channelId")
+	if !h.requireChannelAdmin(w, r, channelID) {
+		return
+	}
+	analytics, err := h.Broadcasts.GetAnalytics(channelID, "daily")
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "ANALYTICS_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	WriteJSON(w, http.StatusOK, analytics)
 }
 
 func (h *V3Handlers) handleBroadcastUnsubscribe(w http.ResponseWriter, r *http.Request) {

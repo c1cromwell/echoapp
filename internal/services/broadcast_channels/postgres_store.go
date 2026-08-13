@@ -180,6 +180,45 @@ func (p *PostgresStore) DeleteSubscriber(ctx context.Context, channelID, subscri
 	return err
 }
 
+func (p *PostgresStore) SaveJoinRequest(ctx context.Context, req *ChannelJoinRequest) error {
+	if req == nil || req.ChannelID == "" || req.SubscriberID == "" {
+		return errors.New("channel and subscriber id required")
+	}
+	_, err := p.pool.Exec(ctx, `
+		INSERT INTO broadcast_channel_join_requests (channel_id, subscriber_id, status, requested_at)
+		VALUES ($1,$2,$3,$4)
+		ON CONFLICT (channel_id, subscriber_id) DO UPDATE SET status=EXCLUDED.status, requested_at=EXCLUDED.requested_at`,
+		req.ChannelID, req.SubscriberID, string(req.Status), req.RequestedAt)
+	return err
+}
+
+func (p *PostgresStore) ListJoinRequests(ctx context.Context, channelID string, status JoinRequestStatus) ([]*ChannelJoinRequest, error) {
+	rows, err := p.pool.Query(ctx,
+		`SELECT channel_id, subscriber_id, status, requested_at
+		 FROM broadcast_channel_join_requests WHERE channel_id = $1 AND status = $2 ORDER BY requested_at`,
+		channelID, string(status))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*ChannelJoinRequest
+	for rows.Next() {
+		var r ChannelJoinRequest
+		var s string
+		if err := rows.Scan(&r.ChannelID, &r.SubscriberID, &s, &r.RequestedAt); err != nil {
+			return nil, err
+		}
+		r.Status = JoinRequestStatus(s)
+		out = append(out, &r)
+	}
+	return out, rows.Err()
+}
+
+func (p *PostgresStore) DeleteJoinRequest(ctx context.Context, channelID, subscriberID string) error {
+	_, err := p.pool.Exec(ctx, `DELETE FROM broadcast_channel_join_requests WHERE channel_id = $1 AND subscriber_id = $2`, channelID, subscriberID)
+	return err
+}
+
 func (p *PostgresStore) LoadAll(ctx context.Context) ([]*Channel, []*ChannelPost, []*ChannelSubscriber, error) {
 	channels, err := p.ListChannels(ctx, 1_000_000, 0)
 	if err != nil {
