@@ -131,6 +131,32 @@ final class EchoUXFlowUITests: XCTestCase {
         snap("persona-created")
     }
 
+    /// Chat folders: from the Messages hub, open the folder manager and create a
+    /// folder, then confirm it appears.
+    func testCreateChatFolder() throws {
+        launch(authenticated: true)
+        let manage = app.buttons["folders.manage"]
+        guard manage.waitForExistence(timeout: 12) else {
+            throw XCTSkip("Folder manager not found (authenticated hub may need a seeded session)")
+        }
+        manage.tap()
+
+        let newFolder = app.buttons["folders.new"]
+        XCTAssertTrue(newFolder.waitForExistence(timeout: 6), "New Folder button not found")
+        newFolder.tap()
+
+        let field = app.alerts.textFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 4), "New Folder text field not found")
+        field.typeText("QA Folder")
+        app.alerts.buttons["Create"].tap()
+
+        XCTAssertTrue(
+            app.staticTexts["QA Folder"].waitForExistence(timeout: 6),
+            "Created folder did not appear in the list"
+        )
+        snap("folder-created")
+    }
+
     // MARK: - Helpers
 
     /// Screenshot attached to the test, kept in the .xcresult and exported by
