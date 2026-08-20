@@ -98,7 +98,7 @@ final class ScreenCatalogGeneratorTests: XCTestCase {
             journey: "tabs",
             stepId: "03-rewards",
             title: "Rewards tab",
-            e2eRef: "MainTabView · Rewards / WalletTab"
+            e2eRef: "MainTabView · RewardsHubView"
         )
         try ScreenCatalogRenderer.render(
             CatalogSettingsPreview(),

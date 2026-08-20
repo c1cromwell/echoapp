@@ -630,8 +630,31 @@ struct CatalogRewardsPreview: View {
 
             ScrollView {
                 VStack(spacing: 20) {
+                    EchoScoreSection(snapshot: EchoScoreSnapshot.from(score: 34))
+                    StreakSection(streak: StreakInfo(
+                        did: "did:key:catalog",
+                        currentDays: 8,
+                        longestDays: 8,
+                        lastActive: nil,
+                        multiplier: 1.10,
+                        milestone: "Week One"
+                    ))
+                    NextUnlockSection(snapshot: EchoScoreSnapshot.from(score: 34))
+                    WeeklyPackSection(
+                        pack: WeeklyPack(
+                            weekKey: "weekly:2026-W34",
+                            label: "Week One pack",
+                            opened: false,
+                            items: [
+                                WeeklyPackItem(kind: "activity", title: "Week recorded", detail: "Your activity this week is counted toward standing."),
+                                WeeklyPackItem(kind: "badge", title: "Week One", detail: "Seven-day streak standing."),
+                            ],
+                            openedAt: nil
+                        ),
+                        isOpening: false,
+                        onOpen: {}
+                    )
                     BalanceCard(state: walletState)
-                    BalanceBreakdown(state: walletState)
                 }
                 .padding(20)
             }

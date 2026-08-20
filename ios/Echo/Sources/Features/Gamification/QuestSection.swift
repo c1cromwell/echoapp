@@ -22,6 +22,10 @@ final class QuestViewModel: ObservableObject {
         (starterQuests + advancedQuests).first { !$0.isCompleted }
     }
 
+    var nextClaimableQuest: QuestItem? {
+        (starterQuests + advancedQuests).first(\.isClaimable)
+    }
+
     func load() async {
         isLoading = true
         errorMessage = nil

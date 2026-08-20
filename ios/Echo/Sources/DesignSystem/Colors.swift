@@ -96,7 +96,7 @@ public extension Color {
     static func trustColor(for level: String) -> Color {
         switch level.lowercased() {
         case "newcomer", "t0", "unverified":  return .echoTrustUnverified
-        case "basic", "t1", "seen":           return .echoTrustBasic
+        case "basic", "t1", "seen", "member": return .echoTrustBasic
         case "verified", "t2":                return .echoTrustVerified
         case "trusted", "t3":                 return .echoTrustTrusted
         case "premium", "t4", "highlytrusted": return .echoTrustPremium

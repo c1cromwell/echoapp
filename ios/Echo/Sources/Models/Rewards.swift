@@ -74,38 +74,14 @@ public struct RewardsTrustScore {
         self.score = max(0, min(100, score))
         self.updateLevel()
     }
-    
-    /// Get reward multiplier based on trust tier (per Tokenomics v2.0)
-    /// Tier 1: 1.0x, Tier 2: 1.2x, Tier 3: 1.5x, Tier 4: 2.0x, Tier 5: 3.0x
-    public func getMultiplier() -> Double {
-        switch score {
-        case 0..<20:
-            return 1.0     // Tier 1 — Unverified
-        case 20..<40:
-            return 1.2     // Tier 2 — Newcomer
-        case 40..<60:
-            return 1.5     // Tier 3 — Member
-        case 60..<80:
-            return 2.0     // Tier 4 — Trusted
-        default:
-            return 3.0     // Tier 5 — Verified
-        }
-    }
-    
+
     /// Update trust level based on score
     private mutating func updateLevel() {
-        level = switch score {
-        case 0..<20:
-            "unverified"
-        case 20..<40:
-            "newcomer"
-        case 40..<60:
-            "member"
-        case 60..<80:
-            "trusted"
-        default:
-            "verified"
-        }
+        level = EchoScoreSnapshot.level(forScore: score)
+    }
+
+    public func getMultiplier() -> Double {
+        EchoScoreSnapshot.multiplier(forScore: score)
     }
     
     /// Update score
@@ -113,6 +89,95 @@ public struct RewardsTrustScore {
         self.score = max(0, min(100, newScore))
         self.updatedAt = Date()
         self.updateLevel()
+    }
+}
+
+/// Living Echo Score for the Rewards hub. Keep in lockstep with
+/// `internal/tokenomics/models/echo_score.go`.
+public struct EchoScoreSnapshot: Equatable, Sendable {
+    public let score: Int
+    public let tier: Int
+    public let level: String
+    public let multiplier: Double
+    public let nextUnlock: UnlockFeature?
+
+    public struct UnlockFeature: Equatable, Sendable {
+        public let tier: Int
+        public let minScore: Int
+        public let feature: String
+        public let pointsNeeded: Int
+    }
+
+    private static let ladder: [(tier: Int, minScore: Int, feature: String)] = [
+        (2, 20, "Appear on the weekly leaderboard"),
+        (3, 40, "Create broadcast channels"),
+        (4, 60, "Governance voting"),
+        (5, 80, "Highest earn multiplier"),
+    ]
+
+    public static func from(score raw: Int) -> EchoScoreSnapshot {
+        let score = min(max(raw, 0), 100)
+        var next: UnlockFeature?
+        for step in ladder where score < step.minScore {
+            next = UnlockFeature(
+                tier: step.tier,
+                minScore: step.minScore,
+                feature: step.feature,
+                pointsNeeded: step.minScore - score
+            )
+            break
+        }
+        return EchoScoreSnapshot(
+            score: score,
+            tier: tier(forScore: score),
+            level: level(forScore: score),
+            multiplier: multiplier(forScore: score),
+            nextUnlock: next
+        )
+    }
+
+    public static func from(tier: Int) -> EchoScoreSnapshot {
+        from(score: midpoint(forTier: tier))
+    }
+
+    public static func multiplier(forScore score: Int) -> Double {
+        switch score {
+        case ..<20: return 1.0
+        case ..<40: return 1.2
+        case ..<60: return 1.5
+        case ..<80: return 2.0
+        default: return 3.0
+        }
+    }
+
+    public static func tier(forScore score: Int) -> Int {
+        switch score {
+        case ..<20: return 1
+        case ..<40: return 2
+        case ..<60: return 3
+        case ..<80: return 4
+        default: return 5
+        }
+    }
+
+    public static func level(forScore score: Int) -> String {
+        switch score {
+        case ..<20: return "unverified"
+        case ..<40: return "newcomer"
+        case ..<60: return "member"
+        case ..<80: return "trusted"
+        default: return "verified"
+        }
+    }
+
+    public static func midpoint(forTier tier: Int) -> Int {
+        switch tier {
+        case ...1: return 10
+        case 2: return 30
+        case 3: return 50
+        case 4: return 70
+        default: return 90
+        }
     }
 }
 
