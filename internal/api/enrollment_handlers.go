@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -202,15 +203,29 @@ func (rt *Router) handleRegisterPasskey(w http.ResponseWriter, r *http.Request) 
 }
 
 // handleRestoreChallenge handles POST /v1/auth/restore-challenge.
-// Returns a 32-byte nonce the wallet must sign to prove ownership before re-binding a DID.
+// Returns a nonce the wallet must sign to prove ownership before re-binding a DID.
 func (rt *Router) handleRestoreChallenge(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
 		return
 	}
 
-	// Production: store nonce keyed by wallet_address with 5-min TTL.
-	nonce := uuid.New().String() + uuid.New().String() // 72 printable chars ≈ adequate entropy
+	var req struct {
+		WalletAddress string `json:"wallet_address"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.WalletAddress) == "" {
+		WriteError(w, http.StatusBadRequest, "MISSING_FIELDS", "wallet_address is required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	addr := strings.TrimSpace(req.WalletAddress)
+	nonce := uuid.New().String() + uuid.New().String()
+	rt.restoreChallengeMu.Lock()
+	if rt.restoreChallenges == nil {
+		rt.restoreChallenges = make(map[string]restoreChallenge)
+	}
+	rt.restoreChallenges[addr] = restoreChallenge{nonce: nonce, expiresAt: time.Now().Add(5 * time.Minute)}
+	rt.restoreChallengeMu.Unlock()
+
 	WriteJSON(w, http.StatusOK, map[string]string{
 		"challenge":  nonce,
 		"expires_in": "300",
@@ -225,7 +240,7 @@ type RestoreDIDRequest struct {
 }
 
 // handleRestoreDID handles POST /v1/auth/restore-did.
-// Looks up the DID bound to the wallet, verifies wallet ownership, and re-binds to new device key.
+// Looks up the DID bound to the wallet, consumes the restore challenge, and issues a JWT.
 func (rt *Router) handleRestoreDID(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
@@ -243,17 +258,72 @@ func (rt *Router) handleRestoreDID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Production: verify wallet signature against challenge, look up DID by wallet_address,
-	// re-bind DID to new_device_public_key, return user record.
-	// Errors: 404 WALLET_NOT_ENROLLED, 401 WALLET_SIGNATURE_INVALID, 409 DEVICE_ALREADY_ENROLLED.
-	// WO-273: Persisted wallet→subject_did mapping is required before returning a canonical did:key.
+	rt.restoreChallengeMu.Lock()
+	ch, ok := rt.restoreChallenges[req.WalletAddress]
+	if ok {
+		delete(rt.restoreChallenges, req.WalletAddress)
+	}
+	rt.restoreChallengeMu.Unlock()
+	if !ok || time.Now().After(ch.expiresAt) {
+		WriteError(w, http.StatusUnauthorized, "WALLET_SIGNATURE_INVALID", "restore challenge missing or expired", r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	did := rt.lookupDIDByWallet(r.Context(), req.WalletAddress)
+	if did == "" {
+		WriteError(w, http.StatusNotFound, "WALLET_NOT_ENROLLED", "no identity is linked to this recovery phrase", r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	displayName := "Restored User"
+	trustTier := 1
+	if rt.V3 != nil && rt.V3.DB != nil {
+		if user, err := rt.V3.DB.GetUserByDID(r.Context(), did); err == nil && user != nil {
+			if user.Username != "" {
+				displayName = user.Username
+			}
+			if user.TrustTier > 0 {
+				trustTier = user.TrustTier
+			}
+		}
+	}
+
+	access := ""
+	if rt.tokenService != nil {
+		token, _, err := rt.tokenService.IssueAccessToken(did, "restored-device", trustTier, "messaging")
+		if err == nil {
+			access = token
+		}
+	}
+
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"did":            "pending:wallet:" + req.WalletAddress,
-		"display_name":   "Restored User",
-		"trust_tier":     1,
+		"did":            did,
+		"display_name":   displayName,
+		"trust_tier":     trustTier,
 		"wallet_address": req.WalletAddress,
+		"access_token":   access,
 		"request_id":     r.Header.Get("X-Request-ID"),
 	})
+}
+
+func (rt *Router) lookupDIDByWallet(ctx context.Context, addr string) string {
+	if addr == "" {
+		return ""
+	}
+	rt.enrollmentWalletMu.Lock()
+	for did, linked := range rt.enrollmentWalletByDID {
+		if linked == addr {
+			rt.enrollmentWalletMu.Unlock()
+			return did
+		}
+	}
+	rt.enrollmentWalletMu.Unlock()
+	if rt.V3 != nil && rt.V3.Wallet != nil && rt.V3.Wallet.Store != nil {
+		if did, err := rt.V3.Wallet.Store.GetDIDByDAGAddress(ctx, addr); err == nil && did != "" {
+			return did
+		}
+	}
+	return ""
 }
 
 // handleEnrollmentDID handles POST /v1/enrollment/did.

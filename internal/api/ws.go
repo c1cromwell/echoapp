@@ -9,8 +9,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 
+	"github.com/thechadcromwell/echoapp/internal/database"
 	"github.com/thechadcromwell/echoapp/internal/infra"
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
 	"github.com/thechadcromwell/echoapp/internal/services/bots"
@@ -177,6 +179,7 @@ type Hub struct {
 	notifier       OfflineNotifier                               // optional; push for offline recipients (WO-57)
 	groupMembers   GroupMemberLister                             // optional; fan-out group text to members (M2)
 	offlineQueue   *wsOfflineQueue                               // directed WS blobs for offline recipients (M2)
+	durableQueue   database.DB                                   // optional Postgres/memory message_queue (survives restart)
 	rateLimiter    *infra.RateLimiter                            // WO-44 per-DID WS message budget (optional)
 	sealedTokens   *messaging.SealedTokenStore                   // WO-219 sealed-sender delivery tokens
 	convNotifPrefs *messaging.ConversationNotificationPrefsStore // WO-56 mute → silent push
@@ -313,11 +316,26 @@ func (h *Hub) deliverOrQueue(recipient string, data []byte, senderID, conversati
 	if h.SendToUser(recipient, queueData) {
 		return true
 	}
-	if h.offlineQueue != nil {
-		h.offlineQueue.Enqueue(recipient, queueData, wsOfflineRetention)
-	}
+	h.enqueueOffline(recipient, queueData, senderID, conversationID)
 	h.notifyUndelivered(recipient, senderID, conversationID, silent)
 	return false
+}
+
+func (h *Hub) enqueueOffline(recipient string, data []byte, senderID, conversationID string) {
+	if h.durableQueue != nil {
+		_ = h.durableQueue.Enqueue(context.Background(), &database.QueuedMessage{
+			MessageID:      uuid.New().String(),
+			ConversationID: conversationID,
+			SenderDID:      senderID,
+			RecipientDID:   recipient,
+			Payload:        append([]byte(nil), data...),
+			ExpiresAt:      time.Now().Add(wsOfflineRetention),
+		})
+		return
+	}
+	if h.offlineQueue != nil {
+		h.offlineQueue.Enqueue(recipient, data, wsOfflineRetention)
+	}
 }
 
 // scrubRelayMetadataForQueue strips sender `from` on sealed payloads before offline
@@ -338,6 +356,24 @@ func scrubRelayMetadataForQueue(data []byte) []byte {
 
 // flushOffline replays queued directed WS payloads when a client reconnects.
 func (h *Hub) flushOffline(c *Client) {
+	if h.durableQueue != nil {
+		msgs, err := h.durableQueue.Dequeue(context.Background(), c.userID, wsOfflineMaxDepth)
+		if err != nil {
+			return
+		}
+		for _, msg := range msgs {
+			if msg == nil || len(msg.Payload) == 0 {
+				continue
+			}
+			select {
+			case c.send <- msg.Payload:
+			default:
+				_ = h.durableQueue.Enqueue(context.Background(), msg)
+				return
+			}
+		}
+		return
+	}
 	if h.offlineQueue == nil {
 		return
 	}
@@ -433,6 +469,14 @@ func (h *Hub) SetOfflineOverflowStorage(s encblob.Storage) {
 	}
 }
 
+// SetDurableOfflineQueue persists undelivered WS blobs in message_queue so they
+// survive process restart. When set, it replaces the in-memory queue.
+func (h *Hub) SetDurableOfflineQueue(db database.DB) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.durableQueue = db
+}
+
 // notifyUndelivered fires a content-blind push asynchronously if a notifier is set.
 func (h *Hub) notifyUndelivered(recipientID, senderID, conversationID string, silent bool) {
 	h.mu.RLock()
@@ -453,9 +497,7 @@ func (h *Hub) deliverOrQueueCall(recipient string, data []byte, senderID string,
 	if h.SendToUser(recipient, data) {
 		return true
 	}
-	if h.offlineQueue != nil {
-		h.offlineQueue.Enqueue(recipient, data, wsOfflineRetention)
-	}
+	h.enqueueOffline(recipient, data, senderID, "")
 	h.notifyCallUndelivered(recipient, senderID, payload)
 	return false
 }

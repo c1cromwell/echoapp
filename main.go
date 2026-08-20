@@ -263,6 +263,18 @@ func (s *Server) Start() error {
 	notifSvc := notification.NewService(db)
 	offlineNotifier := api.NewOfflineNotifier(notifSvc) // WO-57: content-blind push for offline recipients
 	router.WSHub.SetOfflineNotifier(offlineNotifier)    // push on undelivered direct messages
+	if pgDB != nil {
+		router.WSHub.SetDurableOfflineQueue(pgDB)
+		log.Println("Offline message queue: PostgreSQL (survives restart)")
+	} else {
+		log.Println("Offline message queue: in-memory (set DATABASE_URL for durable delivery)")
+	}
+	if sender := infra.NewAPNsPushSenderFromEnv(); sender != nil {
+		notifSvc.SetPushSender(sender)
+		log.Println("APNs push sender enabled (content-blind wake-up)")
+	} else {
+		log.Println("APNs push sender disabled (set APNS_KEY_FILE, APNS_KEY_ID, APNS_TEAM_ID)")
+	}
 
 	backupBlobStore := encblob.Storage(encblob.NewStubStorage())
 	if fallback, err := encblob.NewFallbackStorage(); err == nil {

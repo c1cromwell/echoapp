@@ -327,48 +327,7 @@ struct MessagesTabView: View {
 
     /// Keeps one WebSocket open for inbound chat + signals (Wave 0.1 relay E2E).
     private func connectSharedMessageRelay() async {
-        guard let service = DIContainer.shared.resolveConversationSignalService(),
-              let token = try? await KeychainManager.shared.getAuthToken() else { return }
-
-        service.setInboundTextHandler { event in
-            Task { @MainActor in
-                let resolved = await InboundTextMessageResolver.resolveBody(for: event)
-                let store = ConversationStore.shared
-                let match = store.conversations.first(where: { $0.id == event.conversationId })
-                    ?? store.conversations.first(where: { $0.peerDID == event.peerDID })
-                guard let conversation = match else { return }
-
-                let currentDID = await CurrentUserSession.currentDID() ?? ""
-                guard !resolved.senderDID.isEmpty, resolved.senderDID != currentDID else { return }
-
-                let inbound = ChatDetailMessage(
-                    id: event.messageId,
-                    senderDID: resolved.senderDID.isEmpty ? event.peerDID : resolved.senderDID,
-                    currentUserDID: currentDID,
-                    content: resolved.body,
-                    timestamp: "Now",
-                    deliveryStatus: .delivered
-                )
-                ConversationThreadStore.appendIfNew(conversationId: conversation.id, message: inbound)
-                let session = HiddenChatsSession.shared
-                guard session.shouldSurfaceNotification(for: conversation.id) else { return }
-                let preview = session.redactedPreviewIfNeeded(
-                    for: conversation.id,
-                    resolved: resolved.preview
-                )
-                store.appendMessagePreview(conversationId: conversation.id, preview: preview)
-                if ActiveChatRegistry.openConversationId != conversation.id {
-                    store.incrementUnread(conversationId: conversation.id)
-                }
-            }
-        }
-
-        try? await service.connect(accessToken: token)
-        #if os(iOS)
-        await IncomingCallPresenter.shared.configureIfNeeded()
-        ScreenshotAlertService.shared.configure(signalService: service)
-        ScreenshotAlertService.shared.startMonitoring()
-        #endif
+        await MessageRelaySession.connect()
     }
 }
 

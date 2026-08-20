@@ -102,6 +102,8 @@ type Router struct {
 	enrollmentVerified      map[string]enrollmentVerifiedRecord
 	enrollmentWalletMu      sync.Mutex
 	enrollmentWalletByDID   map[string]string
+	restoreChallengeMu      sync.Mutex
+	restoreChallenges       map[string]restoreChallenge
 	enrollmentMDLMu         sync.Mutex
 	enrollmentMDLSessions   map[string]enrollmentMDLSession
 	enrollmentIDVMu         sync.Mutex
@@ -112,6 +114,11 @@ type Router struct {
 	// Redis is not configured (dev/test); prod uses Redis. Guarded by smsSessionsMu.
 	smsSessions   map[string]smsOTPSession
 	smsSessionsMu sync.Mutex
+}
+
+type restoreChallenge struct {
+	nonce     string
+	expiresAt time.Time
 }
 
 // NewRouter creates a Router with production-grade ES256 JWT validation.

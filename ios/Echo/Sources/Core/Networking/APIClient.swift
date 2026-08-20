@@ -71,6 +71,8 @@ actor PasskeySigningInterceptor: RequestInterceptor {
     private static let publicPaths: Set<String> = [
         "/health", "/identity/register", "/v1/crypto/server-key",
         "/identity/devices",   // token-based device add is also public
+        "/v1/auth/restore-challenge",
+        "/v1/auth/restore-did",
     ]
 
     init(

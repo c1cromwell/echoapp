@@ -25,6 +25,7 @@ type Store interface {
 	ApplyUnstake(ctx context.Context, did string, amount int64) error
 	CreditRewards(ctx context.Context, did string, amount int64) error
 	GetDAGAddress(ctx context.Context, did string) (string, error)
+	GetDIDByDAGAddress(ctx context.Context, address string) (string, error)
 	LinkDAGAddress(ctx context.Context, did, address string) error
 	// LinkDAGAccount binds the address together with the user-held public key
 	// (real-funds custody). GetDAGAccountPubKey returns the bound key.
@@ -214,6 +215,12 @@ func (s *PGStore) GetDAGAddress(ctx context.Context, did string) (string, error)
 	return addr, err
 }
 
+func (s *PGStore) GetDIDByDAGAddress(ctx context.Context, address string) (string, error) {
+	var did string
+	err := s.pool.QueryRow(ctx, `SELECT did FROM wallet_accounts WHERE dag_address = $1`, address).Scan(&did)
+	return did, err
+}
+
 func (s *PGStore) LinkDAGAddress(ctx context.Context, did, address string) error {
 	return s.LinkDAGAccount(ctx, did, address, "")
 }
@@ -368,6 +375,15 @@ func (m *MemStore) CreditRewards(_ context.Context, did string, amount int64) er
 
 func (m *MemStore) GetDAGAddress(_ context.Context, did string) (string, error) {
 	return m.addresses[did], nil
+}
+
+func (m *MemStore) GetDIDByDAGAddress(_ context.Context, address string) (string, error) {
+	for did, addr := range m.addresses {
+		if addr == address && address != "" {
+			return did, nil
+		}
+	}
+	return "", fmt.Errorf("wallet address not linked")
 }
 
 func (m *MemStore) LinkDAGAddress(ctx context.Context, did, address string) error {

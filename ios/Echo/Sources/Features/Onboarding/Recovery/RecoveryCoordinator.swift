@@ -49,8 +49,27 @@ public final class RecoveryCoordinator {
     func confirmationSucceeded() {
         UserDefaults.standard.set(Date(), forKey: "echo.recoveryPhraseExportedAt")
         RecoveryPromptScheduler.shared.cancelAllPendingReminders()
+        let exported = phrase
         phrase = nil
         onExportComplete()
+        if let exported {
+            Task { await Self.uploadInitialCloudBackup(phrase: exported) }
+        }
+    }
+
+    /// First cloud backup so a later wipe + phrase restore can recover chats.
+    private static func uploadInitialCloudBackup(phrase: RecoveryPhrase) async {
+        guard let service = DIContainer.shared.resolveMessageBackup() else { return }
+        do {
+            try await BackupSessionKeyStore.save(from: phrase)
+            try await service.uploadCloudBackup(phrase: phrase)
+            BackupScheduler.autoBackupEnabled = true
+            if BackupScheduler.frequency == .manual {
+                BackupScheduler.frequency = .daily
+            }
+        } catch {
+            UserDefaults.standard.set(error.localizedDescription, forKey: "echo.backup.lastUploadError")
+        }
     }
 
     func confirmationFailed() {

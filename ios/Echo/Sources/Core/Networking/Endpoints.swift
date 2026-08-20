@@ -11,6 +11,8 @@ enum AuthEndpoint: APIEndpoint {
     case verifyBiometric
     case createPasskey
     case verifyPasskey
+    case restoreChallenge
+    case restoreDID
     
     var path: String {
         switch self {
@@ -28,6 +30,10 @@ enum AuthEndpoint: APIEndpoint {
             return "/auth/passkey/create"
         case .verifyPasskey:
             return "/auth/passkey/verify"
+        case .restoreChallenge:
+            return "/v1/auth/restore-challenge"
+        case .restoreDID:
+            return "/v1/auth/restore-did"
         }
     }
 }
