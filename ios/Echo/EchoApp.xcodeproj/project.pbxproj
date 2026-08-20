@@ -2267,8 +2267,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				87CBC6EB3B686A1924E7AEA2 /* PushRegistrationService.swift in Sources */,
-				70E0E716F180E99C3EE59BC7 /* MessageRelaySession.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2276,6 +2274,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				87CBC6EB3B686A1924E7AEA2 /* PushRegistrationService.swift in Sources */,
+				70E0E716F180E99C3EE59BC7 /* MessageRelaySession.swift in Sources */,
 				F56F98F96F0AEF5AA5F7357C /* GlobalSearchSheet.swift in Sources */,
 				F11E2CBF42B41075438D0640 /* MessageLinkPreview.swift in Sources */,
 				99FE2EC710E104FAA990704B /* ComposerDraftStore.swift in Sources */,
