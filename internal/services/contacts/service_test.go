@@ -41,6 +41,23 @@ func TestSearchByUsername(t *testing.T) {
 	}
 }
 
+func TestSearchByUsernameAtPrefix(t *testing.T) {
+	svc, db := setupTest()
+	ctx := context.Background()
+
+	db.CreateUser(ctx, &database.User{
+		UserID: "user-1", DID: "did:bob", Username: "bob",
+	})
+
+	results, err := svc.SearchByUsername(ctx, "did:alice", "@bob")
+	if err != nil {
+		t.Fatalf("SearchByUsername: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result for @bob, got %d", len(results))
+	}
+}
+
 func TestSearchByUsernameSelfFilter(t *testing.T) {
 	svc, db := setupTest()
 	ctx := context.Background()

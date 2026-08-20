@@ -30,7 +30,12 @@ struct QRContactExchangeUseCase: Sendable {
     }
 }
 
-/// Referral invite links via Contacts Service (WO-222).
+/// Referral invite links. Public share is `@username` (`echo://invite?u=`).
+/// Opaque `code=` accept remains for links already in the wild (WO-222).
+enum InviteAcceptError: Error {
+    case userNotFound
+}
+
 struct InviteLinkUseCase: Sendable {
     private let client: ContactSocialAPIClient
 
@@ -39,15 +44,30 @@ struct InviteLinkUseCase: Sendable {
     }
 
     func generateInviteLink() async throws -> URL {
-        let response = try await client.createInviteLink()
-        guard let url = response.shareURL else {
+        let username = await CurrentUserSession.currentUsername()
+        guard let url = InviteHandle.shareURL(username: username) else {
             throw URLError(.badURL)
         }
         return url
     }
 
     func acceptInvite(code: String) async throws {
+        if InviteHandle.isUsernameToken(code) {
+            try await acceptUsername(InviteHandle.normalize(code))
+            return
+        }
         _ = try await client.acceptInvite(code: code)
+    }
+
+    func acceptUsername(_ handle: String) async throws {
+        let normalized = InviteHandle.normalize(handle)
+        guard !normalized.isEmpty else { throw URLError(.badURL) }
+        let hits = try await client.searchUsername(normalized)
+        let match = hits.first {
+            InviteHandle.normalize($0.username).caseInsensitiveCompare(normalized) == .orderedSame
+        } ?? hits.first
+        guard let match else { throw InviteAcceptError.userNotFound }
+        _ = try await client.addContact(did: match.did, addedVia: "username_invite")
     }
 }
 

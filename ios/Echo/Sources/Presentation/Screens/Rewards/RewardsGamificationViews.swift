@@ -355,20 +355,16 @@ struct RewardsHubView: View {
                 LeaderboardSection(snapshot: leaderboard, selfDID: selfDID)
 
                 NavigationLink {
+                    ReferralView()
+                } label: {
+                    RewardHubNavRow(title: "Invite with @username")
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
                     WalletTab(api: walletAPI)
                 } label: {
-                    HStack {
-                        Text("Wallet & balance")
-                            .typographyStyle(.body, color: .echoPrimaryText)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundStyle(Color.echoInk40)
-                    }
-                    .padding(Spacing.lg.rawValue)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.echoSurface)
-                    .clipShape(RoundedRectangle(cornerRadius: Spacing.lg.rawValue, style: .continuous))
-                    .glacialShadow()
+                    RewardHubNavRow(title: "Wallet & balance")
                 }
                 .buttonStyle(.plain)
             }
@@ -403,6 +399,25 @@ struct RewardsHubView: View {
         if let opened = try? await gamification.openWeeklyPack() {
             pack = opened.pack
         }
+    }
+}
+
+struct RewardHubNavRow: View {
+    let title: String
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .typographyStyle(.body, color: .echoPrimaryText)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .foregroundStyle(Color.echoInk40)
+        }
+        .padding(Spacing.lg.rawValue)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.echoSurface)
+        .clipShape(RoundedRectangle(cornerRadius: Spacing.lg.rawValue, style: .continuous))
+        .glacialShadow()
     }
 }
 #endif

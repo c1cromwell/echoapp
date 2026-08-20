@@ -14,6 +14,19 @@ final class QRContactAddCoordinator {
     func handleScan(_ raw: String) async {
         let qrUseCase = DIContainer.shared.resolveQRContactExchangeUseCase() ?? QRContactExchangeUseCase()
         guard let scanned = qrUseCase.parseScannedPayload(raw) else {
+            if let url = URL(string: raw.trimmingCharacters(in: .whitespacesAndNewlines)),
+               case .invite(let token) = EchoDeepLink.parse(url) {
+                NotificationCenter.default.post(
+                    name: .echoPendingInvite,
+                    object: nil,
+                    userInfo: ["code": token]
+                )
+                resultIsError = false
+                resultMessage = InviteHandle.isUsernameToken(token)
+                    ? "Opened invite for \(InviteHandle.display(token))."
+                    : "Opened contact invite."
+                return
+            }
             presentError("Unrecognized QR — scan an Echo profile code.")
             return
         }

@@ -1,5 +1,42 @@
-#if os(iOS)
 import Foundation
+
+/// `@username` is the public invite. Opaque `code=` links still parse for older shares.
+enum InviteHandle {
+    /// Strip whitespace and a leading `@`. Case is preserved for username lookup.
+    static func normalize(_ raw: String) -> String {
+        var handle = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        while handle.hasPrefix("@") {
+            handle.removeFirst()
+            handle = handle.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return handle
+    }
+
+    static func display(_ raw: String) -> String {
+        let handle = normalize(raw)
+        return handle.isEmpty ? "" : "@\(handle)"
+    }
+
+    /// Token stashed in `pendingInviteCode` so accept UI can tell handle from opaque code.
+    static func pendingToken(username: String) -> String {
+        display(username)
+    }
+
+    static func isUsernameToken(_ token: String) -> Bool {
+        let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.hasPrefix("@") && !normalize(trimmed).isEmpty
+    }
+
+    static func shareURL(username: String) -> URL? {
+        let handle = normalize(username)
+        guard !handle.isEmpty else { return nil }
+        var components = URLComponents()
+        components.scheme = "echo"
+        components.host = "invite"
+        components.queryItems = [URLQueryItem(name: "u", value: handle)]
+        return components.url
+    }
+}
 
 /// Parses `echo://` URLs for invites, profile, and device link (WO-222 / WO-288).
 enum EchoDeepLink {
@@ -14,6 +51,9 @@ enum EchoDeepLink {
 
         switch host {
         case "invite":
+            if let handle = inviteHandle(from: url, path: path) {
+                return .invite(code: InviteHandle.pendingToken(username: handle))
+            }
             if let code = inviteCode(from: url, path: path) {
                 return .invite(code: code)
             }
@@ -31,6 +71,18 @@ enum EchoDeepLink {
             if !path.isEmpty { return .linkDevice(token: path) }
         default:
             break
+        }
+        return nil
+    }
+
+    private static func inviteHandle(from url: URL, path: String) -> String? {
+        if let raw = queryValue(url, name: "u") {
+            let handle = InviteHandle.normalize(raw)
+            if !handle.isEmpty { return handle }
+        }
+        if path.hasPrefix("@") {
+            let handle = InviteHandle.normalize(path)
+            if !handle.isEmpty { return handle }
         }
         return nil
     }
@@ -61,4 +113,3 @@ enum EchoDeepLink {
 
     private static let pendingInviteKey = "echo.pendingInviteCode"
 }
-#endif

@@ -20,7 +20,7 @@ final class AppState {
     var selectedTab: AppTab = .messages
     var displayName: String = ""
     var trustTier: Int = 0
-    /// Set when user opens echo://invite?code=… (Wave 0.4).
+    /// Set when user opens `echo://invite?u=` (`@username`) or legacy `echo://invite?code=`.
     var pendingInviteCode: String?
 
     var personas: [PersonaSummary] = []

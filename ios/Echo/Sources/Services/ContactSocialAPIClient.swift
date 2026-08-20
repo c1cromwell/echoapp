@@ -26,6 +26,7 @@ struct InviteLinkResponse: Codable, Sendable {
         case expiresAt
     }
 
+    /// Legacy opaque-code URL. New shares use `InviteHandle.shareURL` (`echo://invite?u=`).
     var shareURL: URL? {
         URL(string: "echo://invite?code=\(code.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? code)")
     }
@@ -56,7 +57,7 @@ struct ContactSocialAPIClient: Sendable {
     }
 
     func searchUsername(_ handle: String) async throws -> [UsernameSearchHit] {
-        let trimmed = handle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = InviteHandle.normalize(handle)
         guard !trimmed.isEmpty else { return [] }
         return try await apiClient.get(endpoint: ContactsEndpoint.search(handle: trimmed))
     }

@@ -1,7 +1,7 @@
 #if os(iOS)
 import SwiftUI
 
-/// Accept `echo://invite?code=` contact invites (WO-222).
+/// Accept `echo://invite?u=` (`@username`) or legacy `echo://invite?code=` (WO-222).
 struct AcceptInviteSheet: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -12,28 +12,32 @@ struct AcceptInviteSheet: View {
     @State private var errorMessage: String?
     @State private var success = false
 
+    private var isUsernameInvite: Bool { InviteHandle.isUsernameToken(inviteCode) }
+    private var displayedHandle: String { InviteHandle.display(inviteCode) }
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
+            VStack(spacing: Spacing.xl.rawValue) {
                 if success {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 48))
-                        .foregroundStyle(.green)
-                    Text("Invite accepted")
-                        .font(.headline)
-                    Text("They've been added to your contacts.")
+                        .foregroundStyle(Color.echoTrustGreen)
+                    Text("Added to contacts")
+                        .typographyStyle(.h4, color: .echoInk)
+                    Text(isUsernameInvite
+                         ? "\(displayedHandle) is in your contacts."
+                         : "They've been added to your contacts.")
                         .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
+                        .typographyStyle(.body, color: .echoInk55)
                 } else {
-                    Text("Accept contact invite?")
-                        .font(.headline)
-                    Text("Code: \(inviteCode)")
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
+                    Text(isUsernameInvite ? "Add \(displayedHandle)?" : "Accept contact invite?")
+                        .typographyStyle(.h4, color: .echoInk)
+                    Text(isUsernameInvite ? displayedHandle : "Code: \(inviteCode)")
+                        .font(Font.echomono(13, weight: .medium))
+                        .foregroundStyle(Color.echoInk55)
                     if let errorMessage {
                         Text(errorMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
+                            .typographyStyle(.caption, color: .echoError)
                     }
                     Button {
                         Task { await accept() }
@@ -41,7 +45,7 @@ struct AcceptInviteSheet: View {
                         if isLoading {
                             ProgressView()
                         } else {
-                            Text("Accept invite")
+                            Text(isUsernameInvite ? "Add contact" : "Accept invite")
                                 .frame(maxWidth: .infinity)
                         }
                     }
@@ -49,7 +53,7 @@ struct AcceptInviteSheet: View {
                     .disabled(isLoading)
                 }
             }
-            .padding()
+            .padding(Spacing.lg.rawValue)
             .navigationTitle("Contact invite")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -72,8 +76,13 @@ struct AcceptInviteSheet: View {
         }
         let social = ContactSocialAPIClient(apiClient: client)
         do {
-            _ = try await social.acceptInvite(code: inviteCode)
+            let useCase = InviteLinkUseCase(client: social)
+            try await useCase.acceptInvite(code: inviteCode)
             success = true
+        } catch InviteAcceptError.userNotFound {
+            errorMessage = isUsernameInvite
+                ? "No one found with \(displayedHandle)."
+                : "Invite is invalid or expired."
         } catch {
             errorMessage = error.localizedDescription
         }

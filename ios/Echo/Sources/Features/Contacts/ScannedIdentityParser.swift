@@ -1,4 +1,3 @@
-#if os(iOS)
 import Foundation
 
 /// Parses QR payloads: raw `did:key` or `echo://profile?did=…&u=…`.
@@ -31,4 +30,3 @@ enum ScannedIdentityParser {
         return nil
     }
 }
-#endif

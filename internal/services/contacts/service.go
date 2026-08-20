@@ -161,6 +161,13 @@ func (s *Service) GetPhoneDiscoverySettings(ctx context.Context, did string) (ma
 func (s *Service) SearchByUsername(ctx context.Context, callerDID, handle string) ([]map[string]interface{}, error) {
 	var results []map[string]interface{}
 
+	handle = strings.TrimSpace(handle)
+	handle = strings.TrimPrefix(handle, "@")
+	handle = strings.TrimSpace(handle)
+	if handle == "" {
+		return results, nil
+	}
+
 	user, err := s.db.GetUserByUsername(ctx, handle)
 	if err == nil && user.DID != callerDID {
 		blocked, berr := s.IsEitherBlocked(ctx, callerDID, user.DID)

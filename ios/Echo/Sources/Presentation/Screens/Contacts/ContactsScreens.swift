@@ -279,7 +279,7 @@ public struct ContactsListView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "link")
                             .font(.system(size: 14, weight: .semibold))
-                        Text("Share invite link")
+                        Text("Share @username")
                             .font(.system(size: 15, weight: .medium))
                     }
                     .foregroundColor(.echoSignal)

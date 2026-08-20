@@ -654,6 +654,7 @@ struct CatalogRewardsPreview: View {
                         isOpening: false,
                         onOpen: {}
                     )
+                    RewardHubNavRow(title: "Invite with @username")
                     BalanceCard(state: walletState)
                 }
                 .padding(20)

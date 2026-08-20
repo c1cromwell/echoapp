@@ -43,16 +43,21 @@ enum CurrentUserSession {
         UserDefaults.standard.string(forKey: "echo.evidenceType")
     }
 
-    /// Deep link payload for identity sharing (B.2 growth loop).
+    /// Deep link payload for identity sharing (B.2 growth loop). DID stays in the QR payload.
     static func identityShareURL(did: String, username: String) -> URL? {
         var components = URLComponents()
         components.scheme = "echo"
         components.host = "profile"
         components.queryItems = [
             URLQueryItem(name: "did", value: did),
-            URLQueryItem(name: "u", value: username),
+            URLQueryItem(name: "u", value: InviteHandle.normalize(username)),
         ]
         return components.url
+    }
+
+    /// Public invite is `@username` only — no opaque referral code.
+    static func inviteShareURL(username: String) -> URL? {
+        InviteHandle.shareURL(username: username)
     }
 }
 #endif

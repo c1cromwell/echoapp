@@ -1,5 +1,8 @@
 #if os(iOS)
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Rewards Dashboard Screen — live ECHO balance, staking, and claims.
 public struct RewardsDashboardView: View {
@@ -169,87 +172,97 @@ public struct RewardsStakingView: View {
     }
 }
 
-// MARK: - Referral View
+// MARK: - Invite (username is the invite)
 
 public struct ReferralView: View {
-    @Environment(\.dismiss) var dismiss
+    @State private var username = ""
     @State private var copied = false
-    
-    let referralCode = "ECHO2024"
-    let referralCount = 12
-    let earnings = 600.0
-    
+
     public init() {}
-    
+
+    private var handle: String { InviteHandle.display(username) }
+    private var shareURL: URL? { InviteHandle.shareURL(username: username) }
+
     public var body: some View {
-        ZStack {
-            Color.echoBackground.ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                EchoNavBar(
-                    title: "Referrals",
-                    showBackButton: true,
-                    onBackPressed: { dismiss() }
-                )
-                
-                ScrollView {
-                    VStack(spacing: Spacing.xl.rawValue) {
-                        // Referral Code
-                        VStack(spacing: Spacing.md.rawValue) {
-                            Text("Your Referral Code")
-                                .typographyStyle(.caption, color: .echoGray500)
-                            
-                            HStack(spacing: Spacing.md.rawValue) {
-                                Text(referralCode)
-                                    .typographyStyle(.h4, color: .echoPrimary)
-                                    .monospaced()
-                                
-                                Button(action: {
-                                    #if os(iOS)
-                                    UIPasteboard.general.string = referralCode
-                                    HapticManager.light()
-                                    ToastManager.shared.show("Referral code copied", style: .copied)
-                                    #elseif os(macOS)
-                                    NSPasteboard.general.setString(referralCode, forType: .string)
-                                    #endif
-                                    copied = true
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                        copied = false
-                                    }
-                                }) {
-                                    Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundColor(.echoPrimary)
-                                }
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(Spacing.lg.rawValue)
-                        .background(Color.echoSurface)
-                        .cornerRadius(12)
-                        
-                        // Stats
+        ScrollView {
+            VStack(spacing: Spacing.xl.rawValue) {
+                Text("Your @username is how people find you. There is no separate invite code.")
+                    .typographyStyle(.body, color: .echoInk55)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(spacing: Spacing.md.rawValue) {
+                    Text("Your username")
+                        .typographyStyle(.caption, color: .echoInk55)
+
+                    if handle.isEmpty {
+                        Text("Set a username in Profile to invite people.")
+                            .typographyStyle(.body, color: .echoInk55)
+                            .multilineTextAlignment(.center)
+                    } else {
                         HStack(spacing: Spacing.md.rawValue) {
-                            StatCard(label: "Referrals", value: "\(referralCount)")
-                            StatCard(label: "Earnings", value: "\(String(format: "%.0f", earnings))")
+                            Text(handle)
+                                .typographyStyle(.h3, color: .echoSignal)
+
+                            Button(action: copyHandle) {
+                                Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(Color.echoSignal)
+                            }
+                            .accessibilityLabel(copied ? "Copied" : "Copy username")
                         }
-                        
-                        // Share Button
-                        EchoButton(
-                            "Share Referral Link",
-                            style: .primary,
-                            size: .large,
-                            icon: Image(systemName: "square.and.arrow.up"),
-                            action: {}
-                        )
-                        
-                        Spacer()
                     }
-                    .echoSpacing(.lg)
                 }
+                .frame(maxWidth: .infinity)
+                .padding(Spacing.lg.rawValue)
+                .background(Color.echoSurface)
+                .clipShape(RoundedRectangle(cornerRadius: Spacing.lg.rawValue, style: .continuous))
+                .glacialShadow()
+
+                EchoButton(
+                    "Share invite",
+                    style: .primary,
+                    size: .large,
+                    isDisabled: shareURL == nil,
+                    icon: Image(systemName: "square.and.arrow.up"),
+                    action: shareInvite
+                )
             }
+            .padding(Spacing.lg.rawValue)
         }
-        .navigationBarBackButtonHidden(true)
+        .background(Color.echoPaper.ignoresSafeArea())
+        .navigationTitle("Invite")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { username = await CurrentUserSession.currentUsername() }
+    }
+
+    private func copyHandle() {
+        guard !handle.isEmpty else { return }
+        #if os(iOS)
+        UIPasteboard.general.string = handle
+        HapticManager.light()
+        ToastManager.shared.show("Username copied", style: .copied)
+        #elseif os(macOS)
+        NSPasteboard.general.setString(handle, forType: .string)
+        #endif
+        copied = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            copied = false
+        }
+    }
+
+    private func shareInvite() {
+        guard let url = shareURL else { return }
+        #if os(iOS)
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { return }
+        var presenter = root
+        while let presented = presenter.presentedViewController {
+            presenter = presented
+        }
+        let text = "Add me on Echo: \(handle)"
+        let activity = UIActivityViewController(activityItems: [text, url], applicationActivities: nil)
+        presenter.present(activity, animated: true)
+        #endif
     }
 }
 
