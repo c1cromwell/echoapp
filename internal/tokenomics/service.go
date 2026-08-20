@@ -11,6 +11,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/founder"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/genesis"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/leaderboard"
+	"github.com/thechadcromwell/echoapp/internal/tokenomics/packs"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/quests"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/streaks"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/treasury"
@@ -30,6 +31,7 @@ type Service struct {
 	Wallet      *wallet.WalletService
 	Leaderboard *leaderboard.Service
 	Streaks     *streaks.Service
+	Packs       *packs.Service
 }
 
 // Config holds tokenomics service dependencies.
@@ -84,6 +86,7 @@ func NewService(cfg Config) (*Service, error) {
 		Wallet:      cfg.Wallet,
 		Leaderboard: leaderboard.NewService(nil),
 		Streaks:     streaks.NewService(nil),
+		Packs:       packs.NewService(),
 	}, nil
 }
 

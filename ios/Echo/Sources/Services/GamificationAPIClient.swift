@@ -56,6 +56,8 @@ enum GamificationEndpoint: APIEndpoint {
     case streak
     case activityPing
     case status
+    case weeklyPack
+    case weeklyPackOpen
 
     var path: String {
         switch self {
@@ -71,6 +73,8 @@ enum GamificationEndpoint: APIEndpoint {
             return "/v1/gamification/activity/ping"
         case .status:
             return "/v1/gamification/status"
+        case .weeklyPack, .weeklyPackOpen:
+            return "/v1/gamification/weekly-pack"
         }
     }
 }
@@ -138,11 +142,85 @@ struct GamificationStatus: Codable, Sendable {
     let redeemable: Bool
     let transferable: Bool
     let disclaimer: String?
+    let echoScore: EchoScoreWire?
 
     enum CodingKeys: String, CodingKey {
         case redeemable, transferable, disclaimer
         case custodyMode = "custody_mode"
+        case echoScore = "echo_score"
     }
+
+    var scoreSnapshot: EchoScoreSnapshot? {
+        echoScore?.snapshot
+    }
+}
+
+struct EchoScoreWire: Codable, Sendable {
+    let score: Int
+    let tier: Int
+    let level: String
+    let multiplier: Double
+    let nextUnlock: UnlockWire?
+
+    enum CodingKeys: String, CodingKey {
+        case score, tier, level, multiplier
+        case nextUnlock = "next_unlock"
+    }
+
+    var snapshot: EchoScoreSnapshot {
+        EchoScoreSnapshot(
+            score: score,
+            tier: tier,
+            level: level,
+            multiplier: multiplier,
+            nextUnlock: nextUnlock.map {
+                EchoScoreSnapshot.UnlockFeature(
+                    tier: $0.tier,
+                    minScore: $0.minScore,
+                    feature: $0.feature,
+                    pointsNeeded: $0.pointsNeeded
+                )
+            }
+        )
+    }
+}
+
+struct UnlockWire: Codable, Sendable {
+    let tier: Int
+    let minScore: Int
+    let feature: String
+    let pointsNeeded: Int
+
+    enum CodingKeys: String, CodingKey {
+        case tier, feature
+        case minScore = "min_score"
+        case pointsNeeded = "points_needed"
+    }
+}
+
+struct WeeklyPackItem: Codable, Sendable, Identifiable, Equatable {
+    let kind: String
+    let title: String
+    let detail: String
+    var id: String { kind + title }
+}
+
+struct WeeklyPack: Codable, Sendable, Equatable {
+    let weekKey: String
+    let label: String
+    let opened: Bool
+    let items: [WeeklyPackItem]
+    let openedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case label, opened, items
+        case weekKey = "week_key"
+        case openedAt = "opened_at"
+    }
+}
+
+struct WeeklyPackResponse: Codable, Sendable {
+    let pack: WeeklyPack
 }
 
 enum TokenomicsEndpoint: APIEndpoint {
@@ -225,6 +303,8 @@ protocol GamificationAPIClient: Sendable {
     func fetchStreak() async throws -> StreakResponse
     func pingActivity() async throws -> StreakResponse
     func fetchStatus() async throws -> GamificationStatus
+    func fetchWeeklyPack() async throws -> WeeklyPackResponse
+    func openWeeklyPack() async throws -> WeeklyPackResponse
 }
 
 // MARK: - Live client
@@ -260,6 +340,15 @@ actor GamificationAPI: GamificationAPIClient {
 
     func fetchStatus() async throws -> GamificationStatus {
         try await apiClient.get(endpoint: GamificationEndpoint.status)
+    }
+
+    func fetchWeeklyPack() async throws -> WeeklyPackResponse {
+        try await apiClient.get(endpoint: GamificationEndpoint.weeklyPack)
+    }
+
+    func openWeeklyPack() async throws -> WeeklyPackResponse {
+        struct Empty: Encodable {}
+        return try await apiClient.post(endpoint: GamificationEndpoint.weeklyPackOpen, body: Empty())
     }
 }
 

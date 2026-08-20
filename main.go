@@ -418,7 +418,7 @@ func (s *Server) Start() error {
 	if err != nil {
 		log.Printf("tokenomics service init failed: %v", err)
 	} else {
-		router.Tokenomics = &api.TokenomicsHandlers{Service: tokenomicsSvc}
+		router.Tokenomics = &api.TokenomicsHandlers{Service: tokenomicsSvc, Trust: db}
 		log.Println("Tokenomics API enabled (/v1/tokens/*, /v1/gamification/*)")
 	}
 

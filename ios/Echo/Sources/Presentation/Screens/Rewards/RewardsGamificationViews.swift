@@ -47,7 +47,147 @@ struct NoValueDisclaimerBanner: View {
     }
 }
 
-// MARK: - Streak
+// MARK: - Echo Score
+
+/// Compact living score for the Rewards hub. Uses the trust-green ladder, not a second accent.
+struct EchoScoreSection: View {
+    let snapshot: EchoScoreSnapshot?
+
+    private var score: EchoScoreSnapshot {
+        snapshot ?? EchoScoreSnapshot.from(score: 0)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.md.rawValue) {
+            HStack {
+                Text("Echo Score")
+                    .typographyStyle(.bodySmall, color: .echoInk55)
+                Spacer()
+                TrustBadge(level: score.level, size: .small)
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.sm.rawValue) {
+                Text("\(score.score)")
+                    .font(.echomono(34, weight: .semibold))
+                    .foregroundStyle(Color.trustColor(for: score.level))
+                Text("of 100")
+                    .typographyStyle(.caption, color: .echoInk40)
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(String(format: "%.1f×", score.multiplier))
+                        .font(.echomono(18, weight: .medium))
+                        .foregroundStyle(Color.echoTrustGreen)
+                    Text("earn rate")
+                        .typographyStyle(.caption, color: .echoInk40)
+                }
+            }
+
+            ProgressView(value: Double(score.score), total: 100)
+                .tint(Color.trustColor(for: score.level))
+                .accessibilityLabel("Echo Score \(score.score) of 100")
+        }
+        .rewardCard()
+    }
+}
+
+// MARK: - Next unlock
+
+struct NextUnlockSection: View {
+    let snapshot: EchoScoreSnapshot?
+
+    var body: some View {
+        if let unlock = snapshot?.nextUnlock {
+            VStack(alignment: .leading, spacing: Spacing.sm.rawValue) {
+                Text("Next unlock")
+                    .typographyStyle(.bodySmall, color: .echoInk55)
+                Text(unlock.feature)
+                    .typographyStyle(.body, color: .echoPrimaryText)
+                Text("Tier \(unlock.tier) · \(unlock.pointsNeeded) points to go")
+                    .typographyStyle(.caption, color: .echoInk40)
+            }
+            .rewardCard()
+        } else if snapshot != nil {
+            VStack(alignment: .leading, spacing: Spacing.sm.rawValue) {
+                Text("Next unlock")
+                    .typographyStyle(.bodySmall, color: .echoInk55)
+                Text("Top tier reached")
+                    .typographyStyle(.body, color: .echoPrimaryText)
+            }
+            .rewardCard()
+        }
+    }
+}
+
+// MARK: - Claim
+
+struct NextClaimSection: View {
+    let quest: QuestItem?
+    let isClaiming: Bool
+    let onClaim: () -> Void
+
+    var body: some View {
+        if let quest {
+            VStack(alignment: .leading, spacing: Spacing.md.rawValue) {
+                Text("Claim")
+                    .typographyStyle(.bodySmall, color: .echoInk55)
+                HStack(alignment: .top, spacing: Spacing.md.rawValue) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(quest.title)
+                            .typographyStyle(.body, color: .echoPrimaryText)
+                        Text(quest.description)
+                            .typographyStyle(.caption, color: .echoInk55)
+                            .lineLimit(2)
+                    }
+                    Spacer()
+                    EchoButton(
+                        "Claim",
+                        style: .primary,
+                        size: .small,
+                        isLoading: isClaiming,
+                        action: onClaim
+                    )
+                }
+            }
+            .rewardCard()
+        }
+    }
+}
+
+// MARK: - Weekly pack
+
+struct WeeklyPackSection: View {
+    let pack: WeeklyPack?
+    let isOpening: Bool
+    let onOpen: () -> Void
+
+    var body: some View {
+        if let pack {
+            VStack(alignment: .leading, spacing: Spacing.md.rawValue) {
+                HStack {
+                    Text(pack.label)
+                        .typographyStyle(.bodySmall, color: .echoInk55)
+                    Spacer()
+                    if pack.opened {
+                        Text("Opened")
+                            .typographyStyle(.caption, color: .echoTrustGreen)
+                    }
+                }
+                ForEach(pack.items) { item in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.title)
+                            .typographyStyle(.body, color: .echoPrimaryText)
+                        Text(item.detail)
+                            .typographyStyle(.caption, color: .echoInk55)
+                    }
+                }
+                if !pack.opened {
+                    EchoButton("Open pack", style: .secondary, size: .small, isLoading: isOpening, action: onOpen)
+                }
+            }
+            .rewardCard()
+        }
+    }
+}
 
 /// Daily-activity streak: current run, milestone, and the multiplier it grants.
 struct StreakSection: View {
@@ -172,23 +312,46 @@ struct LeaderboardSection: View {
 
 // MARK: - Rewards gamification hub (Wave R0)
 
-/// The value-free Rewards tab: disclaimer + streak + leaderboard, with the full
-/// wallet/balance reachable behind a link (nothing removed — demoted, per the launch
-/// posture). Pings daily activity on appear.
+/// The value-free Rewards tab: score, streak, next unlock, claim, then leaderboard.
+/// Wallet/balance stays reachable behind a link. Pings daily activity on appear.
 struct RewardsHubView: View {
     let gamification: GamificationAPI
     let walletAPI: WalletAPIClient
 
+    @StateObject private var quests: QuestViewModel
     @State private var status: GamificationStatus?
     @State private var streak: StreakInfo?
     @State private var leaderboard: LeaderboardSnapshot?
+    @State private var pack: WeeklyPack?
+    @State private var isOpeningPack = false
     @State private var selfDID: String = ""
+
+    init(gamification: GamificationAPI, walletAPI: WalletAPIClient) {
+        self.gamification = gamification
+        self.walletAPI = walletAPI
+        _quests = StateObject(wrappedValue: QuestViewModel(api: gamification))
+    }
+
+    private var echoScore: EchoScoreSnapshot? { status?.scoreSnapshot }
 
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.lg.rawValue) {
                 NoValueDisclaimerBanner(status: status)
+                EchoScoreSection(snapshot: echoScore)
                 StreakSection(streak: streak)
+                NextUnlockSection(snapshot: echoScore)
+                NextClaimSection(
+                    quest: quests.nextClaimableQuest,
+                    isClaiming: quests.claimingQuestId != nil
+                ) {
+                    if let q = quests.nextClaimableQuest {
+                        Task { await quests.claim(q) }
+                    }
+                }
+                WeeklyPackSection(pack: pack, isOpening: isOpeningPack) {
+                    Task { await openPack() }
+                }
                 LeaderboardSection(snapshot: leaderboard, selfDID: selfDID)
 
                 NavigationLink {
@@ -219,7 +382,6 @@ struct RewardsHubView: View {
 
     private func load() async {
         selfDID = await CurrentUserSession.currentDID() ?? ""
-        // Daily-activity signal → streak.
         if let pinged = try? await gamification.pingActivity() {
             streak = pinged.streak
         } else if let s = try? await gamification.fetchStreak() {
@@ -228,6 +390,18 @@ struct RewardsHubView: View {
         status = try? await gamification.fetchStatus()
         if let lb = try? await gamification.fetchLeaderboard(window: "weekly") {
             leaderboard = lb.snapshot
+        }
+        await quests.load()
+        if let preview = try? await gamification.fetchWeeklyPack() {
+            pack = preview.pack
+        }
+    }
+
+    private func openPack() async {
+        isOpeningPack = true
+        defer { isOpeningPack = false }
+        if let opened = try? await gamification.openWeeklyPack() {
+            pack = opened.pack
         }
     }
 }

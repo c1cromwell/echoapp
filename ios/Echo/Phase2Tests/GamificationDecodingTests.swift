@@ -26,6 +26,52 @@ final class GamificationDecodingTests: XCTestCase {
         XCTAssertEqual(item.rewardAmount, Decimal(20))
     }
 
+    func testGamificationStatusDecodesEchoScore() throws {
+        let json = """
+        {
+          "custody_mode": "interim",
+          "redeemable": false,
+          "transferable": false,
+          "disclaimer": "ECHO earned in-app has no cash value and cannot be transferred or redeemed.",
+          "echo_score": {
+            "score": 34,
+            "tier": 2,
+            "level": "newcomer",
+            "multiplier": 1.2,
+            "next_unlock": {
+              "tier": 3,
+              "min_score": 40,
+              "feature": "Create broadcast channels",
+              "points_needed": 6
+            }
+          }
+        }
+        """.data(using: .utf8)!
+        let status = try JSONDecoder().decode(GamificationStatus.self, from: json)
+        XCTAssertEqual(status.scoreSnapshot?.score, 34)
+        XCTAssertEqual(status.scoreSnapshot?.nextUnlock?.tier, 3)
+        XCTAssertEqual(status.scoreSnapshot?.nextUnlock?.pointsNeeded, 6)
+    }
+
+    func testWeeklyPackDecoding() throws {
+        let json = """
+        {
+          "pack": {
+            "week_key": "weekly:2026-W34",
+            "label": "Week One pack",
+            "opened": false,
+            "items": [
+              {"kind": "badge", "title": "Week One", "detail": "Seven-day streak standing."}
+            ]
+          }
+        }
+        """.data(using: .utf8)!
+        let resp = try JSONDecoder().decode(WeeklyPackResponse.self, from: json)
+        XCTAssertEqual(resp.pack.label, "Week One pack")
+        XCTAssertEqual(resp.pack.items.count, 1)
+        XCTAssertFalse(resp.pack.opened)
+    }
+
     func testQuestCatalogResponseDecoding() throws {
         let json = """
         {

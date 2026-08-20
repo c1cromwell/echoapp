@@ -1,23 +1,33 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/thechadcromwell/echoapp/internal/database"
 	"github.com/thechadcromwell/echoapp/internal/governance"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/genesis"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/leaderboard"
+	"github.com/thechadcromwell/echoapp/internal/tokenomics/models"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/quests"
 	"github.com/thechadcromwell/echoapp/internal/wallet"
 )
 
+// TrustScoreLookup is the subset of database.Database needed for Echo Score.
+type TrustScoreLookup interface {
+	GetTrustScore(ctx context.Context, did string) (*database.TrustScore, error)
+	GetUserByDID(ctx context.Context, did string) (*database.User, error)
+}
+
 // TokenomicsHandlers serves WO-206/214/215/225/226/271 HTTP endpoints.
 type TokenomicsHandlers struct {
 	Service *tokenomics.Service
+	Trust   TrustScoreLookup
 }
 
 func (h *TokenomicsHandlers) handleEmissionStatus(w http.ResponseWriter, r *http.Request) {
@@ -202,13 +212,37 @@ func (h *TokenomicsHandlers) handleGamificationStatus(w http.ResponseWriter, r *
 		return
 	}
 	realFunds := wallet.RealFundsEnabled()
-	WriteJSON(w, http.StatusOK, map[string]interface{}{
+	body := map[string]interface{}{
 		"custody_mode": wallet.CustodyMode(),
 		"redeemable":   realFunds,
 		"transferable": realFunds,
 		"disclaimer":   "ECHO earned in-app has no cash value and cannot be transferred or redeemed.",
 		"request_id":   r.Header.Get("X-Request-ID"),
-	})
+	}
+	if snap, ok := h.echoScoreForRequest(r); ok {
+		body["echo_score"] = snap
+	}
+	WriteJSON(w, http.StatusOK, body)
+}
+
+func (h *TokenomicsHandlers) echoScoreForRequest(r *http.Request) (models.EchoScoreSnapshot, bool) {
+	did, _ := r.Context().Value(ContextKeyUserID).(string)
+	if did == "" {
+		return models.EchoScoreSnapshot{}, false
+	}
+	if h.Trust != nil {
+		if ts, err := h.Trust.GetTrustScore(r.Context(), did); err == nil && ts != nil {
+			return models.SnapshotFromScore(int(ts.Score + 0.5)), true
+		}
+		if user, err := h.Trust.GetUserByDID(r.Context(), did); err == nil && user != nil && user.TrustTier > 0 {
+			return models.SnapshotFromTier(user.TrustTier), true
+		}
+	}
+	tier := TrustTierFromContext(r.Context(), 0)
+	if tier <= 0 {
+		return models.EchoScoreSnapshot{}, false
+	}
+	return models.SnapshotFromTier(tier), true
 }
 
 // handleActivityPing records a daily-activity signal for the streak (requirements
@@ -235,6 +269,40 @@ func (h *TokenomicsHandlers) handleActivityPing(w http.ResponseWriter, r *http.R
 	}
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"streak":     st,
+		"request_id": r.Header.Get("X-Request-ID"),
+	})
+}
+
+// handleWeeklyPack serves GET preview / POST open for this ISO week's pack.
+func (h *TokenomicsHandlers) handleWeeklyPack(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodPost {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "GET or POST is allowed", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if h.Service == nil || h.Service.Packs == nil {
+		WriteError(w, http.StatusServiceUnavailable, "TOKENOMICS_UNAVAILABLE", "tokenomics not configured", r.Header.Get("X-Request-ID"))
+		return
+	}
+	didStr, _ := r.Context().Value(ContextKeyUserID).(string)
+	if didStr == "" {
+		WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "authentication required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	streakDays := 0
+	if h.Service.Streaks != nil {
+		if st, err := h.Service.Streaks.Get(r.Context(), didStr); err == nil && st != nil {
+			streakDays = st.CurrentDays
+		}
+	}
+	now := time.Now()
+	var pack interface{}
+	if r.Method == http.MethodPost {
+		pack = h.Service.Packs.Open(r.Context(), didStr, streakDays, now)
+	} else {
+		pack = h.Service.Packs.Preview(didStr, streakDays, now)
+	}
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"pack":       pack,
 		"request_id": r.Header.Get("X-Request-ID"),
 	})
 }
@@ -419,6 +487,7 @@ func RegisterTokenomicsRoutes(mux *http.ServeMux, h *TokenomicsHandlers) {
 	mux.HandleFunc("/v1/gamification/streak", h.handleStreak)
 	mux.HandleFunc("/v1/gamification/activity/ping", h.handleActivityPing)
 	mux.HandleFunc("/v1/gamification/status", h.handleGamificationStatus)
+	mux.HandleFunc("/v1/gamification/weekly-pack", h.handleWeeklyPack)
 	mux.HandleFunc("/v1/gamification/quests", h.handleQuestsList)
 	mux.HandleFunc("/v1/gamification/quests/", func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/v1/gamification/quests/")
@@ -472,6 +541,8 @@ func (rt *Router) handleTokenomicsSubroutes(w http.ResponseWriter, r *http.Reque
 		rt.Tokenomics.handleActivityPing(w, r)
 	case path == "/v1/gamification/status":
 		rt.Tokenomics.handleGamificationStatus(w, r)
+	case path == "/v1/gamification/weekly-pack":
+		rt.Tokenomics.handleWeeklyPack(w, r)
 	case path == "/v1/gamification/quests":
 		rt.Tokenomics.handleQuestsList(w, r)
 	case strings.HasPrefix(path, "/v1/gamification/quests/") && strings.HasSuffix(path, "/claim"):

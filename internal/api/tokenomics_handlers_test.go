@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/thechadcromwell/echoapp/internal/database"
 	"github.com/thechadcromwell/echoapp/internal/rewards"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/quests"
@@ -63,6 +64,43 @@ func TestEmissionSchedule_Alignment(t *testing.T) {
 	em := rewards.NewEmissionSchedule(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
 	if em.YearlyBudget(1) == 0 {
 		t.Error("expected positive year 1 budget")
+	}
+}
+
+func TestGamificationStatus_IncludesEchoScoreWhenAuthed(t *testing.T) {
+	t.Setenv("ECHO_WALLET_REAL_FUNDS", "")
+	svc, err := tokenomics.NewService(tokenomics.Config{
+		GenesisDate: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	db := database.NewMemoryDB()
+	if err := db.CreateUser(context.Background(), &database.User{DID: "did:alice", Username: "alice", TrustTier: 3}); err != nil {
+		t.Fatal(err)
+	}
+	h := &TokenomicsHandlers{Service: svc, Trust: db}
+	req := httptest.NewRequest(http.MethodGet, "/v1/gamification/status", nil)
+	req = req.WithContext(context.WithValue(req.Context(), ContextKeyUserID, "did:alice"))
+	w := httptest.NewRecorder()
+	h.handleGamificationStatus(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status %d body %s", w.Code, w.Body.String())
+	}
+	var resp map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	score, ok := resp["echo_score"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected echo_score, got %+v", resp)
+	}
+	if score["tier"].(float64) != 3 || score["level"] != "member" {
+		t.Errorf("echo_score: %+v", score)
+	}
+	unlock, ok := score["next_unlock"].(map[string]interface{})
+	if !ok || unlock["tier"].(float64) != 4 {
+		t.Errorf("next_unlock: %+v", score["next_unlock"])
 	}
 }
 
@@ -144,5 +182,45 @@ func TestLeaderboard_EmptyOK(t *testing.T) {
 	}
 	if resp["redeemable"] != false {
 		t.Errorf("leaderboard should carry redeemable=false, got %+v", resp["redeemable"])
+	}
+}
+
+func TestWeeklyPack_GetThenOpen(t *testing.T) {
+	svc, err := tokenomics.NewService(tokenomics.Config{
+		GenesisDate: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := &TokenomicsHandlers{Service: svc}
+	ctx := context.WithValue(context.Background(), ContextKeyUserID, "did:alice")
+
+	get := httptest.NewRequest(http.MethodGet, "/v1/gamification/weekly-pack", nil).WithContext(ctx)
+	gw := httptest.NewRecorder()
+	h.handleWeeklyPack(gw, get)
+	if gw.Code != http.StatusOK {
+		t.Fatalf("GET status %d body %s", gw.Code, gw.Body.String())
+	}
+	var preview map[string]interface{}
+	if err := json.Unmarshal(gw.Body.Bytes(), &preview); err != nil {
+		t.Fatal(err)
+	}
+	pack := preview["pack"].(map[string]interface{})
+	if pack["opened"] != false {
+		t.Errorf("preview should be unopened: %+v", pack)
+	}
+
+	post := httptest.NewRequest(http.MethodPost, "/v1/gamification/weekly-pack", nil).WithContext(ctx)
+	pw := httptest.NewRecorder()
+	h.handleWeeklyPack(pw, post)
+	if pw.Code != http.StatusOK {
+		t.Fatalf("POST status %d body %s", pw.Code, pw.Body.String())
+	}
+	var opened map[string]interface{}
+	if err := json.Unmarshal(pw.Body.Bytes(), &opened); err != nil {
+		t.Fatal(err)
+	}
+	if opened["pack"].(map[string]interface{})["opened"] != true {
+		t.Errorf("open should set opened: %+v", opened)
 	}
 }
