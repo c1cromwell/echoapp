@@ -23,7 +23,7 @@ final class QuestViewModel: ObservableObject {
     }
 
     var nextClaimableQuest: QuestItem? {
-        (starterQuests + advancedQuests).first(\.isClaimable)
+        (starterQuests + advancedQuests).first(where: \.isClaimable)
     }
 
     func load() async {
