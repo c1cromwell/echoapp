@@ -81,5 +81,13 @@ func (h *V3Handlers) handleMessageSubroute(w http.ResponseWriter, r *http.Reques
 		h.handleSealedToken(w, r)
 		return
 	}
+	if remainder == "schedule" || strings.HasPrefix(remainder, "schedule/") {
+		if remainder == "schedule" {
+			h.handleScheduledCollection(w, r)
+			return
+		}
+		h.handleScheduledItem(w, r)
+		return
+	}
 	h.handleMessageReceipt(w, r)
 }

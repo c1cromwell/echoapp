@@ -1,7 +1,8 @@
 # Signal Parity — Software Factory work orders
 
-**Epic:** [WO-330](https://app.softwarefactory.dev) — Signal Parity Waves S1–S5 (post-Sept)  
+**Epic:** [WO-330](https://factory.8090.ai) — Signal Parity Waves S1–S5 (post-Sept)  
 **Parent of epic:** WO-321 (Sept 1 go-live) — post-launch only; do not block soft launch  
+**Sibling:** WO-335 (Telegram parity) — shared S1 history/backup  
 **Assignee:** Chad Cromwell  
 **Canonical matrix:** [`SIGNAL_ECHO_PARITY.md`](SIGNAL_ECHO_PARITY.md)
 

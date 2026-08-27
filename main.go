@@ -377,12 +377,13 @@ func (s *Server) Start() error {
 		OverflowStorage:          backupBlobStore,   // WO-237: overflow blob fetch for reconnect manifest
 		Comply:                   complySvc,         // WO-250 retention enforcement hooks
 		SealedTokens:             sealedTokenStore,  // WO-219 sealed-sender delivery tokens
-		ConvNotifPrefs:           convNotifPrefs,    // WO-56 per-conversation mute prefs
-		Bots:                     botInstalls,       // Stage 4 bot install grants
-		BotTokens:                botTokens,         // WO-11 bot relay auth
-		BotRateLimiter:           botRateLimiter,    // WO-11 ~100 msg/min per bot
-		BotWebhooks:              botWebhooks,       // WO-11 inbound bot webhooks
-		Wallet:                   walletHandlers,    // Currency L1 wallet + staking
+		Scheduled:                messaging.NewScheduledMessageService(messaging.NewMessagingService()),
+		ConvNotifPrefs:           convNotifPrefs, // WO-56 per-conversation mute prefs
+		Bots:                     botInstalls,    // Stage 4 bot install grants
+		BotTokens:                botTokens,      // WO-11 bot relay auth
+		BotRateLimiter:           botRateLimiter, // WO-11 ~100 msg/min per bot
+		BotWebhooks:              botWebhooks,    // WO-11 inbound bot webhooks
+		Wallet:                   walletHandlers, // Currency L1 wallet + staking
 		DisappearingRestrictions: disappearingRestrictions,
 		GroupAnchoring:           groupAnchoring,
 		DataSov:                  datasov.NewService(),

@@ -27,6 +27,7 @@ Never mark `in_review` unless the user explicitly asks (MCP server rule).
 5. edit_work_orders — status only unless user asked for title/description
 6. edit_work_order_description — full replacement markdown when scope changed
 7. Update docs/phase-N-work-orders.md status summary + "Last synced: YYYY-MM-DD"
+8. `make knowledge-graph` — refresh Factory 8090 → requirements → code graph
 ```
 
 ## Status decision rubric

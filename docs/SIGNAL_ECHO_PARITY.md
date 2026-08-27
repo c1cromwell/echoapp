@@ -3,7 +3,7 @@
 **Date:** 2026-07-26  
 **Scope:** Signal-class messaging table-stakes + high-visibility UX, while keeping Echo’s `did:key` identity, Glacial UX, and metagraph/rewards backend.  
 **Signal trees reviewed (vendored):** [`libsignal/`](../libsignal/), [`Signal-Server/`](../Signal-Server/), [`Signal-iOS/`](../Signal-iOS/)  
-**Related:** [`GO_LIVE_SEPT_1_2026.md`](GO_LIVE_SEPT_1_2026.md) · [`COMPETITIVE_AUDIT_SIMPLEX_2026-06.md`](COMPETITIVE_AUDIT_SIMPLEX_2026-06.md) · [`COMPETITIVE_AUDIT_IMPLEMENTATION_PLAN.md`](COMPETITIVE_AUDIT_IMPLEMENTATION_PLAN.md)
+**Related:** [`GO_LIVE_SEPT_1_2026.md`](GO_LIVE_SEPT_1_2026.md) · [`TELEGRAM_ECHO_PARITY.md`](TELEGRAM_ECHO_PARITY.md) · [`COMPETITIVE_AUDIT_SIMPLEX_2026-06.md`](COMPETITIVE_AUDIT_SIMPLEX_2026-06.md) · [`COMPETITIVE_AUDIT_IMPLEMENTATION_PLAN.md`](COMPETITIVE_AUDIT_IMPLEMENTATION_PLAN.md)
 
 > **Not a clone plan.** Echo does **not** adopt AGPL `libsignal` as a drop-in, phone-primary registration, Stories, MobileCoin, or Signal’s UI. Echo evolves its own Kinnami + Double Ratchet stack and Glacial design.
 

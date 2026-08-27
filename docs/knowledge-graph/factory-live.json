@@ -1,0 +1,95 @@
+{
+  "pulled_at": "2026-08-28T00:00:00Z",
+  "source": "software-factory-echo MCP (factory.8090.ai)",
+  "project_id": "0f477a55-4e26-4500-98f3-a69e4f3381b3",
+  "current_user": "Chad Cromwell",
+  "total_work_orders": 326,
+  "status": {
+    "completed": 149,
+    "backlog": 153,
+    "in_progress": 11,
+    "ready": 11,
+    "blocked": 2
+  },
+  "phases": {
+    "1": {
+      "total": 26,
+      "completed": 26,
+      "summary": "26 Completed"
+    },
+    "2": {
+      "total": 31,
+      "completed": 20,
+      "backlog": 9,
+      "blocked": 2,
+      "summary": "20 Completed, 9 Backlog, 2 Blocked"
+    },
+    "3": {
+      "total": 37,
+      "completed": 24,
+      "backlog": 13,
+      "summary": "24 Completed, 13 Backlog"
+    },
+    "4": {
+      "total": 32,
+      "completed": 19,
+      "backlog": 13,
+      "summary": "19 Completed, 13 Backlog"
+    },
+    "5": {
+      "total": 65,
+      "completed": 15,
+      "in_progress": 9,
+      "ready": 11,
+      "backlog": 30,
+      "summary": "15 Completed, 9 In Progress, 11 Ready, 30 Backlog"
+    },
+    "6": {
+      "total": 32,
+      "completed": 5,
+      "in_progress": 1,
+      "backlog": 26,
+      "summary": "5 Completed, 1 In Progress, 26 Backlog"
+    },
+    "7": {
+      "total": 103,
+      "completed": 40,
+      "in_progress": 1,
+      "backlog": 62,
+      "summary": "40 Completed, 1 In Progress, 62 Backlog"
+    }
+  },
+  "blocked_ids": [180, 182],
+  "in_progress": [
+    {"id": 31, "title": "Screen Sharing with Encrypted Content Transmission", "phase": 6},
+    {"id": 236, "title": "Go Backend ZK Verification Service (Midnight)", "phase": 5},
+    {"id": 257, "title": "PQ Cryptography Mode iOS Client", "phase": 5},
+    {"id": 309, "title": "Echo Comply eDiscovery / Matter UI", "phase": 7},
+    {"id": 321, "title": "Sept 1 2026 Echo Messaging Go-Live Epic", "phase": 5},
+    {"id": 322, "title": "Go-Live W1: Corporate start + Week A E2E", "phase": 5},
+    {"id": 330, "title": "Signal Parity Epic Waves S1–S5", "phase": 5},
+    {"id": 333, "title": "Signal Parity S1 — History sync + cloud backup", "phase": 5},
+    {"id": 335, "title": "Telegram Parity Epic Waves T0–T3", "phase": 5},
+    {"id": 337, "title": "Telegram Parity T1 — Saved Messages, drafts, forward, search", "phase": 5},
+    {"id": 338, "title": "Telegram Parity T2 — Folders, scheduled HTTP, bots", "phase": 5}
+  ],
+  "ready": [
+    {"id": 323, "title": "Go-Live W2: Week A finish; Week B; App Store P0", "phase": 5},
+    {"id": 324, "title": "Go-Live W3: Bank + legal URLs; account deletion", "phase": 5},
+    {"id": 325, "title": "Go-Live W4: Internal TestFlight RC1", "phase": 5},
+    {"id": 326, "title": "Go-Live W6: External TestFlight / Beta Review", "phase": 5},
+    {"id": 327, "title": "Go-Live W5: Internal TF bake + ASC metadata", "phase": 5},
+    {"id": 328, "title": "Go-Live W7: Go/No-Go meeting + buffer", "phase": 5},
+    {"id": 329, "title": "Go-Live Launch Day (Sept 1)", "phase": 5},
+    {"id": 331, "title": "Signal Parity S2 — Sealed-sender + Sender Keys", "phase": 5},
+    {"id": 332, "title": "Signal Parity S4 — View-once, NSE, GIF", "phase": 5},
+    {"id": 334, "title": "Signal Parity S3 — Group signals + calls polish", "phase": 5},
+    {"id": 336, "title": "Telegram Parity T0 — Durable channels + admin", "phase": 5}
+  ],
+  "requirements": {
+    "overview_docs": 50,
+    "feature_docs": 39,
+    "note": "FEATURE titles match blueprint titles 1:1. Added Telegram-class Messaging UX 2026-08-27."
+  },
+  "blueprints": 52
+}

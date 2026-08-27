@@ -1,7 +1,7 @@
 .PHONY: help build run test clean install-deps lint fmt vet build-prod tls-cert migrate \
 	dev dev-stop dev-status dev-logs dev-restart dev-comply dev-comply-stop validate-phase1 metagraph-verify-skeleton metagraph-test \
 	testnet-up testnet-down release-check regression regression-quick regression-with-phase1 ios-preflight \
-	phase3-signals-proof echooprf-ios screen-catalog
+	phase3-signals-proof echooprf-ios screen-catalog knowledge-graph
 
 # Variables
 BINARY_NAME=echoapp
@@ -26,6 +26,7 @@ help:
 	@echo "  make regression-with-phase1  regression + validate-phase1"
 	@echo "  make ios-preflight   iOS E2E preflight (BUILD=1 TESTS=1) — docs/E2E_QUICK_START.md"
 	@echo "  make screen-catalog  SwiftUI PNG gallery → docs/screen_catalog/index.html"
+	@echo "  make knowledge-graph Factory 8090 WOs → requirements/code graph (docs/knowledge-graph)"
 	@echo "  make metagraph-verify-skeleton  Static WO-276 checks (euclid + build.sbt + sources; needs jq)"
 	@echo "  make metagraph-test     Scala tests: sharedData + identity metagraph layers (WO-272/277; sbt + JDK)"
 	@echo "  make testnet-up      Bring up backend stack only (assumes metagraph already running)"
@@ -448,6 +449,9 @@ echooprf-ios: ## Build EchoOPRF.xcframework for WO-221 PSI (requires Xcode + gom
 screen-catalog: ## Export SwiftUI screen PNGs + tabbed index (docs/screen_catalog)
 	@chmod +x scripts/screen-catalog/generate.sh scripts/screen-catalog/build-index.sh
 	@./scripts/screen-catalog/generate.sh
+
+knowledge-graph: ## Rebuild Factory 8090 → requirements → code graph
+	@python3 scripts/knowledge-graph/build.py
 
 echooprf-link: ## Embed EchoOPRF.xcframework in Xcode project (after echooprf-ios)
 	@chmod +x scripts/link-echooprf-xcode.sh

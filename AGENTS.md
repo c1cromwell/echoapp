@@ -14,9 +14,12 @@ Quick entry point for Cursor agents working in this repo. Read this first, then 
 | Local cluster / validate / release check | MCP **`echo-local-dev`** (see `.cursor/mcp.json`) |
 | Sept 1 Messaging go-live | [`docs/GO_LIVE_SEPT_1_2026.md`](docs/GO_LIVE_SEPT_1_2026.md) |
 | Signal vs Echo parity (post-launch waves) | [`docs/SIGNAL_ECHO_PARITY.md`](docs/SIGNAL_ECHO_PARITY.md) |
+| Telegram vs Echo parity (post-launch waves) | [`docs/TELEGRAM_ECHO_PARITY.md`](docs/TELEGRAM_ECHO_PARITY.md) |
 | TestFlight / Phase 1 go-no-go | Skill: **`echo-phase1-validate`** + [`docs/E2E_TESTING.md`](docs/E2E_TESTING.md) |
 | App Store / IAP / privacy submission | [`docs/APP_STORE_SUBMISSION.md`](docs/APP_STORE_SUBMISSION.md) |
 | Launch & regression testing (full matrix) | Skill: **`echo-testing`** + [`docs/E2E_TESTING.md`](docs/E2E_TESTING.md) (canonical; old E2E_* files redirect here) |
+| Two-device E2E (connectivity + logging) | [`docs/E2E_TWO_DEVICE.md`](docs/E2E_TWO_DEVICE.md) |
+| Factory 8090 → requirements → code graph | Skill: **`echo-knowledge-graph`** + `make knowledge-graph` |
 | Phase 2 onboarding / VC / contacts | Skill: **`echo-phase2-gaps`** |
 | Phase 3 messaging UI (Xcode wiring) | Skill: **`echo-phase3-ios-wire`** |
 | UI/UX design + full iOS feature map | [`docs/ux-spec.md`](docs/ux-spec.md) + [`docs/ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](docs/ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) |
@@ -93,3 +96,4 @@ E2E (canonical): [`docs/E2E_TESTING.md`](docs/E2E_TESTING.md). Sept 1 go-live: [
 | `echo-phase2-gaps` | ✅ Step 4 |
 | `echo-phase3-ios-wire` | ✅ Step 4 |
 | `echo-metagraph-scala` | ✅ Step 4 |
+| `echo-knowledge-graph` | Factory 8090 WO ↔ requirements ↔ code |

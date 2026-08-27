@@ -12,6 +12,7 @@ description: >-
 | Doc | Use |
 |-----|------|
 | **[`docs/E2E_TESTING.md`](../../docs/E2E_TESTING.md)** | **Canonical** — daily gates, Week A/B, sign-off, TestFlight |
+| [`docs/E2E_TWO_DEVICE.md`](../../docs/E2E_TWO_DEVICE.md) | Two-device connectivity, logging, offline, restore |
 | [`docs/GO_LIVE_SEPT_1_2026.md`](../../docs/GO_LIVE_SEPT_1_2026.md) | Sept 1 calendar, corporate, competitive readiness |
 | Old `E2E_QUICK_START.md` / `E2E_LAUNCH_AND_TESTING.md` | Redirect stubs → `E2E_TESTING.md` |
 

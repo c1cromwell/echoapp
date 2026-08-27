@@ -21,6 +21,8 @@
 | Testing tiers & rules | [§3](#3-testing-tiers--gates) |
 | Feature delivery matrix | [§4](#4-feature-delivery-matrix) |
 | Week A messaging (A1–A10) | [§5](#5-week-a--messaging-manual) |
+| **Two-device full run** (connectivity, logs, offline, restore) | [`E2E_TWO_DEVICE.md`](E2E_TWO_DEVICE.md) |
+| Signal / Telegram parity matrices | [`SIGNAL_ECHO_PARITY.md`](SIGNAL_ECHO_PARITY.md) · [`TELEGRAM_ECHO_PARITY.md`](TELEGRAM_ECHO_PARITY.md) |
 | Week B contacts (B1–B6) | [§6](#6-week-b--contacts--devices) |
 | Phase 3 + ops + groups sign-off | [§7](#7-messaging-sign-off-matrix) |
 | Physical device | [§8](#8-physical-iphone) |
@@ -194,6 +196,8 @@ make ios-preflight BUILD=1
 ```
 
 Two simulators or devices, both signed in against same backend. Thread IDs must be `dm:{sorted-did}:{sorted-did}` via `ContactThreadHelper`.
+
+**Full two-device runbook** (stack, LAN/`API_URL`, APNs, `make dev-logs`, Console.app, offline queue, restore-did): [`E2E_TWO_DEVICE.md`](E2E_TWO_DEVICE.md).
 
 | Step | User A | User B | Pass |
 |------|--------|--------|------|

@@ -59,6 +59,7 @@ type V3Handlers struct {
 	OverflowStorage          encblob.Storage                               // optional; WO-237 overflow blob retrieval
 	Comply                   *comply.Service                               // optional; WO-250 retention enforcement
 	SealedTokens             *messaging.SealedTokenStore                   // optional; WO-219 sealed-sender tokens
+	Scheduled                *messaging.ScheduledMessageService            // optional; Telegram T2 scheduled send queue
 	ConvNotifPrefs           *messaging.ConversationNotificationPrefsStore // optional; WO-56 mute prefs
 	Bots                     *bots.InstallStore                            // optional; Stage 4 bot installs
 	BotTokens                *bots.TokenValidator                          // optional; WO-11 bot API tokens
@@ -134,6 +135,8 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	// Message receipt + ops endpoints (receipt/status/edit/delete/pin/unpin/history)
 	mux.HandleFunc("/v3/messages/react", h.handleMessageReact)
 	mux.HandleFunc("/v3/messages/reactions", h.handleMessageReactions)
+	mux.HandleFunc("/v3/messages/schedule", h.handleScheduledCollection)
+	mux.HandleFunc("/v3/messages/schedule/", h.handleScheduledItem)
 	mux.HandleFunc("/v3/messages/", h.handleMessageSubroute)
 
 	// Conversation-scoped endpoints (pins list, retention flag)

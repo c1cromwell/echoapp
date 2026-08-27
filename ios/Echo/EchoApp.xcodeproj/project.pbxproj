@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		09F79B8518010134C0D4E864 /* Sources/Core/Security/ZKCommitmentProof.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC711FCCE2EF2D1B337A29A4 /* Sources/Core/Security/ZKCommitmentProof.swift */; };
 		87CBC6EB3B686A1924E7AEA2 /* PushRegistrationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F03154364D8108DDB74F7567 /* PushRegistrationService.swift */; };
 		70E0E716F180E99C3EE59BC7 /* MessageRelaySession.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7CACE2A7A273170E336B679 /* MessageRelaySession.swift */; };
 		F56F98F96F0AEF5AA5F7357C /* GlobalSearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F26525889F262EA1AD1D10CC /* GlobalSearchSheet.swift */; };
@@ -499,6 +500,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		BC711FCCE2EF2D1B337A29A4 /* Sources/Core/Security/ZKCommitmentProof.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Core/Security/ZKCommitmentProof.swift; sourceTree = "<group>"; };
 		F03154364D8108DDB74F7567 /* PushRegistrationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushRegistrationService.swift; sourceTree = "<group>"; };
 		D7CACE2A7A273170E336B679 /* MessageRelaySession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageRelaySession.swift; sourceTree = "<group>"; };
 		F26525889F262EA1AD1D10CC /* GlobalSearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalSearchSheet.swift; sourceTree = "<group>"; };
@@ -1254,6 +1256,7 @@
 		3DDB23092FC731B5008D0406 /* Recovered References */ = {
 			isa = PBXGroup;
 			children = (
+				BC711FCCE2EF2D1B337A29A4 /* Sources/Core/Security/ZKCommitmentProof.swift */,
 				98C229FC30EE9C6760D7C826 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift */,
 				7BAE98848BA987C5A80A8C29 /* Sources/Features/Contacts/QRContactAddCoordinator.swift */,
 				36EA8623AE0B5A2F4FBCD41D /* Sources/Features/Contacts/ScannedIdentityParser.swift */,
@@ -2267,6 +2270,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				09F79B8518010134C0D4E864 /* Sources/Core/Security/ZKCommitmentProof.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
