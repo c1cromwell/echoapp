@@ -15,6 +15,7 @@ enum ScheduledMessageDelivery {
         let textCrypto = TextMessageCrypto(identityResolve: IdentityResolveClient(apiClient: apiClient))
 
         for record in due {
+            guard !record.plaintext.isEmpty else { continue }
             do {
                 let payload = try await textCrypto.encryptPayload(
                     plaintext: record.plaintext,

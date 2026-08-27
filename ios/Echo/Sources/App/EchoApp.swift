@@ -82,6 +82,7 @@ struct EchoApp: App {
                 HiddenChatsSession.shared.refreshForegroundLockIfNeeded()
                 BackupScheduler.runIfDue()
                 Task { await MessageRelaySession.connect() }
+                Task { await ScheduledMessageStore.hydrateFromServer() }
                 Task {
                     let storageKey = SecureEnclaveManager.shared.deriveStorageKey(
                         keyId: "echo-identity-signing"

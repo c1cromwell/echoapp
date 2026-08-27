@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		613348BD3C08F11396566CA4 /* ScheduledMessageAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3998D8512E18FC4C15FE584 /* ScheduledMessageAPI.swift */; };
 		09F79B8518010134C0D4E864 /* Sources/Core/Security/ZKCommitmentProof.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC711FCCE2EF2D1B337A29A4 /* Sources/Core/Security/ZKCommitmentProof.swift */; };
 		87CBC6EB3B686A1924E7AEA2 /* PushRegistrationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F03154364D8108DDB74F7567 /* PushRegistrationService.swift */; };
 		70E0E716F180E99C3EE59BC7 /* MessageRelaySession.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7CACE2A7A273170E336B679 /* MessageRelaySession.swift */; };
@@ -500,6 +501,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		C3998D8512E18FC4C15FE584 /* ScheduledMessageAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledMessageAPI.swift; sourceTree = "<group>"; };
 		BC711FCCE2EF2D1B337A29A4 /* Sources/Core/Security/ZKCommitmentProof.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Core/Security/ZKCommitmentProof.swift; sourceTree = "<group>"; };
 		F03154364D8108DDB74F7567 /* PushRegistrationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushRegistrationService.swift; sourceTree = "<group>"; };
 		D7CACE2A7A273170E336B679 /* MessageRelaySession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageRelaySession.swift; sourceTree = "<group>"; };
@@ -1141,6 +1143,7 @@
 		339EB235F1F451CB4F00B53E /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				C3998D8512E18FC4C15FE584 /* ScheduledMessageAPI.swift */,
 				F03154364D8108DDB74F7567 /* PushRegistrationService.swift */,
 				D7CACE2A7A273170E336B679 /* MessageRelaySession.swift */,
 				712509F603354AFFEE236084 /* DebugSeedData.swift */,
@@ -2270,6 +2273,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				613348BD3C08F11396566CA4 /* ScheduledMessageAPI.swift in Sources */,
 				09F79B8518010134C0D4E864 /* Sources/Core/Security/ZKCommitmentProof.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

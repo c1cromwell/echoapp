@@ -44,4 +44,30 @@ final class TelegramP1ParityTests: XCTestCase {
         XCTAssertEqual(MessageComposerLogic.forwardBody("  hi  "), "↪ hi")
         XCTAssertEqual(MessageComposerLogic.forwardBody("   "), "")
     }
+
+    func testScheduledRemoteCodecKeysAndEnvelope() throws {
+        let fireAt = Date(timeIntervalSince1970: 1_788_220_800) // 2026-09-01T00:00:00Z
+        let request = ScheduledMessageRemoteCodec.createRequest(
+            conversationId: "dm:a:b",
+            ciphertext: "sealed-b64",
+            fireAt: fireAt,
+            timezone: "UTC",
+            silent: true
+        )
+        let data = try JSONEncoder().encode(request)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(json["conversation_id"] as? String, "dm:a:b")
+        XCTAssertEqual(json["content"] as? String, "sealed-b64")
+        XCTAssertEqual(json["content_type"] as? String, "text")
+        XCTAssertEqual(json["scheduled_at"] as? String, "2026-09-01T00:00:00Z")
+        XCTAssertEqual(json["timezone"] as? String, "UTC")
+        XCTAssertEqual(json["silent"] as? Bool, true)
+        XCTAssertEqual(ScheduledMessageRemoteCodec.collectionPath, "/v3/messages/schedule")
+        XCTAssertEqual(ScheduledMessageRemoteCodec.itemPath(id: "abc"), "/v3/messages/schedule/abc")
+
+        let envelope = try ScheduledMessageRemoteCodec.envelopeJSON(peerDID: "did:key:zPeer", plaintext: "hi")
+        let parsed = try ScheduledMessageRemoteCodec.parseEnvelope(envelope)
+        XCTAssertEqual(parsed.peerDID, "did:key:zPeer")
+        XCTAssertEqual(parsed.body, "hi")
+    }
 }
