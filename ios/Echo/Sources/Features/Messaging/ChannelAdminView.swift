@@ -18,6 +18,8 @@ struct ChannelAdminView: View {
     @State private var errorMessage: String?
     @State private var pendingRemoval: ChannelMemberWire?
     @State private var pendingBlock: ChannelMemberWire?
+    @State private var currentDID = ""
+    @Bindable private var conversationStore = ConversationStore.shared
 
     private let roles = ["subscriber", "moderator", "admin"]
 
@@ -86,7 +88,7 @@ struct ChannelAdminView: View {
             Button("Remove", role: .destructive) { remove(member.subscriberId) }
             Button("Cancel", role: .cancel) {}
         } message: { member in
-            Text("\(shortDID(member.subscriberId)) will lose access to this channel. They can rejoin later.")
+            Text("\(label(did: member.subscriberId, displayName: member.displayName)) will lose access to this channel. They can rejoin later.")
         }
         .confirmationDialog(
             "Block this member?",
@@ -96,7 +98,7 @@ struct ChannelAdminView: View {
             Button("Block", role: .destructive) { block(member.subscriberId) }
             Button("Cancel", role: .cancel) {}
         } message: { member in
-            Text("\(shortDID(member.subscriberId)) will be removed and prevented from rejoining.")
+            Text("\(label(did: member.subscriberId, displayName: member.displayName)) will be removed and prevented from rejoining.")
         }
         .alert(
             "Action failed",
@@ -113,7 +115,7 @@ struct ChannelAdminView: View {
     private func requestRow(_ req: ChannelJoinRequestWire) -> some View {
         let busy = busyId == req.subscriberId
         return HStack {
-            Text(shortDID(req.subscriberId))
+            Text(label(did: req.subscriberId, displayName: req.displayName))
                 .lineLimit(1).truncationMode(.middle)
             Spacer()
             Button("Approve") { decide(req.subscriberId, approve: true) }
@@ -147,7 +149,7 @@ struct ChannelAdminView: View {
         let isOwner = member.subscriberId == channel.creatorId
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(shortDID(member.subscriberId))
+                Text(label(did: member.subscriberId, displayName: member.displayName))
                     .lineLimit(1).truncationMode(.middle)
                 Text(isOwner ? "Owner" : (member.role ?? "subscriber").capitalized)
                     .font(.caption)
@@ -192,14 +194,21 @@ struct ChannelAdminView: View {
         }
     }
 
-    private func shortDID(_ did: String) -> String {
-        guard did.count > 20 else { return did }
-        return String(did.prefix(12)) + "…" + String(did.suffix(6))
+    private func label(did: String, displayName: String?) -> String {
+        ChannelParticipantLabel.resolve(
+            did: did,
+            displayName: displayName,
+            contactName: conversationStore.conversations.first(where: { $0.peerDID == did })?.contactName,
+            currentDID: currentDID
+        )
     }
 
     // MARK: - Actions
 
     private func reload() async {
+        if currentDID.isEmpty {
+            currentDID = await CurrentUserSession.currentDID() ?? ""
+        }
         isLoading = true
         async let m = ChannelsAPIClient.listMembers(channelId: channel.id)
         async let r = ChannelsAPIClient.listJoinRequests(channelId: channel.id)

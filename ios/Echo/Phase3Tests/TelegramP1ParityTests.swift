@@ -70,4 +70,22 @@ final class TelegramP1ParityTests: XCTestCase {
         XCTAssertEqual(parsed.peerDID, "did:key:zPeer")
         XCTAssertEqual(parsed.body, "hi")
     }
+
+    func testChannelParticipantLabelPrefersDisplayName() {
+        let did = "did:key:z6Mkabcdefghijklmnopqrstuvwxyz0123456789"
+        XCTAssertEqual(
+            ChannelParticipantLabel.resolve(did: did, displayName: "Sam Rivera"),
+            "Sam Rivera"
+        )
+        XCTAssertEqual(
+            ChannelParticipantLabel.resolve(did: did, displayName: "  ", contactName: "Sam"),
+            "Sam"
+        )
+        XCTAssertEqual(
+            ChannelParticipantLabel.resolve(did: did, displayName: nil, currentDID: did),
+            "You"
+        )
+        let truncated = ChannelParticipantLabel.resolve(did: did, displayName: nil)
+        XCTAssertEqual(truncated, "did:key:z6Mk…" + String(did.suffix(6)))
+    }
 }

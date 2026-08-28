@@ -403,6 +403,7 @@ struct ChannelPostCommentsView: View {
     @State private var isLoading = true
     @State private var isSending = false
     @State private var errorMessage: String?
+    @Bindable private var conversationStore = ConversationStore.shared
 
     private var isOwner: Bool { !currentDID.isEmpty && channel.creatorId == currentDID }
     private var trimmedDraft: String { draft.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -453,7 +454,12 @@ struct ChannelPostCommentsView: View {
         let canDelete = isOwner || comment.authorId == currentDID
         return HStack(alignment: .top, spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(shortDID(comment.authorId ?? "unknown"))
+                Text(ChannelParticipantLabel.resolve(
+                    did: comment.authorId ?? "",
+                    displayName: comment.displayName,
+                    contactName: conversationStore.conversations.first(where: { $0.peerDID == comment.authorId })?.contactName,
+                    currentDID: currentDID
+                ))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.echoInk70)
                 Text(comment.content)
@@ -528,9 +534,5 @@ struct ChannelPostCommentsView: View {
         }
     }
 
-    private func shortDID(_ did: String) -> String {
-        guard did.count > 20 else { return did }
-        return String(did.prefix(12)) + "…" + String(did.suffix(6))
-    }
 }
 #endif

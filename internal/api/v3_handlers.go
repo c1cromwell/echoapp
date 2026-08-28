@@ -2185,6 +2185,32 @@ func (h *V3Handlers) handleBroadcastSubscribe(w http.ResponseWriter, r *http.Req
 
 // --- Channel Admin (owner/admin only) ---
 
+// publicDisplayName returns a privacy-filtered display name or @username for a DID.
+// Empty when nothing public is available — clients fall back to a truncated DID.
+func (h *V3Handlers) publicDisplayName(ctx context.Context, viewerDID, targetDID string) string {
+	if targetDID == "" {
+		return ""
+	}
+	if h.Contacts != nil {
+		if profile, err := h.Contacts.GetProfile(ctx, viewerDID, targetDID); err == nil && profile != nil {
+			if name := strings.TrimSpace(profile.DisplayName); name != "" {
+				return name
+			}
+			if user := strings.TrimSpace(profile.Username); user != "" {
+				return "@" + strings.TrimPrefix(user, "@")
+			}
+		}
+	}
+	if h.DB != nil {
+		if rec, err := h.DB.GetUserByDID(ctx, targetDID); err == nil && rec != nil {
+			if name := strings.TrimSpace(rec.Username); name != "" {
+				return "@" + strings.TrimPrefix(name, "@")
+			}
+		}
+	}
+	return ""
+}
+
 // isChannelAdmin reports whether did is the channel owner or has the admin role.
 func (h *V3Handlers) isChannelAdmin(channelID, did string) bool {
 	if did == "" || h.Broadcasts == nil {
@@ -2232,7 +2258,17 @@ func (h *V3Handlers) handleBroadcastMembers(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	members := h.Broadcasts.GetChannelSubscribers(channelID)
-	WriteJSON(w, http.StatusOK, map[string]any{"members": members})
+	viewer := h.getDID(r)
+	out := make([]broadcast_channels.ChannelSubscriber, 0, len(members))
+	for _, m := range members {
+		if m == nil {
+			continue
+		}
+		row := *m
+		row.DisplayName = h.publicDisplayName(r.Context(), viewer, row.SubscriberID)
+		out = append(out, row)
+	}
+	WriteJSON(w, http.StatusOK, map[string]any{"members": out})
 }
 
 func (h *V3Handlers) handleBroadcastRole(w http.ResponseWriter, r *http.Request) {
@@ -2311,7 +2347,17 @@ func (h *V3Handlers) handleBroadcastJoinRequests(w http.ResponseWriter, r *http.
 		WriteError(w, http.StatusInternalServerError, "REQUESTS_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
-	WriteJSON(w, http.StatusOK, map[string]any{"requests": requests})
+	viewer := h.getDID(r)
+	out := make([]broadcast_channels.ChannelJoinRequest, 0, len(requests))
+	for _, reqRow := range requests {
+		if reqRow == nil {
+			continue
+		}
+		row := *reqRow
+		row.DisplayName = h.publicDisplayName(r.Context(), viewer, row.SubscriberID)
+		out = append(out, row)
+	}
+	WriteJSON(w, http.StatusOK, map[string]any{"requests": out})
 }
 
 func (h *V3Handlers) handleBroadcastApprove(w http.ResponseWriter, r *http.Request) {
@@ -2501,7 +2547,9 @@ func (h *V3Handlers) handleBroadcastComment(w http.ResponseWriter, r *http.Reque
 	if h.Rewards != nil {
 		h.Rewards.RecordEngagement(author, "channel_comment")
 	}
-	WriteJSON(w, http.StatusCreated, comment)
+	created := *comment
+	created.DisplayName = h.publicDisplayName(r.Context(), author, author)
+	WriteJSON(w, http.StatusCreated, created)
 }
 
 func (h *V3Handlers) handleBroadcastComments(w http.ResponseWriter, r *http.Request) {
@@ -2523,7 +2571,17 @@ func (h *V3Handlers) handleBroadcastComments(w http.ResponseWriter, r *http.Requ
 		WriteError(w, http.StatusInternalServerError, "COMMENTS_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
-	WriteJSON(w, http.StatusOK, map[string]any{"comments": comments})
+	viewer := h.getDID(r)
+	out := make([]broadcast_channels.ChannelComment, 0, len(comments))
+	for _, c := range comments {
+		if c == nil {
+			continue
+		}
+		row := *c
+		row.DisplayName = h.publicDisplayName(r.Context(), viewer, row.AuthorID)
+		out = append(out, row)
+	}
+	WriteJSON(w, http.StatusOK, map[string]any{"comments": out})
 }
 
 func (h *V3Handlers) handleBroadcastCommentDelete(w http.ResponseWriter, r *http.Request) {

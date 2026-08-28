@@ -79,6 +79,7 @@ type ChannelJoinRequest struct {
 	SubscriberID string            `json:"subscriber_id"`
 	Status       JoinRequestStatus `json:"status"`
 	RequestedAt  time.Time         `json:"requested_at"`
+	DisplayName  string            `json:"display_name,omitempty"`
 }
 
 type NotificationMode string
@@ -211,6 +212,7 @@ type ChannelSubscriber struct {
 	ID           string `json:"id"`
 	ChannelID    string `json:"channel_id"`
 	SubscriberID string `json:"subscriber_id"`
+	DisplayName  string `json:"display_name,omitempty"`
 
 	// Subscription
 	JoinedAt              time.Time        `json:"joined_at"`
@@ -447,9 +449,10 @@ type ChannelComment struct {
 	ID        string    `json:"id"`
 	ChannelID string    `json:"channel_id"`
 	PostID    string    `json:"post_id"`
-	AuthorID  string    `json:"author_id"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"created_at"`
+	AuthorID    string    `json:"author_id"`
+	Content     string    `json:"content"`
+	CreatedAt   time.Time `json:"created_at"`
+	DisplayName string    `json:"display_name,omitempty"`
 }
 
 func randString(length int) string {

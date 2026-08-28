@@ -34,6 +34,7 @@ struct ChannelMemberWire: Codable, Identifiable, Sendable, Hashable {
     let subscriberId: String
     let role: String?
     let isMuted: Bool?
+    let displayName: String?
     var id: String { subscriberId }
 }
 
@@ -45,6 +46,7 @@ struct ChannelJoinRequestWire: Codable, Identifiable, Sendable, Hashable {
     let channelId: String
     let subscriberId: String
     let status: String?
+    let displayName: String?
     var id: String { subscriberId }
 }
 
@@ -62,6 +64,7 @@ struct ChannelCommentWire: Codable, Identifiable, Sendable, Hashable {
     let postId: String?
     let authorId: String?
     let content: String
+    let displayName: String?
 }
 
 struct ChannelCommentsResponse: Codable, Sendable {

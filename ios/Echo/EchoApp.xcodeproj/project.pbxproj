@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		EBACB3EFEAA006060EB6B488 /* Sources/Features/Messaging/ChannelParticipantLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EC20C30E32F2FE7FD909520 /* Sources/Features/Messaging/ChannelParticipantLabel.swift */; };
 		613348BD3C08F11396566CA4 /* ScheduledMessageAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3998D8512E18FC4C15FE584 /* ScheduledMessageAPI.swift */; };
 		09F79B8518010134C0D4E864 /* Sources/Core/Security/ZKCommitmentProof.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC711FCCE2EF2D1B337A29A4 /* Sources/Core/Security/ZKCommitmentProof.swift */; };
 		87CBC6EB3B686A1924E7AEA2 /* PushRegistrationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F03154364D8108DDB74F7567 /* PushRegistrationService.swift */; };
@@ -501,6 +502,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		5EC20C30E32F2FE7FD909520 /* Sources/Features/Messaging/ChannelParticipantLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Messaging/ChannelParticipantLabel.swift; sourceTree = "<group>"; };
 		C3998D8512E18FC4C15FE584 /* ScheduledMessageAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledMessageAPI.swift; sourceTree = "<group>"; };
 		BC711FCCE2EF2D1B337A29A4 /* Sources/Core/Security/ZKCommitmentProof.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Core/Security/ZKCommitmentProof.swift; sourceTree = "<group>"; };
 		F03154364D8108DDB74F7567 /* PushRegistrationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushRegistrationService.swift; sourceTree = "<group>"; };
@@ -1259,6 +1261,7 @@
 		3DDB23092FC731B5008D0406 /* Recovered References */ = {
 			isa = PBXGroup;
 			children = (
+				5EC20C30E32F2FE7FD909520 /* Sources/Features/Messaging/ChannelParticipantLabel.swift */,
 				BC711FCCE2EF2D1B337A29A4 /* Sources/Core/Security/ZKCommitmentProof.swift */,
 				98C229FC30EE9C6760D7C826 /* Sources/Features/Contacts/LiveQRCodeScannerView.swift */,
 				7BAE98848BA987C5A80A8C29 /* Sources/Features/Contacts/QRContactAddCoordinator.swift */,
@@ -2273,6 +2276,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EBACB3EFEAA006060EB6B488 /* Sources/Features/Messaging/ChannelParticipantLabel.swift in Sources */,
 				09F79B8518010134C0D4E864 /* Sources/Core/Security/ZKCommitmentProof.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
