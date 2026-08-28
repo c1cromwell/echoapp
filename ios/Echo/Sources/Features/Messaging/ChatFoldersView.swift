@@ -21,6 +21,16 @@ struct ChatFoldersView: View {
         NavigationStack {
             List {
                 Section {
+                    if store.sortedFolders.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("No folders yet")
+                                .foregroundStyle(Color.echoPrimaryText)
+                            Text("Group your chats into tabs — like Work, Family, or Unread — that appear above your conversation list.")
+                                .font(.caption)
+                                .foregroundStyle(Color.echoSecondaryText)
+                        }
+                        .padding(.vertical, 4)
+                    }
                     ForEach(store.sortedFolders) { folder in
                         NavigationLink {
                             FolderMembershipView(folderId: folder.id, conversations: conversations)
@@ -30,7 +40,7 @@ struct ChatFoldersView: View {
                                 Text(folder.name)
                                 Spacer()
                                 Text("\(folder.conversationIds.count)")
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Color.echoSecondaryText)
                             }
                         }
                         .swipeActions(edge: .trailing) {
@@ -115,7 +125,7 @@ private struct FolderMembershipView: View {
     var body: some View {
         List {
             if conversations.isEmpty {
-                Text("No conversations yet.").foregroundStyle(.secondary)
+                Text("No conversations yet.").foregroundStyle(Color.echoSecondaryText)
             }
             ForEach(conversations) { conv in
                 Button {
@@ -127,7 +137,7 @@ private struct FolderMembershipView: View {
                             if !conv.lastMessage.isEmpty {
                                 Text(conv.lastMessage)
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Color.echoSecondaryText)
                                     .lineLimit(1)
                             }
                         }
@@ -135,7 +145,7 @@ private struct FolderMembershipView: View {
                         if store.contains(conv.id, in: folderId) {
                             Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.echoSignal)
                         } else {
-                            Image(systemName: "circle").foregroundStyle(.secondary)
+                            Image(systemName: "circle").foregroundStyle(Color.echoSecondaryText)
                         }
                     }
                 }

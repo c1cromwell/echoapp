@@ -15,6 +15,9 @@ struct ChannelAdminView: View {
     @State private var analytics: ChannelAnalyticsWire?
     @State private var isLoading = true
     @State private var busyId: String?
+    @State private var errorMessage: String?
+    @State private var pendingRemoval: ChannelMemberWire?
+    @State private var pendingBlock: ChannelMemberWire?
 
     private let roles = ["subscriber", "moderator", "admin"]
 
@@ -29,7 +32,7 @@ struct ChannelAdminView: View {
                         Text("Avg. engagement")
                         Spacer()
                         Text(String(format: "%.0f%%", (analytics.averageEngagement ?? 0) * 100))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.echoSecondaryText)
                     }
                 }
             }
@@ -37,19 +40,7 @@ struct ChannelAdminView: View {
             if !requests.isEmpty {
                 Section {
                     ForEach(requests) { req in
-                        HStack {
-                            Text(shortDID(req.subscriberId))
-                                .lineLimit(1).truncationMode(.middle)
-                            Spacer()
-                            Button("Approve") { decide(req.subscriberId, approve: true) }
-                                .buttonStyle(.borderedProminent)
-                                .tint(.echoSignal)
-                                .disabled(busyId == req.subscriberId)
-                            Button("Deny") { decide(req.subscriberId, approve: false) }
-                                .buttonStyle(.bordered)
-                                .tint(.echoError)
-                                .disabled(busyId == req.subscriberId)
-                        }
+                        requestRow(req)
                     }
                 } header: {
                     Text("Join requests (\(requests.count))")
@@ -61,25 +52,14 @@ struct ChannelAdminView: View {
             if !pendingPosts.isEmpty {
                 Section("Posts awaiting approval (\(pendingPosts.count))") {
                     ForEach(pendingPosts) { post in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(post.content).font(.subheadline)
-                            HStack {
-                                Button("Approve") { decidePost(post.id, approve: true) }
-                                    .buttonStyle(.borderedProminent).tint(.echoSignal)
-                                Button("Reject") { decidePost(post.id, approve: false) }
-                                    .buttonStyle(.bordered).tint(.echoError)
-                                Spacer()
-                            }
-                            .disabled(busyId == post.id)
-                        }
-                        .padding(.vertical, 2)
+                        pendingPostRow(post)
                     }
                 }
             }
 
             Section("Members (\(members.count))") {
                 if members.isEmpty && !isLoading {
-                    Text("No members yet.").foregroundStyle(.secondary)
+                    Text("No members yet.").foregroundStyle(Color.echoSecondaryText)
                 }
                 ForEach(members) { member in
                     memberRow(member)
@@ -98,7 +78,68 @@ struct ChannelAdminView: View {
                 ProgressView()
             }
         }
+        .confirmationDialog(
+            "Remove this member?",
+            isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } }),
+            presenting: pendingRemoval
+        ) { member in
+            Button("Remove", role: .destructive) { remove(member.subscriberId) }
+            Button("Cancel", role: .cancel) {}
+        } message: { member in
+            Text("\(shortDID(member.subscriberId)) will lose access to this channel. They can rejoin later.")
+        }
+        .confirmationDialog(
+            "Block this member?",
+            isPresented: Binding(get: { pendingBlock != nil }, set: { if !$0 { pendingBlock = nil } }),
+            presenting: pendingBlock
+        ) { member in
+            Button("Block", role: .destructive) { block(member.subscriberId) }
+            Button("Cancel", role: .cancel) {}
+        } message: { member in
+            Text("\(shortDID(member.subscriberId)) will be removed and prevented from rejoining.")
+        }
+        .alert(
+            "Action failed",
+            isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } }),
+            presenting: errorMessage
+        ) { _ in
+            Button("OK", role: .cancel) { errorMessage = nil }
+        } message: { message in
+            Text(message)
+        }
         .task { await reload() }
+    }
+
+    private func requestRow(_ req: ChannelJoinRequestWire) -> some View {
+        let busy = busyId == req.subscriberId
+        return HStack {
+            Text(shortDID(req.subscriberId))
+                .lineLimit(1).truncationMode(.middle)
+            Spacer()
+            Button("Approve") { decide(req.subscriberId, approve: true) }
+                .buttonStyle(.borderedProminent)
+                .tint(.echoSignal)
+                .disabled(busy)
+            Button("Deny") { decide(req.subscriberId, approve: false) }
+                .buttonStyle(.bordered)
+                .tint(.echoError)
+                .disabled(busy)
+        }
+    }
+
+    private func pendingPostRow(_ post: BroadcastPostWire) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(post.content).typographyStyle(.bodySmall, color: .echoPrimaryText)
+            HStack {
+                Button("Approve") { decidePost(post.id, approve: true) }
+                    .buttonStyle(.borderedProminent).tint(.echoSignal)
+                Button("Reject") { decidePost(post.id, approve: false) }
+                    .buttonStyle(.bordered).tint(.echoError)
+                Spacer()
+            }
+            .disabled(busyId == post.id)
+        }
+        .padding(.vertical, 2)
     }
 
     @ViewBuilder
@@ -110,10 +151,13 @@ struct ChannelAdminView: View {
                     .lineLimit(1).truncationMode(.middle)
                 Text(isOwner ? "Owner" : (member.role ?? "subscriber").capitalized)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.echoSecondaryText)
             }
             Spacer()
-            if !isOwner {
+            if busyId == member.subscriberId {
+                ProgressView()
+                    .frame(width: 44, height: 44)
+            } else if !isOwner {
                 Menu {
                     ForEach(roles, id: \.self) { role in
                         Button {
@@ -127,13 +171,15 @@ struct ChannelAdminView: View {
                     Button((member.isMuted ?? false) ? "Unmute" : "Mute") {
                         setMuted(member.subscriberId, muted: !(member.isMuted ?? false))
                     }
-                    Button("Block", role: .destructive) { block(member.subscriberId) }
-                    Button("Remove", role: .destructive) { remove(member.subscriberId) }
+                    Button("Block", role: .destructive) { pendingBlock = member }
+                    Button("Remove", role: .destructive) { pendingRemoval = member }
                 } label: {
                     Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 20))
                         .foregroundStyle(Color.echoSignal)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
-                .disabled(busyId == member.subscriberId)
             }
         }
     }
@@ -142,7 +188,7 @@ struct ChannelAdminView: View {
         HStack {
             Text(label)
             Spacer()
-            Text("\(value)").foregroundStyle(.secondary)
+            Text("\(value)").foregroundStyle(Color.echoSecondaryText)
         }
     }
 
@@ -166,59 +212,53 @@ struct ChannelAdminView: View {
         isLoading = false
     }
 
-    private func setMuted(_ memberId: String, muted: Bool) {
-        busyId = memberId
+    /// Runs an admin action keyed by `id` (shows the row's spinner), surfaces a
+    /// failure message if the call returns `false`, then refreshes.
+    private func perform(_ id: String, failure: String, _ action: @escaping () async -> Bool) {
+        busyId = id
         Task {
-            _ = await ChannelsAPIClient.setMuted(channelId: channel.id, memberId: memberId, muted: muted)
+            let ok = await action()
+            if !ok { errorMessage = failure }
             await reload()
             busyId = nil
+        }
+    }
+
+    private func setMuted(_ memberId: String, muted: Bool) {
+        perform(memberId, failure: muted ? "Couldn't mute this member." : "Couldn't unmute this member.") {
+            await ChannelsAPIClient.setMuted(channelId: channel.id, memberId: memberId, muted: muted)
         }
     }
 
     private func block(_ memberId: String) {
-        busyId = memberId
-        Task {
-            _ = await ChannelsAPIClient.blockMember(channelId: channel.id, memberId: memberId)
-            await reload()
-            busyId = nil
+        perform(memberId, failure: "Couldn't block this member.") {
+            await ChannelsAPIClient.blockMember(channelId: channel.id, memberId: memberId)
         }
     }
 
     private func decidePost(_ postId: String, approve: Bool) {
-        busyId = postId
-        Task {
-            _ = await ChannelsAPIClient.decidePost(channelId: channel.id, postId: postId, approve: approve)
-            await reload()
-            busyId = nil
+        perform(postId, failure: "Couldn't update this post.") {
+            await ChannelsAPIClient.decidePost(channelId: channel.id, postId: postId, approve: approve)
         }
     }
 
     private func decide(_ memberId: String, approve: Bool) {
-        busyId = memberId
-        Task {
-            _ = approve
+        perform(memberId, failure: approve ? "Couldn't approve this request." : "Couldn't deny this request.") {
+            approve
                 ? await ChannelsAPIClient.approveMember(channelId: channel.id, memberId: memberId)
                 : await ChannelsAPIClient.denyMember(channelId: channel.id, memberId: memberId)
-            await reload()
-            busyId = nil
         }
     }
 
     private func setRole(_ memberId: String, role: String) {
-        busyId = memberId
-        Task {
-            _ = await ChannelsAPIClient.setRole(channelId: channel.id, memberId: memberId, role: role)
-            await reload()
-            busyId = nil
+        perform(memberId, failure: "Couldn't change this member's role.") {
+            await ChannelsAPIClient.setRole(channelId: channel.id, memberId: memberId, role: role)
         }
     }
 
     private func remove(_ memberId: String) {
-        busyId = memberId
-        Task {
-            _ = await ChannelsAPIClient.removeMember(channelId: channel.id, memberId: memberId)
-            await reload()
-            busyId = nil
+        perform(memberId, failure: "Couldn't remove this member.") {
+            await ChannelsAPIClient.removeMember(channelId: channel.id, memberId: memberId)
         }
     }
 }

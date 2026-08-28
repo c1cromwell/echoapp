@@ -401,8 +401,11 @@ struct ChannelPostCommentsView: View {
     @State private var comments: [ChannelCommentWire] = []
     @State private var draft = ""
     @State private var isLoading = true
+    @State private var isSending = false
+    @State private var errorMessage: String?
 
     private var isOwner: Bool { !currentDID.isEmpty && channel.creatorId == currentDID }
+    private var trimmedDraft: String { draft.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -434,6 +437,15 @@ struct ChannelPostCommentsView: View {
             ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
         }
         .overlay { if isLoading && comments.isEmpty { ProgressView() } }
+        .alert(
+            "Something went wrong",
+            isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } }),
+            presenting: errorMessage
+        ) { _ in
+            Button("OK", role: .cancel) { errorMessage = nil }
+        } message: { message in
+            Text(message)
+        }
         .task { await load() }
     }
 
@@ -452,11 +464,14 @@ struct ChannelPostCommentsView: View {
             if canDelete {
                 Button {
                     Task {
-                        _ = await ChannelsAPIClient.deleteComment(commentId: comment.id)
-                        await load()
+                        let ok = await ChannelsAPIClient.deleteComment(commentId: comment.id)
+                        if ok { await load() } else { errorMessage = "Couldn't delete this comment. Try again." }
                     }
                 } label: {
-                    Image(systemName: "trash").font(.caption)
+                    Image(systemName: "trash")
+                        .font(.system(size: 15))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(Color.echoError)
@@ -468,16 +483,27 @@ struct ChannelPostCommentsView: View {
     private var composer: some View {
         HStack(spacing: 10) {
             TextField("Add a comment…", text: $draft, axis: .vertical)
-                .textFieldStyle(.roundedBorder)
                 .lineLimit(1...4)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .background(Color.echoPaper)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(Color.echoInk.opacity(0.12), lineWidth: 1)
+                )
             Button {
                 Task { await send() }
             } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 26))
-                    .foregroundStyle(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.echoInk40 : Color.echoSignal)
+                if isSending {
+                    ProgressView().frame(width: 30, height: 30)
+                } else {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 30))
+                        .foregroundStyle(trimmedDraft.isEmpty ? Color.echoInk40 : Color.echoSignal)
+                }
             }
-            .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(trimmedDraft.isEmpty || isSending)
         }
         .padding(12)
         .background(Color.echoPaperDim)
@@ -490,11 +516,15 @@ struct ChannelPostCommentsView: View {
     }
 
     private func send() async {
-        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
+        let text = trimmedDraft
+        guard !text.isEmpty, !isSending else { return }
+        isSending = true
+        defer { isSending = false }
         if let c = await ChannelsAPIClient.addComment(channelId: channel.id, postId: post.id, content: text) {
             comments.append(c)
             draft = ""
+        } else {
+            errorMessage = "Your comment couldn't be posted. Check your connection and try again."
         }
     }
 
