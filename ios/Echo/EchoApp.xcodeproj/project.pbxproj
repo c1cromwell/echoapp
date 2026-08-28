@@ -2273,7 +2273,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				613348BD3C08F11396566CA4 /* ScheduledMessageAPI.swift in Sources */,
 				09F79B8518010134C0D4E864 /* Sources/Core/Security/ZKCommitmentProof.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2446,6 +2445,7 @@
 				D7B004DISAPPEAR00000004 /* DisappearingRestrictionsAPI.swift in Sources */,
 				D7B005DISAPPEAR00000005 /* DisappearingRestrictionsPolicy.swift in Sources */,
 				P5B001SCHED000000000001 /* ScheduledMessageStore.swift in Sources */,
+				613348BD3C08F11396566CA4 /* ScheduledMessageAPI.swift in Sources */,
 				P5B002SCHED000000000002 /* ScheduledMessageBGTask.swift in Sources */,
 				P5B004HIDDEN000000000004 /* HiddenFolderAuditLog.swift in Sources */,
 				P5B005DATASOV000000000005 /* DataSovereigntySettingsStore.swift in Sources */,
