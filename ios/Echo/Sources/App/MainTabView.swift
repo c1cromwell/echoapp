@@ -4,6 +4,7 @@
 // Personas are managed in the Profile screen, not a tab. Wallet/staking lives under Rewards.
 
 import SwiftUI
+import UIKit
 
 // MARK: - Tab bar visibility (hide on pushed chat — see docs/design-previews/phaseA-chat.html)
 
@@ -97,12 +98,22 @@ struct GlacialTabBar: View {
         }
         .accessibilityIdentifier("mainTabBar")
         .padding(.top, 10)
-        .padding(.bottom, 28)
+        .padding(.bottom, max(bottomSafeInset, 12))
         .background(
             Color.echoPaper
                 .shadow(color: Color.black.opacity(0.06), radius: 12, y: -4)
                 .ignoresSafeArea(edges: .bottom)
         )
+    }
+
+    /// Real home-indicator inset so the bar clears the safe area on every device
+    /// instead of guessing a fixed 28pt.
+    private var bottomSafeInset: CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }?
+            .safeAreaInsets.bottom ?? 0
     }
 
     private func tabButton(_ tab: MainTabView.MainTab, icon: String, label: String, badge: Int = 0) -> some View {
@@ -117,7 +128,7 @@ struct GlacialTabBar: View {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: isSelected ? "\(icon).fill" : icon)
                         .font(.system(size: 22))
-                        .foregroundStyle(isSelected ? Color.echoPrimary : Color.echoInk40)
+                        .foregroundStyle(isSelected ? Color.echoPrimary : Color.echoInk55)
 
                     if badge > 0 {
                         Text(badge > 9 ? "9+" : "\(badge)")
@@ -131,13 +142,14 @@ struct GlacialTabBar: View {
                 }
 
                 Text(label)
-                    .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
-                    .foregroundStyle(isSelected ? Color.echoPrimary : Color.echoInk40)
+                    .font(.system(size: 11, weight: isSelected ? .semibold : .medium))
+                    .foregroundStyle(isSelected ? Color.echoPrimary : Color.echoInk55)
             }
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(badge > 0 ? "\(label), \(badge) unread" : label)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
         .accessibilityIdentifier("tab.\(tab.rawValue)")
     }
 }

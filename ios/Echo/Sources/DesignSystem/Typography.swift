@@ -177,6 +177,35 @@ public enum TypographyStyle {
             return 0
         }
     }
+
+    /// Weight for the style, used when building a Dynamic-Type-scaled font.
+    var weight: Font.Weight {
+        switch self {
+        case .display, .h1:
+            return .bold
+        case .h2, .h3, .h4, .button, .overline:
+            return .semibold
+        case .caption:
+            return .medium
+        case .bodyLarge, .body, .bodySmall, .tiny:
+            return .regular
+        }
+    }
+
+    /// The system text style this scale maps to, so `@ScaledMetric` grows it
+    /// in step with the user's Dynamic Type setting.
+    var textStyle: Font.TextStyle {
+        switch self {
+        case .display: return .largeTitle
+        case .h1: return .title
+        case .h2: return .title2
+        case .h3: return .title3
+        case .h4: return .headline
+        case .bodyLarge: return .body
+        case .body, .button: return .callout
+        case .bodySmall, .caption, .tiny, .overline: return .footnote
+        }
+    }
 }
 
 // MARK: - Text Style Modifier
@@ -184,12 +213,21 @@ public enum TypographyStyle {
 struct TextStyleModifier: ViewModifier {
     let style: TypographyStyle
     let color: Color
-    
+    /// Grows the point size with the user's Dynamic Type setting, anchored to the
+    /// system text style the scale maps to.
+    @ScaledMetric private var scaledSize: CGFloat
+
+    init(style: TypographyStyle, color: Color) {
+        self.style = style
+        self.color = color
+        _scaledSize = ScaledMetric(wrappedValue: style.fontSize, relativeTo: style.textStyle)
+    }
+
     func body(content: Content) -> some View {
         content
-            .font(style.font)
+            .font(.system(size: scaledSize, weight: style.weight))
             .tracking(style.letterSpacing)
-            .lineSpacing(style.lineHeight - style.fontSize)
+            .lineSpacing(max(0, style.lineHeight - style.fontSize))
             .foregroundColor(color)
     }
 }
@@ -276,5 +314,40 @@ public extension Text {
     /// Caption text (12pt medium)
     func captionStyle() -> some View {
         self.typographyStyle(.caption)
+    }
+}
+
+// MARK: - Dynamic-Type-scaled system font
+
+/// Scales a fixed point size with the user's Dynamic Type setting. Drop-in
+/// replacement for `.font(.system(size:weight:))` on text that should grow for
+/// large-text / accessibility users. Use for text; keep fixed `.system(size:)`
+/// for decorative or fixed-frame glyphs (badges, icon chips, mono alignment).
+struct ScaledSystemFontModifier: ViewModifier {
+    @ScaledMetric private var size: CGFloat
+    private let weight: Font.Weight
+    private let design: Font.Design
+
+    init(size: CGFloat, weight: Font.Weight, design: Font.Design, relativeTo textStyle: Font.TextStyle) {
+        _size = ScaledMetric(wrappedValue: size, relativeTo: textStyle)
+        self.weight = weight
+        self.design = design
+    }
+
+    func body(content: Content) -> some View {
+        content.font(.system(size: size, weight: weight, design: design))
+    }
+}
+
+public extension View {
+    /// Dynamic-Type-aware equivalent of `.font(.system(size:weight:design:))`.
+    /// - Parameter relativeTo: the system text style the size grows in step with.
+    func echoScaledFont(
+        _ size: CGFloat,
+        weight: Font.Weight = .regular,
+        design: Font.Design = .default,
+        relativeTo textStyle: Font.TextStyle = .body
+    ) -> some View {
+        modifier(ScaledSystemFontModifier(size: size, weight: weight, design: design, relativeTo: textStyle))
     }
 }
