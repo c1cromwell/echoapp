@@ -1,0 +1,64 @@
+{
+  "identifier" : "ECHOVIP",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "0000000000",
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_developerTeamID" : "",
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "ECHO_VIP",
+      "localizations" : [
+
+      ],
+      "name" : "ECHO VIP",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "9.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "ECHO_VIP_MONTHLY",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Premium themes, a VIP badge, higher rate limits, and priority delivery.",
+              "displayName" : "ECHO VIP",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.echo.app.vip.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "ECHO VIP Monthly",
+          "subscriptionGroupID" : "ECHO_VIP",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

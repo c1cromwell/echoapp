@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 )
@@ -400,5 +401,36 @@ func TestPurgeExpired(t *testing.T) {
 	count, _ := db.PurgeExpired(ctx)
 	if count != 1 {
 		t.Errorf("expected 1 purged, got %d", count)
+	}
+}
+
+// Requeue puts claimed-but-undelivered messages back at the head of the queue,
+// in their original order, ahead of anything queued afterwards.
+func TestMemoryDB_RequeueRestoresOrder(t *testing.T) {
+	db := NewMemoryDB()
+	ctx := context.Background()
+	for _, id := range []string{"a", "b", "c", "d"} {
+		if err := db.Enqueue(ctx, &QueuedMessage{MessageID: id, RecipientDID: "bob", Payload: []byte(id)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	claimed, err := db.Dequeue(ctx, "bob", 3) // a, b, c
+	if err != nil || len(claimed) != 3 {
+		t.Fatalf("dequeue: %v (%d)", err, len(claimed))
+	}
+	// "a" reached the socket; "b" and "c" did not.
+	if err := db.Requeue(ctx, []string{"b", "c"}); err != nil {
+		t.Fatal(err)
+	}
+	next, err := db.Dequeue(ctx, "bob", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, m := range next {
+		got = append(got, m.MessageID)
+	}
+	if want := "b,c,d"; strings.Join(got, ",") != want {
+		t.Fatalf("got %v, want %s", got, want)
 	}
 }

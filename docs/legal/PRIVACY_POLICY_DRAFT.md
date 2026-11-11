@@ -3,7 +3,7 @@
 > ⚠️ **DRAFT TEMPLATE — NOT LEGAL ADVICE.** Review and finalize with qualified privacy counsel (GDPR,
 > UK GDPR, CCPA/CPRA, and any sector rules) before publishing. Fill every `[PLACEHOLDER]`.
 
-**Controller:** `[LEGAL ENTITY NAME]` · **Effective date:** `[EFFECTIVE DATE]`
+**Controller:** ECHO Networks LLC · **Effective date:** `[EFFECTIVE DATE]`
 **Privacy contact / DPO:** `[PRIVACY CONTACT EMAIL]` · **Site:** `[WEBSITE URL]`
 
 ## 1. Our privacy approach

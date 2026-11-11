@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: echo-backend-config
+data:
+  API_PORT: "8000"
+  ENVIRONMENT: "production"
+  # Number of reverse proxies in front of the pod that set X-Forwarded-For; the API uses it to find
+  # the real client address for per-IP rate limits and ignores the header when this is 0/unset.
+  # 1 = ingress-nginx alone (its default replaces the header with the address it saw). If the
+  # Hetzner load balancer terminates HTTP in front of it, enable use-forwarded-headers in the
+  # ingress-nginx ConfigMap and set this to 2, or every client shares the load balancer's address.
+  TRUSTED_PROXY_HOPS: "1"
+  # Postgres + Redis run on the private DB VM (10.0.1.50) provisioned by deploy/terraform/hetzner.
+  DATABASE_HOST: "10.0.1.50"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "echoapp"
+  DATABASE_USER: "echoapp"
+  DATABASE_SSLMODE: "require"
+  REDIS_HOST: "10.0.1.50"
+  REDIS_PORT: "6379"
+  # Constellation metagraph endpoints. Localhost defaults are for local dev only; overlays point these
+  # at the production metagraph nodes (deploy/terraform/hetzner/metagraph-nodes.tf) once deployed.
+  # See docs/ZERO_TO_PRODUCTION.md §5 (wire backend → production metagraph).
+  CURRENCY_L1_URL: "http://REPLACE_ME:9200"
+  DATA_L1_URL: "http://REPLACE_ME:9300"
+  IDENTITY_L0_URL: "http://REPLACE_ME:9600"
+  IDENTITY_L1_URL: "http://REPLACE_ME:9500"

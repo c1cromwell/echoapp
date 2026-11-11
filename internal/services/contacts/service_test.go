@@ -209,6 +209,50 @@ func TestSelfInvite(t *testing.T) {
 	}
 }
 
+func TestBarAllowDoesNotFollowDiscovery(t *testing.T) {
+	svc, _ := setupTest()
+	ctx := context.Background()
+
+	added, err := svc.AddContact(ctx, "did:alice", "did:bob", "phone_discovery")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if added.BarAllowed {
+		t.Fatal("discovery add allowed the contact into the bar")
+	}
+	listed, err := svc.BarContacts(ctx, "did:alice")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(listed) != 0 {
+		t.Fatalf("bar list = %d", len(listed))
+	}
+
+	allowed, err := svc.AllowBar(ctx, "did:alice", "did:bob")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !allowed.BarAllowed {
+		t.Fatal("allow left the flag false")
+	}
+	listed, err = svc.BarContacts(ctx, "did:alice")
+	if err != nil || len(listed) != 1 || listed[0].ContactDID != "did:bob" {
+		t.Fatalf("bar list after allow = %+v %v", listed, err)
+	}
+
+	if err := svc.RevokeBar(ctx, "did:alice", "did:bob"); err != nil {
+		t.Fatal(err)
+	}
+	listed, _ = svc.BarContacts(ctx, "did:alice")
+	if len(listed) != 0 {
+		t.Fatal("revoke left the person on the bar")
+	}
+	remaining, err := svc.GetContacts(ctx, "did:alice")
+	if err != nil || len(remaining) != 1 {
+		t.Fatal("revoke removed the contact")
+	}
+}
+
 func TestInvalidInviteCode(t *testing.T) {
 	svc, _ := setupTest()
 	ctx := context.Background()

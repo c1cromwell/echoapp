@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: echo-prod
+resources:
+  - namespace.yaml
+  - ../../base
+images:
+  - name: ghcr.io/c1cromwell/echo-backend
+    # Pin to an immutable release tag in prod (set by CI on echo-messaging@v* tags), not :latest.
+    newTag: prod
+replicas:
+  - name: echo-backend
+    count: 3
+patches:
+  - target:
+      kind: Ingress
+      name: echo-backend
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: api.echo.app
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: api.echo.app

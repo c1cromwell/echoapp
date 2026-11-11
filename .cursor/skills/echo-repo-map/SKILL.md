@@ -34,7 +34,10 @@ Entry: `main.go` (backend), `ios/Echo/EchoApp.xcodeproj` (app), `ios/Echo/Packag
 
 | Target | Purpose |
 |--------|---------|
-| `make dev` | Backend Docker stack (:8000) |
+| `make dev` | Hydra `start-genesis` + backend (:8000) |
+| `make dev-stop-all` | Stop backend + Identity + hydra (keep data) |
+| `make dev-resume` | `hydra start-rollback` + backend |
+| `make dev-reset` | Wipe volumes; next `make dev` is empty + new genesis |
 | `make dev-status` | Health of stack components |
 | `make validate-phase1` | WO-230 six-step go/no-go |
 | `make metagraph-test` | Scala validator tests |

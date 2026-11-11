@@ -184,6 +184,14 @@ final class ConversationSignalService: @unchecked Sendable {
 
     func handleIncoming(text: String) {
         #if os(iOS)
+        if let notice = RelayErrorNotice.parse(text) {
+            NotificationCenter.default.post(
+                name: .echoRelayError,
+                object: nil,
+                userInfo: ["message": notice.message, "code": notice.code]
+            )
+            return
+        }
         if let confirmation = AnchorConfirmationCodec.decodeConfirmation(from: text) {
             Task { @MainActor in
                 let tracker = DIContainer.shared.resolveAnchoringTracker()

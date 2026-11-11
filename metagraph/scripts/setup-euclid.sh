@@ -55,7 +55,26 @@ fi
 
 cd "$EUCLID_DIR"
 
-# 4. Copy our euclid.json config
+# 3b. Verify the remote-deploy Ansible playbooks are present. They ship with the upstream clone and are
+# required by euclid.json -> deploy.ansible for `hydra remote-deploy`/`remote-start` (production).
+# If a prior operation removed them from the working tree, restore from git so prod deploys stay runnable.
+# See docs/ZERO_TO_PRODUCTION.md §4 (metagraph → integrationnet/mainnet).
+if [ ! -d "$EUCLID_DIR/infra/ansible/remote" ]; then
+  echo "WARNING: infra/ansible/remote is missing from the Euclid checkout (needed for remote deploy)."
+  if git -C "$EUCLID_DIR" rev-parse --git-dir &>/dev/null; then
+    echo "  → Restoring from git..."
+    git -C "$EUCLID_DIR" checkout -- infra/ansible 2>/dev/null || \
+      git -C "$EUCLID_DIR" restore infra/ansible 2>/dev/null || true
+  fi
+  if [ -d "$EUCLID_DIR/infra/ansible/remote" ]; then
+    echo "✓ Restored infra/ansible from git"
+  else
+    echo "  → Could not restore. Local dev is unaffected, but remote metagraph deploy will not work"
+    echo "    until these playbooks exist. Re-clone euclid-development-environment to recover them."
+  fi
+fi
+
+# 4. Copy our euclid.json config (carries the deploy/nodes/snapshot_fees blocks for remote deploy)
 cp "$PROJECT_DIR/euclid.json" "$EUCLID_DIR/euclid.json"
 echo "✓ Copied euclid.json"
 

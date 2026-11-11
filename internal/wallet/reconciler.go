@@ -57,6 +57,14 @@ func (r *Reconciler) Run(ctx context.Context) {
 }
 
 func (r *Reconciler) reconcileOnce(ctx context.Context) {
+	// This runs on a background goroutine: an unrecovered panic here would
+	// take the whole API server down, so contain it to this one pass.
+	defer func() {
+		if rec := recover(); rec != nil {
+			log.Printf("wallet reconciler: recovered from panic: %v", rec)
+		}
+	}()
+
 	// Validators: pull the authoritative snapshot and refresh the cache,
 	// logging divergence so a drifting mirror is visible rather than silent.
 	snaps, err := r.querier.submitter.QueryValidators(ctx)

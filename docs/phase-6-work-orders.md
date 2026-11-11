@@ -1,8 +1,8 @@
 # Phase 6: Calls & File Sharing
 
 **Total Work Orders:** 32  
-**Status Summary:** 4 Completed, 28 Backlog  
-**Last synced with Software Factory:** 2026-05-29  
+**Status Summary:** 5 Completed, 1 In Progress, 26 Backlog  
+**Last synced with Software Factory:** 2026-08-27  
 **Gap audit:** [`PHASE4_7_GAP_AUDIT.md`](PHASE4_7_GAP_AUDIT.md) — calls/groups/voice ✅; channels + files + VIP IAP backlog
 
 ---

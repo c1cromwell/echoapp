@@ -459,6 +459,43 @@ enum ConversationSignalEvent: Sendable, Equatable {
 
 // MARK: - Partial header for routing inbound JSON
 
+extension Notification.Name {
+    static let echoRelayError = Notification.Name("echo.relay.error")
+}
+
+/// A server `error` frame, including the rate-limit notice the socket sends
+/// when a frame is dropped.
+struct RelayErrorNotice: Equatable {
+    let code: String
+    let message: String
+
+    static func parse(_ text: String) -> RelayErrorNotice? {
+        guard let data = text.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              (obj["type"] as? String) == "error" else {
+            return nil
+        }
+        let payload = payloadObject(obj["payload"])
+        let code = payload?["code"] as? String ?? ""
+        guard !code.isEmpty else { return nil }
+        if code == "RATE_LIMITED" {
+            let retry = payload?["retry_after_seconds"] as? Int ?? 1
+            return RelayErrorNotice(code: code, message: "Echo is busy. Try again in \(retry) seconds.")
+        }
+        return RelayErrorNotice(code: code, message: "Echo couldn't send that. Try again.")
+    }
+
+    private static func payloadObject(_ raw: Any?) -> [String: Any]? {
+        if let object = raw as? [String: Any] {
+            return object
+        }
+        if let text = raw as? String, let data = text.data(using: .utf8) {
+            return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        }
+        return nil
+    }
+}
+
 struct WSEnvelopeHeader: Codable {
     let type: String
     let to: String?

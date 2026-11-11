@@ -43,6 +43,7 @@ struct RemoteContact: Codable, Sendable, Identifiable {
     let addedVia: String?
     let trustBadge: String?
     let blocked: Bool?
+    let barAllowed: Bool?
 
     var id: String { contactDid ?? UUID().uuidString }
 }
@@ -77,6 +78,22 @@ struct ContactSocialAPIClient: Sendable {
         return decoded.contacts ?? []
     }
 
+    func allowBar(did: String) async throws -> RemoteContact {
+        struct Body: Encodable { let contactDid: String }
+        return try await apiClient.post(endpoint: ContactsEndpoint.bar, body: Body(contactDid: did))
+    }
+
+    func revokeBar(did: String) async throws {
+        struct Body: Encodable { let contactDid: String }
+        struct Status: Decodable { let revoked: Bool? }
+        let _: Status = try await apiClient.post(endpoint: ContactsEndpoint.barRevoke, body: Body(contactDid: did))
+    }
+
+    func listBar() async throws -> [RemoteContact] {
+        let decoded: ContactListResponse = try await apiClient.get(endpoint: ContactsEndpoint.bar)
+        return decoded.contacts ?? []
+    }
+
     func addContact(did: String, addedVia: String = "psi_discovery") async throws -> RemoteContact {
         struct Body: Encodable {
             let contactDid: String
@@ -85,6 +102,24 @@ struct ContactSocialAPIClient: Sendable {
         return try await apiClient.post(
             endpoint: ContactsEndpoint.add,
             body: Body(contactDid: did, addedVia: addedVia)
+        )
+    }
+
+    func reportContact(did: String, reason: String) async throws {
+        struct Body: Encodable {
+            let subjectDid: String
+            let reason: String
+            let context: String
+            enum CodingKeys: String, CodingKey {
+                case subjectDid = "subject_did"
+                case reason
+                case context
+            }
+        }
+        struct Ack: Decodable { let id: String }
+        let _: Ack = try await apiClient.post(
+            endpoint: SafetyEndpoint.report,
+            body: Body(subjectDid: did, reason: reason, context: "contact")
         )
     }
 

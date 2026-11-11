@@ -217,6 +217,15 @@ struct ChatView: View {
 
                 SecureThreadIndicator()
 
+                if let error = viewModel.errorMessage, !error.isEmpty {
+                    Text(error)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color.Echo.error)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                }
+
                 if let threadSummary {
                     ThreadSummaryBanner(summary: threadSummary)
                 }

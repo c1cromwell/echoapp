@@ -589,7 +589,8 @@ Do this only after [stage 2](#54-stage-2--simulator--your-iphone) passed.
 - [ ] Typing / reaction smoke
 - [ ] No crash on cold start
 - [ ] Legal links open
-- [ ] Rewards tab loads without purchase CTA
+- [ ] Rewards tab loads (v1: earn, stake, claim; no “buy ECHO”)
+- [ ] ECHO VIP subscribe sheet is the App Store purchase for `com.echo.app.vip.monthly`
 
 ---
 
@@ -617,7 +618,8 @@ Do this only after [stage 2](#54-stage-2--simulator--your-iphone) passed.
 
 | Agent (headless) | Human (Xcode / devices) |
 |------------------|-------------------------|
-| `make regression*`, phase1, Phase3 unit tests | Simulator UI, Face ID, two-client chat |
+| `make dev` then `make dev-status` before any messaging check. Backend `:8000` must answer `/health`. | Simulator UI, Face ID, two-client chat |
+| `make regression*`, phase1, Phase3 unit tests | |
 | `ios-preflight`, SPM build | Target membership, signing, Archive |
 | `smoke_ios_backend` | TestFlight install, ASC forms |
 

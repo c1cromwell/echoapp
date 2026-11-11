@@ -12,6 +12,7 @@ package api
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 	"io"
@@ -24,6 +25,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/database"
 	"github.com/thechadcromwell/echoapp/internal/infra"
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/services/agentbus"
 	"github.com/thechadcromwell/echoapp/internal/services/bots"
 	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
 	"github.com/thechadcromwell/echoapp/internal/services/cloudstorage"
@@ -61,16 +63,18 @@ type V3Handlers struct {
 	SealedTokens             *messaging.SealedTokenStore                   // optional; WO-219 sealed-sender tokens
 	Scheduled                *messaging.ScheduledMessageService            // optional; Telegram T2 scheduled send queue
 	ConvNotifPrefs           *messaging.ConversationNotificationPrefsStore // optional; WO-56 mute prefs
-	Bots                     *bots.InstallStore                            // optional; Stage 4 bot installs
-	BotTokens                *bots.TokenValidator                          // optional; WO-11 bot API tokens
-	BotRateLimiter           *bots.RateLimiter                             // optional; WO-11 bot send velocity
-	BotWebhooks              *bots.WebhookRegistry                         // optional; WO-11 inbound webhooks
-	Wallet                   *WalletHandlers                               // optional; Currency L1 wallet + staking
-	DisappearingRestrictions *messaging.DisappearingRestrictionService     // WO-115 trust-tier TTL policy
-	GroupAnchoring           *groups.GroupAnchoringService                 // WO-156 group metadata anchoring
-	DataSov                  *datasov.Service                              // WO-248/249 data sovereignty stub
-	ZKVerifier               *zk.Verifier                                  // WO-236 ZK verification stub
-	CloudStorage             *cloudstorage.Service                         // WO-46 cloud OAuth token registry
+	Agent                    *agentbus.Service                             // headless agent bus
+	ResolveDeviceKeys        func(ctx context.Context, did string) ([]*ecdsa.PublicKey, error)
+	Bots                     *bots.InstallStore                        // optional; Stage 4 bot installs
+	BotTokens                *bots.TokenValidator                      // optional; WO-11 bot API tokens
+	BotRateLimiter           *bots.RateLimiter                         // optional; WO-11 bot send velocity
+	BotWebhooks              *bots.WebhookRegistry                     // optional; WO-11 inbound webhooks
+	Wallet                   *WalletHandlers                           // optional; Currency L1 wallet + staking
+	DisappearingRestrictions *messaging.DisappearingRestrictionService // WO-115 trust-tier TTL policy
+	GroupAnchoring           *groups.GroupAnchoringService             // WO-156 group metadata anchoring
+	DataSov                  *datasov.Service                          // WO-248/249 data sovereignty stub
+	ZKVerifier               *zk.Verifier                              // WO-236 ZK verification stub
+	CloudStorage             *cloudstorage.Service                     // WO-46 cloud OAuth token registry
 }
 
 // RegisterV3Routes adds all v3 API routes to the router.
@@ -96,6 +100,8 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/v3/contacts/blocked", h.handleContactsBlocked)
 	mux.HandleFunc("/v3/contacts/privacy", h.handleContactsPrivacy)
 	mux.HandleFunc("/v3/contacts/add", h.handleContactsAdd)
+	mux.HandleFunc("/v3/contacts/bar", h.handleContactsBar)
+	mux.HandleFunc("/v3/contacts/bar/revoke", h.handleContactsBar)
 	mux.HandleFunc("/v3/contacts/relationship", h.handleContactsRelationship)
 
 	// Profile endpoints (WO-187 / WO-190)
@@ -166,6 +172,7 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 
 	// Bots (Stage 4 / WO-11 foundation)
 	mux.HandleFunc("/v3/bots/", h.handleBotsSubroute)
+	mux.HandleFunc("/v3/agent/", h.handleAgent)
 
 	// Group endpoints
 	mux.HandleFunc("/v3/groups/key/distribute", h.handleGroupKeyDistribute)

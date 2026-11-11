@@ -73,6 +73,9 @@
             ReferencedContainer = "container:EchoApp.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <StoreKitConfigurationFileReference
+         identifier = "../../../Configs/EchoVIP.storekit">
+      </StoreKitConfigurationFileReference>
       <EnvironmentVariables>
          <EnvironmentVariable
             key = "API_URL"

@@ -96,7 +96,6 @@ func (h *V3Handlers) handleBotRelayPayment(w http.ResponseWriter, r *http.Reques
 			"id":         "pay-" + hex.EncodeToString(id),
 			"user_did":   req.UserDID,
 			"amount":     req.Amount,
-			"reason":     req.Reason,
 			"created_at": time.Now().UTC().Format(time.RFC3339),
 			"status":     "pending_user_approval",
 		},
@@ -205,18 +204,17 @@ func (h *V3Handlers) handleBotRelayMessage(w http.ResponseWriter, r *http.Reques
 		WriteError(w, http.StatusBadRequest, "INVALID_REQUEST", "recipient_did and conversation_id required", r.Header.Get("X-Request-ID"))
 		return
 	}
-	if req.Text == "" && len(req.Ciphertext) == 0 {
-		WriteError(w, http.StatusBadRequest, "INVALID_REQUEST", "text or ciphertext required", r.Header.Get("X-Request-ID"))
-		return
-	}
 	if err := bots.Authorize(h.Bots, req.RecipientDID, botDID, bots.PermSendMessage); err != nil {
 		WriteError(w, http.StatusForbidden, "PERMISSION_DENIED", "send_message not granted", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if req.Text != "" || len(req.Ciphertext) == 0 {
+		WriteError(w, http.StatusBadRequest, "PLAINTEXT_REFUSED", "ciphertext required", r.Header.Get("X-Request-ID"))
 		return
 	}
 
 	payload, err := json.Marshal(botRelayPayload{
 		ConversationID: req.ConversationID,
-		Text:           req.Text,
 		Ciphertext:     req.Ciphertext,
 		FromBot:        true,
 	})

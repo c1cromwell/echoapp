@@ -1,0 +1,7 @@
+# Terraform working files + rendered secrets/inventory — never commit these
+.terraform/
+generated/
+*.auto.tfvars
+*.tfstate
+*.tfstate.*
+crash.log

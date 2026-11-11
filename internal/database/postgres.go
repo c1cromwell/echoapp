@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -281,7 +282,33 @@ func (p *PostgresDB) Dequeue(ctx context.Context, recipientDID string, limit int
 		}
 		results = append(results, &m)
 	}
-	return results, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	// UPDATE ... RETURNING does not promise the subquery's ORDER BY, so restore
+	// oldest-first here; clients replay these in the order received.
+	sort.SliceStable(results, func(i, j int) bool {
+		if results[i].CreatedAt.Equal(results[j].CreatedAt) {
+			return results[i].MessageID < results[j].MessageID
+		}
+		return results[i].CreatedAt.Before(results[j].CreatedAt)
+	})
+	return results, nil
+}
+
+// Requeue returns messages that were dequeued but could not be handed to the
+// recipient's socket to the 'queued' state so the next reconnect replays them.
+func (p *PostgresDB) Requeue(ctx context.Context, messageIDs []string) error {
+	if len(messageIDs) == 0 {
+		return nil
+	}
+	_, err := p.pool.Exec(ctx,
+		`UPDATE message_queue SET status = 'queued', delivered_at = NULL
+		 WHERE message_id = ANY($1) AND status = 'delivered'`, messageIDs)
+	if err != nil {
+		return fmt.Errorf("requeue messages: %w", err)
+	}
+	return nil
 }
 
 func (p *PostgresDB) MarkDelivered(ctx context.Context, messageID string) error {
@@ -417,7 +444,7 @@ func (p *PostgresDB) AddContact(ctx context.Context, contact *Contact) error {
 
 func (p *PostgresDB) GetContacts(ctx context.Context, ownerDID string) ([]*Contact, error) {
 	rows, err := p.pool.Query(ctx,
-		`SELECT owner_did, contact_did, added_via, (status = 'blocked'), COALESCE(trust_tier::text, ''), created_at
+		`SELECT owner_did, contact_did, added_via, (status = 'blocked'), COALESCE(trust_tier::text, ''), created_at, bar_allowed
 		 FROM contacts WHERE owner_did = $1 AND status != 'removed'`, ownerDID)
 	if err != nil {
 		return nil, fmt.Errorf("get contacts: %w", err)
@@ -426,7 +453,7 @@ func (p *PostgresDB) GetContacts(ctx context.Context, ownerDID string) ([]*Conta
 	var results []*Contact
 	for rows.Next() {
 		var c Contact
-		if err := rows.Scan(&c.OwnerDID, &c.ContactDID, &c.AddedVia, &c.Blocked, &c.TrustBadge, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.OwnerDID, &c.ContactDID, &c.AddedVia, &c.Blocked, &c.TrustBadge, &c.CreatedAt, &c.BarAllowed); err != nil {
 			return nil, fmt.Errorf("scan contact: %w", err)
 		}
 		results = append(results, &c)
@@ -474,6 +501,19 @@ func (p *PostgresDB) SetBlocked(ctx context.Context, ownerDID, contactDID string
 		contactRowID(ownerDID, contactDID), ownerDID, contactDID, status)
 	if err != nil {
 		return fmt.Errorf("upsert blocked contact: %w", err)
+	}
+	return nil
+}
+
+func (p *PostgresDB) SetBarAllowed(ctx context.Context, ownerDID, contactDID string, allowed bool) error {
+	tag, err := p.pool.Exec(ctx,
+		`UPDATE contacts SET bar_allowed = $3, updated_at = NOW() WHERE owner_did = $1 AND contact_did = $2`,
+		ownerDID, contactDID, allowed)
+	if err != nil {
+		return fmt.Errorf("set bar allowed: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
 	}
 	return nil
 }
@@ -870,6 +910,34 @@ func (p *PostgresDB) GetReactions(ctx context.Context, messageID string) ([]Reac
 }
 
 // --- Contact discovery index (PostgresDB) ---
+
+func (p *PostgresDB) SaveSafetyReport(ctx context.Context, report SafetyReport) error {
+	_, err := p.pool.Exec(ctx, `
+		INSERT INTO safety_reports (id, reporter_did, subject_did, reason, context, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`, report.ID, report.ReporterDID, report.SubjectDID, report.Reason, report.Context, report.CreatedAt)
+	return err
+}
+
+func (p *PostgresDB) ListSafetyReportsByReporter(ctx context.Context, reporterDID string) ([]SafetyReport, error) {
+	rows, err := p.pool.Query(ctx, `
+		SELECT id, reporter_did, subject_did, reason, context, created_at
+		FROM safety_reports WHERE reporter_did = $1 ORDER BY created_at
+	`, reporterDID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []SafetyReport
+	for rows.Next() {
+		var report SafetyReport
+		if err := rows.Scan(&report.ID, &report.ReporterDID, &report.SubjectDID, &report.Reason, &report.Context, &report.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, report)
+	}
+	return out, rows.Err()
+}
 
 func (p *PostgresDB) PutDiscoveryKey(ctx context.Context, oprfKey, did string) error {
 	_, err := p.pool.Exec(ctx, `

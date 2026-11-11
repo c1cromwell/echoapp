@@ -1,0 +1,17 @@
+# cert-manager is installed by the k3s server user_data (deploy/terraform/hetzner/main.tf).
+# This ClusterIssuer obtains Let's Encrypt certs via HTTP-01 through ingress-nginx.
+# Replace the email before applying.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: REPLACE_ME_EMAIL # e.g., security@echo.app
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx

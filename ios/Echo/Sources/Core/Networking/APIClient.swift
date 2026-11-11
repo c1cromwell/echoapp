@@ -258,6 +258,17 @@ actor APIClient {
         let request = try await buildRequest(endpoint: endpoint, method: .delete)
         return try await performRequest(request)
     }
+
+    func delete<T: Decodable>(
+        endpoint: APIEndpoint,
+        headers: [String: String]
+    ) async throws -> T {
+        var request = try await buildRequest(endpoint: endpoint, method: .delete)
+        for (key, value) in headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        return try await performRequest(request)
+    }
     
     // MARK: - PATCH Request
     

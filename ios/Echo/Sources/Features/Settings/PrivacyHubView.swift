@@ -60,6 +60,9 @@ struct PrivacyHubView: View {
                 NavigationLink("Backup & security") {
                     BackupView()
                 }
+                NavigationLink("Agent grants") {
+                    GrantReviewView(review: GrantReviewState(grants: [], pending: nil))
+                }
                 NavigationLink("Data & deletion") {
                     AccountDataView()
                 }

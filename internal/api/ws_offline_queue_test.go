@@ -28,6 +28,9 @@ func TestWSOfflineQueue_EnqueueAndDequeue(t *testing.T) {
 func TestFlushOffline_DeliversOnReconnect(t *testing.T) {
 	h := NewHub()
 	bob := &Client{hub: h, userID: "did:key:bob", send: make(chan []byte, 8)}
+	h.mu.Lock()
+	h.clients[bob.userID] = bob // flushOffline only writes to the registered socket
+	h.mu.Unlock()
 	h.offlineQueue.Enqueue("did:key:bob", []byte(`{"queued":true}`), wsOfflineRetention)
 
 	h.flushOffline(bob)

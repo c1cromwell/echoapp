@@ -1,5 +1,6 @@
 .PHONY: help build run test clean install-deps lint fmt vet build-prod tls-cert migrate \
-	dev dev-stop dev-status dev-logs dev-restart dev-comply dev-comply-stop validate-phase1 metagraph-verify-skeleton metagraph-test \
+	dev dev-stop dev-stop-all dev-resume dev-reset start-identity stop-identity \
+	dev-status dev-logs dev-restart dev-comply dev-comply-stop validate-phase1 metagraph-verify-skeleton metagraph-test \
 	testnet-up testnet-down release-check regression regression-quick regression-with-phase1 ios-preflight \
 	phase3-signals-proof echooprf-ios screen-catalog knowledge-graph
 
@@ -13,11 +14,16 @@ help:
 	@echo "EchoApp - REST API Framework"
 	@echo ""
 	@echo "Phase-1 testnet (WO-230):"
-	@echo "  make dev             Bring up full Phase-1 cluster (metagraph + backend + iOS deps)"
+	@echo "  make dev             Bring up full Phase-1 cluster (hydra start-genesis + backend)"
+	@echo "  make start-identity   Identity L0/L1 (optional — VC / validate-phase1 step 3)"
+	@echo "  make stop-identity    Stop Identity L0/L1"
 	@echo "  make dev-status      Show status of all testnet components"
 	@echo "  make dev-logs        Tail backend stack logs"
 	@echo "  make dev-restart     Restart the backend stack only (keeps metagraph running)"
 	@echo "  make dev-stop        Tear down backend stack (metagraph stays up — use 'hydra stop' for that)"
+	@echo "  make dev-stop-all    Stop backend + Identity + hydra (keeps volumes / last snapshot)"
+	@echo "  make dev-resume      hydra start-rollback + backend (same chain + same Postgres)"
+	@echo "  make dev-reset       Wipe volumes + hydra containers; next 'make dev' is empty + new genesis"
 	@echo "  make dev-comply      Comply-only stack (Postgres :5433 + Comply API :8011)"
 	@echo "  make dev-comply-stop Tear down Comply-only stack"
 	@echo "  make validate-phase1 Run scripts/validate-phase1.sh go/no-go check"
@@ -327,7 +333,51 @@ metagraph-test: ## WO-272/277: run validators + Identity L1 wiring tests (sbt + 
 
 dev-stop: testnet-down ## Tear down backend stack (does not stop metagraph)
 	@echo "Backend stack down. Metagraph still running — use:"
+	@echo "  make dev-stop-all    # also hydra stop + Identity"
+	@echo "  make dev-reset       # wipe all local data, then make dev"
 	@echo "  cd $(EUCLID_DIR) && scripts/hydra stop"
+
+dev-stop-all: ## Stop backend + Identity + hydra (keeps Docker volumes and last hydra snapshot)
+	@echo "===== Stopping local stacks (data kept) ====="
+	@$(MAKE) stop-identity
+	@$(COMPOSE_TESTNET) down --remove-orphans || true
+	@if [ -d "$(EUCLID_DIR)" ]; then \
+	  cd "$(EUCLID_DIR)" && scripts/hydra stop || true; \
+	else \
+	  echo "  Euclid not found at $(EUCLID_DIR) — skipped hydra stop"; \
+	fi
+	@echo "Stopped. Resume same data: make dev-resume"
+	@echo "Empty world + new genesis: make dev-reset && make dev"
+
+dev-resume: ## Start existing chain (hydra rollback) + existing backend volumes
+	@if [ ! -d "$(EUCLID_DIR)" ]; then \
+	  echo "  ✗ Euclid not found: $(EUCLID_DIR)"; \
+	  echo "    Run: cd metagraph && ./scripts/setup-euclid.sh"; \
+	  exit 1; \
+	fi
+	@echo "===== Resume last snapshot (not genesis) ====="
+	@cd "$(EUCLID_DIR)" && scripts/hydra start-rollback
+	@$(MAKE) testnet-up
+	@echo "Next: make dev-status   (Identity: make start-identity if you need it)"
+
+dev-reset: ## Wipe backend volumes + Identity volumes + hydra containers (no local user/chain data)
+	@echo "===== Clean slate — destroys local Postgres/Redis/NATS/MinIO + Identity + hydra ====="
+	@$(MAKE) stop-identity
+	@docker compose -f docker-compose.identity.yml down -v --remove-orphans 2>/dev/null || true
+	@$(COMPOSE_TESTNET) down -v --remove-orphans || true
+	@$(COMPOSE_COMPLY) down -v --remove-orphans || true
+	@if [ -d "$(EUCLID_DIR)" ]; then \
+	  cd "$(EUCLID_DIR)" && scripts/hydra stop || true; \
+	  cd "$(EUCLID_DIR)" && scripts/hydra destroy || true; \
+	else \
+	  echo "  Euclid not found at $(EUCLID_DIR) — skipped hydra stop/destroy"; \
+	fi
+	@echo ""
+	@echo "Local data gone. Do not confuse this with token genesis (ECHO_WALLET_GENESIS_AUTO)."
+	@echo "Next:"
+	@echo "  make dev              # hydra start-genesis (empty chain) + empty Postgres"
+	@echo "  make start-identity   # optional — new Identity genesis (VC / phase1 step 3)"
+	@echo "  Delete Echo from each Simulator/phone (or Erase Simulator) so first-run is empty."
 
 dev-comply: ## Comply-only stack (portal operators; no messaging gateway)
 	@echo "Starting Comply-only stack (postgres :5433, comply :8011)..."

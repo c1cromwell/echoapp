@@ -18,7 +18,9 @@ Quick entry point for Cursor agents working in this repo. Read this first, then 
 | TestFlight / Phase 1 go-no-go | Skill: **`echo-phase1-validate`** + [`docs/E2E_TESTING.md`](docs/E2E_TESTING.md) |
 | App Store / IAP / privacy submission | [`docs/APP_STORE_SUBMISSION.md`](docs/APP_STORE_SUBMISSION.md) |
 | Launch & regression testing (full matrix) | Skill: **`echo-testing`** + [`docs/E2E_TESTING.md`](docs/E2E_TESTING.md) (canonical; old E2E_* files redirect here) |
-| Two-device E2E (connectivity + logging) | [`docs/E2E_TWO_DEVICE.md`](docs/E2E_TWO_DEVICE.md) |
+| Two-device E2E (sim → phone → TestFlight → two phones) | [`docs/E2E_TESTING.md`](docs/E2E_TESTING.md) §5 · full D0–D6: [`docs/E2E_TWO_DEVICE.md`](docs/E2E_TWO_DEVICE.md) |
+| Agent message bus | [`docs/AGENT_BUS.md`](docs/AGENT_BUS.md) · plan and review gaps: [`docs/AGENT_BUS_PLAN.md`](docs/AGENT_BUS_PLAN.md) |
+| Echo Bar (simple friend window) | [`docs/ECHO_BAR.md`](docs/ECHO_BAR.md) |
 | Factory 8090 → requirements → code graph | Skill: **`echo-knowledge-graph`** + `make knowledge-graph` |
 | Phase 2 onboarding / VC / contacts | Skill: **`echo-phase2-gaps`** |
 | Phase 3 messaging UI (Xcode wiring) | Skill: **`echo-phase3-ios-wire`** |

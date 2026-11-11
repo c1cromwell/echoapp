@@ -1,8 +1,8 @@
 # Phase 4: Blockchain & Trust Infrastructure
 
-**Total Work Orders:** 29  
-**Status Summary:** 9 Completed, 20 Backlog  
-**Last synced with Software Factory:** 2026-05-29  
+**Total Work Orders:** 32  
+**Status Summary:** 19 Completed, 13 Backlog  
+**Last synced with Software Factory:** 2026-08-27  
 **Gap audit:** [`PHASE4_7_GAP_AUDIT.md`](PHASE4_7_GAP_AUDIT.md)
 
 **Removed (Cardano obsolete):** WO-12, WO-20, WO-37 — superseded by WO-272/274 + `did:key` ([ADR-0001](adr/0001-phase1-identity-method.md)).

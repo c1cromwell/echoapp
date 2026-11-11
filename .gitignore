@@ -6,6 +6,12 @@ node_modules/
 # Build outputs
 build/
 dist/
+# ...but keep the backend Dockerfiles: docker-compose*.yml and the Backend Image
+# workflow build from build/Dockerfile, so a clean clone needs them tracked.
+!/build/
+/build/*
+!/build/Dockerfile
+!/build/Dockerfile.comply
 *.tsbuildinfo
 
 # iOS

@@ -1,17 +1,46 @@
-{"journey":"onboarding","stepId":"01-welcome","e2eRef":"E2E §6.1 step 1","relativePath":"onboarding\/01-welcome.png","title":"Welcome"}
-{"e2eRef":"E2E §6.1 step 2","stepId":"02-username","title":"Choose username","relativePath":"onboarding\/02-username.png","journey":"onboarding"}
-{"stepId":"03-secure-account","journey":"onboarding","title":"Face ID + optional VIP","e2eRef":"E2E §6.1 step 3","relativePath":"onboarding\/03-secure-account.png"}
-{"journey":"auth","e2eRef":"E2E §6.2 step 1","title":"Storage locked","stepId":"01-storage-locked","relativePath":"auth\/01-storage-locked.png"}
-{"journey":"auth","e2eRef":"E2E §6.2 step 3","title":"Biometric soft lockout","stepId":"02-soft-lockout","relativePath":"auth\/02-soft-lockout.png"}
-{"relativePath":"messaging\/01-empty-hub.png","journey":"messaging","stepId":"01-empty-hub","title":"Messages hub (empty)","e2eRef":"TESTFLIGHT A1"}
-{"e2eRef":"TESTFLIGHT A2–A7","title":"Direct message thread","journey":"messaging","stepId":"02-dm-thread","relativePath":"messaging\/02-dm-thread.png"}
-{"relativePath":"messaging\/03-typing.png","stepId":"03-typing","title":"Typing indicator","e2eRef":"TESTFLIGHT A6","journey":"messaging"}
-{"e2eRef":"TESTFLIGHT A7","stepId":"04-reactions","title":"Reaction picker","journey":"messaging","relativePath":"messaging\/04-reactions.png"}
-{"journey":"messaging","relativePath":"messaging\/05-hub-groups.png","stepId":"05-hub-groups","title":"Messages hub (groups)","e2eRef":"TESTFLIGHT groups tab"}
-{"journey":"messaging","stepId":"06-group-create","e2eRef":"GroupCreateSheet","relativePath":"messaging\/06-group-create.png","title":"Create group"}
-{"title":"SOCKS proxy settings","e2eRef":"WO-SX4 \/ Privacy Hub","relativePath":"privacy\/01-socks-proxy.png","journey":"privacy","stepId":"01-socks-proxy"}
-{"e2eRef":"WO-SX2 \/ Privacy Hub","stepId":"02-post-quantum","title":"Post-quantum handshake","relativePath":"privacy\/02-post-quantum.png","journey":"privacy"}
-{"e2eRef":"Phase 5 privacy","relativePath":"privacy\/03-hidden-folder.png","title":"Hidden folder settings","journey":"privacy","stepId":"03-hidden-folder"}
-{"e2eRef":"WO-228 \/ Settings","journey":"privacy","title":"Privacy hub","stepId":"04-privacy-hub","relativePath":"privacy\/04-privacy-hub.png"}
-{"e2eRef":"TESTFLIGHT B1","journey":"contacts","title":"Accept invite sheet","relativePath":"contacts\/01-invite-accept.png","stepId":"01-invite-accept"}
-{"stepId":"02-username-search","title":"Add contact by username","e2eRef":"TESTFLIGHT A2","relativePath":"contacts\/02-username-search.png","journey":"contacts"}
+{"e2eRef":"E2E §6.1 step 1","relativePath":"onboarding\/01-welcome.png","journey":"onboarding","title":"Welcome","stepId":"01-welcome"}
+{"relativePath":"onboarding\/02-username.png","title":"Choose username","e2eRef":"E2E §6.1 step 2","journey":"onboarding","stepId":"02-username"}
+{"e2eRef":"E2E §6.1 step 3","title":"Face ID + optional VIP","journey":"onboarding","relativePath":"onboarding\/03-secure-account.png","stepId":"03-secure-account"}
+{"journey":"auth","relativePath":"auth\/01-storage-locked.png","stepId":"01-storage-locked","title":"Storage locked","e2eRef":"E2E §6.2 step 1"}
+{"stepId":"02-soft-lockout","relativePath":"auth\/02-soft-lockout.png","title":"Biometric soft lockout","journey":"auth","e2eRef":"E2E §6.2 step 3"}
+{"relativePath":"auth\/03-glacial-login-normal.png","title":"Glacial login (saved user)","e2eRef":"GlacialLoginScreen · normal","journey":"auth","stepId":"03-glacial-login-normal"}
+{"e2eRef":"GlacialLoginScreen · noAccount","journey":"auth","title":"Glacial login (no account)","stepId":"04-glacial-login-no-account","relativePath":"auth\/04-glacial-login-no-account.png"}
+{"stepId":"05-glacial-login-soft-lock","relativePath":"auth\/05-glacial-login-soft-lock.png","title":"Glacial login (soft lock)","journey":"auth","e2eRef":"GlacialLoginScreen · softLocked"}
+{"e2eRef":"MainTabView · Contacts","journey":"tabs","title":"Contacts tab","stepId":"01-contacts","relativePath":"tabs\/01-contacts.png"}
+{"relativePath":"tabs\/02-messages-hub.png","title":"Messages hub (populated)","journey":"tabs","stepId":"02-messages-hub","e2eRef":"MainTabView · Messages"}
+{"journey":"tabs","stepId":"03-rewards","relativePath":"tabs\/03-rewards.png","title":"Rewards tab","e2eRef":"MainTabView · Rewards \/ WalletTab"}
+{"stepId":"04-settings","e2eRef":"MainTabView · Settings","title":"Settings tab","journey":"tabs","relativePath":"tabs\/04-settings.png"}
+{"e2eRef":"TESTFLIGHT A1","title":"Messages hub (empty)","relativePath":"messaging\/01-empty-hub.png","journey":"messaging","stepId":"01-empty-hub"}
+{"stepId":"02-dm-thread","title":"Direct message thread","journey":"messaging","relativePath":"messaging\/02-dm-thread.png","e2eRef":"TESTFLIGHT A2–A7"}
+{"stepId":"03-typing","title":"Typing indicator","e2eRef":"TESTFLIGHT A6","relativePath":"messaging\/03-typing.png","journey":"messaging"}
+{"stepId":"04-reactions","title":"Reaction picker","journey":"messaging","relativePath":"messaging\/04-reactions.png","e2eRef":"TESTFLIGHT A7"}
+{"stepId":"05-hub-groups","e2eRef":"TESTFLIGHT groups tab","title":"Messages hub (groups)","journey":"messaging","relativePath":"messaging\/05-hub-groups.png"}
+{"e2eRef":"GroupCreateSheet","relativePath":"messaging\/06-group-create.png","journey":"messaging","stepId":"06-group-create","title":"Create group"}
+{"journey":"messaging","relativePath":"messaging\/07-full-chat.png","title":"Full DM chat (ChatView chrome)","stepId":"07-full-chat","e2eRef":"ChatView composite"}
+{"stepId":"08-group-chat","e2eRef":"GroupChatView composite","relativePath":"messaging\/08-group-chat.png","title":"Group chat thread","journey":"messaging"}
+{"e2eRef":"ChatSettingsSheet","relativePath":"messaging\/09-chat-settings.png","journey":"messaging","stepId":"09-chat-settings","title":"Chat settings sheet"}
+{"e2eRef":"MessageActionsSheet","stepId":"10-message-actions","journey":"messaging","title":"Message actions sheet","relativePath":"messaging\/10-message-actions.png"}
+{"stepId":"01-path","e2eRef":"VIPPathView","title":"VIP verification path","journey":"vip","relativePath":"vip\/01-path.png"}
+{"relativePath":"vip\/02-standard-idv.png","e2eRef":"VIPStandardIDVView","title":"Standard IDV — scan ID","journey":"vip","stepId":"02-standard-idv"}
+{"relativePath":"vip\/03-success-verified.png","e2eRef":"VIPSuccessView","title":"VIP success (T2 Verified)","journey":"vip","stepId":"03-success-verified"}
+{"journey":"vip","relativePath":"vip\/04-success-trusted.png","stepId":"04-success-trusted","title":"VIP success (T4 Trusted)","e2eRef":"VIPSuccessView"}
+{"relativePath":"vip\/05-subscription.png","e2eRef":"VIPSubscriptionView","title":"ECHO VIP subscription","journey":"vip","stepId":"05-subscription"}
+{"journey":"device","stepId":"01-link-qr","relativePath":"device\/01-link-qr.png","title":"Link new device — QR","e2eRef":"LinkNewDeviceQRView"}
+{"journey":"device","stepId":"02-link-scan","relativePath":"device\/02-link-scan.png","title":"Link device — scan","e2eRef":"LinkDeviceScanView"}
+{"journey":"device","stepId":"03-link-success","relativePath":"device\/03-link-success.png","title":"Device linked","e2eRef":"LinkDeviceScanView · success"}
+{"journey":"calls","stepId":"01-connecting","relativePath":"calls\/01-connecting.png","title":"Voice call — connecting","e2eRef":"CallView · outgoing"}
+{"e2eRef":"CallView · active","journey":"calls","stepId":"02-active","relativePath":"calls\/02-active.png","title":"Voice call — active"}
+{"e2eRef":"CallView · incoming","title":"Incoming voice call","stepId":"03-incoming","journey":"calls","relativePath":"calls\/03-incoming.png"}
+{"relativePath":"wallet\/01-staking.png","journey":"wallet","stepId":"01-staking","title":"Stake ECHO","e2eRef":"StakingView"}
+{"journey":"governance","relativePath":"governance\/01-proposals.png","stepId":"01-proposals","title":"Governance proposals","e2eRef":"ProposalListView"}
+{"relativePath":"governance\/02-proposal-detail.png","title":"Proposal detail","e2eRef":"ProposalDetailView composite","stepId":"02-proposal-detail","journey":"governance"}
+{"relativePath":"privacy\/01-socks-proxy.png","title":"SOCKS proxy settings","stepId":"01-socks-proxy","journey":"privacy","e2eRef":"WO-SX4 \/ Privacy Hub"}
+{"stepId":"02-post-quantum","journey":"privacy","e2eRef":"WO-SX2 \/ Privacy Hub","title":"Post-quantum handshake","relativePath":"privacy\/02-post-quantum.png"}
+{"relativePath":"privacy\/03-hidden-folder.png","journey":"privacy","stepId":"03-hidden-folder","title":"Hidden folder settings","e2eRef":"Phase 5 privacy"}
+{"stepId":"04-privacy-hub","title":"Privacy hub","journey":"privacy","relativePath":"privacy\/04-privacy-hub.png","e2eRef":"WO-228 \/ Settings"}
+{"relativePath":"contacts\/01-invite-accept.png","e2eRef":"TESTFLIGHT B1","title":"Accept invite sheet","journey":"contacts","stepId":"01-invite-accept"}
+{"e2eRef":"TESTFLIGHT A2","journey":"contacts","relativePath":"contacts\/02-username-search.png","stepId":"02-username-search","title":"Add contact by username"}
+{"relativePath":"profile\/01-identity-card.png","stepId":"01-identity-card","title":"Identity card","journey":"profile","e2eRef":"Profile · IdentityCardView"}
+{"e2eRef":"BackupView","relativePath":"utility\/01-backup.png","stepId":"01-backup","title":"Backup & recovery","journey":"utility"}
+{"stepId":"02-search","title":"Message search","journey":"utility","e2eRef":"SearchView","relativePath":"utility\/02-search.png"}
+{"relativePath":"utility\/03-notifications.png","e2eRef":"NotificationCenterView","title":"Notification center","journey":"utility","stepId":"03-notifications"}

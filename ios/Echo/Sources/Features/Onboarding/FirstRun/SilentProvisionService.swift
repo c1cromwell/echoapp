@@ -11,6 +11,7 @@ import Foundation
 import Observation
 import Network
 import os
+import Security
 
 @MainActor
 @Observable
@@ -266,6 +267,11 @@ final class RealProvisionAPI: ProvisionAPIProtocol, @unchecked Sendable {
         var lastError: Error?
         for attempt in 1...2 {
             do {
+                // The endpoint is authenticated: sign each attempt (signatures are
+                // single-use and time-bound, so a retry needs a fresh one).
+                #if os(iOS)
+                try await PasskeySigningInterceptor().intercept(&req)
+                #endif
                 let (_, response) = try await URLSession.shared.data(for: req)
                 let status = (response as? HTTPURLResponse)?.statusCode ?? -1
                 if (200...299).contains(status) {
@@ -322,6 +328,29 @@ final class StubProvisionStargazer: ProvisionStargazerProtocol, @unchecked Senda
 final class StubProvisionPasskey: ProvisionPasskeyProtocol, @unchecked Sendable {
     func register(did: String, displayName: String) async throws {
         try await Task.sleep(nanoseconds: 300_000_000)
+    }
+}
+
+/// Production passkey step. A phone runs the system passkey ceremony. The
+/// simulator has no Face ID sheet, so it records the DID and leaves the
+/// Secure Enclave key as the signer.
+final class RealProvisionPasskey: ProvisionPasskeyProtocol, @unchecked Sendable {
+    func register(did: String, displayName: String) async throws {
+        #if targetEnvironment(simulator)
+        UserDefaults.standard.set(did, forKey: "echo.passkey.registeredDID")
+        #else
+        var challenge = Data(count: 32)
+        let status = challenge.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 32, $0.baseAddress!) }
+        guard status == errSecSuccess else {
+            throw ProvisionError.trustTierUpdateFailed(status: Int(status))
+        }
+        let name = displayName.isEmpty ? did : displayName
+        _ = try await PasskeyManager().createPasskey(
+            challenge: challenge,
+            userId: Data(did.utf8),
+            userName: name
+        )
+        #endif
     }
 }
 

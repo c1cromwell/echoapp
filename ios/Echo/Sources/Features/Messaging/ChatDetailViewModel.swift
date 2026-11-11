@@ -28,6 +28,7 @@ final class ChatDetailViewModel {
     // MARK: - Dependencies
 
     private let signalService: ConversationSignalService
+    private var relayErrorObserver: NSObjectProtocol?
     private let textCrypto: TextMessageCrypto
     private let pollService = PollService.shared
     private var mediaService: MediaMessageService?
@@ -113,6 +114,20 @@ final class ChatDetailViewModel {
             currentUserDID: currentUserDID
         )
         polls = pollService.loadPolls(conversationId: conversationId)
+
+        if let relayErrorObserver {
+            NotificationCenter.default.removeObserver(relayErrorObserver)
+        }
+        relayErrorObserver = NotificationCenter.default.addObserver(
+            forName: .echoRelayError,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            let message = note.userInfo?["message"] as? String ?? "Echo couldn't send that. Try again."
+            Task { @MainActor in
+                self?.errorMessage = message
+            }
+        }
 
         signalService.setConversationHandler(conversationId: conversationId) { [weak self] event in
             Task { @MainActor in

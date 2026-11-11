@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECHO — Refined Ripple Pulse Mark</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Space+Grotesk:wght@300;400;500;600;700&family=Outfit:wght@200;300;400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --echo-accent: #0EA5E9;
+    --echo-accent-dark: #0284C7;
+    --echo-accent-light: #7DD3FC;
+    --echo-bg: #0B1120;
+    --echo-bg-card: #111827;
+    --echo-bg-surface: #1E293B;
+    --echo-text: #F1F5F9;
+    --echo-text-muted: #94A3B8;
+    --echo-border: #334155;
+  }
+
+  body {
+    background: var(--echo-bg);
+    color: var(--echo-text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 40px 24px;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: 64px;
+  }
+
+  .page-header h1 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--echo-accent);
+    margin-bottom: 12px;
+  }
+
+  .page-header h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 40px;
+    font-weight: 300;
+    color: var(--echo-text);
+    letter-spacing: -1px;
+  }
+
+  .page-header p {
+    color: var(--echo-text-muted);
+    font-size: 15px;
+    margin-top: 12px;
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+  }
+
+  /* Hero mark display */
+  .hero-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 40px;
+    margin: 0 auto 64px;
+    max-width: 600px;
+    background: var(--echo-bg-card);
+    border: 1px solid var(--echo-border);
+    border-radius: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-mark::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(14,165,233,0.08) 0%, transparent 65%);
+  }
+
+  .hero-info {
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto 64px;
+  }
+
+  .hero-info h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+
+  .hero-info p {
+    color: var(--echo-text-muted);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  /* Section headers */
+  .section-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .section-header h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 24px;
+    font-weight: 400;
+    margin-bottom: 8px;
+  }
+
+  .section-header p {
+    color: var(--echo-text-muted);
+    font-size: 14px;
+  }
+
+  /* Lockup row */
+  .lockup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    max-width: 1100px;
+    margin: 0 auto 64px;
+  }
+
+  .lockup-card {
+    background: var(--echo-bg-card);
+    border: 1px solid var(--echo-border);
+    border-radius: 20px;
+    overflow: hidden;
+    transition: transform 0.3s, border-color 0.3s;
+  }
+
+  .lockup-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--echo-accent);
+  }
+
+  .lockup-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 40px;
+    min-height: 220px;
+    position: relative;
+  }
+
+  .lockup-preview::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(14,165,233,0.05) 0%, transparent 70%);
+  }
+
+  .lockup-info {
+    padding: 20px 24px;
+    border-top: 1px solid var(--echo-border);
+  }
+
+  .lockup-label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--echo-accent);
+    margin-bottom: 4px;
+  }
+
+  .lockup-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  /* Color variations */
+  .variations-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    max-width: 1100px;
+    margin: 0 auto 64px;
+  }
+
+  .variation-card {
+    border-radius: 16px;
+    padding: 36px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    border: 1px solid var(--echo-border);
+    position: relative;
+  }
+
+  .variation-card.dark { background: var(--echo-bg-card); }
+  .variation-card.light { background: #F8FAFC; }
+  .variation-card.mono-dark { background: #111; }
+  .variation-card.mono-light { background: #fff; }
+
+  .variation-label {
+    position: absolute;
+    bottom: 12px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+  }
+
+  .variation-card.dark .variation-label,
+  .variation-card.mono-dark .variation-label { color: var(--echo-text-muted); }
+  .variation-card.light .variation-label,
+  .variation-card.mono-light .variation-label { color: #94A3B8; }
+
+  /* Wordmark pairings */
+  .wordmark-section {
+    max-width: 1100px;
+    margin: 0 auto 64px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+
+  .wordmark-card {
+    background: var(--echo-bg-card);
+    border: 1px solid var(--echo-border);
+    border-radius: 20px;
+    padding: 48px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .wordmark-card .wm-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--echo-text-muted);
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+  }
+
+  /* App icon row */
+  .app-icons-row {
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    align-items: end;
+    margin-bottom: 64px;
+  }
+
+  .app-icon-wrap {
+    text-align: center;
+  }
+
+  .app-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0B1120, #1E293B);
+  }
+
+  .app-icon-label {
+    color: var(--echo-text-muted);
+    font-size: 11px;
+    margin-top: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .footer-note {
+    text-align: center;
+    color: var(--echo-text-muted);
+    font-size: 12px;
+    padding: 40px 0;
+    border-top: 1px solid var(--echo-border);
+    max-width: 1100px;
+    margin: 0 auto;
+    line-height: 1.8;
+  }
+
+  .footer-note strong {
+    color: var(--echo-accent);
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Echo Identity System</h1>
+  <h2>Ripple Pulse Mark</h2>
+  <p>A pure signal emanation mark — concentric ripple arcs radiating from a solid core, with layered inner rings conveying depth and resonance. No shield, no wordmark — just the pulse.</p>
+</div>
+
+<!-- ═══════════════════════════════════════
+     HERO — Large mark display
+     ═══════════════════════════════════════ -->
+<div class="hero-mark">
+  <svg width="280" height="280" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Core filled dot -->
+    <circle cx="100" cy="100" r="7" fill="#0EA5E9"/>
+    <!-- Inner ring 1 (new) -->
+    <circle cx="100" cy="100" r="14" stroke="#0EA5E9" stroke-width="2" fill="none" opacity="0.8"/>
+    <!-- Inner ring 2 (new) -->
+    <circle cx="100" cy="100" r="22" stroke="#0EA5E9" stroke-width="1.8" fill="none" opacity="0.6"/>
+    <!-- Original ring (from Concept B) -->
+    <circle cx="100" cy="100" r="31" stroke="#0EA5E9" stroke-width="1.5" fill="none" opacity="0.4"/>
+    <!-- Ripple arc pair 1 — close -->
+    <path d="M 68 68 A 48 48 0 0 1 132 68" stroke="#0EA5E9" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <path d="M 68 132 A 48 48 0 0 0 132 132" stroke="#0EA5E9" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <!-- Ripple arc pair 2 — mid -->
+    <path d="M 52 52 A 68 68 0 0 1 148 52" stroke="#7DD3FC" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+    <path d="M 52 148 A 68 68 0 0 0 148 148" stroke="#7DD3FC" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+    <!-- Ripple arc pair 3 — outer -->
+    <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#0EA5E9" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+    <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#0EA5E9" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+    <!-- Side whisper arcs (asymmetric detail for distinctiveness) -->
+    <path d="M 56 56 A 62 62 0 0 0 56 144" stroke="#0EA5E9" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+    <path d="M 144 56 A 62 62 0 0 1 144 144" stroke="#0EA5E9" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+  </svg>
+</div>
+
+<div class="hero-info">
+  <h3>Ripple Pulse — Pure Mark</h3>
+  <p>The solid core represents the origin of a message. Three concentric inner rings build resonance outward from it. Asymmetric ripple arcs expand in all directions — top, bottom, and sides — evoking the propagation of an echo signal. The graduated opacity creates natural depth and motion without animation.</p>
+</div>
+
+<!-- ═══════════════════════════════════════
+     LOCKUP VARIATIONS
+     ═══════════════════════════════════════ -->
+<div class="section-header">
+  <h3>Lockup Variations</h3>
+  <p>The mark paired with the ECHO wordmark in horizontal and stacked configurations</p>
+</div>
+
+<div class="lockup-grid">
+  <div class="lockup-card">
+    <div class="lockup-preview">
+      <svg width="360" height="80" viewBox="0 0 460 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Mark at 50% scale -->
+        <g transform="translate(0,0) scale(0.5)">
+          <circle cx="100" cy="100" r="7" fill="#0EA5E9"/>
+          <circle cx="100" cy="100" r="14" stroke="#0EA5E9" stroke-width="2" fill="none" opacity="0.8"/>
+          <circle cx="100" cy="100" r="22" stroke="#0EA5E9" stroke-width="1.8" fill="none" opacity="0.6"/>
+          <circle cx="100" cy="100" r="31" stroke="#0EA5E9" stroke-width="1.5" fill="none" opacity="0.4"/>
+          <path d="M 68 68 A 48 48 0 0 1 132 68" stroke="#0EA5E9" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <path d="M 68 132 A 48 48 0 0 0 132 132" stroke="#0EA5E9" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <path d="M 52 52 A 68 68 0 0 1 148 52" stroke="#7DD3FC" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+          <path d="M 52 148 A 68 68 0 0 0 148 148" stroke="#7DD3FC" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+          <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#0EA5E9" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+          <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#0EA5E9" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+          <path d="M 56 56 A 62 62 0 0 0 56 144" stroke="#0EA5E9" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+          <path d="M 144 56 A 62 62 0 0 1 144 144" stroke="#0EA5E9" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+        </g>
+        <!-- Wordmark -->
+        <text x="140" y="62" font-family="'Space Grotesk', sans-serif" font-size="52" font-weight="600" letter-spacing="10" fill="#F1F5F9">ECHO</text>
+      </svg>
+    </div>
+    <div class="lockup-info">
+      <div class="lockup-label">Horizontal</div>
+      <div class="lockup-title">Mark + Wordmark</div>
+    </div>
+  </div>
+
+  <div class="lockup-card">
+    <div class="lockup-preview">
+      <svg width="200" height="180" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Mark at 45% centered above -->
+        <g transform="translate(55,10) scale(0.45)">
+          <circle cx="100" cy="100" r="7" fill="#0EA5E9"/>
+          <circle cx="100" cy="100" r="14" stroke="#0EA5E9" stroke-width="2.5" fill="none" opacity="0.8"/>
+          <circle cx="100" cy="100" r="22" stroke="#0EA5E9" stroke-width="2.2" fill="none" opacity="0.6"/>
+          <circle cx="100" cy="100" r="31" stroke="#0EA5E9" stroke-width="2" fill="none" opacity="0.4"/>
+          <path d="M 68 68 A 48 48 0 0 1 132 68" stroke="#0EA5E9" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+          <path d="M 68 132 A 48 48 0 0 0 132 132" stroke="#0EA5E9" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+          <path d="M 52 52 A 68 68 0 0 1 148 52" stroke="#7DD3FC" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.8"/>
+          <path d="M 52 148 A 68 68 0 0 0 148 148" stroke="#7DD3FC" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.8"/>
+          <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#0EA5E9" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.55"/>
+          <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#0EA5E9" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.55"/>
+          <path d="M 56 56 A 62 62 0 0 0 56 144" stroke="#0EA5E9" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.3"/>
+          <path d="M 144 56 A 62 62 0 0 1 144 144" stroke="#0EA5E9" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.3"/>
+        </g>
+        <!-- Stacked wordmark -->
+        <text x="100" y="170" font-family="'Space Grotesk', sans-serif" font-size="36" font-weight="600" letter-spacing="12" fill="#F1F5F9" text-anchor="middle">ECHO</text>
+      </svg>
+    </div>
+    <div class="lockup-info">
+      <div class="lockup-label">Stacked</div>
+      <div class="lockup-title">Mark over Wordmark</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     COLOR VARIATIONS
+     ═══════════════════════════════════════ -->
+<div class="section-header">
+  <h3>Color & Context Variations</h3>
+  <p>The mark rendered across dark, light, and monochrome backgrounds — required for trademark versatility</p>
+</div>
+
+<div class="variations-row">
+  <div class="variation-card dark">
+    <svg width="120" height="120" viewBox="0 0 200 200" fill="none">
+      <circle cx="100" cy="100" r="7" fill="#0EA5E9"/>
+      <circle cx="100" cy="100" r="14" stroke="#0EA5E9" stroke-width="2" fill="none" opacity="0.8"/>
+      <circle cx="100" cy="100" r="22" stroke="#0EA5E9" stroke-width="1.8" fill="none" opacity="0.6"/>
+      <circle cx="100" cy="100" r="31" stroke="#0EA5E9" stroke-width="1.5" fill="none" opacity="0.4"/>
+      <path d="M 68 68 A 48 48 0 0 1 132 68" stroke="#0EA5E9" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M 68 132 A 48 48 0 0 0 132 132" stroke="#0EA5E9" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M 52 52 A 68 68 0 0 1 148 52" stroke="#7DD3FC" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+      <path d="M 52 148 A 68 68 0 0 0 148 148" stroke="#7DD3FC" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+      <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#0EA5E9" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+      <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#0EA5E9" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+      <path d="M 56 56 A 62 62 0 0 0 56 144" stroke="#0EA5E9" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+      <path d="M 144 56 A 62 62 0 0 1 144 144" stroke="#0EA5E9" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+    </svg>
+    <div class="variation-label">Brand on Dark</div>
+  </div>
+
+  <div class="variation-card light">
+    <svg width="120" height="120" viewBox="0 0 200 200" fill="none">
+      <circle cx="100" cy="100" r="7" fill="#0284C7"/>
+      <circle cx="100" cy="100" r="14" stroke="#0284C7" stroke-width="2" fill="none" opacity="0.8"/>
+      <circle cx="100" cy="100" r="22" stroke="#0284C7" stroke-width="1.8" fill="none" opacity="0.6"/>
+      <circle cx="100" cy="100" r="31" stroke="#0284C7" stroke-width="1.5" fill="none" opacity="0.4"/>
+      <path d="M 68 68 A 48 48 0 0 1 132 68" stroke="#0284C7" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M 68 132 A 48 48 0 0 0 132 132" stroke="#0284C7" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M 52 52 A 68 68 0 0 1 148 52" stroke="#0EA5E9" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+      <path d="M 52 148 A 68 68 0 0 0 148 148" stroke="#0EA5E9" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+      <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#0284C7" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+      <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#0284C7" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+      <path d="M 56 56 A 62 62 0 0 0 56 144" stroke="#0284C7" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+      <path d="M 144 56 A 62 62 0 0 1 144 144" stroke="#0284C7" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+    </svg>
+    <div class="variation-label">Brand on Light</div>
+  </div>
+
+  <div class="variation-card mono-dark">
+    <svg width="120" height="120" viewBox="0 0 200 200" fill="none">
+      <circle cx="100" cy="100" r="7" fill="#ffffff"/>
+      <circle cx="100" cy="100" r="14" stroke="#ffffff" stroke-width="2" fill="none" opacity="0.8"/>
+      <circle cx="100" cy="100" r="22" stroke="#ffffff" stroke-width="1.8" fill="none" opacity="0.6"/>
+      <circle cx="100" cy="100" r="31" stroke="#ffffff" stroke-width="1.5" fill="none" opacity="0.4"/>
+      <path d="M 68 68 A 48 48 0 0 1 132 68" stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M 68 132 A 48 48 0 0 0 132 132" stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M 52 52 A 68 68 0 0 1 148 52" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+      <path d="M 52 148 A 68 68 0 0 0 148 148" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+      <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+      <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+      <path d="M 56 56 A 62 62 0 0 0 56 144" stroke="#ffffff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+      <path d="M 144 56 A 62 62 0 0 1 144 144" stroke="#ffffff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+    </svg>
+    <div class="variation-label">White Mono</div>
+  </div>
+
+  <div class="variation-card mono-light">
+    <svg width="120" height="120" viewBox="0 0 200 200" fill="none">
+      <circle cx="100" cy="100" r="7" fill="#0F172A"/>
+      <circle cx="100" cy="100" r="14" stroke="#0F172A" stroke-width="2" fill="none" opacity="0.8"/>
+      <circle cx="100" cy="100" r="22" stroke="#0F172A" stroke-width="1.8" fill="none" opacity="0.6"/>
+      <circle cx="100" cy="100" r="31" stroke="#0F172A" stroke-width="1.5" fill="none" opacity="0.4"/>
+      <path d="M 68 68 A 48 48 0 0 1 132 68" stroke="#0F172A" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M 68 132 A 48 48 0 0 0 132 132" stroke="#0F172A" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M 52 52 A 68 68 0 0 1 148 52" stroke="#0F172A" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+      <path d="M 52 148 A 68 68 0 0 0 148 148" stroke="#0F172A" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+      <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#0F172A" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+      <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#0F172A" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+      <path d="M 56 56 A 62 62 0 0 0 56 144" stroke="#0F172A" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+      <path d="M 144 56 A 62 62 0 0 1 144 144" stroke="#0F172A" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+    </svg>
+    <div class="variation-label">Black Mono</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     WORDMARK PAIRINGS
+     ═══════════════════════════════════════ -->
+<div class="section-header">
+  <h3>Wordmark Pairings</h3>
+  <p>Typographic options for the ECHO wordmark when used alongside the mark</p>
+</div>
+
+<div class="wordmark-section">
+  <div class="wordmark-card">
+    <div class="wm-label">Geometric / Tech</div>
+    <svg width="300" height="60" viewBox="0 0 300 60" fill="none">
+      <text x="150" y="44" font-family="'Space Grotesk', sans-serif" font-size="48" font-weight="600" letter-spacing="14" fill="#F1F5F9" text-anchor="middle">ECHO</text>
+    </svg>
+  </div>
+  <div class="wordmark-card">
+    <div class="wm-label">Clean / Approachable</div>
+    <svg width="300" height="60" viewBox="0 0 300 60" fill="none">
+      <text x="150" y="44" font-family="'DM Sans', sans-serif" font-size="48" font-weight="700" letter-spacing="10" fill="#F1F5F9" text-anchor="middle">ECHO</text>
+    </svg>
+  </div>
+  <div class="wordmark-card">
+    <div class="wm-label">Modern / Minimal</div>
+    <svg width="300" height="60" viewBox="0 0 300 60" fill="none">
+      <text x="150" y="44" font-family="'Outfit', sans-serif" font-size="48" font-weight="400" letter-spacing="18" fill="#F1F5F9" text-anchor="middle">ECHO</text>
+    </svg>
+  </div>
+  <div class="wordmark-card">
+    <div class="wm-label">Bold / Statement</div>
+    <svg width="300" height="60" viewBox="0 0 300 60" fill="none">
+      <text x="150" y="44" font-family="'Outfit', sans-serif" font-size="48" font-weight="800" letter-spacing="6" fill="#F1F5F9" text-anchor="middle">ECHO</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     APP ICON PREVIEW
+     ═══════════════════════════════════════ -->
+<div class="section-header">
+  <h3>App Icon Preview</h3>
+  <p>How the mark renders as a mobile app icon — the true scalability test</p>
+</div>
+
+<div class="app-icons-row">
+  <!-- 120px -->
+  <div class="app-icon-wrap">
+    <div class="app-icon" style="width:120px;height:120px;border-radius:26px;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+      <svg width="76" height="76" viewBox="0 0 200 200" fill="none">
+        <circle cx="100" cy="100" r="7" fill="#0EA5E9"/>
+        <circle cx="100" cy="100" r="14" stroke="#0EA5E9" stroke-width="2.5" fill="none" opacity="0.8"/>
+        <circle cx="100" cy="100" r="22" stroke="#0EA5E9" stroke-width="2.2" fill="none" opacity="0.6"/>
+        <circle cx="100" cy="100" r="31" stroke="#0EA5E9" stroke-width="2" fill="none" opacity="0.4"/>
+        <path d="M 68 68 A 48 48 0 0 1 132 68" stroke="#0EA5E9" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+        <path d="M 68 132 A 48 48 0 0 0 132 132" stroke="#0EA5E9" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+        <path d="M 52 52 A 68 68 0 0 1 148 52" stroke="#7DD3FC" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.8"/>
+        <path d="M 52 148 A 68 68 0 0 0 148 148" stroke="#7DD3FC" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.8"/>
+        <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#0EA5E9" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.55"/>
+        <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#0EA5E9" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.55"/>
+        <path d="M 56 56 A 62 62 0 0 0 56 144" stroke="#0EA5E9" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.3"/>
+        <path d="M 144 56 A 62 62 0 0 1 144 144" stroke="#0EA5E9" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.3"/>
+      </svg>
+    </div>
+    <div class="app-icon-label">120px</div>
+  </div>
+  <!-- 64px -->
+  <div class="app-icon-wrap">
+    <div class="app-icon" style="width:64px;height:64px;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
+      <svg width="40" height="40" viewBox="0 0 200 200" fill="none">
+        <circle cx="100" cy="100" r="9" fill="#0EA5E9"/>
+        <circle cx="100" cy="100" r="17" stroke="#0EA5E9" stroke-width="3" fill="none" opacity="0.8"/>
+        <circle cx="100" cy="100" r="26" stroke="#0EA5E9" stroke-width="2.5" fill="none" opacity="0.55"/>
+        <path d="M 62 62 A 54 54 0 0 1 138 62" stroke="#0EA5E9" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+        <path d="M 62 138 A 54 54 0 0 0 138 138" stroke="#0EA5E9" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+        <path d="M 40 40 A 85 85 0 0 1 160 40" stroke="#7DD3FC" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.7"/>
+        <path d="M 40 160 A 85 85 0 0 0 160 160" stroke="#7DD3FC" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.7"/>
+      </svg>
+    </div>
+    <div class="app-icon-label">64px</div>
+  </div>
+  <!-- 40px -->
+  <div class="app-icon-wrap">
+    <div class="app-icon" style="width:40px;height:40px;border-radius:9px;box-shadow:0 2px 8px rgba(0,0,0,0.4);">
+      <svg width="26" height="26" viewBox="0 0 200 200" fill="none">
+        <circle cx="100" cy="100" r="12" fill="#0EA5E9"/>
+        <circle cx="100" cy="100" r="22" stroke="#0EA5E9" stroke-width="4" fill="none" opacity="0.7"/>
+        <path d="M 55 55 A 64 64 0 0 1 145 55" stroke="#0EA5E9" stroke-width="6" stroke-linecap="round" fill="none"/>
+        <path d="M 55 145 A 64 64 0 0 0 145 145" stroke="#0EA5E9" stroke-width="6" stroke-linecap="round" fill="none"/>
+        <path d="M 34 34 A 93 93 0 0 1 166 34" stroke="#7DD3FC" stroke-width="5" stroke-linecap="round" fill="none" opacity="0.6"/>
+        <path d="M 34 166 A 93 93 0 0 0 166 166" stroke="#7DD3FC" stroke-width="5" stroke-linecap="round" fill="none" opacity="0.6"/>
+      </svg>
+    </div>
+    <div class="app-icon-label">40px</div>
+  </div>
+  <!-- Favicon -->
+  <div class="app-icon-wrap">
+    <div class="app-icon" style="width:20px;height:20px;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,0.4);">
+      <svg width="14" height="14" viewBox="0 0 200 200" fill="none">
+        <circle cx="100" cy="100" r="18" fill="#0EA5E9"/>
+        <circle cx="100" cy="100" r="34" stroke="#0EA5E9" stroke-width="6" fill="none" opacity="0.6"/>
+        <path d="M 45 45 A 78 78 0 0 1 155 45" stroke="#0EA5E9" stroke-width="8" stroke-linecap="round" fill="none"/>
+        <path d="M 45 155 A 78 78 0 0 0 155 155" stroke="#0EA5E9" stroke-width="8" stroke-linecap="round" fill="none"/>
+      </svg>
+    </div>
+    <div class="app-icon-label">Favicon</div>
+  </div>
+</div>
+
+<div class="footer-note">
+  <strong>Trademark Notes</strong><br>
+  This mark is an original geometric construction: a solid core surrounded by concentric rings with asymmetric ripple arcs radiating outward.<br>
+  The combination of full concentric rings at center + broken arcs at the perimeter is distinctive in the messaging/tech category.<br>
+  Works in full color, monochrome, and reversed — required for USPTO/EUIPO registration.
+</div>
+
+</body>
+</html>

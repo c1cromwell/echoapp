@@ -90,6 +90,9 @@ func TestFlushOffline_SendsOverflowManifest(t *testing.T) {
 	h.offlineQueue.Enqueue("did:key:bob", []byte(`{"overflow":true}`), wsOfflineRetention)
 
 	bob := &Client{hub: h, userID: "did:key:bob", send: make(chan []byte, wsOfflineMaxDepth+2)}
+	h.mu.Lock()
+	h.clients[bob.userID] = bob // flushOffline only writes to the registered socket
+	h.mu.Unlock()
 	h.flushOffline(bob)
 
 	received := 0

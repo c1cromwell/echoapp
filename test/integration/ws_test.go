@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -134,9 +133,9 @@ func TestWS_DirectMessage(t *testing.T) {
 	}
 }
 
-// TestWS_Broadcast verifies that a message without a "to" field
-// is delivered to all connected clients.
-func TestWS_Broadcast(t *testing.T) {
+// TestWS_UnaddressedMessageNotBroadcast verifies that a client message without
+// a "to" field is dropped rather than delivered to every connected client.
+func TestWS_UnaddressedMessageNotBroadcast(t *testing.T) {
 	ts, cleanup := testutil.StartTestServer(t)
 	defer cleanup()
 
@@ -146,45 +145,36 @@ func TestWS_Broadcast(t *testing.T) {
 	connB := wsConnect(t, ts.BaseURL, ts.IssueTestToken("bob"))
 	defer connB.Close()
 
-	connC := wsConnect(t, ts.BaseURL, ts.IssueTestToken("carol"))
-	defer connC.Close()
-
 	time.Sleep(50 * time.Millisecond)
 
-	// Alice broadcasts (no "to" field)
 	payload, _ := json.Marshal("Hello everyone!")
 	sendWSMessage(t, connA, api.WSMessage{
 		Type:    "text",
 		Payload: payload,
 	})
 
-	// Both Bob and Carol should receive it
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	var bobMsg, carolMsg api.WSMessage
-
-	go func() {
-		defer wg.Done()
-		bobMsg = readWSMessage(t, connB, 3*time.Second)
-	}()
-
-	go func() {
-		defer wg.Done()
-		carolMsg = readWSMessage(t, connC, 3*time.Second)
-	}()
-
-	wg.Wait()
-
-	var bobText, carolText string
-	json.Unmarshal(bobMsg.Payload, &bobText)
-	json.Unmarshal(carolMsg.Payload, &carolText)
-
-	if bobText != "Hello everyone!" {
-		t.Errorf("Bob expected 'Hello everyone!', got %q", bobText)
+	connB.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
+	if _, raw, err := connB.ReadMessage(); err == nil {
+		t.Fatalf("Bob must not receive an unaddressed message, got %s", raw)
 	}
-	if carolText != "Hello everyone!" {
-		t.Errorf("Carol expected 'Hello everyone!', got %q", carolText)
+}
+
+// TestWS_ConnectRejectsInvalidToken verifies that a syntactically present but
+// invalid token cannot open a socket (it used to join the hub with an empty
+// identity).
+func TestWS_ConnectRejectsInvalidToken(t *testing.T) {
+	ts, cleanup := testutil.StartTestServer(t)
+	defer cleanup()
+
+	wsURL := "ws" + strings.TrimPrefix(ts.BaseURL, "http") + "/ws?token=not-a-real-token"
+
+	conn, resp, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err == nil {
+		conn.Close()
+		t.Fatal("expected connection to fail with an invalid token")
+	}
+	if resp == nil || resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %v", resp)
 	}
 }
 

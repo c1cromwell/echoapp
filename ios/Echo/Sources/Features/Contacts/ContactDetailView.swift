@@ -245,6 +245,14 @@ public struct ContactDetailView: View {
         .alert("Contact blocked", isPresented: $viewModel.isBlocked) {
             Button("OK") { dismiss() }
         }
+        .sheet(isPresented: $viewModel.showReportSheet) {
+            ContactReportSheet(viewModel: viewModel)
+        }
+        .alert("Report sent", isPresented: $viewModel.reportSubmitted) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Echo saved this report. Blocking is separate and still available on this screen.")
+        }
         .sheet(isPresented: $viewModel.showMediaGallery) {
             NavigationStack {
                 MediaGalleryView(conversationId: SharedMediaLoader.conversationId(peerDID: viewModel.contactId))
@@ -426,6 +434,50 @@ struct SharedMediaPreview: View {
                 }
             }
         }
+    }
+}
+
+private struct ContactReportSheet: View {
+    @ObservedObject var viewModel: ContactDetailViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    private let reasons: [(code: String, label: String)] = [
+        ("spam", "Spam"),
+        ("harassment", "Harassment"),
+        ("impersonation", "Impersonation"),
+        ("other", "Something else")
+    ]
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Tell Echo what is wrong with this contact. The report is stored for review.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.Echo.outline)
+                if let reportError = viewModel.reportError {
+                    Text(reportError)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color.Echo.error)
+                }
+                ForEach(reasons, id: \.code) { reason in
+                    Button(reason.label) {
+                        Task { await viewModel.reportContact(reason: reason.code) }
+                    }
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 8)
+                }
+                Spacer()
+            }
+            .padding(24)
+            .navigationTitle("Report contact")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 }
 

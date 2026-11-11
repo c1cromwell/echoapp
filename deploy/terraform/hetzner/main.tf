@@ -43,13 +43,31 @@ variable "location" {
   default     = "nbg1" # Nuremberg (also: fsn1, hel1, ash)
 }
 
+variable "db_password" {
+  description = "PostgreSQL password for the echoapp DB user. Provide via TF_VAR_db_password or a *.auto.tfvars that is NOT committed. Reused in the k8s Secret (deploy/k8s)."
+  type        = string
+  sensitive   = true
+}
+
+variable "domain" {
+  description = "Public API hostname (e.g., api.echo.app for prod, api.staging.echo.app for staging). Used for the Ingress host + TLS cert."
+  type        = string
+  default     = ""
+}
+
+variable "echoapp_image" {
+  description = "Backend container image ref pushed by .github/workflows/backend-image.yml (e.g., ghcr.io/c1cromwell/echo-backend:<tag>). Consumed by the k8s Deployment, not by this module directly."
+  type        = string
+  default     = ""
+}
+
 locals {
   name_prefix = "echo-${var.environment}"
 
   server_config = {
-    dev     = { type = "cpx21",  k3s_nodes = 1, db_type = "cpx11"  }
-    staging = { type = "cpx31",  k3s_nodes = 2, db_type = "cpx21"  }
-    prod    = { type = "cpx41",  k3s_nodes = 3, db_type = "cpx31"  }
+    dev     = { type = "cpx21", k3s_nodes = 1, db_type = "cpx11" }
+    staging = { type = "cpx31", k3s_nodes = 2, db_type = "cpx21" }
+    prod    = { type = "cpx41", k3s_nodes = 3, db_type = "cpx31" }
   }
 
   cfg = local.server_config[var.environment]
@@ -109,11 +127,11 @@ resource "hcloud_firewall" "k3s" {
   }
 
   rule {
-    direction  = "in"
-    protocol   = "tcp"
-    port       = "6443"
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "6443"
     description = "k3s API server"
-    source_ips = ["0.0.0.0/0", "::/0"]
+    source_ips  = ["0.0.0.0/0", "::/0"]
   }
 }
 
@@ -122,11 +140,11 @@ resource "hcloud_firewall" "k3s" {
 # -------------------------------------------------------------------
 
 resource "hcloud_server" "k3s_server" {
-  name        = "${local.name_prefix}-k3s-server"
-  server_type = local.cfg.type
-  image       = "ubuntu-24.04"
-  location    = var.location
-  ssh_keys    = [hcloud_ssh_key.default.id]
+  name         = "${local.name_prefix}-k3s-server"
+  server_type  = local.cfg.type
+  image        = "ubuntu-24.04"
+  location     = var.location
+  ssh_keys     = [hcloud_ssh_key.default.id]
   firewall_ids = [hcloud_firewall.k3s.id]
 
   network {
@@ -166,12 +184,12 @@ resource "hcloud_server" "k3s_server" {
 # -------------------------------------------------------------------
 
 resource "hcloud_server" "k3s_agent" {
-  count       = local.cfg.k3s_nodes > 1 ? local.cfg.k3s_nodes - 1 : 0
-  name        = "${local.name_prefix}-k3s-agent-${count.index + 1}"
-  server_type = local.cfg.type
-  image       = "ubuntu-24.04"
-  location    = var.location
-  ssh_keys    = [hcloud_ssh_key.default.id]
+  count        = local.cfg.k3s_nodes > 1 ? local.cfg.k3s_nodes - 1 : 0
+  name         = "${local.name_prefix}-k3s-agent-${count.index + 1}"
+  server_type  = local.cfg.type
+  image        = "ubuntu-24.04"
+  location     = var.location
+  ssh_keys     = [hcloud_ssh_key.default.id]
   firewall_ids = [hcloud_firewall.k3s.id]
 
   network {
@@ -230,7 +248,7 @@ resource "hcloud_server" "db" {
     echo "listen_addresses = '10.0.1.50'" >> /etc/postgresql/16/main/postgresql.conf
     echo "host echoapp echoapp 10.0.1.0/24 scram-sha-256" >> /etc/postgresql/16/main/pg_hba.conf
 
-    sudo -u postgres psql -c "CREATE USER echoapp WITH PASSWORD 'CHANGE_ME';"
+    sudo -u postgres psql -c "CREATE USER echoapp WITH PASSWORD '${var.db_password}';"
     sudo -u postgres psql -c "CREATE DATABASE echoapp OWNER echoapp;"
 
     systemctl restart postgresql
@@ -329,4 +347,12 @@ output "load_balancer_ip" {
 
 output "k3s_agent_ips" {
   value = hcloud_server.k3s_agent[*].ipv4_address
+}
+
+output "api_domain" {
+  value = var.domain
+}
+
+output "backend_image" {
+  value = var.echoapp_image
 }

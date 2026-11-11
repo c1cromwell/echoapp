@@ -86,15 +86,16 @@ func TestRouteInbound_ReadReceiptRelayedToRecipientOnly(t *testing.T) {
 	}
 }
 
-// TestRouteInbound_TextStillBroadcasts confirms non-ephemeral messages keep the
-// existing direct/broadcast behavior.
-func TestRouteInbound_TextStillBroadcasts(t *testing.T) {
+// TestRouteInbound_UnaddressedTextIsDropped confirms a client frame with no
+// recipient is dropped rather than fanned out to every connected client, while
+// directed text keeps its existing behavior.
+func TestRouteInbound_UnaddressedTextIsDropped(t *testing.T) {
 	h := NewHub()
 	sender := &Client{hub: h, userID: "A", send: make(chan []byte, 8)}
 
 	sender.routeInbound(WSMessage{Type: "text", From: "A", To: "", Payload: json.RawMessage(`"hi"`)})
-	if len(h.broadcast) != 1 {
-		t.Fatalf("a broadcast text (no recipient) should hit the broadcast channel, got %d", len(h.broadcast))
+	if len(h.broadcast) != 0 {
+		t.Fatalf("unaddressed text must be dropped, not broadcast (got %d)", len(h.broadcast))
 	}
 
 	b := registerFakeClient(h, "B")

@@ -57,7 +57,7 @@ struct EchoApp: App {
             secureEnclave: RealProvisionSecureEnclave(),
             api: RealProvisionAPI(),
             stargazer: RealProvisionStargazer(),
-            passkeyProvider: StubProvisionPasskey()
+            passkeyProvider: RealProvisionPasskey()
         )
         _appState = State(initialValue: AppState(provisionService: provisionService))
         #endif
@@ -82,6 +82,7 @@ struct EchoApp: App {
                 HiddenChatsSession.shared.refreshForegroundLockIfNeeded()
                 BackupScheduler.runIfDue()
                 Task { await MessageRelaySession.connect() }
+                Task { await VIPSubscriptionService.startTransactionListener() }
                 Task { await ScheduledMessageStore.hydrateFromServer() }
                 Task {
                     let storageKey = SecureEnclaveManager.shared.deriveStorageKey(

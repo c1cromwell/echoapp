@@ -55,6 +55,11 @@ func canonicalSigningString(method, path, timestamp string, body []byte) []byte 
 	return []byte(method + "\n" + path + "\n" + timestamp + "\n" + hex.EncodeToString(bodyHash[:]))
 }
 
+// ResolveDeviceKeys is the exported passkey key lookup used by the agent bus.
+func (rt *Router) ResolveDeviceKeys(ctx context.Context, did string) ([]*ecdsa.PublicKey, error) {
+	return rt.resolveDeviceKeys(ctx, did)
+}
+
 // resolveDeviceKeys returns the public keys for did from the Redis cache; on cache miss
 // it falls back to the DIDRegistry and populates the cache.
 func (rt *Router) resolveDeviceKeys(ctx context.Context, did string) ([]*ecdsa.PublicKey, error) {

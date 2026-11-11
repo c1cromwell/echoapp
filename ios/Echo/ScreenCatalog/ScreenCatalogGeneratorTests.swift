@@ -327,6 +327,20 @@ final class ScreenCatalogGeneratorTests: XCTestCase {
             title: "Privacy hub",
             e2eRef: "WO-228 / Settings"
         )
+        try ScreenCatalogRenderer.render(
+            CatalogGrantReviewPreview(),
+            journey: "privacy",
+            stepId: "05-agent-grants",
+            title: "Agent grants",
+            e2eRef: "Agent bus phase 7"
+        )
+        try ScreenCatalogRenderer.render(
+            CatalogEchoBarPreview(),
+            journey: "privacy",
+            stepId: "06-echo-bar",
+            title: "Echo Bar",
+            e2eRef: "docs/ECHO_BAR.md"
+        )
 
         try ScreenCatalogRenderer.render(
             CatalogInviteAcceptPreview(inviteCode: "DEMO-ECHO"),

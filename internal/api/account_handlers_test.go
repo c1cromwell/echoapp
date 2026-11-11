@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/auth"
 )
@@ -31,8 +32,13 @@ func TestDeleteAccount_RevokesRefreshTokens(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	elevated, _, err := ts.IssueElevatedToken(userDID, "dev1", 1, string(auth.StepUpDeleteAccount), 5*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
 	req := httptest.NewRequest(http.MethodDelete, "/v1/users/account", nil)
 	req.Header.Set("Authorization", "Bearer "+access)
+	req.Header.Set("X-Elevated-Token", elevated)
 	rec := httptest.NewRecorder()
 	rt.Handler().ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -55,8 +61,13 @@ func TestLinkWallet_BindsAddress(t *testing.T) {
 		"did":            "did:key:zWalletUser",
 		"wallet_address": "DAGtestwallet123",
 	})
+	access, _, err := rt.TokenService().IssueAccessToken("did:key:zWalletUser", "dev1", 1, "messaging")
+	if err != nil {
+		t.Fatal(err)
+	}
 	req := httptest.NewRequest(http.MethodPost, "/v1/identity/link-wallet", bytes.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+access)
 	rec := httptest.NewRecorder()
 	rt.Handler().ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {

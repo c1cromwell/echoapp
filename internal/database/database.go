@@ -91,6 +91,7 @@ type Contact struct {
 	ContactDID string    `json:"contactDid"`
 	AddedVia   string    `json:"addedVia"`
 	Blocked    bool      `json:"blocked"`
+	BarAllowed bool      `json:"barAllowed"`
 	TrustBadge string    `json:"trustBadge"`
 	CreatedAt  time.Time `json:"createdAt"`
 }
@@ -202,6 +203,7 @@ type ContactStore interface {
 	GetContacts(ctx context.Context, ownerDID string) ([]*Contact, error)
 	RemoveContact(ctx context.Context, ownerDID, contactDID string) error
 	SetBlocked(ctx context.Context, ownerDID, contactDID string, blocked bool) error
+	SetBarAllowed(ctx context.Context, ownerDID, contactDID string, allowed bool) error
 	IsContactBlocked(ctx context.Context, ownerDID, contactDID string) (bool, error)
 	GetContactCount(ctx context.Context, ownerDID string) (int, error)
 }
@@ -270,6 +272,24 @@ type DB interface {
 	DeviceSyncStore
 	ComplyExtendedStore
 	ConversationIndex
+	SafetyReportStore
+}
+
+// SafetyReport is one user report of a contact, message, or channel.
+// Reason is a short code (spam, harassment, impersonation, other), not free text.
+type SafetyReport struct {
+	ID          string    `json:"id"`
+	ReporterDID string    `json:"reporter_did"`
+	SubjectDID  string    `json:"subject_did"`
+	Reason      string    `json:"reason"`
+	Context     string    `json:"context"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+// SafetyReportStore persists abuse reports so they survive a process restart.
+type SafetyReportStore interface {
+	SaveSafetyReport(ctx context.Context, report SafetyReport) error
+	ListSafetyReportsByReporter(ctx context.Context, reporterDID string) ([]SafetyReport, error)
 }
 
 // ReactionRow is a single emoji reaction by one reactor on one message.
@@ -370,6 +390,8 @@ type MemoryDB struct {
 	syncStreams map[string]map[string][]*SyncEntry // controllerDID → targetDeviceID → ordered entries
 	syncSeq     map[string]map[string]int64        // controllerDID → targetDeviceID → last seq
 	syncRevoked map[string]map[string]bool         // controllerDID → targetDeviceID → revoked
+
+	safetyReports []SafetyReport
 }
 
 func NewMemoryDB() *MemoryDB {
@@ -415,6 +437,25 @@ func NewMemoryDB() *MemoryDB {
 		syncSeq:             make(map[string]map[string]int64),
 		syncRevoked:         make(map[string]map[string]bool),
 	}
+}
+
+func (m *MemoryDB) SaveSafetyReport(_ context.Context, report SafetyReport) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.safetyReports = append(m.safetyReports, report)
+	return nil
+}
+
+func (m *MemoryDB) ListSafetyReportsByReporter(_ context.Context, reporterDID string) ([]SafetyReport, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	var out []SafetyReport
+	for _, report := range m.safetyReports {
+		if report.ReporterDID == reporterDID {
+			out = append(out, report)
+		}
+	}
+	return out, nil
 }
 
 // --- Reactions (MemoryDB) ---
@@ -686,6 +727,32 @@ func (m *MemoryDB) Dequeue(ctx context.Context, recipientDID string, limit int) 
 	return result, nil
 }
 
+// Requeue returns messages that were dequeued but could not be handed to the
+// recipient's socket to the 'queued' state, ahead of anything queued since, so
+// the next reconnect replays them in their original order.
+func (m *MemoryDB) Requeue(ctx context.Context, messageIDs []string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	byRecip := make(map[string][]*QueuedMessage)
+	var order []string
+	for _, id := range messageIDs {
+		msg, ok := m.messages[id]
+		if !ok || msg.Status != "delivered" {
+			continue
+		}
+		msg.Status = "queued"
+		if _, seen := byRecip[msg.RecipientDID]; !seen {
+			order = append(order, msg.RecipientDID)
+		}
+		byRecip[msg.RecipientDID] = append(byRecip[msg.RecipientDID], msg)
+	}
+	for _, recip := range order {
+		m.msgByRecip[recip] = append(byRecip[recip], m.msgByRecip[recip]...)
+	}
+	return nil
+}
+
 func (m *MemoryDB) MarkDelivered(ctx context.Context, messageID string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -867,6 +934,18 @@ func (m *MemoryDB) SetBlocked(ctx context.Context, ownerDID, contactDID string, 
 		CreatedAt:  time.Now(),
 	})
 	return nil
+}
+
+func (m *MemoryDB) SetBarAllowed(ctx context.Context, ownerDID, contactDID string, allowed bool) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, c := range m.contacts[ownerDID] {
+		if c.ContactDID == contactDID {
+			c.BarAllowed = allowed
+			return nil
+		}
+	}
+	return ErrNotFound
 }
 
 func (m *MemoryDB) IsContactBlocked(ctx context.Context, ownerDID, contactDID string) (bool, error) {

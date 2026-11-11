@@ -3,7 +3,7 @@
 > ⚠️ **DRAFT TEMPLATE — NOT LEGAL ADVICE.** This is a starting point to be reviewed and finalized by
 > qualified counsel before publication. Fill every `[PLACEHOLDER]`. Do not publish as-is.
 
-**Operator:** `[LEGAL ENTITY NAME]` ("ECHO", "we", "us")
+**Operator:** ECHO Networks LLC ("ECHO", "we", "us")
 **Effective date:** `[EFFECTIVE DATE]` · **Contact:** `[LEGAL CONTACT EMAIL]` · **Site:** `[WEBSITE URL]`
 
 ## 1. Acceptance & eligibility
@@ -47,7 +47,7 @@ ECHO relies on third parties (identity verification, infrastructure, app stores)
 subject to their terms (e.g., Apple App Store EULA). We are not responsible for third-party services.
 
 ## 8. Intellectual property
-The ECHO name, app, and content are owned by `[LEGAL ENTITY NAME]` or its licensors. We grant you a
+The ECHO name, app, and content are owned by ECHO Networks LLC or its licensors. We grant you a
 limited, revocable, non-transferable license to use the app per these Terms.
 
 ## 9. Disclaimers
@@ -56,11 +56,11 @@ We do not warrant uninterrupted, error-free, or perfectly secure operation. No m
 or storage is 100% secure.
 
 ## 10. Limitation of liability
-TO THE MAXIMUM EXTENT PERMITTED BY LAW, `[LEGAL ENTITY NAME]` IS NOT LIABLE FOR INDIRECT, INCIDENTAL,
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, ECHO Networks LLC IS NOT LIABLE FOR INDIRECT, INCIDENTAL,
 SPECIAL, OR CONSEQUENTIAL DAMAGES, AND OUR TOTAL LIABILITY IS LIMITED TO `[CAP, e.g. USD 100]`.
 
 ## 11. Indemnification
-You agree to indemnify `[LEGAL ENTITY NAME]` against claims arising from your misuse of the service or
+You agree to indemnify ECHO Networks LLC against claims arising from your misuse of the service or
 violation of these Terms.
 
 ## 12. Termination

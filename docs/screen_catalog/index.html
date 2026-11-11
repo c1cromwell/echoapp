@@ -85,11 +85,11 @@
 <body>
   <header class="page">
     <h1>ECHO Screen Catalog</h1>
-    <p>SwiftUI <code>ImageRenderer</code> exports · commit 6c66ae2 · 2026-06-27 09:46 UTC</p>
+    <p>SwiftUI <code>ImageRenderer</code> exports · commit 52fbec4 · 2026-07-04 22:35 UTC</p>
     <p>Regenerate: <code>make screen-catalog</code> from repo root. Maps to <code>E2E_LAUNCH_AND_TESTING.md</code> / TestFlight scripts.</p>
   </header>
   <nav class="tabs" aria-label="Journeys">
-    <button type="button" class="tab active" data-tab="onboarding" onclick="showTab('onboarding')">Onboarding</button><button type="button" class="tab " data-tab="auth" onclick="showTab('auth')">Login &amp; lock</button><button type="button" class="tab " data-tab="messaging" onclick="showTab('messaging')">Messaging (Week A)</button><button type="button" class="tab " data-tab="contacts" onclick="showTab('contacts')">Contacts (Week B)</button><button type="button" class="tab " data-tab="privacy" onclick="showTab('privacy')">Privacy &amp; advanced</button>
+    <button type="button" class="tab active" data-tab="onboarding" onclick="showTab('onboarding')">Onboarding</button><button type="button" class="tab " data-tab="auth" onclick="showTab('auth')">Login &amp; lock</button><button type="button" class="tab " data-tab="messaging" onclick="showTab('messaging')">Messaging (Week A)</button><button type="button" class="tab " data-tab="contacts" onclick="showTab('contacts')">Contacts (Week B)</button><button type="button" class="tab " data-tab="privacy" onclick="showTab('privacy')">Privacy &amp; advanced</button><button type="button" class="tab " data-tab="tabs" onclick="showTab('tabs')">Tabs</button><button type="button" class="tab " data-tab="vip" onclick="showTab('vip')">Vip</button><button type="button" class="tab " data-tab="device" onclick="showTab('device')">Device</button><button type="button" class="tab " data-tab="calls" onclick="showTab('calls')">Calls</button><button type="button" class="tab " data-tab="wallet" onclick="showTab('wallet')">Wallet</button><button type="button" class="tab " data-tab="governance" onclick="showTab('governance')">Governance</button><button type="button" class="tab " data-tab="profile" onclick="showTab('profile')">Profile</button><button type="button" class="tab " data-tab="utility" onclick="showTab('utility')">Utility</button>
   </nav>
   <main>
     <section class="panel" id="panel-onboarding" style="display:block"><h2>Onboarding</h2><div class="grid">
@@ -146,6 +146,39 @@
                 <img src="auth/02-soft-lockout.png" alt="Biometric soft lockout" loading="lazy" />
               </a>
               <p class="meta">auth/02-soft-lockout.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>Glacial login (saved user)</h3>
+                <p class="e2e">GlacialLoginScreen · normal</p>
+              </header>
+              <a href="auth/03-glacial-login-normal.png" target="_blank">
+                <img src="auth/03-glacial-login-normal.png" alt="Glacial login (saved user)" loading="lazy" />
+              </a>
+              <p class="meta">auth/03-glacial-login-normal.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>Glacial login (no account)</h3>
+                <p class="e2e">GlacialLoginScreen · noAccount</p>
+              </header>
+              <a href="auth/04-glacial-login-no-account.png" target="_blank">
+                <img src="auth/04-glacial-login-no-account.png" alt="Glacial login (no account)" loading="lazy" />
+              </a>
+              <p class="meta">auth/04-glacial-login-no-account.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>Glacial login (soft lock)</h3>
+                <p class="e2e">GlacialLoginScreen · softLocked</p>
+              </header>
+              <a href="auth/05-glacial-login-soft-lock.png" target="_blank">
+                <img src="auth/05-glacial-login-soft-lock.png" alt="Glacial login (soft lock)" loading="lazy" />
+              </a>
+              <p class="meta">auth/05-glacial-login-soft-lock.png</p>
             </article>
             </div></section><section class="panel" id="panel-messaging" style="display:none"><h2>Messaging (Week A)</h2><div class="grid">
             <article class="card">
@@ -213,6 +246,50 @@
               </a>
               <p class="meta">messaging/06-group-create.png</p>
             </article>
+            
+            <article class="card">
+              <header>
+                <h3>Full DM chat (ChatView chrome)</h3>
+                <p class="e2e">ChatView composite</p>
+              </header>
+              <a href="messaging/07-full-chat.png" target="_blank">
+                <img src="messaging/07-full-chat.png" alt="Full DM chat (ChatView chrome)" loading="lazy" />
+              </a>
+              <p class="meta">messaging/07-full-chat.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>Group chat thread</h3>
+                <p class="e2e">GroupChatView composite</p>
+              </header>
+              <a href="messaging/08-group-chat.png" target="_blank">
+                <img src="messaging/08-group-chat.png" alt="Group chat thread" loading="lazy" />
+              </a>
+              <p class="meta">messaging/08-group-chat.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>Chat settings sheet</h3>
+                <p class="e2e">ChatSettingsSheet</p>
+              </header>
+              <a href="messaging/09-chat-settings.png" target="_blank">
+                <img src="messaging/09-chat-settings.png" alt="Chat settings sheet" loading="lazy" />
+              </a>
+              <p class="meta">messaging/09-chat-settings.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>Message actions sheet</h3>
+                <p class="e2e">MessageActionsSheet</p>
+              </header>
+              <a href="messaging/10-message-actions.png" target="_blank">
+                <img src="messaging/10-message-actions.png" alt="Message actions sheet" loading="lazy" />
+              </a>
+              <p class="meta">messaging/10-message-actions.png</p>
+            </article>
             </div></section><section class="panel" id="panel-contacts" style="display:none"><h2>Contacts (Week B)</h2><div class="grid">
             <article class="card">
               <header>
@@ -278,6 +355,248 @@
                 <img src="privacy/04-privacy-hub.png" alt="Privacy hub" loading="lazy" />
               </a>
               <p class="meta">privacy/04-privacy-hub.png</p>
+            </article>
+            </div></section><section class="panel" id="panel-tabs" style="display:none"><h2>Tabs</h2><div class="grid">
+            <article class="card">
+              <header>
+                <h3>Contacts tab</h3>
+                <p class="e2e">MainTabView · Contacts</p>
+              </header>
+              <a href="tabs/01-contacts.png" target="_blank">
+                <img src="tabs/01-contacts.png" alt="Contacts tab" loading="lazy" />
+              </a>
+              <p class="meta">tabs/01-contacts.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>Messages hub (populated)</h3>
+                <p class="e2e">MainTabView · Messages</p>
+              </header>
+              <a href="tabs/02-messages-hub.png" target="_blank">
+                <img src="tabs/02-messages-hub.png" alt="Messages hub (populated)" loading="lazy" />
+              </a>
+              <p class="meta">tabs/02-messages-hub.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>Rewards tab</h3>
+                <p class="e2e">MainTabView · Rewards / WalletTab</p>
+              </header>
+              <a href="tabs/03-rewards.png" target="_blank">
+                <img src="tabs/03-rewards.png" alt="Rewards tab" loading="lazy" />
+              </a>
+              <p class="meta">tabs/03-rewards.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>Settings tab</h3>
+                <p class="e2e">MainTabView · Settings</p>
+              </header>
+              <a href="tabs/04-settings.png" target="_blank">
+                <img src="tabs/04-settings.png" alt="Settings tab" loading="lazy" />
+              </a>
+              <p class="meta">tabs/04-settings.png</p>
+            </article>
+            </div></section><section class="panel" id="panel-vip" style="display:none"><h2>Vip</h2><div class="grid">
+            <article class="card">
+              <header>
+                <h3>VIP verification path</h3>
+                <p class="e2e">VIPPathView</p>
+              </header>
+              <a href="vip/01-path.png" target="_blank">
+                <img src="vip/01-path.png" alt="VIP verification path" loading="lazy" />
+              </a>
+              <p class="meta">vip/01-path.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>Standard IDV — scan ID</h3>
+                <p class="e2e">VIPStandardIDVView</p>
+              </header>
+              <a href="vip/02-standard-idv.png" target="_blank">
+                <img src="vip/02-standard-idv.png" alt="Standard IDV — scan ID" loading="lazy" />
+              </a>
+              <p class="meta">vip/02-standard-idv.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>VIP success (T2 Verified)</h3>
+                <p class="e2e">VIPSuccessView</p>
+              </header>
+              <a href="vip/03-success-verified.png" target="_blank">
+                <img src="vip/03-success-verified.png" alt="VIP success (T2 Verified)" loading="lazy" />
+              </a>
+              <p class="meta">vip/03-success-verified.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>VIP success (T4 Trusted)</h3>
+                <p class="e2e">VIPSuccessView</p>
+              </header>
+              <a href="vip/04-success-trusted.png" target="_blank">
+                <img src="vip/04-success-trusted.png" alt="VIP success (T4 Trusted)" loading="lazy" />
+              </a>
+              <p class="meta">vip/04-success-trusted.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>ECHO VIP subscription</h3>
+                <p class="e2e">VIPSubscriptionView</p>
+              </header>
+              <a href="vip/05-subscription.png" target="_blank">
+                <img src="vip/05-subscription.png" alt="ECHO VIP subscription" loading="lazy" />
+              </a>
+              <p class="meta">vip/05-subscription.png</p>
+            </article>
+            </div></section><section class="panel" id="panel-device" style="display:none"><h2>Device</h2><div class="grid">
+            <article class="card">
+              <header>
+                <h3>Link new device — QR</h3>
+                <p class="e2e">LinkNewDeviceQRView</p>
+              </header>
+              <a href="device/01-link-qr.png" target="_blank">
+                <img src="device/01-link-qr.png" alt="Link new device — QR" loading="lazy" />
+              </a>
+              <p class="meta">device/01-link-qr.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>Link device — scan</h3>
+                <p class="e2e">LinkDeviceScanView</p>
+              </header>
+              <a href="device/02-link-scan.png" target="_blank">
+                <img src="device/02-link-scan.png" alt="Link device — scan" loading="lazy" />
+              </a>
+              <p class="meta">device/02-link-scan.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>Device linked</h3>
+                <p class="e2e">LinkDeviceScanView · success</p>
+              </header>
+              <a href="device/03-link-success.png" target="_blank">
+                <img src="device/03-link-success.png" alt="Device linked" loading="lazy" />
+              </a>
+              <p class="meta">device/03-link-success.png</p>
+            </article>
+            </div></section><section class="panel" id="panel-calls" style="display:none"><h2>Calls</h2><div class="grid">
+            <article class="card">
+              <header>
+                <h3>Voice call — connecting</h3>
+                <p class="e2e">CallView · outgoing</p>
+              </header>
+              <a href="calls/01-connecting.png" target="_blank">
+                <img src="calls/01-connecting.png" alt="Voice call — connecting" loading="lazy" />
+              </a>
+              <p class="meta">calls/01-connecting.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>Voice call — active</h3>
+                <p class="e2e">CallView · active</p>
+              </header>
+              <a href="calls/02-active.png" target="_blank">
+                <img src="calls/02-active.png" alt="Voice call — active" loading="lazy" />
+              </a>
+              <p class="meta">calls/02-active.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>Incoming voice call</h3>
+                <p class="e2e">CallView · incoming</p>
+              </header>
+              <a href="calls/03-incoming.png" target="_blank">
+                <img src="calls/03-incoming.png" alt="Incoming voice call" loading="lazy" />
+              </a>
+              <p class="meta">calls/03-incoming.png</p>
+            </article>
+            </div></section><section class="panel" id="panel-wallet" style="display:none"><h2>Wallet</h2><div class="grid">
+            <article class="card">
+              <header>
+                <h3>Stake ECHO</h3>
+                <p class="e2e">StakingView</p>
+              </header>
+              <a href="wallet/01-staking.png" target="_blank">
+                <img src="wallet/01-staking.png" alt="Stake ECHO" loading="lazy" />
+              </a>
+              <p class="meta">wallet/01-staking.png</p>
+            </article>
+            </div></section><section class="panel" id="panel-governance" style="display:none"><h2>Governance</h2><div class="grid">
+            <article class="card">
+              <header>
+                <h3>Governance proposals</h3>
+                <p class="e2e">ProposalListView</p>
+              </header>
+              <a href="governance/01-proposals.png" target="_blank">
+                <img src="governance/01-proposals.png" alt="Governance proposals" loading="lazy" />
+              </a>
+              <p class="meta">governance/01-proposals.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>Proposal detail</h3>
+                <p class="e2e">ProposalDetailView composite</p>
+              </header>
+              <a href="governance/02-proposal-detail.png" target="_blank">
+                <img src="governance/02-proposal-detail.png" alt="Proposal detail" loading="lazy" />
+              </a>
+              <p class="meta">governance/02-proposal-detail.png</p>
+            </article>
+            </div></section><section class="panel" id="panel-profile" style="display:none"><h2>Profile</h2><div class="grid">
+            <article class="card">
+              <header>
+                <h3>Identity card</h3>
+                <p class="e2e">Profile · IdentityCardView</p>
+              </header>
+              <a href="profile/01-identity-card.png" target="_blank">
+                <img src="profile/01-identity-card.png" alt="Identity card" loading="lazy" />
+              </a>
+              <p class="meta">profile/01-identity-card.png</p>
+            </article>
+            </div></section><section class="panel" id="panel-utility" style="display:none"><h2>Utility</h2><div class="grid">
+            <article class="card">
+              <header>
+                <h3>Backup &amp; recovery</h3>
+                <p class="e2e">BackupView</p>
+              </header>
+              <a href="utility/01-backup.png" target="_blank">
+                <img src="utility/01-backup.png" alt="Backup &amp; recovery" loading="lazy" />
+              </a>
+              <p class="meta">utility/01-backup.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>Message search</h3>
+                <p class="e2e">SearchView</p>
+              </header>
+              <a href="utility/02-search.png" target="_blank">
+                <img src="utility/02-search.png" alt="Message search" loading="lazy" />
+              </a>
+              <p class="meta">utility/02-search.png</p>
+            </article>
+            
+            <article class="card">
+              <header>
+                <h3>Notification center</h3>
+                <p class="e2e">NotificationCenterView</p>
+              </header>
+              <a href="utility/03-notifications.png" target="_blank">
+                <img src="utility/03-notifications.png" alt="Notification center" loading="lazy" />
+              </a>
+              <p class="meta">utility/03-notifications.png</p>
             </article>
             </div></section>
   </main>

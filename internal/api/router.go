@@ -9,6 +9,8 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -17,6 +19,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/thechadcromwell/echoapp/internal/auth"
+	"github.com/thechadcromwell/echoapp/internal/database"
 	"github.com/thechadcromwell/echoapp/internal/infra"
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
 	"github.com/thechadcromwell/echoapp/internal/services/onboarding"
@@ -68,8 +71,11 @@ type HealthCheckResponse struct {
 
 // Router holds the HTTP handler and configuration for the Echo API.
 type Router struct {
-	AllowedOrigins       []string
-	StartTime            time.Time
+	AllowedOrigins []string
+	StartTime      time.Time
+	// AccountPurger erases an account's server-side personal data (set when a
+	// durable database is configured). See handleDeleteAccount.
+	AccountPurger        AccountPurger
 	TokenValidator       func(token string) bool
 	UserIDExtractor      func(token string) string
 	TrustTierExtractor   func(token string) int // optional; JWT trust-tier claim
@@ -114,6 +120,10 @@ type Router struct {
 	// Redis is not configured (dev/test); prod uses Redis. Guarded by smsSessionsMu.
 	smsSessions   map[string]smsOTPSession
 	smsSessionsMu sync.Mutex
+
+	// safetyReports is the fallback store when no database is configured.
+	safetyMu      sync.Mutex
+	safetyReports []database.SafetyReport
 }
 
 type restoreChallenge struct {
@@ -267,8 +277,24 @@ func (rt *Router) Handler() http.Handler {
 		}
 	})
 
-	// Middleware chain: CORS -> Auth -> RateLimit -> RequestID -> core
-	return rt.corsMiddleware(rt.authMiddleware(rt.rateLimitMiddleware(rt.requestIDMiddleware(core))))
+	// Middleware chain: CORS -> body limit -> Auth -> RateLimit -> RequestID -> core.
+	// The limit sits in front of auth because passkey verification reads the body.
+	return rt.corsMiddleware(rt.bodyLimitMiddleware(rt.authMiddleware(rt.rateLimitMiddleware(rt.requestIDMiddleware(core)))))
+}
+
+// bodyLimitMiddleware caps request bodies. JSON routes get 1 MiB. Media
+// uploads are chunked at 256 KiB and get a higher ceiling.
+func (rt *Router) bodyLimitMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Body != nil && r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodOptions {
+			limit := int64(1 << 20)
+			if strings.Contains(r.URL.Path, "/media/") {
+				limit = 8 << 20
+			}
+			r.Body = http.MaxBytesReader(w, r.Body, limit)
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // --- Middleware ---
@@ -311,11 +337,9 @@ var publicPaths = map[string]bool{
 	"/v1/auth/sms-recovery/register":   true, // Wave 12: phone commitment registration
 	"/v1/auth/sms-recovery/verify":     true, // Wave 12: OTP verification
 	"/v1/auth/sms-recovery/challenge":  true, // Wave 12: recovery challenge
-	"/v1/auth/vip-verify":              true, // Phase 1: VIP identity verification result
 	"/v1/auth/login/challenge":         true, // Phase 1: nonce for passkey signing (public)
 	"/identity/register":               true,
 	"/identity/devices":                true,
-	"/v1/identity/link-wallet":         true,
 	"/v1/login/link-device/complete":   true, // WO-288: secondary device token consume (no JWT yet)
 }
 
@@ -334,17 +358,51 @@ var ipThrottledPublicPaths = map[string]bool{
 	"/v1/auth/sms-recovery/verify":    true,
 	"/v1/auth/sms-recovery/challenge": true,
 	"/v3/auth/refresh":                true,
+	"/v1/auth/restore-challenge":      true,
+	"/v1/auth/restore-did":            true,
+	"/v1/enrollment/wallet":           true,
 }
 
-// clientIP extracts the caller's IP for rate limiting. It honors the leftmost
-// X-Forwarded-For entry (set by a trusted reverse proxy) and falls back to the
-// connection's remote address.
-func clientIP(r *http.Request) string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		if i := strings.IndexByte(xff, ','); i >= 0 {
-			return strings.TrimSpace(xff[:i])
+// trustedProxyHops is how many reverse proxies in front of this process are
+// trusted to append the address they saw to X-Forwarded-For. It is read once
+// from TRUSTED_PROXY_HOPS and defaults to 0 (direct exposure: the header is
+// ignored entirely).
+var (
+	trustedProxyHopsOnce sync.Once
+	trustedProxyHopsVal  int
+)
+
+func trustedProxyHops() int {
+	trustedProxyHopsOnce.Do(func() {
+		if n, err := strconv.Atoi(strings.TrimSpace(os.Getenv("TRUSTED_PROXY_HOPS"))); err == nil && n > 0 {
+			trustedProxyHopsVal = n
 		}
-		return strings.TrimSpace(xff)
+	})
+	return trustedProxyHopsVal
+}
+
+// clientIP extracts the caller's IP for rate limiting.
+//
+// X-Forwarded-For is client-controlled, so its leftmost entry cannot be
+// trusted: a caller could send a fresh value on every request and never hit the
+// per-IP limiter. Only the entries appended by our own proxies are reliable.
+// With N trusted hops, the Nth entry from the right is the address the
+// outermost trusted proxy saw. With no trusted proxy configured, or a header
+// shorter than expected, the connection's remote address is used.
+func clientIP(r *http.Request) string {
+	return clientIPWithHops(r, trustedProxyHops())
+}
+
+func clientIPWithHops(r *http.Request, hops int) string {
+	if hops > 0 {
+		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+			parts := strings.Split(xff, ",")
+			if len(parts) >= hops {
+				if ip := strings.TrimSpace(parts[len(parts)-hops]); ip != "" {
+					return ip
+				}
+			}
+		}
 	}
 	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
 		return host
@@ -485,7 +543,7 @@ func (rt *Router) corsMiddleware(next http.Handler) http.Handler {
 
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID, X-Sender-DID, X-Signature, X-Timestamp, X-Identity-Signature")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID, X-Sender-DID, X-Signature, X-Timestamp, X-Identity-Signature, X-Elevated-Token")
 			w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID, Retry-After, X-RateLimit-Remaining")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Set("Access-Control-Max-Age", "3600")
@@ -606,6 +664,8 @@ func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
 		rt.v1GetProfile(w, r)
 	case "/v1/users/account":
 		rt.handleDeleteAccount(w, r)
+	case "/v1/safety/reports":
+		rt.handleSafetyReports(w, r)
 	case "/v1/identity/link-wallet":
 		rt.handleLinkWallet(w, r)
 	case "/v1/enrollment/mdl/ui":
@@ -614,6 +674,8 @@ func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
 	// --- Auth endpoints (REQ-INFRA-004) ---
 	case "/v1/auth/step-up":
 		rt.handleStepUp(w, r)
+	case "/v1/auth/session":
+		rt.handleAuthSession(w, r)
 	case "/v1/auth/register-did":
 		rt.handleRegisterDID(w, r)
 	case "/v1/auth/restore-challenge":

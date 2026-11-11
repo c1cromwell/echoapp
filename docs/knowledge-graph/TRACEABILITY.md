@@ -1,6 +1,6 @@
 # Echo traceability graph
 
-Generated `2026-08-27T23:47:35Z` from Factory CSV `docs/echo-work-orders-2026-05-08-155805.csv` + `docs/phase-*-work-orders.md` (last SF sync in headers: 2026-08-27 (factory-live.json)).
+Generated `2026-11-11T15:29:26Z` from Factory CSV `docs/echo-work-orders-2026-05-08-155805.csv` + `docs/phase-*-work-orders.md` (last SF sync in headers: 2026-08-27 (factory-live.json)).
 
 Canonical Factory: [factory.8090.ai](https://factory.8090.ai) · project `0f477a55-4e26-4500-98f3-a69e4f3381b3`.
 

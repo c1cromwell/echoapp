@@ -21,6 +21,7 @@ import (
 	applog "github.com/thechadcromwell/echoapp/internal/logging"
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
 	"github.com/thechadcromwell/echoapp/internal/rewards"
+	"github.com/thechadcromwell/echoapp/internal/services/agentbus"
 	"github.com/thechadcromwell/echoapp/internal/services/bots"
 	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
 	"github.com/thechadcromwell/echoapp/internal/services/cloudstorage"
@@ -106,6 +107,7 @@ func (s *Server) Start() error {
 	router := api.NewRouter(s.config.AllowedOrigins)
 	if pgDB != nil {
 		router.DIDRegistry = api.NewPostgresDIDRegistry(pgDB.Pool())
+		router.AccountPurger = pgDB // DELETE /v1/users/account erases server-side data
 		router.CredentialStatusPool = pgDB.Pool()
 		store := onboarding.NewPostgresTrustRegistryStore(pgDB)
 		if err := router.TrustRegistry.AttachStore(context.Background(), store); err != nil {
@@ -379,6 +381,8 @@ func (s *Server) Start() error {
 		SealedTokens:             sealedTokenStore,  // WO-219 sealed-sender delivery tokens
 		Scheduled:                messaging.NewScheduledMessageService(messaging.NewMessagingService()),
 		ConvNotifPrefs:           convNotifPrefs, // WO-56 per-conversation mute prefs
+		Agent:                    agentbus.New(),
+		ResolveDeviceKeys:        router.ResolveDeviceKeys,
 		Bots:                     botInstalls,    // Stage 4 bot install grants
 		BotTokens:                botTokens,      // WO-11 bot relay auth
 		BotRateLimiter:           botRateLimiter, // WO-11 ~100 msg/min per bot
@@ -451,6 +455,14 @@ func (s *Server) Start() error {
 		Addr:      ":" + s.config.Port,
 		Handler:   router.Handler(),
 		TLSConfig: s.setupTLS(),
+		// Bound how long a client may take to send headers and how long an idle
+		// keep-alive connection is held, so slow or stalled clients cannot pin
+		// connections open indefinitely. Read/Write timeouts are deliberately
+		// left unset: they would cut off media uploads and are not applied to
+		// hijacked WebSocket connections anyway.
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 16,
 	}
 
 	slog.Info("API server starting", applog.F("port", s.config.Port), applog.F("tls", "1.3+"))

@@ -223,7 +223,15 @@ func (rt *Router) handleRestoreChallenge(w http.ResponseWriter, r *http.Request)
 	if rt.restoreChallenges == nil {
 		rt.restoreChallenges = make(map[string]restoreChallenge)
 	}
-	rt.restoreChallenges[addr] = restoreChallenge{nonce: nonce, expiresAt: time.Now().Add(5 * time.Minute)}
+	// Drop expired entries so unauthenticated callers cannot grow this map
+	// without bound.
+	now := time.Now()
+	for k, c := range rt.restoreChallenges {
+		if now.After(c.expiresAt) {
+			delete(rt.restoreChallenges, k)
+		}
+	}
+	rt.restoreChallenges[addr] = restoreChallenge{nonce: nonce, expiresAt: now.Add(5 * time.Minute)}
 	rt.restoreChallengeMu.Unlock()
 
 	WriteJSON(w, http.StatusOK, map[string]string{
@@ -235,12 +243,19 @@ func (rt *Router) handleRestoreChallenge(w http.ResponseWriter, r *http.Request)
 // RestoreDIDRequest is the body for POST /v1/auth/restore-did.
 type RestoreDIDRequest struct {
 	WalletAddress      string `json:"wallet_address"`
+	WalletPublicKey    string `json:"wallet_public_key"`
 	NewDevicePublicKey string `json:"new_device_public_key"`
 	WalletSignature    string `json:"wallet_signature"`
 }
 
 // handleRestoreDID handles POST /v1/auth/restore-did.
-// Looks up the DID bound to the wallet, consumes the restore challenge, and issues a JWT.
+// Consumes the restore challenge, verifies the wallet's signature over it, looks
+// up the DID bound to the wallet, and issues a JWT.
+//
+// The signature check is what makes this safe to expose pre-auth: the caller
+// must hold the secp256k1 key that the wallet address derives from (i.e. the
+// recovery phrase). Without it, anyone who knew or could obtain a wallet
+// address could mint a session for the DID linked to it.
 func (rt *Router) handleRestoreDID(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
@@ -253,8 +268,8 @@ func (rt *Router) handleRestoreDID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.WalletAddress == "" || req.NewDevicePublicKey == "" || req.WalletSignature == "" {
-		WriteError(w, http.StatusBadRequest, "MISSING_FIELDS", "wallet_address, new_device_public_key, and wallet_signature are required", r.Header.Get("X-Request-ID"))
+	if req.WalletAddress == "" || req.WalletPublicKey == "" || req.NewDevicePublicKey == "" || req.WalletSignature == "" {
+		WriteError(w, http.StatusBadRequest, "MISSING_FIELDS", "wallet_address, wallet_public_key, new_device_public_key, and wallet_signature are required", r.Header.Get("X-Request-ID"))
 		return
 	}
 
@@ -269,9 +284,30 @@ func (rt *Router) handleRestoreDID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Proof of ownership: the public key must derive the claimed address, and
+	// the signature must verify over the single-use challenge just consumed.
+	// A server-derivable (interim) address has no private key, so it can never
+	// pass this check — by design.
+	if wallet.DagAddressFromPubKey(req.WalletPublicKey) != req.WalletAddress ||
+		!wallet.VerifyDagMessageSignature(req.WalletPublicKey, ch.nonce, req.WalletSignature) {
+		WriteError(w, http.StatusUnauthorized, "WALLET_SIGNATURE_INVALID", "wallet signature does not prove ownership of this address", r.Header.Get("X-Request-ID"))
+		return
+	}
+
 	did := rt.lookupDIDByWallet(r.Context(), req.WalletAddress)
 	if did == "" {
 		WriteError(w, http.StatusNotFound, "WALLET_NOT_ENROLLED", "no identity is linked to this recovery phrase", r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	// The new phone signs later requests with this key. A session without a
+	// registered device key cannot pass passkey auth after restore.
+	if _, err := hexToPublicKey(strings.TrimSpace(req.NewDevicePublicKey)); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_DEVICE_KEY", "new_device_public_key must be a P-256 public key", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err := rt.bindRestoredDeviceKey(r.Context(), did, strings.TrimSpace(req.NewDevicePublicKey)); err != nil {
+		WriteError(w, http.StatusInternalServerError, "DEVICE_BIND_FAILED", "could not bind the new device key", r.Header.Get("X-Request-ID"))
 		return
 	}
 
@@ -304,6 +340,26 @@ func (rt *Router) handleRestoreDID(w http.ResponseWriter, r *http.Request) {
 		"access_token":   access,
 		"request_id":     r.Header.Get("X-Request-ID"),
 	})
+}
+
+func (rt *Router) bindRestoredDeviceKey(ctx context.Context, did, publicKeyHex string) error {
+	if rt.DIDRegistry == nil {
+		return errors.New("no DID registry configured")
+	}
+	_, err := rt.DIDRegistry.RegisterAdditionalDevice(ctx, did, publicKeyHex, "restored-device")
+	if errors.Is(err, ErrBindingNotFound) {
+		_, _, err = rt.DIDRegistry.Register(ctx, did, publicKeyHex)
+	}
+	if errors.Is(err, ErrDuplicateDeviceKey) {
+		err = nil
+	}
+	if err != nil {
+		return err
+	}
+	if rt.Redis != nil {
+		_ = rt.Redis.DeleteDIDDeviceKeys(ctx, did)
+	}
+	return nil
 }
 
 func (rt *Router) lookupDIDByWallet(ctx context.Context, addr string) string {

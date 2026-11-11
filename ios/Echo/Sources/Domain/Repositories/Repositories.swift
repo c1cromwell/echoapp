@@ -231,7 +231,19 @@ actor ConcreteUserRepository: UserRepository {
     }
     
     func deleteAccount() async throws {
-        _ = try await apiClient.delete(endpoint: UserEndpoint.deleteAccount) as [String: String]
+        struct Body: Encodable { let action: String }
+        struct Step: Decodable {
+            let elevatedToken: String
+            enum CodingKeys: String, CodingKey { case elevatedToken = "elevated_token" }
+        }
+        let step: Step = try await apiClient.post(
+            endpoint: AuthEndpoint.stepUp,
+            body: Body(action: "delete_account")
+        )
+        _ = try await apiClient.delete(
+            endpoint: UserEndpoint.deleteAccount,
+            headers: ["X-Elevated-Token": step.elevatedToken]
+        ) as [String: String]
     }
 }
 

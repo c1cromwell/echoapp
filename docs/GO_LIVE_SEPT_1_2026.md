@@ -14,8 +14,8 @@
 
 | Question | Answer for Sept 1 |
 |----------|-------------------|
-| **What ships?** | Consumer messaging MVP: onboarding, DMs, Phase 3 signals, groups/calls baseline, wallet **earn/stake/claim** (no buy crypto), invite/QR discovery |
-| **What does *not* ship as “done”?** | Production-proven cloud chat backup / multi-device history E2E, in-chat tips, StoreKit VIP, private AI, token Foundation (channels: Postgres when `DATABASE_URL` set — don’t market until soak) |
+| **What ships?** | Consumer messaging MVP: onboarding, DMs, Phase 3 signals, groups/calls baseline, **Rewards tab** (earn / stake / claim, no buy crypto), **ECHO VIP** via StoreKit (`com.echo.app.vip.monthly`), invite/QR discovery |
+| **What does *not* ship as “done”?** | Production-proven cloud chat backup / multi-device history E2E, in-chat tips, private AI, token Foundation (channels: Postgres when `DATABASE_URL` set — don’t market until soak) |
 | **Code vs E2E?** | Messaging code is largely on `main`; **go-live is gated by device E2E + App Store P0 + legal entity** — not more feature inventing |
 | **Competitive bar?** | Launch as **verifiable-identity privacy messenger** (ahead on `did:key` / trust / no ads). Match SimpleX/Signal crypto *already coded* (Double Ratchet, sealed-sender, Tor option). Defer Telegram Stars / Grok AI / Signal cloud backup to post-Sept waves |
 | **Corporate?** | Form Wyoming HoldCo + bank + IP assignment + published ToS/Privacy **before external TestFlight** |
@@ -105,7 +105,7 @@ See [`PRODUCT_LAUNCH.md`](PRODUCT_LAUNCH.md).
 | Full multi-device message history sync (WO-CA3) | Wave 1; weeks of work | Post-Sept |
 | Secure cloud backups (WO-CA2) | Wave 1C | Post-Sept |
 | In-chat tips/gifts (WO-CA4) | Compliance + App Store crypto narrative | Post-Sept |
-| StoreKit VIP $9.99 | Hide VIP purchase until StoreKit (P0-1) | WO-286 |
+| StoreKit VIP $9.99 | Ships in v1 as `com.echo.app.vip.monthly` | WO-286 |
 | In-chat ECHO payments | Keep `ECHO_IN_CHAT_PAYMENTS` off | WO-299 |
 | Privacy-preserving AI (WO-CA1) | Heavy deps | H2+ |
 | Relay federation (WO-320) | Design backlog | Phase 4+ |
@@ -143,7 +143,7 @@ From [`ECHO_MESSAGING_LAUNCH_STATUS.md`](ECHO_MESSAGING_LAUNCH_STATUS.md) + Week
 | Messaging | Envelope `to` = peer DID; sealed-sender | Not `WSRelayMessage` |
 | Groups | Create/members/keys; rekey on remove | |
 | Media | Chunked encrypted upload | Trust-tier size gates |
-| Rewards | Claim messaging; **disable genesis auto-credit in prod** | P1-6 App Store doc |
+| Rewards | **Ships in v1.** Claim messaging, stake, and balance. No “buy ECHO”. Disable genesis auto-credit in prod | P1-6 App Store doc |
 | Identity L1 | Trust tier hashes | Phase 1 steps 1–3 |
 | Data L1 | Merkle `/data` | Phase 1 step 5 |
 | T0–T7 | No PII on chain / logs | [`data-classification.md`](data-classification.md) |

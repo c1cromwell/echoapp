@@ -198,8 +198,15 @@ The `pkg/credentials` issuer can emit **W3C VC 2.0**-shaped JSON-LD (when `UseW3
 
 ## 11. Tear down
 
-- Backend: `make testnet-down` or `make dev-stop`
-- Metagraph: `cd "$EUCLID_DIR" && scripts/hydra stop`
+Canonical lifecycle (start / stop / resume / empty genesis): [`E2E_TESTING.md` §2.4–§2.5](E2E_TESTING.md#24-start-stop-resume).
+
+| Goal | Command |
+|------|---------|
+| Backend only | `make dev-stop` |
+| Backend + Identity + hydra (keep data) | `make dev-stop-all` |
+| Resume last snapshot + same DB | `make dev-resume` |
+| Wipe volumes + new `start-genesis` | `make dev-reset` then `make dev` |
+| Hydra only | `cd "$EUCLID_DIR" && scripts/hydra stop` |
 
 ## Troubleshooting
 

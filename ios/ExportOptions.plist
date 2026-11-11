@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  App Store export options for the Echo iOS app (bundle id com.echo.app).
+  Fills the gap where release CI produces an UNSIGNED .xcarchive: this drives a signed export.
+  Usage (see docs/ZERO_TO_PRODUCTION.md §6):
+    xcodebuild -exportArchive -archivePath Echo.xcarchive \
+      -exportOptionsPlist ios/ExportOptions.plist -exportPath build/export
+  Then upload build/export/*.ipa with `xcrun altool`/`notarytool` or Xcode Organizer.
+  Replace REPLACE_ME_TEAM_ID with your Apple Developer Team ID (10 chars).
+  Note: Xcode < 16 uses method "app-store" instead of "app-store-connect".
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store-connect</string>
+    <key>teamID</key>
+    <string>REPLACE_ME_TEAM_ID</string>
+    <key>signingStyle</key>
+    <string>automatic</string>
+    <key>uploadSymbols</key>
+    <true/>
+    <key>destination</key>
+    <string>export</string>
+</dict>
+</plist>

@@ -25,10 +25,10 @@ Use this as the **release ticket checklist**. Copy unchecked P0 rows into work o
 
 | # | Item | Status | Owner | Notes |
 |---|------|--------|-------|-------|
-| P0-1 | Hide or remove VIP **“Subscribe $9.99/mo”** until StoreKit ships | ⬜ | iOS | `VIPSubscriptionView.swift` — today calls `vip-verify` without IAP |
+| P0-1 | VIP subscribe goes through StoreKit, not a free `vip-verify` | ✅ | iOS | `com.echo.app.vip.monthly` in `VIPSubscriptionView.swift`. Create the same auto-renewable product in App Store Connect |
 | P0-2 | Ensure no other paid digital goods bypass IAP | ⬜ | iOS | VIP themes/rate limits must not be purchasable off-store |
 | P0-3 | Keep `ECHO_IN_CHAT_PAYMENTS` **off** in Release schemes | ⬜ | iOS | `WalletTransferAvailability` — real P2P pay is WO-299 |
-| P0-4 | Rewards/Wallet UI: no “buy ECHO” or on-ramp copy | ⬜ | iOS/Product | Frame as earned rewards / staking, not purchasable crypto |
+| P0-4 | Rewards ships in v1 as earned rewards / staking, with no “buy ECHO” or on-ramp copy | ✅ | iOS/Product | Rewards tab stays. VIP is the only StoreKit product |
 
 ### Privacy manifests & declarations
 
@@ -92,9 +92,9 @@ Use this as the **release ticket checklist**. Copy unchecked P0 rows into work o
 
 | # | Item | Status | Owner | Notes |
 |---|------|--------|-------|-------|
-| P2-1 | StoreKit 2 auto-renewable subscription (WO-286) | ⬜ | iOS | Product ID e.g. `com.echo.app.vip.monthly` |
-| P2-2 | Server receipt validation + entitlement sync | ⬜ | Backend | Replace free `vip-verify` activation |
-| P2-3 | Restore purchases + manage subscription link | ⬜ | iOS | Required for subscriptions |
+| P2-1 | StoreKit 2 auto-renewable subscription (WO-286) | ✅ | iOS | Product ID `com.echo.app.vip.monthly`. Local config: `ios/Echo/Configs/EchoVIP.storekit` |
+| P2-2 | Server receipt validation + entitlement sync | ⬜ | Backend | `vip_subscription` requires a current StoreKit payload for that product. Apple’s certificate chain is not pinned yet |
+| P2-3 | Restore purchases + manage subscription link | ✅ | iOS | Restore and Manage subscription are on the VIP screen |
 | P2-4 | Subscription terms, pricing, ASC subscription group | ⬜ | Release | $9.99/mo as designed |
 | P2-5 | Real in-chat ECHO transfer (WO-299) — separate security review | ⬜ | Full stack | Before enabling `ECHO_IN_CHAT_PAYMENTS` |
 

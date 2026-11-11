@@ -29,6 +29,8 @@ class ContactDetailViewModel: ObservableObject {
     @Published var showMediaGallery = false
     @Published var showBlockConfirmation = false
     @Published var showReportSheet = false
+    @Published var reportError: String?
+    @Published var reportSubmitted = false
     @Published var isBlocked = false
     @Published var blockError: String?
 
@@ -43,6 +45,21 @@ class ContactDetailViewModel: ObservableObject {
         self.contactId = contactId
         self.preferredDisplayName = displayName
         self.selectedPersonaId = ContactPersonaStore.personaId(for: contactId) ?? "default"
+    }
+
+    func reportContact(reason: String) async {
+        reportError = nil
+        guard let socialAPI else {
+            reportError = "Sign in before reporting this contact."
+            return
+        }
+        do {
+            try await socialAPI.reportContact(did: contactId, reason: reason)
+            reportSubmitted = true
+            showReportSheet = false
+        } catch {
+            reportError = error.localizedDescription
+        }
     }
 
     func loadContact() async {

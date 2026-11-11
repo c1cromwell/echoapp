@@ -1,12 +1,14 @@
 #if os(iOS)
+import StoreKit
 import SwiftUI
 
-/// ECHO VIP — $9.99/month capacity and status upgrade (Phase 1 local + vip-verify).
+/// ECHO VIP — auto-renewable App Store subscription (`com.echo.app.vip.monthly`).
 struct VIPSubscriptionView: View {
     @State private var isProcessing = false
     @State private var errorMessage: String?
     @State private var showSuccess = false
     @State private var isActive = VIPSubscriptionStore.isActive
+    @State private var priceLabel = VIPSubscriptionStore.monthlyPriceLabel
 
     var body: some View {
         ScrollView {
@@ -21,6 +23,13 @@ struct VIPSubscriptionView: View {
         .background(Color.echoPaper.ignoresSafeArea())
         .navigationTitle("ECHO VIP")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            VIPSubscriptionService.startTransactionListener()
+            if let price = await VIPSubscriptionService.loadMonthlyPrice() {
+                priceLabel = price
+            }
+            isActive = VIPSubscriptionStore.isActive
+        }
         .alert("VIP activated", isPresented: $showSuccess) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -84,7 +93,7 @@ struct VIPSubscriptionView: View {
     private var pricingCard: some View {
         VStack(spacing: 14) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(VIPSubscriptionStore.monthlyPriceLabel)
+                Text(priceLabel)
                     .font(.system(size: 36, weight: .bold))
                     .foregroundColor(.echoInk)
                 Text("/ month")
@@ -100,17 +109,25 @@ struct VIPSubscriptionView: View {
             }
 
             if isActive {
-                EchoButton("VIP active", style: .secondary, size: .large, action: {})
-                    .disabled(true)
+                EchoButton("Manage subscription", style: .secondary, size: .large, action: {
+                    Task { await manage() }
+                })
             } else {
                 EchoButton(
-                    isProcessing ? "Activating…" : "Subscribe for \(VIPSubscriptionStore.monthlyPriceLabel)/mo",
+                    isProcessing ? "Contacting the App Store…" : "Subscribe for \(priceLabel)/mo",
                     style: .primary,
                     size: .large,
                     action: { Task { await subscribe() } }
                 )
                 .disabled(isProcessing)
             }
+
+            Button("Restore purchases") {
+                Task { await restore() }
+            }
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundColor(.echoSignal)
+            .disabled(isProcessing)
         }
         .frame(maxWidth: .infinity)
         .padding(20)
@@ -119,7 +136,7 @@ struct VIPSubscriptionView: View {
     }
 
     private var legalNote: some View {
-        Text("Free ECHO keeps full private messaging. VIP adds convenience and status — never extra security. App Store subscription billing will arrive in a future update.")
+        Text("Payment is charged to your Apple ID. ECHO VIP renews each month until you cancel in Settings → Apple ID → Subscriptions. Free Echo keeps full private messaging. VIP adds convenience and status, not extra security. Rewards in the Rewards tab are earned and are not part of this purchase.")
             .font(.system(size: 12))
             .foregroundColor(.echoInk55)
             .fixedSize(horizontal: false, vertical: true)
@@ -130,12 +147,34 @@ struct VIPSubscriptionView: View {
         errorMessage = nil
         defer { isProcessing = false }
         do {
-            try await VIPSubscriptionService.activateMonthly()
-            isActive = true
-            showSuccess = true
+            try await VIPSubscriptionService.purchaseMonthly()
+            isActive = VIPSubscriptionStore.isActive
+            if isActive { showSuccess = true }
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func restore() async {
+        isProcessing = true
+        errorMessage = nil
+        defer { isProcessing = false }
+        do {
+            let restored = try await VIPSubscriptionService.restore()
+            isActive = VIPSubscriptionStore.isActive
+            if !restored {
+                errorMessage = "No active ECHO VIP subscription was found for this Apple ID."
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func manage() async {
+        guard let scene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first else { return }
+        try? await AppStore.showManageSubscriptions(in: scene)
     }
 }
 #endif

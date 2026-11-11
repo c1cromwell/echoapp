@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: echo-backend
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # WebSocket (WSS) support: long-lived upgrade connections for realtime messaging.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - REPLACE_ME_HOST
+      secretName: echo-backend-tls
+  rules:
+    - host: REPLACE_ME_HOST
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: echo-backend
+                port:
+                  number: 80

@@ -2,6 +2,7 @@
 // Features/Onboarding/Recovery/RecoveryService.swift
 
 import Foundation
+import Security
 
 enum RecoveryError: Error {
     case deviceAlreadyEnrolled
@@ -42,7 +43,10 @@ final class RecoveryService {
         )
 
         try await persistSession(response)
-        try await passkey.register(did: response.did, displayName: response.displayName)
+        // The device key above is what later requests are signed with. The
+        // WebAuthn ceremony is attempted on a real phone and does not undo a
+        // restore that already bound that key.
+        try? await passkey.register(did: response.did, displayName: response.displayName)
 
         UserDefaults.standard.set(true, forKey: "echo.hasCompletedFirstRun")
         UserDefaults.standard.set(Date(), forKey: "echo.recoveryPhraseExportedAt")
@@ -122,10 +126,12 @@ final class RecoveryService {
         let signed = try await WalletKeyStore.shared.signChallenge(challenge.challenge)
         struct RestoreBody: Encodable {
             let walletAddress: String
+            let walletPublicKey: String
             let newDevicePublicKey: String
             let walletSignature: String
             enum CodingKeys: String, CodingKey {
                 case walletAddress = "wallet_address"
+                case walletPublicKey = "wallet_public_key"
                 case newDevicePublicKey = "new_device_public_key"
                 case walletSignature = "wallet_signature"
             }
@@ -135,6 +141,9 @@ final class RecoveryService {
                 endpoint: AuthEndpoint.restoreDID,
                 body: RestoreBody(
                     walletAddress: walletAddress,
+                    // The server verifies the signature against this key and
+                    // checks that it derives `walletAddress`.
+                    walletPublicKey: signed.publicKey,
                     newDevicePublicKey: newDevicePublicKey.map { String(format: "%02x", $0) }.joined(),
                     walletSignature: signed.signature
                 )
@@ -149,16 +158,29 @@ final class RecoveryService {
 
 private extension PasskeyManager {
     func register(did: String, displayName: String) async throws {
-        // Production: run WebAuthn registration ceremony bound to the given DID.
+        #if targetEnvironment(simulator)
+        UserDefaults.standard.set(did, forKey: "echo.passkey.registeredDID")
+        #else
+        var challenge = Data(count: 32)
+        let status = challenge.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 32, $0.baseAddress!) }
+        guard status == errSecSuccess else {
+            throw RecoveryError.backendRejected("could not start passkey registration")
+        }
+        let name = displayName.isEmpty ? did : displayName
+        _ = try await createPasskey(challenge: challenge, userId: Data(did.utf8), userName: name)
+        #endif
     }
 }
 
 // MARK: - SecureEnclaveManager extension for recovery
 
 private extension SecureEnclaveManager {
-    func createIdentityKey() throws -> Data {
-        // Production: create a new P-256 key in Secure Enclave and return the 65-byte public key.
-        return Data(count: 65)
+    func createIdentityKey() async throws -> Data {
+        let encoded = try await generateBiometricProtectedKey(id: "echo-recovery-signing")
+        guard let data = Data(base64Encoded: encoded), data.contains(where: { $0 != 0 }) else {
+            throw RecoveryError.walletDerivationFailed
+        }
+        return data
     }
 }
 

@@ -118,7 +118,7 @@ tax-exempt obligations you're not ready to carry.
          │     (adds privacy + clean estate transfer to your son; see §11)
          ▼
    ┌──────────────────────────────────────────────┐
-   │  ECHO HOLDINGS, LLC   (Wyoming)               │   ◀── FORM NOW
+   │  ECHO NETWORKS LLC   (Wyoming)  ✅ FORMED     │   ◀── acts as the HoldCo
    │  • owns ALL IP, the ECHO brand, the contracts │
    │  • holds the bank account; files the taxes    │
    │  • anonymous on the public WY record          │
@@ -172,7 +172,7 @@ Create a wholly-owned subsidiary LLC for a product when **any** of these is true
 - It generates **standalone revenue** large enough that you want separate books / a separate sale or
   spin-off path.
 
-Until a trigger fires, run the product as a **registered DBA / trade name** under Echo Holdings, LLC.
+Until a trigger fires, run the product as a **registered DBA / trade name** under ECHO Networks LLC.
 
 ---
 
@@ -263,21 +263,21 @@ Do these in order. Costs are rough 2026 ballparks; confirm current figures.
 
 | # | Step | Who does it | Est. cost | Est. time | Notes |
 |---|------|-------------|-----------|-----------|-------|
-| 1 | **Choose entity name** + check Wyoming availability; reserve if needed | You / registered agent | $0–60 | 1 day | Pick a name that *doesn't* tie to you personally. Suggested operating entity: **"Echo Holdings, LLC"** (final name is yours to choose). Confirm the matching `.com` + app handles are free. |
+| 1 | ✅ **DONE — entity formed:** **ECHO Networks LLC** (Wyoming, single-member, manager-managed), EIN obtained | You / registered agent | $0–60 | 1 day | Formed. Confirm the matching `.com` + app handles are secured in the entity's name. |
 | 2 | **Engage a Wyoming commercial registered agent** | You | ~$50–200/yr | 1 day | The agent's address (not yours) is the public contact. Many offer an **organizer + mail/virtual-address** bundle so even the organizer isn't you. |
 | 3 | **File Articles of Organization** (choose **manager-managed**) | Registered agent / attorney | $100–150 state fee | 1–3 days | Manager-managed keeps members off the doc and lets a manager (you, or a manager entity) be the operational face. WY does not list members. |
-| 4 | **Adopt an Operating Agreement** | Attorney (recommended) | $0 (template) – $1,500 (drafted) | 1–5 days | The internal rulebook: ownership %, management, transfer restrictions, what happens on death (ties to your son/estate plan). Banks ask for it. **Don't rely on a free template for a multi-product, token-bearing company — have counsel draft it.** |
-| 5 | **Get an EIN** (Form SS-4) | You (free, IRS) | $0 | Same day online | You are the **responsible party**. Needed for banking + taxes. Don't pay a service for this — it's free. |
-| 6 | **Assign ALL existing IP into the LLC** | Attorney | included in §4 or ~$500 | 1–3 days | **Critical and easy to forget.** A signed **IP assignment** moving the codebase, the ECHO brand/logos, the domains, and any prior contractor work *from you personally into Echo Holdings, LLC*. Without this, the company doesn't actually own what it's built on, which breaks future investment, sale, or licensing. |
-| 7 | **Open a business bank account** | You | $0–25/mo | 1–3 days | Bring: Articles, EIN letter, Operating Agreement, your ID. **You will disclose yourself as beneficial owner — that's normal.** Consider a crypto-friendly / tech-friendly bank given the token roadmap. |
-| 8 | **Fill in ToS + Privacy** with the entity name | You + privacy counsel | reuse existing drafts | 1 day | Replace `[LEGAL ENTITY NAME]` → **Echo Holdings, LLC** in `docs/legal/TERMS_OF_SERVICE_DRAFT.md` and `PRIVACY_POLICY_DRAFT.md`; have privacy counsel finalize before publishing. |
+| 4 | **Adopt an Operating Agreement** | Attorney (recommended) | $0 (template) – $1,500 (drafted) | 1–5 days | The internal rulebook: ownership %, management, transfer restrictions, what happens on death (ties to your son/estate plan). Banks ask for it. **Draft ready to review:** `OPERATING_AGREEMENT_DRAFT.md` — have counsel finalize before signing. |
+| 5 | ✅ **DONE — EIN obtained** (Form SS-4) | You (free, IRS) | $0 | Same day online | You are the **responsible party**. Ratified in `ORGANIZATIONAL_CONSENT_DRAFT.md` §4. |
+| 6 | **Assign ALL existing IP into the LLC** | Attorney | included in §4 or ~$500 | 1–3 days | **Critical and easy to forget.** A signed **IP assignment** moving the codebase, the ECHO brand/logos, the domains, and any prior contractor work *from you personally into ECHO Networks LLC*. **Draft ready:** `IP_ASSIGNMENT_AGREEMENT_DRAFT.md` (+ going-forward IP in `FOUNDER_SERVICES_AGREEMENT_DRAFT.md`). Without this, the company doesn't actually own what it's built on. |
+| 7 | **Open a business bank account** | You | $0–25/mo | 1–3 days | Bring: Articles, EIN letter, Operating Agreement, your ID. **You will disclose yourself as beneficial owner — that's normal.** Shortlist + credit-card path: `BUSINESS_BANKING_RECOMMENDATIONS.md`; authorized by `ORGANIZATIONAL_CONSENT_DRAFT.md` §7. |
+| 8 | **Fill in ToS + Privacy** with the entity name | You + privacy counsel | reuse existing drafts | 1 day | Replace `[LEGAL ENTITY NAME]` → **ECHO Networks LLC** in `docs/legal/TERMS_OF_SERVICE_DRAFT.md` and `PRIVACY_POLICY_DRAFT.md`; have privacy counsel finalize before publishing. |
 | 9 | **Set up bookkeeping + engage a CPA** | You + CPA | ~$50–300/mo | ongoing | Separate books from day one (commingling is the #1 way to lose the liability shield). The CPA also advises the S-corp election timing (§9) and token-tax issues. |
 | 10 | **File trademarks** (ECHO word mark + logos) | Trademark attorney | ~$250–350/class gov + counsel | filing now, ~8–12 mo to register | Protect "ECHO," "Echo Message," "Echo Comply," "Echo Passport," and the ripple logo. File in the right classes (software, financial/messaging services). |
 | 11 | **Get insurance** (general liability + tech E&O / cyber) | Broker | ~$1–5k/yr to start | 1–2 weeks | Tech E&O / cyber matters a lot for a messaging + identity + payments product. |
 | 12 | **Stand up privacy-ops hygiene** | You | low | 1 week | Virtual business address, business phone/VoIP, role-based emails (legal@, privacy@, security@), DMCA agent registration. See §8. |
 
 > ### 📝 Fill-these-in box (set once; they flow into every doc)
-> - **Final entity name:** ________________________ (default: *Echo Holdings, LLC*)
+> - **Final entity name:** **ECHO Networks LLC** ✅ (formed; single-member, manager-managed)
 > - **Formation state:** Wyoming  ·  **Home/operating state:** ____________ (your no-tax state)
 > - **Responsible party (EIN) / control person:** _______________ (you)
 > - **Registered agent:** _______________  ·  **Virtual business address:** _______________

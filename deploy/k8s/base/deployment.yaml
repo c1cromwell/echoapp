@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo-backend
+  labels:
+    app: echo-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: echo-backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: echo-backend
+    spec:
+      containers:
+        - name: echo-backend
+          # Overridden per-overlay via kustomize `images:`. Pushed by .github/workflows/backend-image.yml.
+          image: ghcr.io/c1cromwell/echo-backend:latest
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: echo-backend-config
+            - secretRef:
+                name: echo-backend-secrets
+          # The gateway applies SQL migrations on boot (golang-migrate holds an advisory lock, so
+          # concurrent replicas are safe). See main.go and docs/ZERO_TO_PRODUCTION.md §2.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"

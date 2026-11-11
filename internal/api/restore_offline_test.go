@@ -1,10 +1,8 @@
 package api
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
@@ -12,39 +10,16 @@ import (
 
 func TestRestoreDID_LooksUpLinkedWalletAndIssuesJWT(t *testing.T) {
 	rt := NewRouter([]string{"*"})
-	linkBody, _ := json.Marshal(map[string]string{
-		"did":            "did:key:zRestoreMe",
-		"wallet_address": "DAGrestoreaddr",
-	})
-	linkReq := httptest.NewRequest(http.MethodPost, "/v1/identity/link-wallet", bytes.NewReader(linkBody))
-	linkRec := httptest.NewRecorder()
-	rt.Handler().ServeHTTP(linkRec, linkReq)
-	if linkRec.Code != http.StatusOK {
-		t.Fatalf("link-wallet: %d %s", linkRec.Code, linkRec.Body.String())
-	}
+	w := newTestWallet(t)
+	linkWalletDirect(rt, "did:key:zRestoreMe", w.address)
 
-	chalBody, _ := json.Marshal(map[string]string{"wallet_address": "DAGrestoreaddr"})
-	chalReq := httptest.NewRequest(http.MethodPost, "/v1/auth/restore-challenge", bytes.NewReader(chalBody))
-	chalRec := httptest.NewRecorder()
-	rt.Handler().ServeHTTP(chalRec, chalReq)
-	if chalRec.Code != http.StatusOK {
-		t.Fatalf("restore-challenge: %d %s", chalRec.Code, chalRec.Body.String())
-	}
-	var chal struct {
-		Challenge string `json:"challenge"`
-	}
-	if err := json.Unmarshal(chalRec.Body.Bytes(), &chal); err != nil || chal.Challenge == "" {
-		t.Fatalf("challenge decode: %v body=%s", err, chalRec.Body.String())
-	}
-
-	restoreBody, _ := json.Marshal(map[string]string{
-		"wallet_address":        "DAGrestoreaddr",
-		"new_device_public_key": "aa",
-		"wallet_signature":      "sig",
-	})
-	restoreReq := httptest.NewRequest(http.MethodPost, "/v1/auth/restore-did", bytes.NewReader(restoreBody))
-	restoreRec := httptest.NewRecorder()
-	rt.Handler().ServeHTTP(restoreRec, restoreReq)
+	challenge := restoreChallengeFor(t, rt, w.address)
+	restoreRec := secPostJSON(t, rt, "/v1/auth/restore-did", map[string]string{
+		"wallet_address":        w.address,
+		"wallet_public_key":     w.pubHex,
+		"new_device_public_key": p256PublicKeyHex(t),
+		"wallet_signature":      w.sign(challenge),
+	}, "")
 	if restoreRec.Code != http.StatusOK {
 		t.Fatalf("restore-did: %d %s", restoreRec.Code, restoreRec.Body.String())
 	}
@@ -65,18 +40,15 @@ func TestRestoreDID_LooksUpLinkedWalletAndIssuesJWT(t *testing.T) {
 
 func TestRestoreDID_UnknownWallet(t *testing.T) {
 	rt := NewRouter([]string{"*"})
-	chalBody, _ := json.Marshal(map[string]string{"wallet_address": "DAGnobody"})
-	chalReq := httptest.NewRequest(http.MethodPost, "/v1/auth/restore-challenge", bytes.NewReader(chalBody))
-	rt.Handler().ServeHTTP(httptest.NewRecorder(), chalReq)
+	w := newTestWallet(t) // a real wallet that no identity is linked to
 
-	restoreBody, _ := json.Marshal(map[string]string{
-		"wallet_address":        "DAGnobody",
+	challenge := restoreChallengeFor(t, rt, w.address)
+	restoreRec := secPostJSON(t, rt, "/v1/auth/restore-did", map[string]string{
+		"wallet_address":        w.address,
+		"wallet_public_key":     w.pubHex,
 		"new_device_public_key": "aa",
-		"wallet_signature":      "sig",
-	})
-	restoreReq := httptest.NewRequest(http.MethodPost, "/v1/auth/restore-did", bytes.NewReader(restoreBody))
-	restoreRec := httptest.NewRecorder()
-	rt.Handler().ServeHTTP(restoreRec, restoreReq)
+		"wallet_signature":      w.sign(challenge),
+	}, "")
 	if restoreRec.Code != http.StatusNotFound {
 		t.Fatalf("want 404, got %d %s", restoreRec.Code, restoreRec.Body.String())
 	}
@@ -93,6 +65,9 @@ func TestFlushOffline_DurableQueueSurvivesHub(t *testing.T) {
 	}
 
 	bob := &Client{hub: h, userID: "did:key:bob", send: make(chan []byte, 8)}
+	h.mu.Lock()
+	h.clients[bob.userID] = bob // flushOffline only writes to the registered socket
+	h.mu.Unlock()
 	h.flushOffline(bob)
 	select {
 	case got := <-bob.send:

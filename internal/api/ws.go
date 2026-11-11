@@ -30,7 +30,7 @@ type ContactBlockChecker interface {
 type WSMessage struct {
 	Type           string          `json:"type"`                      // "text", "control"
 	From           string          `json:"from,omitempty"`            // sender user ID
-	To             string          `json:"to,omitempty"`              // recipient user ID (empty = broadcast)
+	To             string          `json:"to,omitempty"`              // recipient user ID (frames without one are dropped unless group-addressed)
 	ConversationID string          `json:"conversation_id,omitempty"` // optional conversation scope
 	Payload        json.RawMessage `json:"payload"`                   // message content
 	Timestamp      string          `json:"timestamp"`
@@ -232,20 +232,30 @@ func (h *Hub) Run() {
 		select {
 		case client := <-h.register:
 			h.mu.Lock()
+			// A reconnect arrives before the old socket has noticed it is dead.
+			// Retire the superseded socket here so it cannot linger.
+			if old, ok := h.clients[client.userID]; ok && old != client {
+				close(old.send)
+			}
 			h.clients[client.userID] = client
 			h.mu.Unlock()
 			go h.flushOffline(client)
 
 		case client := <-h.unregister:
 			h.mu.Lock()
-			if _, ok := h.clients[client.userID]; ok {
+			// Only remove the entry if it is still THIS socket. Matching on the
+			// user ID alone let a stale socket's late unregister evict the
+			// user's fresh connection, leaving them connected but silently
+			// undeliverable until the next reconnect.
+			if cur, ok := h.clients[client.userID]; ok && cur == client {
 				delete(h.clients, client.userID)
 				close(client.send)
 			}
 			h.mu.Unlock()
 
 		case message := <-h.broadcast:
-			h.mu.RLock()
+			// Write lock: slow clients are removed from the map below.
+			h.mu.Lock()
 			for _, client := range h.clients {
 				select {
 				case client.send <- message:
@@ -255,9 +265,23 @@ func (h *Hub) Run() {
 					delete(h.clients, client.userID)
 				}
 			}
-			h.mu.RUnlock()
+			h.mu.Unlock()
 		}
 	}
+}
+
+// DisconnectUser closes the user's live socket, if any. Used when an account
+// is deleted so an already-open connection cannot outlive it.
+func (h *Hub) DisconnectUser(userID string) {
+	if h == nil || userID == "" {
+		return
+	}
+	h.mu.Lock()
+	if c, ok := h.clients[userID]; ok {
+		delete(h.clients, userID)
+		close(c.send)
+	}
+	h.mu.Unlock()
 }
 
 // SignalPublisher pushes an ephemeral conversation signal to a single user over
@@ -354,39 +378,113 @@ func scrubRelayMetadataForQueue(data []byte) []byte {
 	return data
 }
 
+// offlineFlushPage is how many durable-queue messages are claimed per round
+// trip. It must stay well under the client send buffer so a claimed page always
+// fits without dropping.
+const offlineFlushPage = 64
+
+// messageRequeuer is implemented by durable queues that can hand back messages
+// which were claimed but never reached the socket.
+type messageRequeuer interface {
+	Requeue(ctx context.Context, messageIDs []string) error
+}
+
+// isCurrent reports whether c is still the registered socket for its user.
+func (h *Hub) isCurrent(c *Client) bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.clients[c.userID] == c
+}
+
+// trySend offers data to c without blocking. It holds the read lock so the
+// send cannot race the hub closing c.send (which happens under the write lock);
+// a superseded or unregistered client is never written to.
+func (h *Hub) trySend(c *Client, data []byte) bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	if h.clients[c.userID] != c {
+		return false
+	}
+	select {
+	case c.send <- data:
+		return true
+	default:
+		return false
+	}
+}
+
 // flushOffline replays queued directed WS payloads when a client reconnects.
+//
+// The durable queue is drained a page at a time, and a page is only claimed
+// once the send buffer has room for all of it. Claiming the whole backlog up
+// front (it can be 1000 deep against a 256-slot buffer) marked everything
+// delivered and then dropped whatever did not fit, so a user returning from a
+// long absence silently lost messages.
 func (h *Hub) flushOffline(c *Client) {
 	if h.durableQueue != nil {
-		msgs, err := h.durableQueue.Dequeue(context.Background(), c.userID, wsOfflineMaxDepth)
-		if err != nil {
+		ctx := context.Background()
+		page := offlineFlushPage
+		if cap(c.send) < page {
+			page = cap(c.send)
+		}
+		if page == 0 {
 			return
 		}
-		for _, msg := range msgs {
-			if msg == nil || len(msg.Payload) == 0 {
-				continue
+		for {
+			waitUntil := time.Now().Add(30 * time.Second)
+			for cap(c.send)-len(c.send) < page {
+				if !h.isCurrent(c) || time.Now().After(waitUntil) {
+					return
+				}
+				time.Sleep(10 * time.Millisecond)
 			}
-			select {
-			case c.send <- msg.Payload:
-			default:
-				_ = h.durableQueue.Enqueue(context.Background(), msg)
+			if !h.isCurrent(c) {
+				return
+			}
+
+			msgs, err := h.durableQueue.Dequeue(ctx, c.userID, page)
+			if err != nil || len(msgs) == 0 {
+				return
+			}
+			for i, msg := range msgs {
+				if msg == nil || len(msg.Payload) == 0 {
+					continue
+				}
+				if h.trySend(c, msg.Payload) {
+					continue
+				}
+				// The socket went away or stalled mid-page: hand this message
+				// and the rest of the page back for the next reconnect.
+				var ids []string
+				for _, rest := range msgs[i:] {
+					if rest != nil {
+						ids = append(ids, rest.MessageID)
+					}
+				}
+				if rq, ok := h.durableQueue.(messageRequeuer); ok {
+					_ = rq.Requeue(ctx, ids)
+				}
+				return
+			}
+			if len(msgs) < page {
 				return
 			}
 		}
-		return
 	}
 	if h.offlineQueue == nil {
 		return
 	}
 	drain := h.offlineQueue.DequeueAll(c.userID)
-	for _, data := range drain.Blobs {
-		select {
-		case c.send <- data:
-		default:
-			if h.offlineQueue != nil {
-				h.offlineQueue.Enqueue(c.userID, data, wsOfflineRetention)
-			}
-			return
+	for i, data := range drain.Blobs {
+		if h.trySend(c, data) {
+			continue
 		}
+		// Put back this blob and everything after it, not just the one that
+		// failed to fit.
+		for _, rest := range drain.Blobs[i:] {
+			h.offlineQueue.Enqueue(c.userID, rest, wsOfflineRetention)
+		}
+		return
 	}
 	if len(drain.OverflowURIs) > 0 {
 		payload, err := json.Marshal(map[string]interface{}{
@@ -403,19 +501,18 @@ func (h *Hub) flushOffline(c *Client) {
 		if err != nil {
 			return
 		}
-		select {
-		case c.send <- manifest:
-		default:
-		}
+		h.trySend(c, manifest)
 	}
 }
 
 // SendToUser delivers a message to a specific user if connected.
 // Returns true if the user was found and the message was queued.
 func (h *Hub) SendToUser(userID string, data []byte) bool {
+	// The read lock is held across the non-blocking send so it cannot race the
+	// hub closing client.send, which happens under the write lock.
 	h.mu.RLock()
+	defer h.mu.RUnlock()
 	client, ok := h.clients[userID]
-	h.mu.RUnlock()
 	if !ok {
 		return false
 	}
@@ -569,7 +666,16 @@ func ServeWS(hub *Hub, userIDExtractor func(token string) string, w http.Respons
 		return
 	}
 
+	// The extractor validates the token and returns "" when it is missing,
+	// malformed, expired, or revoked. Never upgrade such a connection: an
+	// anonymous client would otherwise join the hub with an empty identity,
+	// skip the per-DID rate limiter and block lists, and be able to push
+	// frames at any user.
 	userID := userIDExtractor(token)
+	if userID == "" {
+		http.Error(w, "invalid or expired token", http.StatusUnauthorized)
+		return
+	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -658,6 +764,9 @@ func (c *Client) routeInbound(msg WSMessage) {
 			action = "message_send"
 		}
 		if err := c.hub.rateLimiter.Check(c.userID, action); err != nil {
+			// Tell the sender instead of dropping silently: without this the
+			// client believes the frame went out and never retries it.
+			c.notifyRateLimited(msg, err)
 			return
 		}
 	}
@@ -739,9 +848,42 @@ func (c *Client) routeInbound(msg WSMessage) {
 		}
 		// Directed message: deliver live, queue for reconnect, or push (WO-57).
 		c.hub.deliverOrQueue(msg.To, outBytes, c.userID, msg.ConversationID, msg.Silent)
-	} else {
-		c.hub.broadcast <- outBytes
 	}
+	// A client frame with no recipient is dropped. It used to fan out to every
+	// connected client, which let any single user spam the whole network and
+	// exposed sender DIDs to strangers. Server-originated fan-out still goes
+	// through Hub.Broadcast; group traffic goes through routeGroupText above.
+}
+
+// notifyRateLimited sends the client an "error" frame for a frame the per-DID
+// budget rejected, identifying which one so it can be retried after the delay.
+func (c *Client) notifyRateLimited(rejected WSMessage, limitErr error) {
+	retryAfter := 1
+	if rle, ok := limitErr.(*infra.RateLimitExceededError); ok {
+		if secs := int(rle.RetryAfter.Seconds()) + 1; secs > retryAfter {
+			retryAfter = secs
+		}
+	}
+	payload, err := json.Marshal(map[string]interface{}{
+		"code":                "RATE_LIMITED",
+		"retry_after_seconds": retryAfter,
+		"rejected_type":       rejected.Type,
+		"to":                  rejected.To,
+		"conversation_id":     rejected.ConversationID,
+	})
+	if err != nil {
+		return
+	}
+	frame, err := json.Marshal(WSMessage{
+		Type:      "error",
+		From:      "server",
+		Payload:   payload,
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+	})
+	if err != nil {
+		return
+	}
+	c.hub.trySend(c, frame)
 }
 
 func (h *Hub) dispatchBotInbound(msg WSMessage) {
@@ -818,10 +960,7 @@ func (c *Client) handleControl(msg WSMessage) {
 		pongPayload, _ := json.Marshal(WSControlMessage{Action: "pong"})
 		pong.Payload = pongPayload
 		data, _ := json.Marshal(pong)
-		select {
-		case c.send <- data:
-		default:
-		}
+		c.hub.trySend(c, data)
 	}
 }
 

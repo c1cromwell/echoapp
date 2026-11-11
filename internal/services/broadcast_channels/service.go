@@ -22,10 +22,10 @@ type ChannelService struct {
 	postIndex        map[string][]string // channelID -> postIDs
 	moderations      map[string]*ModerationAction
 	analytics        map[string]*ChannelAnalytics
-	subscriberLookup map[string]map[string]*ChannelSubscriber   // channelID -> subscriberID -> subscriber
-	creatorChannels  map[string][]string                        // creatorID -> channelIDs
-	joinRequests     map[string]map[string]*ChannelJoinRequest  // channelID -> subscriberID -> request (in-memory fallback)
-	comments         map[string][]*ChannelComment               // postID -> comments (in-memory fallback)
+	subscriberLookup map[string]map[string]*ChannelSubscriber  // channelID -> subscriberID -> subscriber
+	creatorChannels  map[string][]string                       // creatorID -> channelIDs
+	joinRequests     map[string]map[string]*ChannelJoinRequest // channelID -> subscriberID -> request (in-memory fallback)
+	comments         map[string][]*ChannelComment              // postID -> comments (in-memory fallback)
 }
 
 // ChannelServiceOption configures optional durable channel storage.

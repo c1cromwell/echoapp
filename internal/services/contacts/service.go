@@ -243,6 +243,70 @@ func (s *Service) RemoveContact(ctx context.Context, callerDID, contactDID strin
 	return s.db.RemoveContact(ctx, callerDID, contactDID)
 }
 
+// AllowBar marks an existing contact, or adds one, as allowed in Echo Bar.
+// Phone discovery and AddContact leave BarAllowed false.
+func (s *Service) AllowBar(ctx context.Context, callerDID, contactDID string) (*database.Contact, error) {
+	if callerDID == "" || contactDID == "" {
+		return nil, database.ErrNotFound
+	}
+	if callerDID == contactDID {
+		return nil, ErrSelfContact
+	}
+	contacts, err := s.db.GetContacts(ctx, callerDID)
+	if err != nil {
+		return nil, err
+	}
+	found := false
+	for _, c := range contacts {
+		if c.ContactDID == contactDID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		if _, err := s.AddContact(ctx, callerDID, contactDID, "manual"); err != nil && !errors.Is(err, database.ErrDuplicate) {
+			return nil, err
+		}
+	}
+	if err := s.db.SetBarAllowed(ctx, callerDID, contactDID, true); err != nil {
+		return nil, err
+	}
+	return s.barContact(ctx, callerDID, contactDID)
+}
+
+// RevokeBar removes the person from Echo Bar and keeps the contact.
+func (s *Service) RevokeBar(ctx context.Context, callerDID, contactDID string) error {
+	return s.db.SetBarAllowed(ctx, callerDID, contactDID, false)
+}
+
+// BarContacts returns contacts the caller has allowed into Echo Bar.
+func (s *Service) BarContacts(ctx context.Context, callerDID string) ([]*database.Contact, error) {
+	contacts, err := s.GetContacts(ctx, callerDID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*database.Contact, 0)
+	for _, c := range contacts {
+		if c.BarAllowed && !c.Blocked {
+			out = append(out, c)
+		}
+	}
+	return out, nil
+}
+
+func (s *Service) barContact(ctx context.Context, callerDID, contactDID string) (*database.Contact, error) {
+	contacts, err := s.db.GetContacts(ctx, callerDID)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range contacts {
+		if c.ContactDID == contactDID {
+			return c, nil
+		}
+	}
+	return nil, database.ErrNotFound
+}
+
 // CreateInviteLink creates a new invite link for the caller.
 func (s *Service) CreateInviteLink(ctx context.Context, callerDID string) (*database.InviteLink, error) {
 	invite := &database.InviteLink{

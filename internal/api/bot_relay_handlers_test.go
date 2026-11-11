@@ -70,7 +70,7 @@ func TestBotRelayMessageDelivers(t *testing.T) {
 	body, _ := json.Marshal(map[string]interface{}{
 		"recipient_did":   "did:alice",
 		"conversation_id": "dm:alice-bot",
-		"text":            "reminder: stand up",
+		"ciphertext":      []byte{0x01, 0x02, 0x03},
 	})
 	req := httptest.NewRequest(http.MethodPost, "/v3/bots/relay/message", bytes.NewReader(body))
 	req.Header.Set("X-Bot-DID", bot.BotDID)
@@ -115,7 +115,7 @@ func TestBotRelayRateLimit(t *testing.T) {
 	body, _ := json.Marshal(map[string]interface{}{
 		"recipient_did":   "did:alice",
 		"conversation_id": "dm:1",
-		"text":            "x",
+		"ciphertext":      []byte{0x04},
 	})
 	for i := 0; i < 2; i++ {
 		req := httptest.NewRequest(http.MethodPost, "/v3/bots/relay/message", bytes.NewReader(body))

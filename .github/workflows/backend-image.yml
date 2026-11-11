@@ -1,0 +1,64 @@
+name: Backend Image
+
+# Builds the Echo messaging gateway (build/Dockerfile) and publishes it to GHCR so
+# deploy/k8s can pull it. See docs/ZERO_TO_PRODUCTION.md §2.
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'echo-messaging@v*'
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'build/Dockerfile'
+      - 'migrations/**'
+      - '.github/workflows/backend-image.yml'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/echo-backend
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # main → :main + :sha ; tag echo-messaging@vX.Y.Z → :vX.Y.Z + :prod
+          tags: |
+            type=ref,event=branch
+            type=sha,format=short
+            type=match,pattern=echo-messaging@v(.*),group=1,prefix=v
+            type=raw,value=prod,enable=${{ startsWith(github.ref, 'refs/tags/echo-messaging@v') }}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: build/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

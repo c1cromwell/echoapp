@@ -13,6 +13,7 @@ enum AuthEndpoint: APIEndpoint {
     case verifyPasskey
     case restoreChallenge
     case restoreDID
+    case stepUp
     
     var path: String {
         switch self {
@@ -34,6 +35,8 @@ enum AuthEndpoint: APIEndpoint {
             return "/v1/auth/restore-challenge"
         case .restoreDID:
             return "/v1/auth/restore-did"
+        case .stepUp:
+            return "/v1/auth/step-up"
         }
     }
 }
@@ -777,6 +780,8 @@ enum ContactsEndpoint: APIEndpoint {
     case verifyInvite
     case list
     case add
+    case bar
+    case barRevoke
     case block
     case unblock
     case blocked
@@ -803,6 +808,10 @@ enum ContactsEndpoint: APIEndpoint {
             return "/v3/contacts/list"
         case .add:
             return "/v3/contacts/add"
+        case .bar:
+            return "/v3/contacts/bar"
+        case .barRevoke:
+            return "/v3/contacts/bar/revoke"
         case .block:
             return "/v3/contacts/block"
         case .unblock:
@@ -814,6 +823,17 @@ enum ContactsEndpoint: APIEndpoint {
         case .relationship(let peerDID):
             let encoded = peerDID.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? peerDID
             return "/v3/contacts/relationship?peer_did=\(encoded)"
+        }
+    }
+}
+
+enum SafetyEndpoint: APIEndpoint {
+    case report
+
+    var path: String {
+        switch self {
+        case .report:
+            return "/v1/safety/reports"
         }
     }
 }

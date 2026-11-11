@@ -3,27 +3,32 @@
 > One-page extract of §5 of `CORPORATE_STRUCTURE_AND_COMPLIANCE.md`. **Informational, not legal
 > advice.** Do these in order. Costs are rough 2026 ballparks — confirm current figures.
 
-**The goal:** form ONE anonymous **Wyoming holding LLC** (suggested: *Echo Holdings, LLC*), bank it,
-and own your IP — products run as divisions/DBAs for now. Token + Foundation come **later, on a
-trigger** (see §7 of the master doc) — and **nothing token/payment/HIPAA-related happens without
-counsel first**.
+**The goal:** form ONE anonymous **Wyoming holding LLC**, bank it, and own your IP — products run as
+divisions/DBAs for now. Token + Foundation come **later, on a trigger** (see §7 of the master doc) — and
+**nothing token/payment/HIPAA-related happens without counsel first**.
+
+> **Status (2026-07-21):** ✅ **ECHO Networks LLC** formed (Wyoming, single-member, manager-managed) with
+> an **EIN**. Draft docs for the remaining steps now live in `docs/legal/`: Operating Agreement, IP
+> Assignment, Founder Services Agreement, organizational consent, company policies, business plan,
+> membership-issuance guide, and banking recommendations.
 
 ## The 12 steps
 
-- [ ] **1. Name** — choose it (not tied to you personally); check Wyoming availability; grab the
-  domain + handles. *($0–60, 1 day)*
+- [x] **1. Name** — ✅ **ECHO Networks LLC** formed in Wyoming. Still grab/secure the domain + handles in
+  the entity's name. *($0–60, 1 day)*
 - [ ] **2. Commercial registered agent (Wyoming)** — their address is the public contact, not yours;
   get an organizer + virtual-address bundle. *(~$50–200/yr, 1 day)*
 - [ ] **3. File Articles of Organization** — choose **manager-managed** for privacy (members aren't
   listed). *($100–150 state fee, 1–3 days)*
-- [ ] **4. Operating Agreement** — have an attorney draft it (ownership %, management, transfer-on-death
-  to son/trust). Banks ask for it. *($0 template–$1,500 drafted, 1–5 days)*
-- [ ] **5. EIN (Form SS-4)** — free from the IRS; you're the "responsible party." *($0, same day)*
-- [ ] **6. IP ASSIGNMENT** — sign over ALL existing code + the ECHO brand/logos + domains from you
-  personally **into the LLC**. **Do not skip this.** *(~$500 or bundled, 1–3 days)*
+- [ ] **4. Operating Agreement** — draft ready at `OPERATING_AGREEMENT_DRAFT.md`; have an attorney
+  finalize (ownership %, management, transfer-on-death to son/trust). Banks ask for it. *(1–5 days)*
+- [x] **5. EIN (Form SS-4)** — ✅ obtained; you're the "responsible party." *($0, same day)*
+- [ ] **6. IP ASSIGNMENT** — draft ready at `IP_ASSIGNMENT_AGREEMENT_DRAFT.md` (+ going-forward IP in
+  `FOUNDER_SERVICES_AGREEMENT_DRAFT.md`); sign over ALL existing code + the ECHO brand/logos + domains
+  from you personally **into the LLC**. **Do not skip this.** *(~$500 or bundled, 1–3 days)*
 - [ ] **7. Business bank account** — bring Articles, EIN letter, Operating Agreement, your ID. You
-  disclose yourself as beneficial owner (normal). Pick a crypto/tech-friendly bank. *($0–25/mo, 1–3
-  days)*
+  disclose yourself as beneficial owner (normal). Shortlist + credit-card path:
+  `BUSINESS_BANKING_RECOMMENDATIONS.md`. *($0–25/mo, 1–3 days)*
 - [ ] **8. Fill ToS + Privacy** — replace `[LEGAL ENTITY NAME]` → your entity in the `docs/legal/`
   drafts; privacy counsel finalizes before publishing. *(reuse drafts, 1 day)*
 - [ ] **9. Bookkeeping + CPA** — separate books from day one (no commingling). *(~$50–300/mo, ongoing)*
@@ -50,7 +55,7 @@ counsel first**.
 
 ## Fill-these-in (set once)
 
-- Final entity name: ________________ (default: *Echo Holdings, LLC*)
+- Final entity name: **ECHO Networks LLC** ✅ (single-member, manager-managed)
 - Formation state: **Wyoming** · Home/operating state: ____________
 - Registered agent: ____________ · Virtual address: ____________
 - Legal email: legal@__________ · Privacy email: privacy@__________ · Website: __________

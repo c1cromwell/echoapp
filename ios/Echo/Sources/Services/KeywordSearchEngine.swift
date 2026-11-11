@@ -25,7 +25,13 @@ actor KeywordSearchEngine {
 
     private let indexer = LocalMessageIndexer.shared
 
-    func search(query: String, filter: SearchFilter = .all, options: SearchQueryOptions = .init()) async -> [SearchHit] {
+    func search(
+        query: String,
+        filter: SearchFilter = .all,
+        options: SearchQueryOptions = .init(),
+        grant: AgentSearchGrant? = nil
+    ) async -> [SearchHit] {
+        if let grant, !grant.allowsSearch { return [] }
         let terms = MessageSearchTokenizer.parseQuery(query)
         guard !terms.isEmpty else { return [] }
         let snapshot = await indexer.currentSnapshot()

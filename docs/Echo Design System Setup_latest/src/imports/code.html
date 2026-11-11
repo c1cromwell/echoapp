@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ECHO | Secure Login</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#006591",
+              "tertiary-fixed-dim": "#ffb86e",
+              "surface-bright": "#faf8ff",
+              "on-secondary-fixed": "#001e2f",
+              "on-primary-container": "#003751",
+              "surface-container-low": "#f2f3ff",
+              "background": "#faf8ff",
+              "on-primary": "#ffffff",
+              "tertiary-fixed": "#ffdcbd",
+              "surface-container-lowest": "#ffffff",
+              "on-error": "#ffffff",
+              "on-secondary-container": "#3d637d",
+              "on-tertiary-fixed": "#2c1600",
+              "surface-tint": "#006591",
+              "primary-container": "#0ea5e9",
+              "on-primary-fixed": "#001e2f",
+              "surface": "#faf8ff",
+              "inverse-surface": "#283044",
+              "surface-variant": "#dae2fd",
+              "secondary-fixed": "#c9e6ff",
+              "inverse-primary": "#89ceff",
+              "primary-fixed-dim": "#89ceff",
+              "on-primary-fixed-variant": "#004c6e",
+              "tertiary-container": "#de8712",
+              "on-error-container": "#93000a",
+              "inverse-on-surface": "#eef0ff",
+              "secondary-container": "#b8dffe",
+              "secondary": "#3c627d",
+              "primary-fixed": "#c9e6ff",
+              "outline-variant": "#bec8d2",
+              "surface-container-highest": "#dae2fd",
+              "on-tertiary-container": "#4d2b00",
+              "on-tertiary": "#ffffff",
+              "on-surface-variant": "#3e4850",
+              "error": "#ba1a1a",
+              "surface-dim": "#d2d9f4",
+              "on-secondary-fixed-variant": "#234b64",
+              "outline": "#6e7881",
+              "error-container": "#ffdad6",
+              "on-surface": "#131b2e",
+              "tertiary": "#8a5100",
+              "surface-container-high": "#e2e7ff",
+              "on-background": "#131b2e",
+              "secondary-fixed-dim": "#a5cbe9",
+              "on-secondary": "#ffffff",
+              "surface-container": "#eaedff",
+              "on-tertiary-fixed-variant": "#693c00"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-gradient {
+            background: linear-gradient(135deg, #0F172A 0%, #0EA5E9 100%);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface font-body text-on-surface selection:bg-primary-container/30">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-b border-sky-100/15 shadow-[0_8px_32px_0_rgba(15,23,42,0.04)]">
+<div class="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sky-600" data-icon="shield_lock">shield_lock</span>
+<h1 class="font-['Inter'] text-2xl tracking-tight font-bold text-sky-600">ECHO</h1>
+</div>
+<div class="hidden md:flex items-center gap-8">
+<button class="text-sky-600 font-semibold transition-colors hover:bg-sky-50/50 px-4 py-2 rounded-xl">Secure Login</button>
+<button class="text-slate-500 hover:text-sky-500 transition-colors px-4 py-2">Get Started</button>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="min-h-screen pb-32 flex flex-col items-center justify-center px-4 relative overflow-hidden pt-12">
+<!-- Abstract Icy Background Elements -->
+<div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-container/10 rounded-full blur-[120px]"></div>
+<div class="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-secondary-container/10 rounded-full blur-[100px]"></div>
+<div class="w-full max-w-md z-10">
+<!-- Hero Heading -->
+<!-- Login Cards Container -->
+<div class="space-y-6">
+<!-- Primary Action: Passkey -->
+<button class="group relative w-full glass-gradient p-[1px] rounded-[32px] shadow-2xl transition-transform active:scale-95 duration-200">
+<div class="bg-surface-container-lowest/5 backdrop-blur-sm rounded-[31px] p-6 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center border border-white/20">
+<span class="material-symbols-outlined text-white text-3xl" data-icon="fingerprint" style="font-variation-settings: 'FILL' 1;">fingerprint</span>
+</div>
+<div class="text-left">
+<span class="block text-white font-bold text-xl">Login with Passkey</span>
+<span class="block text-sky-100/70 text-sm">FaceID, TouchID, or PIN</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-white/50 group-hover:text-white transition-colors" data-icon="arrow_forward_ios">arrow_forward_ios</span>
+</div>
+</button>
+<!-- Divider -->
+<button class="flex items-center gap-4 py-4 w-full group cursor-pointer border-none bg-transparent" onclick="document.getElementById('sms-section').classList.toggle('hidden'); this.querySelector('.toggle-icon').textContent = document.getElementById('sms-section').classList.contains('hidden') ? 'expand_more' : 'expand_less'">
+<div class="h-[1px] flex-1 bg-outline-variant/20 group-hover:bg-primary-container/40 transition-colors"></div>
+<div class="flex items-center gap-2 px-2">
+<span class="text-label text-slate-400 font-medium tracking-widest text-[10px] uppercase group-hover:text-primary-container transition-colors">Secure Alternative</span>
+<span class="material-symbols-outlined text-slate-400 text-sm toggle-icon group-hover:text-primary-container transition-colors">expand_more</span>
+</div>
+<div class="h-[1px] flex-1 bg-outline-variant/20 group-hover:bg-primary-container/40 transition-colors"></div>
+</button>
+<!-- Secondary Action: SMS OTP -->
+<div class="bg-surface-container-low backdrop-blur-xl p-8 rounded-[32px] shadow-sm border border-outline-variant/15 hidden" id="sms-section">
+<label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 px-1">SMS Verification</label>
+<div class="flex flex-col gap-4">
+<div class="relative group">
+<input class="w-full bg-surface-container-lowest border-none rounded-2xl px-6 py-4 text-on-surface placeholder:text-slate-400 focus:ring-2 focus:ring-primary-container/40 transition-all outline-none" placeholder="+1 (555) 000-0000" type="tel"/>
+<div class="absolute inset-0 rounded-2xl border border-outline-variant/10 pointer-events-none group-focus-within:border-primary-container/40"></div>
+</div>
+<button class="w-full bg-surface-container-highest text-on-surface-variant font-bold py-4 rounded-2xl hover:bg-surface-bright transition-all active:scale-[0.98] flex items-center justify-center gap-2 border border-outline-variant/20">
+<span>Send Code</span>
+<span class="material-symbols-outlined text-lg" data-icon="chat_bubble">chat_bubble</span>
+</button>
+</div>
+</div>
+<!-- Footer Link -->
+<div class="text-center pt-8">
+<p class="text-on-surface-variant font-medium">
+                        New to ECHO? 
+                        <a class="text-primary-container font-bold ml-2 hover:underline decoration-2 underline-offset-4 transition-all" href="#">Get Started</a>
+</p>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile only suppression check: Home/Transactional - here we show for "Get Started" context) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-8 pb-8 pt-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl border-t border-sky-100/10 shadow-[0_-4px_24px_0_rgba(15,23,42,0.06)] z-50 rounded-t-[32px]">
+<button class="flex flex-col items-center justify-center bg-sky-500 text-white rounded-full px-6 py-2 transition-all active:scale-90">
+<span class="material-symbols-outlined" data-icon="fingerprint" style="font-variation-settings: 'FILL' 1;">fingerprint</span>
+<span class="font-['Inter'] text-[12px] font-medium tracking-[0.02em]">Secure Login</span>
+</button>
+<button class="flex flex-col items-center justify-center text-slate-400 px-6 py-2 hover:text-sky-500 transition-all">
+<span class="material-symbols-outlined" data-icon="person_add">person_add</span>
+<span class="font-['Inter'] text-[12px] font-medium tracking-[0.02em]">Get Started</span>
+</button>
+</nav>
+<!-- Glowing Secure Line (Custom Component) -->
+<div class="fixed top-0 left-0 w-full h-[2px] bg-primary-container opacity-80 blur-[1px] z-[60]"></div>
+</body></html>

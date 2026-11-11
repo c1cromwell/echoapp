@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"reflect"
 
 	"github.com/google/uuid"
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
@@ -28,7 +29,17 @@ type LedgerQuerier struct {
 }
 
 // NewLedgerQuerier wires the wallet store to optional Currency L1 submissions.
+//
+// A nil *MetagraphClient passed as the interface is NOT == nil (it is a typed
+// nil), so every "submitter == nil" guard in this package would wave it through
+// and the first call would dereference nil. That is exactly what happens when
+// CURRENCY_L1_URL is unset, so it is normalised to a true nil here, once.
 func NewLedgerQuerier(store Store, submitter CurrencySubmitter) *LedgerQuerier {
+	if submitter != nil {
+		if v := reflect.ValueOf(submitter); v.Kind() == reflect.Ptr && v.IsNil() {
+			submitter = nil
+		}
+	}
 	return &LedgerQuerier{store: store, submitter: submitter}
 }
 

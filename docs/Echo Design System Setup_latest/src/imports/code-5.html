@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#0EA5E9",
+              "on-tertiary-container": "#4d2b00",
+              "error-container": "#ffdad6",
+              "secondary": "#3c627d",
+              "on-background": "#F1F5F9",
+              "inverse-primary": "#89ceff",
+              "surface-container-low": "#1E293B",
+              "on-primary-fixed": "#001e2f",
+              "inverse-surface": "#F1F5F9",
+              "primary-container": "#0ea5e9",
+              "on-error-container": "#93000a",
+              "primary-fixed": "#c9e6ff",
+              "on-tertiary-fixed-variant": "#693c00",
+              "on-primary-fixed-variant": "#004c6e",
+              "error": "#f87171",
+              "on-primary-container": "#ffffff",
+              "on-secondary": "#ffffff",
+              "tertiary-container": "#de8712",
+              "on-tertiary": "#ffffff",
+              "surface-variant": "#334155",
+              "on-error": "#ffffff",
+              "inverse-on-surface": "#0F172A",
+              "background": "#0F172A",
+              "outline-variant": "#334155",
+              "surface-bright": "#334155",
+              "surface-tint": "#0EA5E9",
+              "surface-dim": "#1E293B",
+              "tertiary": "#8a5100",
+              "on-secondary-container": "#b8dffe",
+              "secondary-fixed-dim": "#a5cbe9",
+              "on-surface-variant": "#94A3B8",
+              "outline": "#64748B",
+              "primary-fixed-dim": "#89ceff",
+              "surface-container-high": "#334155",
+              "surface-container": "#1E293B",
+              "surface": "#0F172A",
+              "secondary-fixed": "#c9e6ff",
+              "secondary-container": "#334155",
+              "on-secondary-fixed-variant": "#234b64",
+              "on-primary": "#ffffff",
+              "tertiary-fixed-dim": "#ffb86e",
+              "on-secondary-fixed": "#001e2f",
+              "surface-container-highest": "#475569",
+              "on-surface": "#F1F5F9",
+              "surface-container-lowest": "#1E293B",
+              "tertiary-fixed": "#ffdcbd",
+              "on-tertiary-fixed": "#2c1600"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+        .signature-gradient {
+            background: linear-gradient(135deg, #0F172A 0%, #0EA5E9 100%);
+        }
+        .secure-line {
+            height: 2px;
+            background: #0ea5e9;
+            box-shadow: 0 0 8px #0ea5e9;
+            width: 100%;
+        }
+        body {
+          min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background font-body text-on-surface antialiased min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-background/60 backdrop-blur-xl border-b border-white/5 shadow-sm">
+<div class="flex justify-between items-center w-full px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="relative w-10 h-10 rounded-full overflow-hidden border-2 border-primary-container ring-2 ring-background">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="Portrait of the user persona avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBG5-NmSws_LLyPPM8aE9gSlfXHC0z5whjwSdIBabINREAjKJr3fn78q61bcq7qt4YZo1SW9xGmK9u8GgUVFiGJ7ouuVMGagzti5x1L4ayyG79cyMmuvvEWZ1Lv7120zwiZmOqtSW5oGmu_bhLCE-n1_dQjy5nNMtVx0h1GF8G1GidbDHv8aImmhYCCRGkt01BBcZBKvnTorkdRkTx0VTagtQjzOM5NgIo8Ji2BCCAeFXQMHe34UtXgkIL9dJ9GLoXdKGjotpsmGA"/>
+</div>
+<div class="flex flex-col">
+<span class="text-2xl font-black text-white tracking-tighter uppercase">ECHO</span>
+<div class="flex items-center gap-1 text-[10px] text-primary font-bold uppercase tracking-widest">
+<span>Persona: Alpha</span>
+<span class="material-symbols-outlined text-[12px]">expand_more</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden md:flex items-center bg-surface-container-low px-4 py-2 rounded-full border border-outline-variant/15">
+<span class="material-symbols-outlined text-outline text-sm mr-2">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-48 placeholder:text-outline/60 text-on-surface" placeholder="Search transmissions..." type="text"/>
+</div>
+<button class="p-2 rounded-full hover:bg-white/5 transition-colors">
+<span class="material-symbols-outlined text-sky-400" data-icon="videocam">videocam</span>
+</button>
+</div>
+</div>
+<div class="secure-line"></div>
+</header>
+<main class="pt-24 px-4 max-w-2xl mx-auto space-y-8">
+<!-- Messages Headline -->
+<section class="mt-4">
+<h1 class="text-4xl font-extrabold tracking-tight text-on-surface">Messages</h1>
+</section>
+<!-- Search Mobile Only -->
+<div class="md:hidden w-full">
+<div class="flex items-center bg-surface-container-low px-4 py-3 rounded-xl border border-outline-variant/15">
+<span class="material-symbols-outlined text-outline mr-3">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-md w-full placeholder:text-outline/60 text-on-surface" placeholder="Search conversations..." type="text"/>
+</div>
+</div>
+<!-- Pinned / Online Section -->
+<section>
+<h2 class="text-[10px] font-bold tracking-[0.2em] text-outline uppercase mb-4 ml-1">Secure Contacts Online</h2>
+<div class="flex items-center gap-6 overflow-x-auto pb-2 scrollbar-hide">
+<!-- Avatar 1 -->
+<div class="flex flex-col items-center gap-2 min-w-[64px]">
+<div class="relative">
+<div class="w-16 h-16 rounded-full p-1 bg-gradient-to-tr from-primary-container to-primary">
+<img alt="Alice" class="w-full h-full rounded-full bg-surface border-2 border-surface" data-alt="Alice profile avatar placeholder" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBBur5_Chkw5OIhKTk5mCjShmtkSMCYU4aulYY319XqY8Vx-IjFHe4kHIDitZW3M92QZhyTGBuoct3IkQBJEtMtq7-1p-GAXO7bzM3-62TtkEd2F0D3CcVhYmQb98BrdklzFuflsgbov54JAo5AwBHrzNsPGly1lmBxET1-HvG8smD-fKzVAKZfswF-Prvm_rGshPqM9D_S_CzfgASYwehl-_NAMQJEdUM90UnVfBC0KqgIwvteVhwTrDPoaAPkKUrplTDPXr2xQ"/>
+</div>
+<div class="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-surface rounded-full"></div>
+</div>
+<span class="text-xs font-semibold text-on-surface-variant">Alice</span>
+</div>
+<!-- Avatar 2 -->
+<div class="flex flex-col items-center gap-2 min-w-[64px]">
+<div class="relative">
+<div class="w-16 h-16 rounded-full p-1 bg-slate-800">
+<img alt="Constellation" class="w-full h-full rounded-full bg-surface border-2 border-surface" data-alt="HQ profile avatar placeholder" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXpsR34k3zyJxEEOx7gmS0OHQy7ZjAoRYd9Z4t0x1WGYDFW97hNIawIKIiP4PVrsG5FTNEAcqgwOclgwAV-E31aXiGnhdd2UcqEArWc9ImYoMRIXFXzAR7BhGc0gDod_5MDBnhd6Yp1H6gZfSbpDkU22_si7oIQZgQ2b-DWPzhL6vMMOE-ywC78se877BD4ydC-i3gJ-VpPzuxBLhccTahn7JfmhbJjQdxXVQDeRAZNcTLX0wVM2Zh5wOZa4SWVHJFmu-krtcPTg"/>
+</div>
+<div class="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-surface rounded-full"></div>
+</div>
+<span class="text-xs font-semibold text-on-surface-variant">HQ</span>
+</div>
+<!-- Avatar 3 -->
+<div class="flex flex-col items-center gap-2 min-w-[64px]">
+<div class="relative">
+<div class="w-16 h-16 rounded-full p-1 bg-slate-800">
+<img alt="Bob" class="w-full h-full rounded-full bg-surface border-2 border-surface" data-alt="Bob profile avatar placeholder" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdt87OYUjDpE7qN4K3p8uWS7HK9jaG_kcibrWcnAFe_jL0ALbsgHtpZlfctU3tVWOxv7oJeqnZFPiY5E2q7RoyOPLKpmYvsUC-HnTabZyRCt7o8ldkcpGntQS_aMGjp6DYsfYDpd_1zyiQKhOALk49p4l0gYJgl4JigXtUosrqw7yrGt8CnS6rHsnyWcTWc_vAKx1g4agACmGGrxF0QiVL-0PqZ71OVqjW-rHWUmMnKXibViTgan7wrRfCJcC68baF9dPd485-CA"/>
+</div>
+<div class="absolute bottom-1 right-1 w-4 h-4 bg-slate-600 border-2 border-surface rounded-full"></div>
+</div>
+<span class="text-xs font-semibold text-on-surface-variant">Bob</span>
+</div>
+<!-- Avatar 4 -->
+<div class="flex flex-col items-center gap-2 min-w-[64px]">
+<div class="relative">
+<div class="w-16 h-16 rounded-full p-1 bg-slate-800">
+<img alt="Dev" class="w-full h-full rounded-full bg-surface border-2 border-surface" data-alt="Developer profile avatar placeholder" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCt8t3L-3k-fvj4viGMASP2v3vWP4ZR5LGC2cbHdWL2Hfmbxj_spTpr0kVSte_OShuv9vHq5HgnnpJLV0YQjvnTpUJSPVHqPNNa3pBRkYdHrljbUzWyRelm1aLZWrr3B9VSAScAESMZYsTYVfQ0kU6L3E3Hr57sc-Dos25pC5o3K6laSkZGkw7Ny9Ix7RgPhN8em1__zlqiXqM0nMZj3pgNHDp9GC3UlSxZ1yKapMO08_fFroseCOLvZ7NFnXgSBeeNJInRI-b84A"/>
+</div>
+<div class="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-surface rounded-full"></div>
+</div>
+<span class="text-xs font-semibold text-on-surface-variant">Dev</span>
+</div>
+</div>
+</section>
+<!-- Conversation List -->
+<section class="space-y-1">
+<h2 class="text-[10px] font-bold tracking-[0.2em] text-outline uppercase mb-4 ml-1">Recents</h2>
+<!-- Item 1: Alice -->
+<div class="group relative flex items-center gap-4 p-4 rounded-2xl bg-surface-container hover:bg-surface-bright transition-all duration-300 shadow-sm border border-transparent hover:border-primary-container/20 cursor-pointer">
+<div class="relative flex-shrink-0">
+<img alt="Alice" class="w-14 h-14 rounded-2xl object-cover" data-alt="Close up of Alice avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC2sGZtE0OPsopvk_b7s9LoVi-HnWntANOjPNiA5bTXNBPJzlHKC67dqD-ArT5h6UtmAcdYZTUZDlirQjkQ4UWkbtPPxfY51hmEChgG0BCdnEqRvSWGV_2eFn8lxo_Sc-M6jOlti_Jx5PGrJa9K5kHBi7uJ-aDrwOgdtDt6Bue3JEDvsf_NLuOTVl1wH_003PdcjdLbx_NFR5EyXU48GPxhMxJdKaGoSuxStWuGxtlP8h5iIqQ1AO00Fyx2JcxmgmfW-P8zCfAgIw"/>
+</div>
+<div class="flex-grow min-w-0">
+<div class="flex justify-between items-end mb-0.5">
+<div class="flex items-center gap-1.5">
+<span class="text-lg font-bold text-on-surface truncate">Alice</span>
+<span class="material-symbols-outlined text-primary-container text-sm" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="text-[11px] font-medium text-primary tracking-wide">10:15 AM</span>
+</div>
+<div class="flex justify-between items-center gap-2">
+<p class="text-sm text-on-surface-variant truncate font-medium">Hey! Did you see the new staking rewards?</p>
+<div class="bg-primary-container text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">2</div>
+</div>
+</div>
+</div>
+<!-- Item 2: Constellation HQ -->
+<div class="group relative flex items-center gap-4 p-4 rounded-2xl bg-transparent hover:bg-surface-container transition-all duration-300 cursor-pointer">
+<div class="relative flex-shrink-0">
+<div class="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center text-white">
+<span class="material-symbols-outlined" data-icon="hub">hub</span>
+</div>
+</div>
+<div class="flex-grow min-w-0">
+<div class="flex justify-between items-end mb-0.5">
+<div class="flex items-center gap-1.5">
+<span class="text-lg font-bold text-on-surface truncate">Constellation HQ</span>
+<span class="material-symbols-outlined text-slate-500 text-sm">enhanced_encryption</span>
+</div>
+<span class="text-[11px] font-medium text-outline tracking-wide">Yesterday</span>
+</div>
+<p class="text-sm text-outline truncate">New L0 protocol update available.</p>
+</div>
+</div>
+<!-- Item 3: Bob -->
+<div class="group relative flex items-center gap-4 p-4 rounded-2xl bg-transparent hover:bg-surface-container transition-all duration-300 cursor-pointer">
+<div class="relative flex-shrink-0">
+<img alt="Bob" class="w-14 h-14 rounded-2xl object-cover" data-alt="Close up of Bob avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEIITQ9VhS-4D6v9a4_0WlEoF2-cQj5PnotAWyD2TlhNI3-0SWOD7Y262L1-OtuJbXEhWcYV-xcE6qbVkSFdQeqUKqAknq8yst8mYdUN5yVry28hpkLGX31S8DrCIgSnjhLsG1g3ZR_aPmTDkcH7kWhybiGL8IwK43lMzSlFFM7y204hkuig60Xte1WTU8V0Qf7CQFmLHyqGZnT3lq8yUV6SDdxPL1bT4guv6przfrBMpw90IgkaNDBhQsV_Rk3sFe9y5JzSElvQ"/>
+</div>
+<div class="flex-grow min-w-0">
+<div class="flex justify-between items-end mb-0.5">
+<div class="flex items-center gap-1.5">
+<span class="text-lg font-bold text-on-surface truncate">Bob</span>
+</div>
+<span class="text-[11px] font-medium text-outline tracking-wide">Monday</span>
+</div>
+<p class="text-sm text-outline truncate">See you at the meetup!</p>
+</div>
+</div>
+</section>
+</main>
+<!-- FAB -->
+<button class="fixed right-6 bottom-24 w-14 h-14 signature-gradient rounded-2xl shadow-xl flex items-center justify-center text-white active:scale-95 transition-transform duration-200 z-50">
+<span class="material-symbols-outlined" data-icon="edit_square">edit_square</span>
+</button>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 pb-safe bg-background/60 backdrop-blur-3xl border-t border-white/5 shadow-2xl">
+<div class="flex justify-around items-center h-20 px-4 w-full">
+<!-- Messages (Active) -->
+<a class="flex flex-col items-center justify-center text-sky-400 transition-all duration-300 transform scale-110" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="chat_bubble" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
+<span class="text-[10px] font-medium tracking-wide uppercase">Messages</span>
+</a>
+<!-- Contacts -->
+<a class="flex flex-col items-center justify-center text-slate-500 opacity-70 hover:opacity-100 transition-opacity" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="group">group</span>
+<span class="text-[10px] font-medium tracking-wide uppercase">Contacts</span>
+</a>
+<!-- Wallet -->
+<a class="flex flex-col items-center justify-center text-slate-500 opacity-70 hover:opacity-100 transition-opacity" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="text-[10px] font-medium tracking-wide uppercase">Wallet</span>
+</a>
+<!-- Profile -->
+<a class="flex flex-col items-center justify-center text-slate-500 opacity-70 hover:opacity-100 transition-opacity" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="person">person</span>
+<span class="text-[10px] font-medium tracking-wide uppercase">Profile</span>
+</a>
+</div>
+</nav>
+</body></html>

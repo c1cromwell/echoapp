@@ -207,28 +207,16 @@ Find `<GROUPID>` by grepping a sibling file's group in `project.pbxproj`. Idempo
 
 ## 5. Clean slate (reset all data)
 
-Run this when you need fresh Postgres, Redis, object storage, and chain state.
+Tester-facing copy (start / stop / resume / wipe): [`docs/E2E_TESTING.md` §2.4–§2.5](docs/E2E_TESTING.md#24-start-stop-resume).
 
 ```bash
-# 1. Stop everything
-make dev-stop
-make dev-comply-stop 2>/dev/null || true
-make stop-identity 2>/dev/null || true
-if [ -d ../euclid-development-environment ]; then
-  cd ../euclid-development-environment && scripts/hydra stop && cd - >/dev/null
-fi
-
-# 2. Delete Docker volumes (destroys all DB + MinIO data)
-docker compose -f docker-compose.testnet.yml down -v --remove-orphans
-docker compose -f docker-compose.comply.yml down -v --remove-orphans
-docker compose -f docker-compose.identity.yml down -v --remove-orphans 2>/dev/null || true
-
-# 3. Optional: wipe identity service keys (regenerated on next make dev)
-rm -rf .keys/identity-service.*
-
-# 4. Optional: iOS simulator clean install
-# Xcode → Device → Erase All Content and Settings (per simulator)
+make dev-reset           # wipe Postgres/Redis/MinIO + Identity volumes + hydra containers
+make dev                 # hydra start-genesis (empty chain) + empty DB
+# make start-identity    # optional — new Identity genesis
+# Then delete Echo from each Simulator (or Erase All Content and Settings)
 ```
+
+`make clean` only removes Go build artifacts. To **keep** users and the last chain snapshot: `make dev-stop-all` then `make dev-resume` (not `make dev`).
 
 Migrations apply **automatically** on gateway and Comply startup (`database.Migrate` in `main.go` / `cmd/comply`). Manual apply:
 
@@ -307,9 +295,8 @@ curl -s http://localhost:8000/v3/pq/status | jq .          # PQ gate (if ECHO_PQ
 ### 5e. Stop messaging stack
 
 ```bash
-make dev-stop
-make stop-identity
-cd ../euclid-development-environment && scripts/hydra stop
+make dev-stop-all        # backend + Identity + hydra stop; data kept
+# wipe everything: make dev-reset
 ```
 
 ---

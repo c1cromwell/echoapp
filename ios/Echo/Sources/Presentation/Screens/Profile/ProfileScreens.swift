@@ -2865,6 +2865,17 @@ public struct AboutView: View {
                             }
                             Divider().padding(.leading, 52)
                             NavigationLink {
+                                BarWindowView()
+                                    .hidesGlacialTabBarWhenPushed(true)
+                            } label: {
+                                SettingsNavLinkLabel(
+                                    icon: "bubble.left.and.bubble.right",
+                                    title: "Echo Bar"
+                                )
+                            }
+                            .accessibilityIdentifier("settings.echoBar")
+                            Divider().padding(.leading, 52)
+                            NavigationLink {
                                 UsernameSearchView()
                             } label: {
                                 SettingsNavLinkLabel(
