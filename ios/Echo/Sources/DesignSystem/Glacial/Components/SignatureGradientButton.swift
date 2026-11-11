@@ -77,7 +77,7 @@ struct GlacialPressStyle: ButtonStyle {
     VStack(spacing: 16) {
         SignatureGradientButton(
             title: "Login with Passkey",
-            subtitle: "FaceID, TouchID, or PIN",
+            subtitle: "Face ID, Touch ID, or PIN",
             icon: "faceid"
         ) {}
 

@@ -8,7 +8,7 @@ This document has been **merged into the canonical E2E guide:**
 |--------------|--------------|
 | Daily regression by milestone | [`E2E_TESTING.md` §1](E2E_TESTING.md#1-daily-regression-by-milestone) |
 | Prerequisites / setup | [`E2E_TESTING.md` §2](E2E_TESTING.md#2-environment-setup) |
-| Week A / B pointers | [`E2E_TESTING.md` §5–§6](E2E_TESTING.md#5-week-a--messaging-manual) |
+| Week A / B pointers | [`E2E_TESTING.md` §5–§6](E2E_TESTING.md#5-messaging-tests--run-in-this-order) |
 
 **Sept 1 go-live plan:** [`GO_LIVE_SEPT_1_2026.md`](GO_LIVE_SEPT_1_2026.md)
 

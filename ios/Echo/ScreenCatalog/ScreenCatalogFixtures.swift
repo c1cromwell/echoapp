@@ -138,6 +138,46 @@ struct CatalogHiddenFolderPreview: View {
     }
 }
 
+struct CatalogEchoBarPreview: View {
+    var body: some View {
+        CatalogSettingsScaffold(title: "Sam") {
+            Text("Allowed")
+                .font(.footnote)
+                .foregroundStyle(Color.Echo.onSurfaceVariant)
+            Text("On my way.")
+                .foregroundStyle(Color.Echo.onSurface)
+            HStack {
+                Spacer()
+                Text("Door is open.")
+                    .foregroundStyle(Color.Echo.onSurface)
+            }
+            CatalogPrimaryButton(title: "Send")
+        }
+    }
+}
+
+struct CatalogGrantReviewPreview: View {
+    var body: some View {
+        CatalogSettingsScaffold(title: "Agent grants") {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Desk")
+                    .foregroundStyle(Color.Echo.onSurface)
+                Text("send · dm:alex:sam")
+                    .font(.footnote)
+                    .foregroundStyle(Color.Echo.onSurfaceVariant)
+                Text("Expires today")
+                    .font(.footnote)
+                    .foregroundStyle(Color.Echo.onSurfaceVariant)
+            }
+            CatalogPrimaryButton(title: "Revoke")
+            Text("Pay on dm:alex:sam needs your confirmation.")
+                .font(.footnote)
+                .foregroundStyle(Color.Echo.onSurfaceVariant)
+            CatalogPrimaryButton(title: "Confirm")
+        }
+    }
+}
+
 struct CatalogPrivacyHubPreview: View {
     var body: some View {
         CatalogSettingsScaffold(title: "Privacy") {
@@ -145,6 +185,7 @@ struct CatalogPrivacyHubPreview: View {
             CatalogNavRow(title: "On-device AI", subtitle: "Translation & summaries")
             CatalogNavRow(title: "SOCKS proxy (Tor)", subtitle: "Optional transport")
             CatalogNavRow(title: "Post-quantum encryption", subtitle: "ML-KEM hybrid handshake")
+            CatalogNavRow(title: "Agent grants", subtitle: "Who can send or search")
             CatalogNavRow(title: "Data & deletion", subtitle: "Account controls")
         }
     }
@@ -463,7 +504,7 @@ struct CatalogGlacialLoginNormalPreview: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Secure Login")
                             .font(.system(size: 18, weight: .semibold))
-                        Text("FaceID, TouchID, or PIN")
+                        Text("Face ID, Touch ID, or PIN")
                             .font(.system(size: 13))
                             .foregroundStyle(Color.echoInk55)
                     }

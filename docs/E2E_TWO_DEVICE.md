@@ -1,6 +1,8 @@
 # Echo — Two-device E2E playbook
 
-**When:** full A+B messaging test on two simulators or two iPhones.  
+**How to boot two iOS clients (Simulators and/or iPhones) and send the first DM:** start in [`E2E_TESTING.md` §5](E2E_TESTING.md#5-messaging-tests--run-in-this-order). This file is the longer D0–D6 run: connectivity checks, logs, offline queue, restore, groups, APNs.
+
+**When:** after a [§5](E2E_TESTING.md#5-messaging-tests--run-in-this-order) stage is up (start at stage 1) — full A+B messaging on two clients.  
 **Canonical gates:** [`E2E_TESTING.md`](E2E_TESTING.md) §1 (automated) then this file (manual).  
 **Traceability:** [`knowledge-graph/TRACEABILITY.md`](knowledge-graph/TRACEABILITY.md) · Factory [8090](https://factory.8090.ai)
 
@@ -53,19 +55,15 @@ curl -fsS http://localhost:8000/health
 
 ### 1.2 Two clients
 
+**Step-by-step boot (Xcode destinations, Option-Run, LAN `API_URL`, Safari `/health`):** [`E2E_TESTING.md` §5](E2E_TESTING.md#5-messaging-tests--run-in-this-order).
+
 | Setup | API_URL | Notes |
 |-------|---------|--------|
-| Two Simulators on this Mac | `http://localhost:8000` | Scheme **EchoApp** / product **EchoMessaging** |
-| Two physical iPhones | `http://<Mac-LAN-IP>:8000` | Mac and phones on same Wi-Fi; allow incoming :8000 |
+| Two Simulators on this Mac | `http://localhost:8000` | [Stage 1](E2E_TESTING.md#53-stage-1--two-simulators-on-this-mac) — do this first |
+| Simulator + iPhone | Sim `localhost`, phone LAN IP | [Stage 2](E2E_TESTING.md#54-stage-2--simulator--your-iphone) |
+| TestFlight | HTTPS staging | [Stage 3](E2E_TESTING.md#55-stage-3--deploy-to-testflight) |
+| Two physical iPhones | HTTPS (or LAN IP for debug only) | [Stage 4](E2E_TESTING.md#56-stage-4--two-physical-iphones) — last |
 | TestFlight | HTTPS staging | TLS + WSS; APNs production if TF build |
-
-Boot two sims:
-
-```bash
-xcrun simctl list devices available
-# Xcode → Product → Destination → pick iPhone A, Run
-# Duplicate scheme run: hold Option, pick iPhone B (or Window → Manage Runs)
-```
 
 Give devices distinct display names / `@usernames` in first-run (e.g. `alice` / `bob`).
 
@@ -124,7 +122,7 @@ Do this before onboarding.
 | C6 | Redis up | `echo-redis-testnet` | running (JWT/refresh) |
 | C7 | MinIO up | `echo-minio-testnet` | running (backup/media) |
 | C8 | Simulator can see API | On sim: first-run or login hits API (Xcode network log) | No connection refused |
-| C9 | Device LAN | From iPhone Safari: `http://<LAN-IP>:8000/health` | JSON (ATS may block http — use scheme exception already in project) |
+| C9 | Device LAN | From iPhone Safari: `http://<LAN-IP>:8000/health` | JSON. App uses `NSAllowsLocalNetworking` in `EchoMessaging-Info.plist` for Debug HTTP. |
 | C10 | WS path | After login, Messages tab open; backend log shows WS connect | No `ws upgrade error` |
 | C11 | APNs (optional) | Boot log `APNs push sender enabled` + iOS Settings → Notifications allowed | Needed for locked-phone D3 |
 

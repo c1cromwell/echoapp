@@ -59,7 +59,7 @@ gantt
 | Phase | Window | Goal | Exit criteria |
 |-------|--------|------|---------------|
 | **P0 — Corporate & legal** | Jul 17 – Aug 1 | Bankable entity + public legal pages | LLC, EIN, bank, IP assignment, ToS/Privacy URLs live (no `example.com`) |
-| **P1 — Messaging E2E (Week A)** | Jul 17 – Jul 27 | Two clients DM + Phase 3 signals | [`E2E_TESTING.md`](E2E_TESTING.md) A1–A10 + §6.4 all ✅ |
+| **P1 — Messaging E2E (Week A)** | Jul 17 – Jul 27 | Two clients DM + Phase 3 signals | [`E2E_TESTING.md`](E2E_TESTING.md) [§5](E2E_TESTING.md#5-messaging-tests--run-in-this-order) A1–A10 ✅ |
 | **P2 — Contacts E2E (Week B)** | Jul 28 – Aug 4 | Growth + multi-device login | B1–B6 ✅; optional PSI |
 | **P3 — App Store P0** | Jul 21 – Aug 11 | External TF unblocked | [`APP_STORE_SUBMISSION.md`](APP_STORE_SUBMISSION.md) all P0 closed |
 | **P4 — Internal TestFlight** | Aug 11 – Aug 20 | Team QA on HTTPS prod-like API | Sign-off template complete; crash-free smoke |
@@ -213,7 +213,7 @@ From [`marketing/ECHO_LAUNCH_CAMPAIGN.md`](marketing/ECHO_LAUNCH_CAMPAIGN.md):
 
 ### 5.1 Recommended architecture (now)
 
-- **One Wyoming holding LLC** (e.g. Echo Holdings, LLC) — manager-managed, commercial registered agent.
+- **One Wyoming holding LLC** (ECHO Networks LLC — ✅ formed) — manager-managed, commercial registered agent.
 - Products as **DBAs / divisions** until spin-out triggers (Comply enterprise BAA, Passport money movement, etc.).
 - **Defer** Echo Protocol Foundation / token distribution until counsel + token actually moves.
 
@@ -221,11 +221,11 @@ From [`marketing/ECHO_LAUNCH_CAMPAIGN.md`](marketing/ECHO_LAUNCH_CAMPAIGN.md):
 
 | # | Action | Done |
 |---|--------|:----:|
-| 1 | Name + Wyoming availability + domains/handles | ☐ |
+| 1 | Name + Wyoming availability + domains/handles | ✅ |
 | 2 | Commercial registered agent (WY) | ☐ |
 | 3 | File Articles of Organization (manager-managed) | ☐ |
 | 4 | Operating Agreement (attorney-drafted preferred) | ☐ |
-| 5 | EIN (Form SS-4) — you as responsible party | ☐ |
+| 5 | EIN (Form SS-4) — you as responsible party | ✅ |
 | 6 | **IP assignment** of all code + brand into LLC | ☐ |
 | 7 | **Business bank account** (Articles, EIN, OA, ID; crypto/tech-friendly bank) | ☐ |
 | 8 | Finalize & host ToS + Privacy (replace `[LEGAL ENTITY NAME]`) | ☐ |

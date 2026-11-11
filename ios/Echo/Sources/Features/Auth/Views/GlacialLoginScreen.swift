@@ -137,7 +137,7 @@ public struct GlacialLoginScreen: View {
                             Text("Secure Login")
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundStyle(Color.echoInk)
-                            Text("FaceID, TouchID, or PIN")
+                            Text("Face ID, Touch ID, or PIN")
                                 .font(.system(size: 13))
                                 .foregroundStyle(Color.echoInk55)
                         }
