@@ -167,6 +167,9 @@ struct ChatView: View {
     @State private var isSelecting = false
     @State private var selectedMessageIds: Set<String> = []
     @State private var showMultiForward = false
+    @State private var reportTarget: SafetyReportTarget?
+    /// Failed outgoing message whose bubble was tapped (retry / delete options).
+    @State private var failedTargetMessage: ChatDetailMessage?
 
     let contactName: String
     let conversationId: String
@@ -218,12 +221,26 @@ struct ChatView: View {
                 SecureThreadIndicator()
 
                 if let error = viewModel.errorMessage, !error.isEmpty {
-                    Text(error)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Color.Echo.error)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
+                    HStack(alignment: .top, spacing: 8) {
+                        Text(error)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color.Echo.error)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Button {
+                            viewModel.dismissError()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Color.Echo.error)
+                                .frame(width: 44, height: 28)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Dismiss error")
+                    }
+                    .padding(.leading, 16)
+                    .padding(.vertical, 8)
+                    .accessibilityIdentifier("chat.errorBanner")
                 }
 
                 if let threadSummary {
@@ -257,6 +274,7 @@ struct ChatView: View {
                         } label: {
                             Image(systemName: "xmark")
                         }
+                        .accessibilityLabel("Dismiss safety number notice")
                     }
                     .foregroundColor(.echoAlert)
                     .padding(.horizontal, Spacing.lg.rawValue)
@@ -420,9 +438,18 @@ struct ChatView: View {
                 onVerify: {
                     showChatSettings = false
                     showSafetyNumber = true
+                },
+                onBlock: {
+                    showChatSettings = false
+                    reportTarget = .contact(did: peerDID, conversationId: conversationId, alsoBlocks: true)
                 }
             )
             .presentationDetents([.medium, .large])
+        }
+        .sheet(item: $reportTarget) { target in
+            SafetyReportSheet(target: target, onSubmitted: {
+                if target.alsoBlocks { safetyDismissed = true }
+            })
         }
         #if os(iOS)
         .sheet(isPresented: $showSafetyNumber) {
@@ -496,12 +523,37 @@ struct ChatView: View {
                     isOwnMessage: message.isFromCurrentUser
                 ),
                 showTranslate: PrivacyAIConsentStore.load().translationEnabled,
+                isFailed: FailedMessageLogic.isFailedOutgoing(message),
+                canRetry: viewModel.canRetry(message),
                 onAction: { action in
                     handleMessageAction(action, on: message)
                     actionsTargetMessage = nil
                 }
             )
             .presentationDetents([.height(300)])
+        }
+        .confirmationDialog(
+            "This message wasn't sent",
+            isPresented: Binding(
+                get: { failedTargetMessage != nil },
+                set: { if !$0 { failedTargetMessage = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: failedTargetMessage
+        ) { message in
+            if viewModel.canRetry(message) {
+                Button("Try Again") {
+                    Task { await viewModel.retryMessage(message.id) }
+                }
+            }
+            Button("Delete Message", role: .destructive) {
+                viewModel.discardFailedMessage(message.id)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { message in
+            Text(viewModel.canRetry(message)
+                 ? "It's still only on this device."
+                 : "Attachments can't be re-sent from here. Delete it and send it again.")
         }
         .task {
             let reactions: ReactionsAPI? = DIContainer.shared.resolveReactionsAPI()
@@ -596,6 +648,10 @@ struct ChatView: View {
                     plaintext: scheduleSourceText,
                     fireAt: fireAt
                 )
+                ToastManager.shared.show(
+                    "Scheduled for \(fireAt.formatted(date: .abbreviated, time: .shortened))",
+                    style: .success
+                )
             }
         }
         .sheet(isPresented: $showCloudPicker) {
@@ -637,8 +693,14 @@ struct ChatView: View {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(.echoSignal)
+                    // 44pt hit area; the negative padding keeps the bar's layout unchanged.
+                    .frame(width: 40, height: 44)
+                    .contentShape(Rectangle())
+                    .padding(.horizontal, -12)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Back")
+            .accessibilityIdentifier("chat.back")
 
             Text(contactInitials)
                 .font(.system(size: 12, weight: .semibold))
@@ -675,6 +737,9 @@ struct ChatView: View {
                     Image(systemName: "checkmark.circle")
                         .font(.system(size: 18))
                         .foregroundColor(.echoInk70)
+                        .frame(width: 40, height: 44)
+                        .contentShape(Rectangle())
+                        .padding(.horizontal, -8)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Select messages")
@@ -683,19 +748,27 @@ struct ChatView: View {
                     Image(systemName: "video")
                         .font(.system(size: 18))
                         .foregroundColor(.echoInk70)
+                        .frame(width: 40, height: 44)
+                        .contentShape(Rectangle())
+                        .padding(.horizontal, -8)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Video call")
 
                 Button { showVoiceCall = true } label: {
                     Image(systemName: "phone")
                         .font(.system(size: 18))
                         .foregroundColor(.echoInk70)
+                        .frame(width: 40, height: 44)
+                        .contentShape(Rectangle())
+                        .padding(.horizontal, -8)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Voice call")
             }
         }
         .padding(.horizontal, Spacing.md.rawValue)
-        .padding(.vertical, 10)
+        .padding(.vertical, 4)
     }
 
     private func toggleSelect(_ id: String) {
@@ -820,11 +893,16 @@ struct ChatView: View {
 
     private func handleMessageAction(_ action: MessageAction, on message: ChatDetailMessage) {
         switch action {
+        case .retry:
+            Task { await viewModel.retryMessage(message.id) }
         case .delete:
             let deletedId = message.id
             let wasPinned = pinnedMessageId == deletedId
             Task { @MainActor in
-                await viewModel.deleteMessage(deletedId)
+                // An unsent message is only on this device; everything else is deleted for everyone.
+                if !viewModel.discardFailedMessage(deletedId) {
+                    await viewModel.deleteMessage(deletedId)
+                }
                 if wasPinned {
                     #if os(iOS)
                     ConversationPinnedMessageStore.setPinnedMessageId(nil, conversationId: conversationId)
@@ -835,6 +913,8 @@ struct ChatView: View {
         case .copy:
             #if os(iOS)
             UIPasteboard.general.string = message.content
+            HapticManager.light()
+            ToastManager.shared.show("Message copied", style: .copied)
             #endif
         case .reply:
             viewModel.beginReply(to: message)
@@ -868,6 +948,12 @@ struct ChatView: View {
         case .schedule:
             scheduleSourceText = message.content
             showScheduleMessage = true
+        case .report:
+            reportTarget = .message(
+                id: message.id,
+                senderDID: message.senderDID.isEmpty ? peerDID : message.senderDID,
+                conversationId: conversationId
+            )
         }
     }
 
@@ -902,7 +988,11 @@ struct ChatView: View {
                         showCloudPicker = true
                     },
                     onVoiceNoteTapped: {
-                        try? voiceRecorder.startRecording()
+                        do {
+                            try voiceRecorder.startRecording()
+                        } catch {
+                            viewModel.errorMessage = "Couldn't start recording. Allow microphone access for Echo in Settings and try again."
+                        }
                     },
                     onPollTapped: {
                         showAttachmentPicker = false
@@ -934,7 +1024,7 @@ struct ChatView: View {
                         .font(.system(size: 24))
                         .foregroundStyle(Color.echoSignal)
                 }
-                .accessibilityLabel("Add attachment")
+                .accessibilityLabel(showAttachmentPicker ? "Close attachments" : "Add attachment")
 
                 TextField("Message…", text: $messageText)
                     .padding(.horizontal, 14)
@@ -1005,8 +1095,11 @@ struct ChatView: View {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 22))
                     .foregroundStyle(Color.echoInk40)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Cancel recording")
 
             Button {
                 Task { await viewModel.sendVoiceNote(from: voiceRecorder) }
@@ -1014,8 +1107,11 @@ struct ChatView: View {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 28))
                     .foregroundStyle(Color.echoSignal)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Send voice note")
         }
         .padding(.horizontal, Spacing.md.rawValue)
         .padding(.vertical, 10)
@@ -1044,6 +1140,11 @@ struct ChatView: View {
                     .foregroundColor(.echoInk40)
             }
             messageBubbleContent(for: message)
+            // A failed bubble opens retry / delete; every other bubble keeps its own taps.
+            .gesture(
+                TapGesture().onEnded { failedTargetMessage = message },
+                including: FailedMessageLogic.isFailedOutgoing(message) ? .all : .subviews
+            )
             .onAppear {
                 if !message.isFromCurrentUser {
                     Task {
@@ -1058,6 +1159,24 @@ struct ChatView: View {
                 withAnimation(.glacialPress) {
                     reactionTargetId = reactionTargetId == message.id ? nil : message.id
                 }
+            }
+            if FailedMessageLogic.isFailedOutgoing(message) {
+                Button {
+                    failedTargetMessage = message
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                        Text(FailedMessageLogic.caption(for: message))
+                    }
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.echoAlert)
+                        .padding(.horizontal, Spacing.md.rawValue)
+                        .frame(minHeight: 32)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Shows options to send again or delete")
+                .accessibilityIdentifier("chat.failedMessage.\(message.id)")
             }
             if !message.reactions.isEmpty {
                 ReactionChipsView(

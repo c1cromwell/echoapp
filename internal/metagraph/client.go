@@ -162,9 +162,18 @@ func (c *MetagraphClient) SubmitDataL1(ctx context.Context, tx interface{}) (str
 	})
 }
 
-// QueryValidators returns active L1 validators from the metagraph.
+// QueryValidators returns the validator set from the Global L0.
+//
+// Tessellation has no `/validators` route (it 404s on every layer); the L0
+// publishes delegated-staking node parameters at GET /node-params. The list is
+// empty until a node operator publishes parameters, which is a valid result.
+// NOTE: the field mapping below has only been exercised against an empty list
+// on the local cluster — confirm it against a network with published params.
 func (c *MetagraphClient) QueryValidators(ctx context.Context) ([]ValidatorSnapshot, error) {
-	url := c.config.L0URL + "/validators"
+	if c.config.L0URL == "" {
+		return nil, fmt.Errorf("query validators: L0 URL is not configured (set GLOBAL_L0_URL)")
+	}
+	url := strings.TrimRight(c.config.L0URL, "/") + "/node-params"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
@@ -180,11 +189,31 @@ func (c *MetagraphClient) QueryValidators(ctx context.Context) ([]ValidatorSnaps
 		return nil, fmt.Errorf("query validators: status %d", resp.StatusCode)
 	}
 
-	var validators []ValidatorSnapshot
-	if err := json.NewDecoder(resp.Body).Decode(&validators); err != nil {
+	var params []struct {
+		PeerID                         string `json:"peerId"`
+		Node                           string `json:"node"`
+		TotalAmountDelegated           int64  `json:"totalAmountDelegated"`
+		TotalAddressesAssigned         int    `json:"totalAddressesAssigned"`
+		DelegatedStakeRewardParameters struct {
+			// Fraction of rewards kept by the node, scaled by 1e8.
+			RewardFraction int64 `json:"rewardFraction"`
+		} `json:"delegatedStakeRewardParameters"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&params); err != nil {
 		return nil, fmt.Errorf("decode validators: %w", err)
 	}
 
+	validators := make([]ValidatorSnapshot, 0, len(params))
+	for _, p := range params {
+		validators = append(validators, ValidatorSnapshot{
+			ID:                p.PeerID,
+			Address:           p.Node,
+			CommissionPercent: float64(p.DelegatedStakeRewardParameters.RewardFraction) / 1e6,
+			TotalDelegated:    p.TotalAmountDelegated,
+			DelegatorCount:    p.TotalAddressesAssigned,
+			Layer:             "global-l0",
+		})
+	}
 	return validators, nil
 }
 

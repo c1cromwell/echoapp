@@ -50,7 +50,7 @@ final class AuthAPIClient: AuthAPIClientProtocol {
     private let decoder: JSONDecoder
 
     init(
-        baseURL: URL = URL(string: "https://api.echo.app/v1")!,
+        baseURL: URL = EchoAPIBaseURL.url(path: "/v1"),
         certificatePinner: CertificatePinner = CertificatePinner()
     ) {
         self.baseURL = baseURL

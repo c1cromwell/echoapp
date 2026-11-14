@@ -2,7 +2,7 @@ import sbt._
 
 object Dependencies {
   object V {
-    val tessellation    = "4.0.0-rc.0"
+    val tessellation = "4.0.0-rc.0" // single spaces: hydra build greps this exact form
     val decline         = "2.4.1"
     val organizeImports = "0.5.0"
     val scalatest       = "3.2.18"

@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -32,6 +33,7 @@ func TestPurgeAccountPostgresIntegration(t *testing.T) {
 			_, _ = db.PurgeAccount(ctx, did)
 		}
 		_, _ = pool.Exec(ctx, `DELETE FROM message_queue WHERE message_id LIKE 'purge-it-%'`)
+		_, _ = pool.Exec(ctx, `DELETE FROM safety_reports WHERE id LIKE 'purge-it-%'`)
 	}
 	cleanup()
 	defer cleanup()
@@ -50,6 +52,11 @@ func TestPurgeAccountPostgresIntegration(t *testing.T) {
 		{`INSERT INTO contacts (id, owner_did, contact_did) VALUES ('purge-it-c2', $2, $1)`, []interface{}{gone, stays}},
 		{`INSERT INTO user_prefs (did, prefs) VALUES ($1, '{}')`, []interface{}{gone}},
 		{`INSERT INTO user_prefs (did, prefs) VALUES ($1, '{}')`, []interface{}{stays}},
+		// A report the deleted account filed, and one filed against it.
+		{`INSERT INTO safety_reports (id, reporter_did, subject_did, reason, context, message_id, details)
+		  VALUES ('purge-it-filed', $1, $2, 'spam', 'message', 'm1', 'sent me spam')`, []interface{}{gone, stays}},
+		{`INSERT INTO safety_reports (id, reporter_did, subject_did, reason, context)
+		  VALUES ('purge-it-against', $2, $1, 'harassment', 'contact')`, []interface{}{gone, stays}},
 		{`INSERT INTO message_queue (message_id, conversation_id, sender_did, recipient_did, encrypted_payload, status, expires_at)
 		  VALUES ('purge-it-in', 'c', $2, $1, 'x', 'queued', NOW() + interval '1 day')`, []interface{}{gone, stays}},
 		{`INSERT INTO message_queue (message_id, conversation_id, sender_did, recipient_did, encrypted_payload, status, expires_at)
@@ -61,6 +68,17 @@ func TestPurgeAccountPostgresIntegration(t *testing.T) {
 		}
 	}
 
+	// One report goes through the store itself, so the new columns round-trip.
+	if err := db.SaveSafetyReport(ctx, SafetyReport{
+		ID: "purge-it-saved", ReporterDID: gone, SubjectDID: stays, Reason: "other", Context: "channel",
+		ChannelID: "chan-1", Details: "posted my address", CreatedAt: time.Now().UTC(),
+	}); err != nil {
+		t.Fatalf("save report: %v", err)
+	}
+	if mine, err := db.ListSafetyReportsByReporter(ctx, gone); err != nil || len(mine) != 2 {
+		t.Fatalf("reports by reporter before purge: %d err=%v", len(mine), err)
+	}
+
 	removed, err := db.PurgeAccount(ctx, gone)
 	if err != nil {
 		t.Fatalf("purge: %v", err)
@@ -69,6 +87,10 @@ func TestPurgeAccountPostgresIntegration(t *testing.T) {
 		if removed[table] == 0 {
 			t.Errorf("expected rows removed from %s, got %v", table, removed)
 		}
+	}
+
+	if n, ok := removed["safety_reports"]; ok {
+		t.Errorf("safety reports are kept, not removed; got %d removed", n)
 	}
 
 	count := func(q string, args ...interface{}) int {
@@ -105,6 +127,35 @@ func TestPurgeAccountPostgresIntegration(t *testing.T) {
 	}
 	if n := count(`SELECT count(*) FROM message_queue WHERE message_id = 'purge-it-out'`); n != 1 {
 		t.Errorf("in-flight message to the bystander should remain, got %d", n)
+	}
+
+	// Safety reports survive the deletion. A reported user cannot erase the
+	// report against them by deleting their account…
+	if n := count(`SELECT count(*) FROM safety_reports WHERE id = 'purge-it-against' AND subject_did = $1 AND reporter_did = $2`, gone, stays); n != 1 {
+		t.Errorf("report against the deleted account should be untouched, got %d", n)
+	}
+	// …and a report they filed stays, with the reporter anonymised.
+	if n := count(`SELECT count(*) FROM safety_reports WHERE id = 'purge-it-filed' AND reporter_did IS NULL AND subject_did = $1 AND details = 'sent me spam'`, stays); n != 1 {
+		t.Errorf("report filed by the deleted account should remain with reporter_did NULL, got %d", n)
+	}
+	if n := count(`SELECT count(*) FROM safety_reports WHERE reporter_did = $1`, gone); n != 0 {
+		t.Errorf("deleted account still named as reporter on %d reports", n)
+	}
+	listed, err := db.ListSafetyReports(ctx, stays, 10, 0)
+	if err != nil {
+		t.Fatalf("list reports: %v", err)
+	}
+	foundFiled, foundSaved := false, false
+	for _, report := range listed {
+		switch report.ID {
+		case "purge-it-filed":
+			foundFiled = report.ReporterDID == "" && report.MessageID == "m1"
+		case "purge-it-saved":
+			foundSaved = report.ReporterDID == "" && report.ChannelID == "chan-1" && report.Details == "posted my address"
+		}
+	}
+	if !foundFiled || !foundSaved {
+		t.Errorf("moderation list should return the anonymised report, got %+v", listed)
 	}
 
 	// Purging again is a no-op, not an error.

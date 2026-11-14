@@ -6,6 +6,7 @@ import cats.syntax.all._
 import com.echo.shared_data.cluster.ClusterIds
 import com.echo.shared_data.deserializers.DataDeserializers
 import com.echo.shared_data.lifecycle.{DataCalculatedStateService, DataLifecycle}
+import com.echo.shared_data.routes.DataRoutes
 import com.echo.shared_data.serializers.DataSerializers
 import com.echo.shared_data.types._
 import io.circe.{Decoder, Encoder}
@@ -112,8 +113,10 @@ object Main extends CurrencyL0App(
         override def hashCalculatedState(state: DataLayerCalculatedState)(implicit context: L0NodeContext[IO]): IO[Hash] =
           calculatedStateService.hashCalculatedState(state)
 
+        // GET /data-application/merkle-roots/{root}: finalized=true only once
+        // this L0 has folded the root into a snapshot (see DataLifecycle.combine).
         override def routes(implicit context: L0NodeContext[IO]): HttpRoutes[IO] =
-          HttpRoutes.empty
+          DataRoutes.merkleRootRoutes
 
         override def serializeCalculatedState(state: DataLayerCalculatedState): IO[Array[Byte]] =
           IO(DataSerializers.serializeCalculatedState(state))

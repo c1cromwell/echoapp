@@ -5,7 +5,6 @@ import Foundation
 
 protocol AuthRepository {
     func register(email: String, password: String, username: String) async throws -> LoginResponse
-    func login(email: String, password: String) async throws -> LoginResponse
     func refreshToken() async throws -> RefreshTokenResponse
     func logout() async throws
     func verifyBiometric(challenge: String) async throws -> Bool
@@ -46,21 +45,6 @@ actor ConcreteAuthRepository: AuthRepository {
         
         let response: LoginResponse = try await apiClient.post(
             endpoint: AuthEndpoint.register,
-            body: request
-        )
-        
-        // Store tokens
-        try await keychain.storeAuthToken(response.accessToken)
-        try await keychain.storeRefreshToken(response.refreshToken)
-        
-        return response
-    }
-    
-    func login(email: String, password: String) async throws -> LoginResponse {
-        let request = LoginRequest(email: email, password: password)
-        
-        let response: LoginResponse = try await apiClient.post(
-            endpoint: AuthEndpoint.login,
             body: request
         )
         
@@ -118,8 +102,6 @@ actor ConcreteAuthRepository: AuthRepository {
 // MARK: - User Repository Protocol
 
 protocol UserRepository {
-    func getProfile() async throws -> User
-    func updateProfile(username: String, avatar: String?) async throws -> User
     func getUser(id: String) async throws -> User
     func searchUsers(query: String) async throws -> [User]
     func addContact(userId: String) async throws
@@ -144,25 +126,6 @@ actor ConcreteUserRepository: UserRepository {
     ) {
         self.apiClient = apiClient
         self.localStorage = localStorage
-    }
-    
-    func getProfile() async throws -> User {
-        let user: User = try await apiClient.get(endpoint: UserEndpoint.getProfile)
-        return user
-    }
-    
-    func updateProfile(username: String, avatar: String?) async throws -> User {
-        struct UpdateRequest: Codable {
-            let username: String
-            let avatar: String?
-        }
-        
-        let user: User = try await apiClient.put(
-            endpoint: UserEndpoint.updateProfile,
-            body: UpdateRequest(username: username, avatar: avatar)
-        )
-        
-        return user
     }
     
     func getUser(id: String) async throws -> User {
@@ -250,7 +213,6 @@ actor ConcreteUserRepository: UserRepository {
 // MARK: - Message Repository Protocol
 
 protocol MessageRepository {
-    func sendMessage(conversationId: String, content: String) async throws -> Message
     func fetchMessages(conversationId: String, limit: Int) async throws -> [Message]
     func fetchConversations(limit: Int) async throws -> [Conversation]
     func createConversation(participantIds: [String]) async throws -> Conversation
@@ -281,28 +243,6 @@ actor ConcreteMessageRepository: MessageRepository {
         self.webSocketClient = webSocketClient
         self.encryption = encryption
         self.localStorage = localStorage
-    }
-    
-    func sendMessage(conversationId: String, content: String) async throws -> Message {
-        let encryptedMessage = try await encryption.encryptWithKeyAgreement(
-            plaintext: content,
-            recipientPublicKeyData: Data()
-        )
-        
-        let request = SendMessageRequest(
-            conversationId: conversationId,
-            content: content,
-            encryptedContent: encryptedMessage.ciphertext,
-            nonce: encryptedMessage.nonce,
-            attachments: nil
-        )
-        
-        let message: Message = try await apiClient.post(
-            endpoint: MessageEndpoint.send,
-            body: request
-        )
-        
-        return message
     }
     
     func fetchMessages(conversationId: String, limit: Int) async throws -> [Message] {

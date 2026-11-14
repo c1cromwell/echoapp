@@ -275,8 +275,21 @@ func TestVIPVerify_RequiresAuthenticatedOwner(t *testing.T) {
 		t.Fatalf("other user's DID: want 403, got %d %s", rec.Code, rec.Body.String())
 	}
 	owner := accessTokenFor(t, rt, "did:key:zVictim")
-	if rec := secPostJSON(t, rt, "/v1/auth/vip-verify", body, owner); rec.Code != http.StatusOK {
+	rec := secPostJSON(t, rt, "/v1/auth/vip-verify", body, owner)
+	if rec.Code != http.StatusOK {
 		t.Fatalf("owner: want 200, got %d %s", rec.Code, rec.Body.String())
+	}
+	// The owner may call it, but asking for tier 5 with no evidence must not
+	// record tier 5.
+	var out struct {
+		TrustTier int  `json:"trust_tier"`
+		Capped    bool `json:"capped"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatal(err)
+	}
+	if out.TrustTier != 1 || !out.Capped {
+		t.Fatalf("self-asserted tier 5 must be capped to 1, got %s", rec.Body.String())
 	}
 }
 

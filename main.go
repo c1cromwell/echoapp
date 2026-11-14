@@ -159,7 +159,10 @@ func (s *Server) Start() error {
 	if c1 := os.Getenv("CURRENCY_L1_URL"); c1 != "" {
 		cfg := metagraph.MetagraphConfig{
 			CurrencyL1URL: c1,
-			Timeout:       30 * time.Second,
+			// Delegated stakes, their last-reference and the validator set live
+			// on the Global L0, not the Currency L1.
+			L0URL:   os.Getenv("GLOBAL_L0_URL"),
+			Timeout: 30 * time.Second,
 		}
 		if signer, err := loadIdentitySigningConfig(); err != nil {
 			log.Printf("Currency L1 signing disabled: %v", err)

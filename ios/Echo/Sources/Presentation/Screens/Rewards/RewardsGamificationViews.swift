@@ -282,7 +282,7 @@ struct LeaderboardSection: View {
                 .foregroundStyle(entry.rank <= 3 ? Color.echoSignal : Color.echoInk40)
                 .frame(width: 36, alignment: .leading)
 
-            Text(shortDID(entry.did))
+            Text(isSelf ? "You" : shortDID(entry.did))
                 .typographyStyle(.body, color: isSelf ? .echoPrimaryText : .echoInk70)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -325,6 +325,8 @@ struct RewardsHubView: View {
     @State private var pack: WeeklyPack?
     @State private var isOpeningPack = false
     @State private var selfDID: String = ""
+    @State private var loadState: RewardsHubLoadState = .loading
+    @State private var packError: String?
 
     init(gamification: GamificationAPI, walletAPI: WalletAPIClient) {
         self.gamification = gamification
@@ -338,6 +340,18 @@ struct RewardsHubView: View {
         ScrollView {
             VStack(spacing: Spacing.lg.rawValue) {
                 NoValueDisclaimerBanner(status: status)
+                if loadState == .failed {
+                    rewardsLoadFailedBanner
+                }
+                if loadState == .loading && status == nil {
+                    HStack(spacing: Spacing.sm.rawValue) {
+                        ProgressView()
+                        Text("Loading your rewards…")
+                            .typographyStyle(.caption, color: .echoInk55)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Spacing.sm.rawValue)
+                }
                 EchoScoreSection(snapshot: echoScore)
                 StreakSection(streak: streak)
                 NextUnlockSection(snapshot: echoScore)
@@ -351,6 +365,11 @@ struct RewardsHubView: View {
                 }
                 WeeklyPackSection(pack: pack, isOpening: isOpeningPack) {
                     Task { await openPack() }
+                }
+                if let packError {
+                    Text(packError)
+                        .typographyStyle(.caption, color: .echoAlert)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 LeaderboardSection(snapshot: leaderboard, selfDID: selfDID)
 
@@ -373,32 +392,81 @@ struct RewardsHubView: View {
         .background(Color.echoPaper.ignoresSafeArea())
         .navigationTitle("Rewards")
         .navigationBarTitleDisplayMode(.inline)
+        .refreshable { await load() }
         .task { await load() }
     }
 
+    /// Shown when nothing could be fetched, so a zero score isn't mistaken for the real one.
+    private var rewardsLoadFailedBanner: some View {
+        HStack(alignment: .top, spacing: Spacing.sm.rawValue) {
+            Image(systemName: "wifi.exclamationmark")
+                .foregroundStyle(Color.echoAlert)
+            Text("Couldn't load your rewards. What you see below may be out of date.")
+                .typographyStyle(.caption, color: .echoInk70)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            Button("Retry") {
+                Task { await load() }
+            }
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(Color.echoSignal)
+            .frame(minHeight: 44)
+        }
+        .padding(Spacing.md.rawValue)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.echoPaperDim)
+        .clipShape(RoundedRectangle(cornerRadius: Spacing.md.rawValue, style: .continuous))
+        .accessibilityIdentifier("rewards.loadFailed")
+    }
+
     private func load() async {
+        if status == nil { loadState = .loading }
         selfDID = await CurrentUserSession.currentDID() ?? ""
+        var streakLoaded = false
         if let pinged = try? await gamification.pingActivity() {
             streak = pinged.streak
+            streakLoaded = true
         } else if let s = try? await gamification.fetchStreak() {
             streak = s.streak
+            streakLoaded = true
         }
-        status = try? await gamification.fetchStatus()
+        let fetchedStatus = try? await gamification.fetchStatus()
+        if let fetchedStatus { status = fetchedStatus }
+        var leaderboardLoaded = false
         if let lb = try? await gamification.fetchLeaderboard(window: "weekly") {
             leaderboard = lb.snapshot
+            leaderboardLoaded = true
         }
         await quests.load()
         if let preview = try? await gamification.fetchWeeklyPack() {
             pack = preview.pack
         }
+        loadState = RewardsHubLoadState.resolve(
+            statusLoaded: fetchedStatus != nil,
+            streakLoaded: streakLoaded,
+            leaderboardLoaded: leaderboardLoaded
+        )
     }
 
     private func openPack() async {
         isOpeningPack = true
+        packError = nil
         defer { isOpeningPack = false }
         if let opened = try? await gamification.openWeeklyPack() {
             pack = opened.pack
+        } else {
+            packError = "Couldn't open your pack. Try again."
         }
+    }
+}
+
+/// Whether the Rewards hub has real data to stand behind the numbers it shows.
+enum RewardsHubLoadState: Equatable {
+    case loading, loaded, failed
+
+    /// Failed only when every core request failed — a partial load still shows real data.
+    static func resolve(statusLoaded: Bool, streakLoaded: Bool, leaderboardLoaded: Bool) -> RewardsHubLoadState {
+        (statusLoaded || streakLoaded || leaderboardLoaded) ? .loaded : .failed
     }
 }
 

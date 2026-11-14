@@ -22,8 +22,10 @@ object DataLifecycle {
       dispatch(update) match {
         case Right(()) =>
           update match {
+            // L1 acceptance is NOT finality: the update is only in this node's
+            // mempool. It becomes final when Metagraph L0 folds it in `combine`.
             case u: MerkleRootUpdate =>
-              DataMerkleRootIndex.record(u.root, u.leafCount, finalized = true)
+              DataMerkleRootIndex.record(u.root, u.leafCount, finalized = false)
             case _ => ()
           }
           DataErrors.valid

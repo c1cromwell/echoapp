@@ -571,6 +571,7 @@
 		3C05A999CF9E116DBCB842A7 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		3C4FB342BDBA4A46BCB6A489 /* Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Features/Onboarding/FirstRun/OnboardingOptionsView.swift; sourceTree = "<group>"; };
 		3D1B9A1530A4B0B40085132E /* EchoAppDebug-Messaging.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "EchoAppDebug-Messaging.entitlements"; sourceTree = "<group>"; };
+		3DEB6F1B80A785D17C6F7AC5 /* EchoAppRelease-Messaging.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "EchoAppRelease-Messaging.entitlements"; sourceTree = "<group>"; };
 		3D2111B92FF71FB100A5D2E3 /* HiddenFolderKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenFolderKeyManager.swift; sourceTree = "<group>"; };
 		3D2111BB2FF71FD000A5D2E3 /* ChannelsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelsListView.swift; sourceTree = "<group>"; };
 		3D2111BD2FF7203C00A5D2E3 /* ScheduleMessageSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleMessageSheet.swift; sourceTree = "<group>"; };
@@ -1578,6 +1579,7 @@
 			isa = PBXGroup;
 			children = (
 				3D1B9A1530A4B0B40085132E /* EchoAppDebug-Messaging.entitlements */,
+				3DEB6F1B80A785D17C6F7AC5 /* EchoAppRelease-Messaging.entitlements */,
 				3DFB71C230042A32002EAC4F /* echo-wallet.bundle.js */,
 				CF8FBBC5A8A613FEA6825F54 /* Resources */,
 				930B0F85E8C631514258FECB /* Phase3Tests */,
@@ -2864,7 +2866,9 @@
 		21B44CC1F8DEF5C8B361FD65 /* Release-Messaging */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				API_URL = "https://api.echo.app";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "EchoAppRelease-Messaging.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

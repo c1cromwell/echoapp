@@ -5,6 +5,13 @@ struct GroupDetailView: View {
     @Bindable var viewModel: GroupDetailViewModel
     @Bindable private var conversationStore = ConversationStore.shared
     @State private var showAddMember = false
+    @State private var reportTarget: SafetyReportTarget?
+
+    /// The report names a group owner or admin who isn't the viewer.
+    private var reportableOwnerDID: String? {
+        let others = viewModel.members.filter { $0.memberId != viewModel.currentUserDID }
+        return (others.first { $0.role == "owner" } ?? others.first { $0.isAdmin })?.memberId
+    }
 
     private var contacts: [StoredConversation] {
         conversationStore.conversations
@@ -80,6 +87,14 @@ struct GroupDetailView: View {
                 }
             }
 
+            if let ownerDID = reportableOwnerDID {
+                Section {
+                    Button("Report group", role: .destructive) {
+                        reportTarget = .group(id: viewModel.groupId, ownerDID: ownerDID)
+                    }
+                }
+            }
+
             if let status = viewModel.statusMessage {
                 Section {
                     Text(status).font(.footnote).foregroundStyle(.green)
@@ -95,6 +110,9 @@ struct GroupDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.loadMembers() }
         .refreshable { await viewModel.loadMembers() }
+        .sheet(item: $reportTarget) { target in
+            SafetyReportSheet(target: target)
+        }
     }
 
     private func displayName(for member: GroupMemberWire) -> String {

@@ -11,6 +11,50 @@ enum VIPSubscriptionPolicy {
     }
 }
 
+/// What the VIP screens show for price. The only price ever shown is the
+/// App Store's own `Product.displayPrice` (localized, correct currency);
+/// until that loads there is no price and nothing to subscribe to.
+enum VIPPriceDisplay {
+    enum LoadState: Equatable {
+        case loading
+        case loaded(displayPrice: String)
+        case unavailable
+
+        var displayPrice: String? {
+            if case .loaded(let price) = self { return price }
+            return nil
+        }
+    }
+
+    static func loadState(displayPrice: String?) -> LoadState {
+        guard let price = displayPrice?.trimmingCharacters(in: .whitespacesAndNewlines), !price.isEmpty else {
+            return .unavailable
+        }
+        return .loaded(displayPrice: price)
+    }
+
+    /// Trailing value on the Settings "ECHO VIP" row; nil shows the title alone.
+    static func settingsRowValue(isActive: Bool, displayPrice: String?) -> String? {
+        if isActive { return "Active" }
+        guard let price = loadState(displayPrice: displayPrice).displayPrice else { return nil }
+        return "\(price)/mo"
+    }
+
+    static func subscribeButtonTitle(state: LoadState, isProcessing: Bool) -> String {
+        if isProcessing { return "Contacting the App Store…" }
+        switch state {
+        case .loaded(let price): return "Subscribe for \(price)/mo"
+        case .loading: return "Loading price…"
+        case .unavailable: return "Subscribe"
+        }
+    }
+
+    /// Subscribe is offered only once the App Store product (and its price) loaded.
+    static func canSubscribe(state: LoadState, isProcessing: Bool) -> Bool {
+        state.displayPrice != nil && !isProcessing
+    }
+}
+
 #if os(iOS)
 import StoreKit
 
@@ -19,8 +63,6 @@ import StoreKit
 enum VIPSubscriptionStore {
     private static let activeKey = "echo.vip.subscription.active"
     private static let expiresKey = "echo.vip.subscription.expiresAt"
-    static let monthlyPriceUSD = Decimal(string: "9.99")!
-    static let monthlyPriceLabel = "$9.99"
 
     static var isActive: Bool {
         guard UserDefaults.standard.bool(forKey: activeKey) else { return false }
@@ -34,8 +76,12 @@ enum VIPSubscriptionStore {
         UserDefaults.standard.object(forKey: expiresKey) as? Date
     }
 
-    static var statusLabel: String {
-        isActive ? "Active" : "\(monthlyPriceLabel)/mo"
+    /// The last `Product.displayPrice` the App Store returned in this launch, if any.
+    static var loadedDisplayPrice: String?
+
+    /// Settings row value. `displayPrice` is the StoreKit price if it has loaded.
+    static func statusLabel(displayPrice: String? = loadedDisplayPrice) -> String? {
+        VIPPriceDisplay.settingsRowValue(isActive: isActive, displayPrice: displayPrice)
     }
 
     static func markActive(expiresAt: Date) {
@@ -84,6 +130,9 @@ enum VIPSubscriptionService {
 
     static func loadMonthlyPrice() async -> String? {
         let products = try? await Product.products(for: [VIPSubscriptionPolicy.monthlyProductID])
+        if let price = products?.first?.displayPrice {
+            VIPSubscriptionStore.loadedDisplayPrice = price
+        }
         return products?.first?.displayPrice
     }
 

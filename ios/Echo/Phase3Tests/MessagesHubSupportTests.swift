@@ -49,9 +49,71 @@ final class ContactTrustIndexTests: XCTestCase {
     func testIngestRemoteContacts_mapsBadge() {
         let index = ContactTrustIndex.shared
         index.ingestRemoteContacts([
-            RemoteContact(contactDid: "did:key:bob", ownerDid: nil, addedVia: nil, trustBadge: "verified", blocked: false),
+            RemoteContact(contactDid: "did:key:bob", ownerDid: nil, addedVia: nil, trustBadge: "verified", blocked: false, barAllowed: nil),
         ])
         XCTAssertEqual(index.tier(peerDID: "did:key:bob"), 2)
+    }
+}
+#endif
+
+#if os(iOS)
+final class MessagesHubEmptyStateTests: XCTestCase {
+    func testChatsText_nilWhenRowsAreVisible() {
+        XCTAssertNil(MessagesHubEmptyState.chatsText(visibleCount: 2, pinnedCount: 0, searchText: "", folderSelected: false))
+    }
+
+    func testChatsText_searchWithNoMatchesNamesTheQuery() {
+        XCTAssertEqual(
+            MessagesHubEmptyState.chatsText(visibleCount: 0, pinnedCount: 3, searchText: " aria ", folderSelected: false),
+            "No chats match \u{201C}aria\u{201D}."
+        )
+    }
+
+    func testChatsText_emptyFolder() {
+        XCTAssertEqual(
+            MessagesHubEmptyState.chatsText(visibleCount: 0, pinnedCount: 0, searchText: "", folderSelected: true),
+            "No chats in this folder yet."
+        )
+    }
+
+    func testChatsText_firstRunHintOnlyWhenNothingIsPinned() {
+        XCTAssertNotNil(MessagesHubEmptyState.chatsText(visibleCount: 0, pinnedCount: 0, searchText: "", folderSelected: false))
+        XCTAssertNil(MessagesHubEmptyState.chatsText(visibleCount: 0, pinnedCount: 1, searchText: "", folderSelected: false))
+    }
+}
+
+final class RewardsHubLoadStateTests: XCTestCase {
+    func testResolve_failedOnlyWhenEverythingFailed() {
+        XCTAssertEqual(RewardsHubLoadState.resolve(statusLoaded: false, streakLoaded: false, leaderboardLoaded: false), .failed)
+        XCTAssertEqual(RewardsHubLoadState.resolve(statusLoaded: false, streakLoaded: true, leaderboardLoaded: false), .loaded)
+        XCTAssertEqual(RewardsHubLoadState.resolve(statusLoaded: true, streakLoaded: true, leaderboardLoaded: true), .loaded)
+    }
+}
+
+final class APIErrorUserTextTests: XCTestCase {
+    func testDescriptions_haveNoHTTPJargon() {
+        let errors: [APIError] = [
+            .invalidResponse, .badRequest, .unauthorized, .forbidden, .notFound,
+            .rateLimited(retryAfter: 3), .serverError(503), .unexpectedStatusCode(418),
+            .networkError(URLError(.notConnectedToInternet)),
+        ]
+        for error in errors {
+            let text = error.localizedDescription
+            XCTAssertNil(text.range(of: #"\d{3}"#, options: .regularExpression), "status code leaked: \(text)")
+            for jargon in ["Unauthorized", "Forbidden", "Bad request", "decode", "status code"] {
+                XCTAssertFalse(text.contains(jargon), "jargon leaked: \(text)")
+            }
+        }
+    }
+
+    func testDescriptions_sayWhatToDo() {
+        XCTAssertEqual(APIError.rateLimited(retryAfter: 3).localizedDescription, "Echo is busy. Try again in 3 seconds.")
+        XCTAssertEqual(APIError.rateLimited(retryAfter: 1).localizedDescription, "Echo is busy. Try again in 1 second.")
+        XCTAssertEqual(
+            APIError.networkError(URLError(.notConnectedToInternet)).localizedDescription,
+            "You're offline. Check your connection and try again."
+        )
+        XCTAssertEqual(APIError.serverError(503).diagnosticDescription, "HTTP 503")
     }
 }
 #endif

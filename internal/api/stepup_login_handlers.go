@@ -9,9 +9,11 @@ package api
 //   but the challenge endpoint is available for WebAuthn-style flows.
 //
 // POST /v1/auth/step-up
-//   Authenticated (X-Sender-DID + X-Signature, validated by authMiddleware).
+//   Passkey-signed only (X-Sender-DID + X-Signature, validated by authMiddleware).
+//   A Bearer access token is not enough: step-up exists to prove the device key
+//   is present right now, so a stolen session token must not be able to mint one.
 //   Issues a short-lived elevated JWT tied to a specific action.
-//   The backend's existing StepUpService enforces per-action TTL and method rules.
+//   The router's StepUpService supplies the per-action TTL.
 
 import (
 	"crypto/rand"
@@ -55,7 +57,10 @@ func (rt *Router) handleLoginChallenge(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleStepUp handles POST /v1/auth/step-up.
-// Requires a valid authenticated request (X-Sender-DID + X-Signature enforced by authMiddleware).
+// Requires a passkey-signed request: the auth middleware verified X-Signature
+// against the device keys registered for X-Sender-DID. This is the same
+// condition POST /v1/auth/session applies; a request authenticated only by a
+// Bearer token is refused with PASSKEY_REQUIRED.
 // Issues an elevated JWT for the requested action.
 func (rt *Router) handleStepUp(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -63,10 +68,19 @@ func (rt *Router) handleStepUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// DID is guaranteed to be present — authMiddleware already validated the signature.
+	if rt.tokenService == nil || rt.stepUp == nil {
+		WriteError(w, http.StatusServiceUnavailable, "TOKEN_SERVICE_UNAVAILABLE", "token service not configured", r.Header.Get("X-Request-ID"))
+		return
+	}
 	did, ok := r.Context().Value(ContextKeyUserID).(string)
 	if !ok || did == "" {
 		WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "authentication required", r.Header.Get("X-Request-ID"))
+		return
+	}
+	// The middleware only sets the context DID from X-Sender-DID after it has
+	// verified the passkey signature; on the Bearer path the header is absent.
+	if r.Header.Get(headerSenderDID) != did {
+		WriteError(w, http.StatusUnauthorized, "PASSKEY_REQUIRED", "a passkey-signed request is required for step-up", r.Header.Get("X-Request-ID"))
 		return
 	}
 
@@ -90,7 +104,7 @@ func (rt *Router) handleStepUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate action via StepUpService
-	stepUpSvc := auth.NewStepUpService()
+	stepUpSvc := rt.stepUp
 	if !stepUpSvc.RequiresStepUp(req.Action) {
 		WriteError(w, http.StatusBadRequest, "UNKNOWN_ACTION", "action is not a valid step-up action", r.Header.Get("X-Request-ID"))
 		return

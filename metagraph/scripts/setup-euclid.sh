@@ -47,7 +47,11 @@ if [ "${DOCKER_MEM_GB:-0}" -lt 8 ]; then
 fi
 
 # 3. Clone Euclid dev environment if not present
-EUCLID_DIR="$PROJECT_DIR/../euclid-development-environment"
+# Must be the SAME checkout the Makefile runs hydra from (EUCLID_DIR, default: a
+# sibling of the echoapp repo). These used to disagree — this script prepared
+# echoapp/euclid-development-environment while `make dev` built the sibling,
+# so the cluster silently ran the stock Euclid template instead of Echo's code.
+EUCLID_DIR="${EUCLID_DIR:-$PROJECT_DIR/../../euclid-development-environment}"
 if [ ! -d "$EUCLID_DIR" ]; then
   echo "Cloning Euclid Development Environment..."
   git clone https://github.com/Constellation-Labs/euclid-development-environment "$EUCLID_DIR"
@@ -74,19 +78,39 @@ if [ ! -d "$EUCLID_DIR/infra/ansible/remote" ]; then
   fi
 fi
 
-# 4. Copy our euclid.json config (carries the deploy/nodes/snapshot_fees blocks for remote deploy)
-cp "$PROJECT_DIR/euclid.json" "$EUCLID_DIR/euclid.json"
-echo "✓ Copied euclid.json"
+# 4. Generate hydra's euclid.json from ours. hydra (>= 0.4) needs `layers` as a
+#    list, `framework.name`/`framework.modules` as the g8 template selectors and
+#    `ref_type`; metagraph/euclid.json keeps its own shape for the skeleton
+#    verifier and deploy docs, so translate rather than copy.
+jq '
+  .version = (.github.tag // "v0.19.0" | ltrimstr("v"))
+  | .ref_type = "tag"
+  | .framework = {name: "currency", modules: ["data"], version: .framework.version, ref_type: "tag"}
+  | .layers = ["global-l0", "metagraph-l0", "currency-l1", "data-l1"]
+  | .docker = {start_grafana_container: false}
+  | del(.github)
+' "$PROJECT_DIR/euclid.json" > "$EUCLID_DIR/euclid.json"
+echo "✓ Wrote $EUCLID_DIR/euclid.json (project_name=$(jq -r .project_name "$EUCLID_DIR/euclid.json"))"
 
-# 5. Link our metagraph source
-SOURCE_DIR="$EUCLID_DIR/source/project/echo-metagraph"
-if [ ! -d "$SOURCE_DIR" ]; then
-  mkdir -p "$(dirname "$SOURCE_DIR")"
-  ln -sf "$PROJECT_DIR" "$SOURCE_DIR"
-  echo "✓ Linked metagraph source → $SOURCE_DIR"
+# 5. Sync the metagraph source into Euclid's Docker build context. It has to be
+#    a real copy: the image build does `COPY project/<name>`, and Docker does not
+#    follow a symlink that points outside the build context.
+PROJECT_NAME="$(jq -r .project_name "$PROJECT_DIR/euclid.json")"
+if [ -z "$PROJECT_NAME" ] || [ "$PROJECT_NAME" = "null" ]; then
+  echo "ERROR: project_name is missing from $PROJECT_DIR/euclid.json" >&2
+  exit 1
 fi
+SOURCE_DIR="$EUCLID_DIR/source/project/$PROJECT_NAME"
+if [ -L "$SOURCE_DIR" ]; then
+  rm "$SOURCE_DIR"
+fi
+mkdir -p "$SOURCE_DIR"
+rsync -a --delete \
+  --exclude 'target/' --exclude '.bsp/' --exclude '.metals/' --exclude '.bloop/' \
+  --exclude 'io/' --exclude 'scripts/' \
+  "$PROJECT_DIR/" "$SOURCE_DIR/"
+echo "✓ Synced metagraph source → $SOURCE_DIR"
 
-# 6. Install (downloads Tessellation framework JARs)
 echo ""
 echo "Running hydra install..."
 echo "  This downloads Tessellation ${TESSELLATION_VERSION:-4.0.0-rc.0} framework JARs."

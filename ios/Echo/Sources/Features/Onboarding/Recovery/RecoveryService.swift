@@ -1,13 +1,103 @@
-#if os(iOS)
 // Features/Onboarding/Recovery/RecoveryService.swift
 
 import Foundation
-import Security
 
-enum RecoveryError: Error {
+enum RecoveryError: Error, Equatable {
     case deviceAlreadyEnrolled
     case walletDerivationFailed
     case backendRejected(String)
+    /// The device key that was just generated is not the one stored under the
+    /// identity key id, so later requests could not be signed with it.
+    case deviceKeyUnavailable
+}
+
+// MARK: - Restored-device identity key (platform-neutral so it is unit-tested headlessly)
+
+/// The one key id every signer uses: `PasskeySigningInterceptor`, login,
+/// step-up and `MessagingKeyRegistrar`. A restored device must end up with
+/// its key under this id, or every signed request throws `keyNotFound`.
+enum IdentitySigningKeyID {
+    static let current = "echo-identity-signing"
+}
+
+/// The slice of `SecureEnclaveManager` that restore needs. Injected in tests.
+protocol RecoveryDeviceKeyStore: Sendable {
+    /// Creates a device key under `id` and returns its base64 public key.
+    /// Any key already stored under `id` is replaced.
+    func generateKey(id: String) async throws -> String
+    /// The public key currently stored under `id`.
+    func publicKey(id: String) async throws -> Data
+}
+
+extension SecureEnclaveManager: RecoveryDeviceKeyStore {
+    func generateKey(id: String) async throws -> String {
+        try await generateBiometricProtectedKey(id: id)
+    }
+
+    func publicKey(id: String) async throws -> Data {
+        try await getPublicKey(id: id)
+    }
+}
+
+/// Where restore writes the Keychain values the returning-user login reads.
+protocol RecoveryCredentialStore: Sendable {
+    func storeString(_ value: String, key: String) async throws
+}
+
+struct RecoveryIdentityProvisioner {
+    let keyStore: any RecoveryDeviceKeyStore
+
+    /// Creates this device's identity signing key and returns the public key
+    /// to send as `new_device_public_key` in restore-did.
+    ///
+    /// The key is created under `IdentitySigningKeyID.current`, replacing a
+    /// stale key left by an earlier install or an unfinished first run (that
+    /// key belongs to no identity this device can still use). The stored key
+    /// is then read back: the bytes returned here are the bytes the server
+    /// binds, so they must be the key later requests are signed with.
+    func provisionDeviceKey() async throws -> Data {
+        let encoded = try await keyStore.generateKey(id: IdentitySigningKeyID.current)
+        guard let generated = Data(base64Encoded: encoded),
+              generated.contains(where: { $0 != 0 }) else {
+            throw RecoveryError.deviceKeyUnavailable
+        }
+        let stored = try await keyStore.publicKey(id: IdentitySigningKeyID.current)
+        guard stored == generated else {
+            throw RecoveryError.deviceKeyUnavailable
+        }
+        return generated
+    }
+
+    /// Writes the same local state first run writes, so the next launch routes
+    /// to the returning-user login (`echo.hasCompletedFirstRun`) and that
+    /// screen finds the account (`echo.username.current` in the Keychain).
+    static func persistRestoredAccount(
+        did: String,
+        displayName: String,
+        trustTier: Int,
+        defaults: UserDefaults,
+        credentials: any RecoveryCredentialStore
+    ) async throws {
+        let username = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        defaults.set(did, forKey: "echo.did")
+        defaults.set(did, forKey: "echo.did.current")
+        defaults.set(username, forKey: "echo.displayName")
+        defaults.set(trustTier, forKey: "echo.trustTier")
+        try await credentials.storeString(did, key: "echo.did.current")
+        if !username.isEmpty {
+            try await credentials.storeString(username, key: "echo.username.current")
+        }
+        defaults.set(true, forKey: "echo.hasCompletedFirstRun")
+    }
+}
+
+#if os(iOS)
+import Security
+
+private struct KeychainRecoveryCredentialStore: RecoveryCredentialStore {
+    func storeString(_ value: String, key: String) async throws {
+        try await KeychainManager.shared.store(key: key, value: value)
+    }
 }
 
 @MainActor
@@ -35,7 +125,8 @@ final class RecoveryService {
 
         let (walletAddress, _) = try await StargazerBridgeForRecovery.shared.restoreWallet(from: phrase)
 
-        let sePublicKey = try await secureEnclave.createIdentityKey()
+        let sePublicKey = try await RecoveryIdentityProvisioner(keyStore: secureEnclave)
+            .provisionDeviceKey()
 
         let response = try await callRestoreDID(
             walletAddress: walletAddress,
@@ -48,7 +139,6 @@ final class RecoveryService {
         // restore that already bound that key.
         try? await passkey.register(did: response.did, displayName: response.displayName)
 
-        UserDefaults.standard.set(true, forKey: "echo.hasCompletedFirstRun")
         UserDefaults.standard.set(Date(), forKey: "echo.recoveryPhraseExportedAt")
         RecoveryPromptScheduler.shared.cancelAllPendingReminders()
 
@@ -63,12 +153,13 @@ final class RecoveryService {
     }
 
     private func persistSession(_ response: RestoreDIDResponse) async throws {
-        UserDefaults.standard.set(response.did, forKey: "echo.did")
-        UserDefaults.standard.set(response.did, forKey: "echo.did.current")
-        UserDefaults.standard.set(response.displayName, forKey: "echo.displayName")
-        UserDefaults.standard.set(response.trustTier, forKey: "echo.trustTier")
-        try await KeychainManager.shared.store(key: "echo.did.current", value: response.did)
-        try await KeychainManager.shared.store(key: "echo.username.current", value: response.displayName)
+        try await RecoveryIdentityProvisioner.persistRestoredAccount(
+            did: response.did,
+            displayName: response.displayName,
+            trustTier: response.trustTier,
+            defaults: .standard,
+            credentials: KeychainRecoveryCredentialStore()
+        )
         if let token = response.accessToken, !token.isEmpty {
             try await KeychainManager.shared.storeAuthToken(token)
         }
@@ -169,18 +260,6 @@ private extension PasskeyManager {
         let name = displayName.isEmpty ? did : displayName
         _ = try await createPasskey(challenge: challenge, userId: Data(did.utf8), userName: name)
         #endif
-    }
-}
-
-// MARK: - SecureEnclaveManager extension for recovery
-
-private extension SecureEnclaveManager {
-    func createIdentityKey() async throws -> Data {
-        let encoded = try await generateBiometricProtectedKey(id: "echo-recovery-signing")
-        guard let data = Data(base64Encoded: encoded), data.contains(where: { $0 != 0 }) else {
-            throw RecoveryError.walletDerivationFailed
-        }
-        return data
     }
 }
 

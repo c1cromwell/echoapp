@@ -231,41 +231,6 @@ final class LocalDatabaseTests: XCTestCase {
     }
 }
 
-// MARK: - UseCase Tests
-
-@MainActor
-final class AuthenticationUseCaseTests: XCTestCase {
-    var useCase: AuthenticateUseCase!
-    var mockRepository: MockAuthRepository!
-    
-    override func setUp() {
-        super.setUp()
-        mockRepository = MockAuthRepository()
-        useCase = AuthenticateUseCase(repository: mockRepository)
-    }
-    
-    func testAuthenticateSuccess() async throws {
-        await mockRepository.setLoginResponse(LoginResponse(
-            accessToken: "token-123",
-            refreshToken: "refresh-123",
-            expiresIn: 3600,
-            user: UserResponse(
-                id: "user-1",
-                email: "test@echo.local",
-                username: "testuser",
-                avatar: nil,
-                publicKey: "public-key",
-                createdAt: Date()
-            )
-        ))
-        
-        let response = try await useCase.execute(email: "test@echo.local", password: "password123")
-        
-        XCTAssertEqual(response.accessToken, "token-123")
-        XCTAssertEqual(response.user.username, "testuser")
-    }
-}
-
 // MARK: - Mock Repository
 
 actor MockAuthRepository: AuthRepository {
@@ -349,37 +314,6 @@ final class EchoAppCoordinatorTests: XCTestCase {
         coordinator.navigate(to: .wallet)
         coordinator.popToRoot()
         XCTAssertTrue(coordinator.navigationPath.isEmpty)
-    }
-}
-
-// MARK: - Integration Tests
-
-final class AuthenticationIntegrationTests: XCTestCase {
-    var authRepository: AuthRepository!
-    var authUseCase: AuthenticateUseCase!
-    var keychain: KeychainManager!
-    
-    override func setUp() async throws {
-        try await super.setUp()
-        keychain = KeychainManager.shared
-        authRepository = MockAuthRepository()
-        authUseCase = AuthenticateUseCase(repository: authRepository)
-        
-        try await keychain.clearAuthCredentials()
-    }
-    
-    func testFullAuthenticationFlow() async throws {
-        // Step 1: Authenticate
-        let response = try await authUseCase.execute(
-            email: "test@echo.local",
-            password: "password123"
-        )
-        
-        XCTAssertNotNil(response.accessToken)
-        
-        // Step 2: Verify token was stored
-        let storedToken = try await keychain.getAuthToken()
-        XCTAssertNotNil(storedToken)
     }
 }
 

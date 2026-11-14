@@ -48,14 +48,16 @@ struct StakingDetailView: View {
                                 .foregroundStyle(Color.Echo.primaryContainer)
                         }
 
-                        HStack {
-                            Text("APY")
-                                .font(Font.Echo.bodyMedium)
-                                .foregroundStyle(Color.Echo.outline)
-                            Spacer()
-                            Text("\(String(format: "%.1f", viewModel.currentTier.apy))%")
-                                .font(Font.Echo.bodyMedium)
-                                .foregroundStyle(Color.Echo.success)
+                        if V1ReleaseScope.showsYieldRates {
+                            HStack {
+                                Text("APY")
+                                    .font(Font.Echo.bodyMedium)
+                                    .foregroundStyle(Color.Echo.outline)
+                                Spacer()
+                                Text("\(String(format: "%.1f", viewModel.currentTier.apy))%")
+                                    .font(Font.Echo.bodyMedium)
+                                    .foregroundStyle(Color.Echo.success)
+                            }
                         }
 
                         HStack {
@@ -102,7 +104,9 @@ struct StakingDetailView: View {
                         HStack {
                             Text("Tier").font(Font.Echo.labelMd).fontWeight(.bold).frame(maxWidth: .infinity, alignment: .leading)
                             Text("Min Stake").font(Font.Echo.labelMd).fontWeight(.bold).frame(maxWidth: .infinity)
-                            Text("APY").font(Font.Echo.labelMd).fontWeight(.bold).frame(maxWidth: .infinity)
+                            if V1ReleaseScope.showsYieldRates {
+                                Text("APY").font(Font.Echo.labelMd).fontWeight(.bold).frame(maxWidth: .infinity)
+                            }
                             Text("Multiplier").font(Font.Echo.labelMd).fontWeight(.bold).frame(maxWidth: .infinity, alignment: .trailing)
                         }
                         .foregroundStyle(Color.Echo.outline)
@@ -118,10 +122,12 @@ struct StakingDetailView: View {
                                 Text("\(tier.minimumStake)")
                                     .font(Font.Echo.bodyMedium)
                                     .frame(maxWidth: .infinity)
-                                Text("\(String(format: "%.1f", tier.apy))%")
-                                    .font(Font.Echo.bodyMedium)
-                                    .foregroundStyle(Color.Echo.success)
-                                    .frame(maxWidth: .infinity)
+                                if V1ReleaseScope.showsYieldRates {
+                                    Text("\(String(format: "%.1f", tier.apy))%")
+                                        .font(Font.Echo.bodyMedium)
+                                        .foregroundStyle(Color.Echo.success)
+                                        .frame(maxWidth: .infinity)
+                                }
                                 Text("\(String(format: "%.1f", tier.multiplier))x")
                                     .font(Font.Echo.bodyMedium)
                                     .frame(maxWidth: .infinity, alignment: .trailing)

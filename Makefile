@@ -250,7 +250,7 @@ dev: ## Bring up full Phase-1 cluster
 	@echo "===== Phase-1 Testnet Bring-up ====="
 	@echo ""
 	@echo "[1/4] Ensuring Euclid SDK is set up..."
-	@cd metagraph && ./scripts/setup-euclid.sh
+	@cd metagraph && EUCLID_DIR="$(EUCLID_DIR)" ./scripts/setup-euclid.sh
 	@echo ""
 	@echo "[2/4] Building metagraph Docker images (hydra install + build)..."
 	@if [ ! -d "$(EUCLID_DIR)" ]; then \
@@ -258,8 +258,13 @@ dev: ## Bring up full Phase-1 cluster
 		echo "    setup-euclid.sh should have cloned it. Re-run 'cd metagraph && ./scripts/setup-euclid.sh'"; \
 		exit 1; \
 	fi
-	@cd "$(EUCLID_DIR)" && scripts/hydra install
 	@cd "$(EUCLID_DIR)" && scripts/hydra build
+	@# Guard: the image must contain Echo's metagraph, not the Euclid template.
+	@main=$$(unzip -p "$(EUCLID_DIR)/infra/shared/jars/data-l1.jar" META-INF/MANIFEST.MF 2>/dev/null | tr -d '\r' | awk '/^Main-Class:/{print $$2}'); \
+	case "$$main" in \
+	  com.echo.*) echo "  ✓ data-l1.jar main class: $$main" ;; \
+	  *) echo "  ✗ data-l1.jar main class is '$$main' (expected com.echo.*) — the cluster would not run Echo's metagraph"; exit 1 ;; \
+	esac
 	@echo ""
 	@echo "[3/5] Starting metagraph cluster (hydra start-genesis)..."
 	@cd "$(EUCLID_DIR)" && scripts/hydra start-genesis || { \
@@ -326,9 +331,9 @@ metagraph-verify-skeleton: ## WO-276: static verify Identity Metagraph skeleton 
 metagraph-test: ## WO-272/277: run validators + Identity L1 wiring tests (sbt + JDK 21)
 	@JDK21=$$(ls -d /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home 2>/dev/null || ls -d /usr/lib/jvm/java-21* 2>/dev/null | head -1 || echo ""); \
 	if [ -n "$$JDK21" ]; then \
-	  cd metagraph && JAVA_HOME=$$JDK21 PATH=$$JDK21/bin:$$PATH SBT_OPTS="-Xss8m -Xmx2g" sbt "sharedData/test" "identityL0/test" "identityL1/test"; \
+	  cd metagraph && JAVA_HOME=$$JDK21 PATH=$$JDK21/bin:$$PATH SBT_OPTS="-Xss8m -Xmx2g" sbt "sharedData/test" "currencyL0/test" "currencyL1/test" "dataL1/test" "identityL0/test" "identityL1/test"; \
 	else \
-	  cd metagraph && SBT_OPTS="-Xss8m -Xmx2g" sbt "sharedData/test" "identityL0/test" "identityL1/test"; \
+	  cd metagraph && SBT_OPTS="-Xss8m -Xmx2g" sbt "sharedData/test" "currencyL0/test" "currencyL1/test" "dataL1/test" "identityL0/test" "identityL1/test"; \
 	fi
 
 dev-stop: testnet-down ## Tear down backend stack (does not stop metagraph)

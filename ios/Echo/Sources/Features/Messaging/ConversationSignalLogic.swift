@@ -34,6 +34,67 @@ enum DeliveryStatusAdvancement {
     }
 }
 
+/// Decides which outgoing messages a relay `error` frame refers to.
+///
+/// The server's `RATE_LIMITED` frame names the rejected frame's type, recipient
+/// and conversation but not a message id, so the dropped message is taken to be
+/// the newest outgoing one still in flight. Each rejected frame produces its own
+/// notice, and a message marked failed is no longer in flight, so a burst of
+/// notices walks back through the burst newest-first.
+enum RelayErrorLogic {
+    struct OutgoingMessage: Equatable {
+        let id: String
+        let isFromCurrentUser: Bool
+        let deliveryStatus: DeliveryStatus?
+        let sentAt: Date?
+    }
+
+    /// Wire types that carry a chat message (see `routeInbound` in `internal/api/ws.go`).
+    static let messageFrameTypes: Set<String> = ["text", "sealed_text"]
+
+    /// A message older than this was not dropped by a notice arriving now.
+    static let inFlightWindow: TimeInterval = 60
+
+    /// Whether the notice is about a frame sent from this conversation. A frame
+    /// that names neither conversation nor recipient could be from any chat.
+    static func concerns(_ notice: RelayErrorNotice, conversationId: String, peerDID: String) -> Bool {
+        if let rejected = notice.conversationId {
+            return rejected == conversationId
+        }
+        if let to = notice.rejectedTo, !peerDID.isEmpty {
+            return to == peerDID
+        }
+        return true
+    }
+
+    /// Ids of the outgoing messages to mark `.failed`; empty when the rejected
+    /// frame was not a message (typing, receipts, reactions) or nothing is in flight.
+    static func messageIDsToFail(
+        notice: RelayErrorNotice,
+        conversationId: String,
+        peerDID: String,
+        messages: [OutgoingMessage],
+        now: Date = Date()
+    ) -> [String] {
+        guard notice.code == RelayErrorNotice.rateLimitedCode,
+              concerns(notice, conversationId: conversationId, peerDID: peerDID) else {
+            return []
+        }
+        if let type = notice.rejectedType, !messageFrameTypes.contains(type) {
+            return []
+        }
+        let newestInFlight = messages.last { message in
+            guard message.isFromCurrentUser,
+                  message.deliveryStatus == .sending || message.deliveryStatus == .sent else {
+                return false
+            }
+            guard let sentAt = message.sentAt else { return true }
+            return now.timeIntervalSince(sentAt) <= inFlightWindow
+        }
+        return newestInFlight.map { [$0.id] } ?? []
+    }
+}
+
 enum ReactionToggleLogic {
     /// Returns emoji to POST, or `nil` to remove (toggle off same emoji).
     static func nextEmoji(currentUserSelection: String?, tappedEmoji: String) -> String? {

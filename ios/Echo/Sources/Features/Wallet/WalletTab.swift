@@ -32,7 +32,7 @@ struct WalletTab: View {
                             DailyRewardsSection(rewards: rewards)
                         }
 
-                        if let emission = viewModel.emissionStatus {
+                        if V1ReleaseScope.showsTokenInternals, let emission = viewModel.emissionStatus {
                             EmissionGaugeSection(status: emission)
                         }
 
@@ -101,12 +101,14 @@ struct WalletTab: View {
                             Image(systemName: "clock.arrow.circlepath")
                                 .foregroundStyle(Color.Echo.onSurface)
                         }
+                        .accessibilityLabel("Transaction history")
                         NavigationLink {
                             StakingDetailView(walletViewModel: viewModel)
                         } label: {
                             Image(systemName: "chart.bar.doc.horizontal")
                                 .foregroundStyle(Color.Echo.onSurface)
                         }
+                        .accessibilityLabel("Staking details")
                     }
                 }
             }
@@ -129,7 +131,7 @@ struct InterimModeBadge: View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "info.circle.fill")
                 .foregroundStyle(Color.echoInfo)
-            Text("Interim mode — transactions use the secure server path. Turn on real-funds signing in Settings → Wallet & Advanced.")
+            Text("Interim mode — transactions use the secure server path.")
                 .typographyStyle(.caption, color: .echoInk70)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)

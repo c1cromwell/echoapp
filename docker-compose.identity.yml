@@ -55,6 +55,7 @@ services:
     volumes:
       - ./metagraph/modules/identity_l0/target/scala-2.13:/jars:ro
       - ./scripts/identity/l0-entrypoint.sh:/identity/l0-entrypoint.sh:ro
+      # (identity-l1-2 / -3 on .52 / .53 are the extra L1 validators.)
       # Holds the generated identity.p12 key + the published genesis address.
       - identity-shared:/shared-identity
     environment:
@@ -100,6 +101,68 @@ services:
     command: ["bash", "/identity/l1-entrypoint.sh"]
     depends_on:
       - identity-l0
+
+  # Validators 2 and 3: a data L1 needs three nodes to run its own consensus.
+  # Without them identity-l1 accepts updates that never reach identity-l0.
+  identity-l1-2:
+    <<: *identity-base
+    container_name: identity-l1-2
+    ports:
+      - "9510:9510"
+    volumes:
+      - ./metagraph/modules/identity_l1/target/scala-2.13:/jars:ro
+      - ./scripts/identity/l1-entrypoint.sh:/identity/l1-entrypoint.sh:ro
+      - identity-shared:/shared-identity
+    environment:
+      <<: *identity-env
+      CL_PUBLIC_HTTP_PORT: "9510"
+      CL_P2P_HTTP_PORT: "9511"
+      CL_CLI_HTTP_PORT: "9512"
+      CL_L0_PEER_HTTP_HOST: "172.50.0.50"
+      CL_L0_PEER_HTTP_PORT: "9600"
+      IDENTITY_L1_ROLE: validator
+      IDENTITY_L1_WORKDIR: l1-workdir-2
+      IDENTITY_L1_IP: "172.50.0.52"
+      IDENTITY_L1_LEAD_IP: "172.50.0.51"
+      IDENTITY_SERVICE_DID: ${IDENTITY_SERVICE_DID:-}
+      IDENTITY_SERVICE_PUBLIC_KEY_HEX: ${IDENTITY_SERVICE_PUBLIC_KEY_HEX:-}
+    networks:
+      custom-network:
+        ipv4_address: 172.50.0.52
+    command: ["bash", "/identity/l1-entrypoint.sh"]
+    depends_on:
+      - identity-l1
+
+  identity-l1-3:
+    <<: *identity-base
+    container_name: identity-l1-3
+    ports:
+      - "9520:9520"
+    volumes:
+      - ./metagraph/modules/identity_l1/target/scala-2.13:/jars:ro
+      - ./scripts/identity/l1-entrypoint.sh:/identity/l1-entrypoint.sh:ro
+      - identity-shared:/shared-identity
+    environment:
+      <<: *identity-env
+      CL_PUBLIC_HTTP_PORT: "9520"
+      CL_P2P_HTTP_PORT: "9521"
+      CL_CLI_HTTP_PORT: "9522"
+      CL_L0_PEER_HTTP_HOST: "172.50.0.50"
+      CL_L0_PEER_HTTP_PORT: "9600"
+      IDENTITY_L1_ROLE: validator
+      IDENTITY_L1_WORKDIR: l1-workdir-3
+      # Wait until the lead and validator 2 are both Ready before joining.
+      IDENTITY_L1_JOIN_AFTER_READY: "2"
+      IDENTITY_L1_IP: "172.50.0.53"
+      IDENTITY_L1_LEAD_IP: "172.50.0.51"
+      IDENTITY_SERVICE_DID: ${IDENTITY_SERVICE_DID:-}
+      IDENTITY_SERVICE_PUBLIC_KEY_HEX: ${IDENTITY_SERVICE_PUBLIC_KEY_HEX:-}
+    networks:
+      custom-network:
+        ipv4_address: 172.50.0.53
+    command: ["bash", "/identity/l1-entrypoint.sh"]
+    depends_on:
+      - identity-l1
 
 networks:
   custom-network:

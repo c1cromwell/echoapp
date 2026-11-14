@@ -82,7 +82,9 @@ struct ValidatorRow: View {
                     HStack(spacing: 16) {
                         metricView("Uptime", value: String(format: "%.1f%%", validator.uptimePercent))
                         metricView("Commission", value: String(format: "%.1f%%", validator.commissionPercent))
-                        metricView("APR", value: String(format: "%.1f%%", validator.estimatedAPR))
+                        if V1ReleaseScope.showsYieldRates {
+                            metricView("APR", value: String(format: "%.1f%%", validator.estimatedAPR))
+                        }
                         metricView("Delegators", value: "\(validator.delegatorCount)")
                     }
                 }

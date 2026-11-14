@@ -911,19 +911,36 @@ func (p *PostgresDB) GetReactions(ctx context.Context, messageID string) ([]Reac
 
 // --- Contact discovery index (PostgresDB) ---
 
+const safetyReportColumns = `id, COALESCE(reporter_did, ''), subject_did, reason, context,
+		COALESCE(message_id, ''), COALESCE(conversation_id, ''), COALESCE(channel_id, ''), COALESCE(details, ''), created_at`
+
 func (p *PostgresDB) SaveSafetyReport(ctx context.Context, report SafetyReport) error {
 	_, err := p.pool.Exec(ctx, `
-		INSERT INTO safety_reports (id, reporter_did, subject_did, reason, context, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`, report.ID, report.ReporterDID, report.SubjectDID, report.Reason, report.Context, report.CreatedAt)
+		INSERT INTO safety_reports (id, reporter_did, subject_did, reason, context,
+			message_id, conversation_id, channel_id, details, created_at)
+		VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), NULLIF($7, ''), NULLIF($8, ''), NULLIF($9, ''), $10)
+	`, report.ID, report.ReporterDID, report.SubjectDID, report.Reason, report.Context,
+		report.MessageID, report.ConversationID, report.ChannelID, report.Details, report.CreatedAt)
 	return err
 }
 
 func (p *PostgresDB) ListSafetyReportsByReporter(ctx context.Context, reporterDID string) ([]SafetyReport, error) {
-	rows, err := p.pool.Query(ctx, `
-		SELECT id, reporter_did, subject_did, reason, context, created_at
+	return p.querySafetyReports(ctx, `
+		SELECT `+safetyReportColumns+`
 		FROM safety_reports WHERE reporter_did = $1 ORDER BY created_at
 	`, reporterDID)
+}
+
+func (p *PostgresDB) ListSafetyReports(ctx context.Context, subjectDID string, limit, offset int) ([]SafetyReport, error) {
+	return p.querySafetyReports(ctx, `
+		SELECT `+safetyReportColumns+`
+		FROM safety_reports WHERE ($1 = '' OR subject_did = $1)
+		ORDER BY created_at DESC, id LIMIT $2 OFFSET $3
+	`, subjectDID, limit, offset)
+}
+
+func (p *PostgresDB) querySafetyReports(ctx context.Context, query string, args ...interface{}) ([]SafetyReport, error) {
+	rows, err := p.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -931,7 +948,8 @@ func (p *PostgresDB) ListSafetyReportsByReporter(ctx context.Context, reporterDI
 	var out []SafetyReport
 	for rows.Next() {
 		var report SafetyReport
-		if err := rows.Scan(&report.ID, &report.ReporterDID, &report.SubjectDID, &report.Reason, &report.Context, &report.CreatedAt); err != nil {
+		if err := rows.Scan(&report.ID, &report.ReporterDID, &report.SubjectDID, &report.Reason, &report.Context,
+			&report.MessageID, &report.ConversationID, &report.ChannelID, &report.Details, &report.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, report)

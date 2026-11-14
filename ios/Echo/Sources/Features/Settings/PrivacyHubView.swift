@@ -266,7 +266,10 @@ struct ContactDiscoverySettingsView: View {
 }
 
 /// Account deletion and export — links existing profile actions (WO-228).
-private struct AccountDataView: View {
+/// Also the destination of Settings → Account, so deletion is one tap from the hub.
+struct AccountDataView: View {
+    /// Optional so the view still renders where no `AppState` is injected (previews, tests).
+    @Environment(AppState.self) private var appState: AppState?
     @State private var showDeleteConfirm = false
     @State private var isDeleting = false
     @State private var deleteError: String?
@@ -322,9 +325,15 @@ private struct AccountDataView: View {
         defer { isDeleting = false }
         do {
             try await repository.deleteAccount()
-            await SessionSignOut.performIncludingOnboardingReset()
+            // Leave the signed-in shell: without the root change the user would stay on
+            // this screen with a deleted account and every later request failing.
+            if let appState {
+                await appState.signOutForNewAccountSetup()
+            } else {
+                await SessionSignOut.performIncludingOnboardingReset()
+            }
         } catch {
-            deleteError = error.localizedDescription
+            deleteError = "Your account couldn't be deleted. Check your connection and try again."
         }
     }
 }

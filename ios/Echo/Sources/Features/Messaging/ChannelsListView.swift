@@ -233,9 +233,18 @@ struct ChannelDetailView: View {
     @State private var currentDID = ""
     @State private var showAdmin = false
     @State private var commentsPost: BroadcastPostWire?
+    @State private var reportTarget: SafetyReportTarget?
 
     private var isOwner: Bool {
         !currentDID.isEmpty && channel.creatorId == currentDID
+    }
+
+    /// The report names the channel's owner, so it needs one who isn't the viewer.
+    private var reportableOwnerDID: String? {
+        guard !currentDID.isEmpty, let owner = channel.creatorId, !owner.isEmpty, owner != currentDID else {
+            return nil
+        }
+        return owner
     }
 
     var body: some View {
@@ -280,6 +289,19 @@ struct ChannelDetailView: View {
                     .accessibilityLabel("Manage channel")
                 }
             }
+            if let ownerDID = reportableOwnerDID {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        reportTarget = .channel(id: channel.id, ownerDID: ownerDID)
+                    } label: {
+                        Image(systemName: "exclamationmark.bubble")
+                    }
+                    .accessibilityLabel("Report channel")
+                }
+            }
+        }
+        .sheet(item: $reportTarget) { target in
+            SafetyReportSheet(target: target)
         }
         .sheet(isPresented: $showAdmin) {
             NavigationStack { ChannelAdminView(channel: channel) }
@@ -364,7 +386,9 @@ struct ChannelDetailView: View {
                             ? Color.echoInk40
                             : Color.echoSignal
                     )
+                    .frame(width: 44, height: 44)
             }
+            .accessibilityLabel("Post")
             .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(12)
@@ -403,6 +427,7 @@ struct ChannelPostCommentsView: View {
     @State private var isLoading = true
     @State private var isSending = false
     @State private var errorMessage: String?
+    @State private var commentPendingDelete: ChannelCommentWire?
     @Bindable private var conversationStore = ConversationStore.shared
 
     private var isOwner: Bool { !currentDID.isEmpty && channel.creatorId == currentDID }
@@ -447,6 +472,25 @@ struct ChannelPostCommentsView: View {
         } message: { message in
             Text(message)
         }
+        .confirmationDialog(
+            "Delete this comment?",
+            isPresented: Binding(
+                get: { commentPendingDelete != nil },
+                set: { if !$0 { commentPendingDelete = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: commentPendingDelete
+        ) { comment in
+            Button("Delete", role: .destructive) {
+                Task {
+                    let ok = await ChannelsAPIClient.deleteComment(commentId: comment.id)
+                    if ok { await load() } else { errorMessage = "Couldn't delete this comment. Try again." }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("It will be removed for everyone in this channel.")
+        }
         .task { await load() }
     }
 
@@ -469,10 +513,7 @@ struct ChannelPostCommentsView: View {
             Spacer()
             if canDelete {
                 Button {
-                    Task {
-                        let ok = await ChannelsAPIClient.deleteComment(commentId: comment.id)
-                        if ok { await load() } else { errorMessage = "Couldn't delete this comment. Try again." }
-                    }
+                    commentPendingDelete = comment
                 } label: {
                     Image(systemName: "trash")
                         .font(.system(size: 15))
@@ -481,6 +522,7 @@ struct ChannelPostCommentsView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(Color.echoError)
+                .accessibilityLabel("Delete comment")
             }
         }
         .padding(.vertical, 4)
@@ -509,6 +551,7 @@ struct ChannelPostCommentsView: View {
                         .foregroundStyle(trimmedDraft.isEmpty ? Color.echoInk40 : Color.echoSignal)
                 }
             }
+            .accessibilityLabel("Send comment")
             .disabled(trimmedDraft.isEmpty || isSending)
         }
         .padding(12)

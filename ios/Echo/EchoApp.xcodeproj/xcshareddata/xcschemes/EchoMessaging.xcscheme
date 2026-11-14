@@ -73,9 +73,6 @@
             ReferencedContainer = "container:EchoApp.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
-      <StoreKitConfigurationFileReference
-         identifier = "../../../Configs/EchoVIP.storekit">
-      </StoreKitConfigurationFileReference>
       <EnvironmentVariables>
          <EnvironmentVariable
             key = "API_URL"
@@ -83,6 +80,9 @@
             isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>
+      <StoreKitConfigurationFileReference
+         identifier = "../../../Configs/EchoVIP.storekit">
+      </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release-Messaging"

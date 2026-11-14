@@ -363,18 +363,6 @@ final class DIContainer {
         }
         
         // UseCase Services
-        registerFactory(ServiceKeys.authenticateUseCase) { [weak self] in
-            AuthenticateUseCase(
-                repository: self?.resolve(ServiceKeys.authRepository) ?? ConcreteAuthRepository()
-            )
-        }
-        
-        registerFactory(ServiceKeys.sendMessageUseCase) { [weak self] in
-            SendMessageUseCase(
-                repository: self?.resolve(ServiceKeys.messageRepository) ?? ConcreteMessageRepository()
-            )
-        }
-        
         registerFactory(ServiceKeys.createDIDUseCase) { [weak self] in
             CreateDIDUseCase(
                 userRepository: self?.resolve(ServiceKeys.userRepository) ?? ConcreteUserRepository(),
@@ -449,10 +437,8 @@ enum ServiceKeys {
     static let tokenRepository = "repository.token"
     
     // UseCases
-    static let authenticateUseCase = "usecase.authenticate"
     static let registerUseCase = "usecase.register"
     static let passkeyUseCase = "usecase.passkey"
-    static let sendMessageUseCase = "usecase.sendMessage"
     static let fetchMessagesUseCase = "usecase.fetchMessages"
     static let createDIDUseCase = "usecase.createDID"
     static let verifyIdentityUseCase = "usecase.verifyIdentity"

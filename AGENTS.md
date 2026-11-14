@@ -12,6 +12,7 @@ Quick entry point for Cursor agents working in this repo. Read this first, then 
 | Update work order status | Skill: **`echo-work-order-sync`** + MCP `software-factory-echo` |
 | Chain / submission / PII review | Skill: **`echo-t0-t7-review`** + `docs/data-classification.md` |
 | Local cluster / validate / release check | MCP **`echo-local-dev`** (see `.cursor/mcp.json`) |
+| **v1.0 release scope & submission gates** | [`docs/V1_RELEASE.md`](docs/V1_RELEASE.md) |
 | Sept 1 Messaging go-live | [`docs/GO_LIVE_SEPT_1_2026.md`](docs/GO_LIVE_SEPT_1_2026.md) |
 | Signal vs Echo parity (post-launch waves) | [`docs/SIGNAL_ECHO_PARITY.md`](docs/SIGNAL_ECHO_PARITY.md) |
 | Telegram vs Echo parity (post-launch waves) | [`docs/TELEGRAM_ECHO_PARITY.md`](docs/TELEGRAM_ECHO_PARITY.md) |

@@ -37,6 +37,13 @@
 	</array>
 	<key>API_URL</key>
 	<string>$(API_URL)</string>
+	<!-- Read by LegalLinks. Terms/Privacy are the web app routes (web/src/app/join/terms, /privacy); they must be live before submission. -->
+	<key>EchoTermsURL</key>
+	<string>https://echo.app/join/terms</string>
+	<key>EchoPrivacyURL</key>
+	<string>https://echo.app/join/privacy</string>
+	<key>EchoSupportEmail</key>
+	<string>support@echo.app</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

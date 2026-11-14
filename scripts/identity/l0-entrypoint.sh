@@ -51,6 +51,38 @@ if [ -z "$CL_GLOBAL_L0_PEER_ID" ]; then
 fi
 echo "[identity-l0] Global L0 peer id:   $CL_GLOBAL_L0_PEER_ID"
 
+# The Identity metagraph's snapshots are anchored to one specific Global L0
+# chain. `make dev` re-runs genesis on the Global L0, after which the persisted
+# identity data can never roll back (LastSnapshotHashNotFound → crash loop).
+# Fingerprint the Global L0 chain by its first snapshot — stable across a
+# rollback restart, different after a new genesis — and start a fresh identity
+# genesis when it changed. Old data is moved aside, not deleted.
+# Only a real snapshot body counts: an unreachable node or an error page (for
+# example snapshot 1 not produced yet) must never be taken for "a new chain".
+GL0_FP=""
+GL0_SNAP="$(curl -fsS -m 5 "http://${GL0}/global-snapshots/1" 2>/dev/null || true)"
+if printf '%s' "$GL0_SNAP" | grep -q '"ordinal"'; then
+  GL0_FP="$(printf '%s' "$GL0_SNAP" | sha256sum | cut -d' ' -f1)"
+fi
+if [ -n "$GL0_FP" ]; then
+  if [ ! -f "$SHARED/gl0.fingerprint" ]; then
+    # First boot with this check: adopt the current chain, never orphan on a guess.
+    echo "$GL0_FP" > "$SHARED/gl0.fingerprint"
+  elif [ "$(cat "$SHARED/gl0.fingerprint")" != "$GL0_FP" ]; then
+    if [ -d data/incremental_snapshot ]; then
+      stamp="$(date +%Y%m%d-%H%M%S)"
+      echo "[identity-l0] Global L0 chain changed since this identity chain was created."
+      echo "[identity-l0] Moving orphaned identity data aside (*.orphaned-$stamp) and re-running genesis."
+      mv data "data.orphaned-$stamp"
+      [ -f "$SHARED/identity.address" ] && mv "$SHARED/identity.address" "$SHARED/identity.address.orphaned-$stamp"
+      for d in "$SHARED"/l1-workdir*/data; do
+        [ -d "$d" ] && mv "$d" "$d.orphaned-$stamp"
+      done
+    fi
+    echo "$GL0_FP" > "$SHARED/gl0.fingerprint"
+  fi
+fi
+
 if [ -d data/incremental_snapshot ]; then
   export CL_L0_TOKEN_IDENTIFIER="$(tr -d '\r\n' < "$SHARED/identity.address")"
   echo "[identity-l0] Resuming from persisted snapshots (run-rollback)…"

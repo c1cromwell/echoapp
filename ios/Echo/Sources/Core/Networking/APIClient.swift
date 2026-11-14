@@ -445,30 +445,54 @@ enum APIError: LocalizedError {
     case decodingError(DecodingError)
     case encodingError(EncodingError)
 
+    /// Shown to people as-is wherever a screen surfaces `error.localizedDescription`,
+    /// so it says what happened and what to do — no HTTP jargon. Status codes for
+    /// logs and support live in `diagnosticDescription`.
     var errorDescription: String? {
         switch self {
-        case .invalidResponse:
-            return "Invalid response from server"
+        case .invalidResponse, .decodingError, .encodingError:
+            return "Something went wrong talking to Echo. Please try again."
         case .badRequest:
-            return "Bad request (400)"
+            return "Echo couldn't process that request. Please try again."
         case .unauthorized:
-            return "Unauthorized (401) - Please authenticate"
+            return "Your session has expired. Sign in again to continue."
         case .forbidden:
-            return "Forbidden (403)"
+            return "You don't have permission to do that."
         case .notFound:
-            return "Resource not found (404)"
+            return "We couldn't find that. It may have been removed."
         case .rateLimited(let retryAfter):
-            return "Rate limited — retry after \(Int(retryAfter))s"
-        case .serverError(let code):
-            return "Server error (\(code))"
-        case .unexpectedStatusCode(let code):
-            return "Unexpected status code (\(code))"
+            let seconds = Int(retryAfter.rounded(.up))
+            return seconds > 0
+                ? "Echo is busy. Try again in \(seconds) second\(seconds == 1 ? "" : "s")."
+                : "Echo is busy. Try again in a moment."
+        case .serverError, .unexpectedStatusCode:
+            return "Echo is having trouble right now. Please try again in a moment."
         case .networkError(let error):
-            return "Network error: \(error.localizedDescription)"
-        case .decodingError:
-            return "Failed to decode response"
-        case .encodingError:
-            return "Failed to encode request"
+            switch error.code {
+            case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed:
+                return "You're offline. Check your connection and try again."
+            case .timedOut:
+                return "The connection timed out. Please try again."
+            default:
+                return "Couldn't reach Echo. Check your connection and try again."
+            }
+        }
+    }
+
+    /// Technical detail (status codes, underlying error) for logs — never for UI copy.
+    var diagnosticDescription: String {
+        switch self {
+        case .invalidResponse: return "invalid response"
+        case .badRequest: return "HTTP 400"
+        case .unauthorized: return "HTTP 401"
+        case .forbidden: return "HTTP 403"
+        case .notFound: return "HTTP 404"
+        case .rateLimited(let retryAfter): return "HTTP 429 (retry after \(Int(retryAfter))s)"
+        case .serverError(let code): return "HTTP \(code)"
+        case .unexpectedStatusCode(let code): return "unexpected HTTP \(code)"
+        case .networkError(let error): return "network error \(error.code.rawValue): \(error.localizedDescription)"
+        case .decodingError(let error): return "decoding error: \(error)"
+        case .encodingError(let error): return "encoding error: \(error)"
         }
     }
 }

@@ -10,19 +10,23 @@ public struct EchoNavBar: View {
     let onBackPressed: () -> Void
     let trailingAction: (() -> Void)?
     let trailingIcon: Image?
+    /// VoiceOver name for the icon-only trailing button.
+    let trailingAccessibilityLabel: String
     
     public init(
         title: String,
         showBackButton: Bool = true,
         onBackPressed: @escaping () -> Void = {},
         trailingAction: (() -> Void)? = nil,
-        trailingIcon: Image? = nil
+        trailingIcon: Image? = nil,
+        trailingAccessibilityLabel: String = "More"
     ) {
         self.title = title
         self.showBackButton = showBackButton
         self.onBackPressed = onBackPressed
         self.trailingAction = trailingAction
         self.trailingIcon = trailingIcon
+        self.trailingAccessibilityLabel = trailingAccessibilityLabel
     }
     
     public var body: some View {
@@ -53,7 +57,7 @@ public struct EchoNavBar: View {
                         .foregroundColor(.echoPrimaryText)
                         .frame(width: 44, height: 44)
                 }
-                .accessibility(label: Text("Action"))
+                .accessibility(label: Text(trailingAccessibilityLabel))
             }
         }
         .frame(height: 56)

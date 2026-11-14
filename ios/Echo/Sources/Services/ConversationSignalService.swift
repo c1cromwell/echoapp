@@ -188,7 +188,7 @@ final class ConversationSignalService: @unchecked Sendable {
             NotificationCenter.default.post(
                 name: .echoRelayError,
                 object: nil,
-                userInfo: ["message": notice.message, "code": notice.code]
+                userInfo: ["message": notice.message, "code": notice.code, "notice": notice]
             )
             return
         }

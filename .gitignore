@@ -123,3 +123,6 @@ tools/echo-local-dev-mcp/**/__pycache__/
 !deploy/terraform/hetzner/dev.tfvars
 !deploy/terraform/hetzner/staging.tfvars
 !deploy/terraform/hetzner/prod.tfvars
+
+# Local backups of generated/edited project files
+*.bak

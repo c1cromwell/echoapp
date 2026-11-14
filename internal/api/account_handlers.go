@@ -87,6 +87,7 @@ func (rt *Router) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
 
 	rt.enrollmentWalletMu.Lock()
 	delete(rt.enrollmentWalletByDID, userID)
+	delete(rt.enrollmentWalletProvisional, userID)
 	rt.enrollmentWalletMu.Unlock()
 
 	revoked := 0
@@ -107,6 +108,8 @@ func (rt *Router) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
 
 // handleLinkWallet implements POST /v1/identity/link-wallet.
 // Binds a Constellation wallet address to a did:key during first-run or enrollment.
+// An address belongs to one DID: linking an address that is already linked to
+// a different DID is refused with 409 WALLET_ALREADY_LINKED.
 func (rt *Router) handleLinkWallet(w http.ResponseWriter, r *http.Request) {
 	reqID := r.Header.Get("X-Request-ID")
 	if r.Method != http.MethodPost {
@@ -130,12 +133,35 @@ func (rt *Router) handleLinkWallet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rt.enrollmentWalletMu.Lock()
-	if rt.enrollmentWalletByDID == nil {
-		rt.enrollmentWalletByDID = make(map[string]string)
+	// The durable wallet store, when configured, also knows address owners.
+	conflict := false
+	if owner := rt.lookupDIDByWallet(r.Context(), req.WalletAddress); owner != "" && owner != req.DID {
+		conflict = true
 	}
-	rt.enrollmentWalletByDID[req.DID] = req.WalletAddress
-	rt.enrollmentWalletMu.Unlock()
+	if !conflict {
+		// Check again under the lock that guards the write, so two accounts
+		// racing for one address cannot both win.
+		rt.enrollmentWalletMu.Lock()
+		for did, linked := range rt.enrollmentWalletByDID {
+			if linked == req.WalletAddress && did != req.DID {
+				conflict = true
+				break
+			}
+		}
+		if !conflict {
+			if rt.enrollmentWalletByDID == nil {
+				rt.enrollmentWalletByDID = make(map[string]string)
+			}
+			rt.enrollmentWalletByDID[req.DID] = req.WalletAddress
+			// An authenticated link is not a provisional entry any more.
+			delete(rt.enrollmentWalletProvisional, req.DID)
+		}
+		rt.enrollmentWalletMu.Unlock()
+	}
+	if conflict {
+		WriteError(w, http.StatusConflict, "WALLET_ALREADY_LINKED", "this wallet address is already linked to another account", reqID)
+		return
+	}
 
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"linked":         true,

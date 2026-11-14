@@ -35,11 +35,11 @@ struct MessagesTabView: View {
     var body: some View {
         NavigationStack(path: $chatPath) {
             VStack(spacing: 0) {
-                if let error = syncPullError {
+                if syncPullError != nil {
                     HStack(alignment: .top, spacing: 10) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
-                        Text("History sync failed: \(error)")
+                        Text("Couldn't sync your message history from your other devices.")
                             .font(.footnote)
                             .foregroundStyle(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -114,6 +114,12 @@ struct MessagesTabView: View {
                             },
                             onGroupCreated: { groupId, name in
                                 openGroupConversation(groupId: groupId, name: name)
+                            },
+                            onRefresh: {
+                                // Pull-to-refresh: reconnect the relay (delivers anything queued
+                                // for us) and refresh contact trust badges.
+                                await connectSharedMessageRelay()
+                                await refreshContactTrustIndex()
                             }
                         )
                     }

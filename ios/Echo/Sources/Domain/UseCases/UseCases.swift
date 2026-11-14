@@ -1,20 +1,6 @@
 #if os(iOS)
 import Foundation
 
-// MARK: - Authenticate UseCase
-
-struct AuthenticateUseCase {
-    private let repository: AuthRepository
-    
-    init(repository: AuthRepository) {
-        self.repository = repository
-    }
-    
-    func execute(email: String, password: String) async throws -> LoginResponse {
-        return try await repository.login(email: email, password: password)
-    }
-}
-
 // MARK: - Register UseCase
 
 struct RegisterUseCase {
@@ -68,20 +54,6 @@ struct LogoutUseCase {
     
     func execute() async throws {
         return try await repository.logout()
-    }
-}
-
-// MARK: - Send Message UseCase
-
-struct SendMessageUseCase {
-    private let repository: MessageRepository
-    
-    init(repository: MessageRepository) {
-        self.repository = repository
-    }
-    
-    func execute(conversationId: String, content: String) async throws -> Message {
-        return try await repository.sendMessage(conversationId: conversationId, content: content)
     }
 }
 
@@ -180,34 +152,6 @@ struct MarkAsReadUseCase {
     
     func execute(messageId: String) async throws {
         return try await repository.markAsRead(messageId: messageId)
-    }
-}
-
-// MARK: - Get Profile UseCase
-
-struct GetProfileUseCase {
-    private let repository: UserRepository
-    
-    init(repository: UserRepository) {
-        self.repository = repository
-    }
-    
-    func execute() async throws -> User {
-        return try await repository.getProfile()
-    }
-}
-
-// MARK: - Update Profile UseCase
-
-struct UpdateProfileUseCase {
-    private let repository: UserRepository
-    
-    init(repository: UserRepository) {
-        self.repository = repository
-    }
-    
-    func execute(username: String, avatar: String?) async throws -> User {
-        return try await repository.updateProfile(username: username, avatar: avatar)
     }
 }
 

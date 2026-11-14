@@ -8,7 +8,7 @@ struct VIPSubscriptionView: View {
     @State private var errorMessage: String?
     @State private var showSuccess = false
     @State private var isActive = VIPSubscriptionStore.isActive
-    @State private var priceLabel = VIPSubscriptionStore.monthlyPriceLabel
+    @State private var priceState: VIPPriceDisplay.LoadState = .loading
 
     var body: some View {
         ScrollView {
@@ -25,9 +25,7 @@ struct VIPSubscriptionView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             VIPSubscriptionService.startTransactionListener()
-            if let price = await VIPSubscriptionService.loadMonthlyPrice() {
-                priceLabel = price
-            }
+            priceState = VIPPriceDisplay.loadState(displayPrice: await VIPSubscriptionService.loadMonthlyPrice())
             isActive = VIPSubscriptionStore.isActive
         }
         .alert("VIP activated", isPresented: $showSuccess) {
@@ -70,10 +68,11 @@ struct VIPSubscriptionView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.echoInk55)
                 .textCase(.uppercase)
-            benefitRow("bolt.fill", "2× API rate limits")
-            benefitRow("paintbrush.fill", "Premium themes & app icon")
+            // Only list what the app delivers today. Rate-limit boosts, themes /
+            // app icons and priority delivery are not implemented yet; listing
+            // them on a paid subscription would be selling features that do
+            // not exist. Add each row back when its feature ships.
             benefitRow("checkmark.seal.fill", "VIP trust badge on profile")
-            benefitRow("bell.badge.fill", "Priority signal delivery")
             benefitRow("heart.fill", "Supports the community treasury")
         }
     }
@@ -92,13 +91,29 @@ struct VIPSubscriptionView: View {
 
     private var pricingCard: some View {
         VStack(spacing: 14) {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(priceLabel)
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundColor(.echoInk)
-                Text("/ month")
-                    .font(.system(size: 16))
+            switch priceState {
+            case .loaded(let displayPrice):
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(displayPrice)
+                        .font(.system(size: 36, weight: .bold))
+                        .foregroundColor(.echoInk)
+                    Text("/ month")
+                        .font(.system(size: 16))
+                        .foregroundColor(.echoInk55)
+                }
+            case .loading:
+                ProgressView()
+            case .unavailable:
+                Text("ECHO VIP isn't available from the App Store right now. Check your connection and try again.")
+                    .font(.system(size: 14))
                     .foregroundColor(.echoInk55)
+                    .multilineTextAlignment(.center)
+                Button("Try again") {
+                    Task { await retryPriceLoad() }
+                }
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.echoSignal)
+                .frame(minHeight: 44)
             }
 
             if let errorMessage {
@@ -114,12 +129,13 @@ struct VIPSubscriptionView: View {
                 })
             } else {
                 EchoButton(
-                    isProcessing ? "Contacting the App Store…" : "Subscribe for \(priceLabel)/mo",
+                    VIPPriceDisplay.subscribeButtonTitle(state: priceState, isProcessing: isProcessing),
                     style: .primary,
                     size: .large,
+                    isDisabled: !VIPPriceDisplay.canSubscribe(state: priceState, isProcessing: isProcessing),
                     action: { Task { await subscribe() } }
                 )
-                .disabled(isProcessing)
+                .disabled(!VIPPriceDisplay.canSubscribe(state: priceState, isProcessing: isProcessing))
             }
 
             Button("Restore purchases") {
@@ -136,10 +152,20 @@ struct VIPSubscriptionView: View {
     }
 
     private var legalNote: some View {
-        Text("Payment is charged to your Apple ID. ECHO VIP renews each month until you cancel in Settings → Apple ID → Subscriptions. Free Echo keeps full private messaging. VIP adds convenience and status, not extra security. Rewards in the Rewards tab are earned and are not part of this purchase.")
-            .font(.system(size: 12))
-            .foregroundColor(.echoInk55)
-            .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Payment is charged to your Apple ID. ECHO VIP renews each month until you cancel in Settings → Apple ID → Subscriptions. Free Echo keeps full private messaging. VIP adds convenience and status, not extra security. Rewards in the Rewards tab are earned and are not part of this purchase.")
+                .font(.system(size: 12))
+                .foregroundColor(.echoInk55)
+                .fixedSize(horizontal: false, vertical: true)
+            // Auto-renewable subscriptions must link Terms and Privacy from the purchase screen.
+            HStack(spacing: 16) {
+                Link("Terms of Service", destination: LegalLinks.termsURL)
+                Link("Privacy Policy", destination: LegalLinks.privacyURL)
+            }
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundColor(.echoSignal)
+            .frame(minHeight: 44)
+        }
     }
 
     private func subscribe() async {
@@ -153,6 +179,11 @@ struct VIPSubscriptionView: View {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func retryPriceLoad() async {
+        priceState = .loading
+        priceState = VIPPriceDisplay.loadState(displayPrice: await VIPSubscriptionService.loadMonthlyPrice())
     }
 
     private func restore() async {

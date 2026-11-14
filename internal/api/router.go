@@ -4,6 +4,7 @@ package api
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -101,20 +102,28 @@ type Router struct {
 	Anchoring            *metagraph.AnchoringService      // WO-15 message integrity batching
 	Tokenomics           *TokenomicsHandlers              // WO-206/214/215/225/226/271
 	tokenService         *auth.TokenService               // ES256 JWT token service
+	stepUp               *auth.StepUpService              // step-up action requirements (one instance, see handleStepUp)
 
-	enrollmentVCMu          sync.Mutex
-	enrollmentVCSessions    map[string]enrollmentVCSession
-	enrollmentVerifiedMu    sync.Mutex
-	enrollmentVerified      map[string]enrollmentVerifiedRecord
-	enrollmentWalletMu      sync.Mutex
-	enrollmentWalletByDID   map[string]string
-	restoreChallengeMu      sync.Mutex
-	restoreChallenges       map[string]restoreChallenge
-	enrollmentMDLMu         sync.Mutex
-	enrollmentMDLSessions   map[string]enrollmentMDLSession
-	enrollmentIDVMu         sync.Mutex
-	enrollmentIDVSessions   map[string]enrollmentIDVSession
-	passportPresentSessions map[string]passportPresentSession
+	enrollmentVCMu        sync.Mutex
+	enrollmentVCSessions  map[string]enrollmentVCSession
+	enrollmentVerifiedMu  sync.Mutex
+	enrollmentVerified    map[string]enrollmentVerifiedRecord
+	enrollmentWalletMu    sync.Mutex
+	enrollmentWalletByDID map[string]string
+	// enrollmentWalletProvisional marks the entries of enrollmentWalletByDID
+	// that the unauthenticated /v1/enrollment/wallet route created, with the
+	// time they were added, so they can be capped and expired. Entries bound
+	// by the authenticated link-wallet route are not listed here. Guarded by
+	// enrollmentWalletMu.
+	enrollmentWalletProvisional map[string]time.Time
+	enrollmentWalletLastSweep   time.Time
+	restoreChallengeMu          sync.Mutex
+	restoreChallenges           map[string]restoreChallenge
+	enrollmentMDLMu             sync.Mutex
+	enrollmentMDLSessions       map[string]enrollmentMDLSession
+	enrollmentIDVMu             sync.Mutex
+	enrollmentIDVSessions       map[string]enrollmentIDVSession
+	passportPresentSessions     map[string]passportPresentSession
 
 	// smsSessions is an in-memory fallback OTP-session store used only when
 	// Redis is not configured (dev/test); prod uses Redis. Guarded by smsSessionsMu.
@@ -124,6 +133,10 @@ type Router struct {
 	// safetyReports is the fallback store when no database is configured.
 	safetyMu      sync.Mutex
 	safetyReports []database.SafetyReport
+
+	// storeKitRoots overrides the embedded Apple Root CA - G3 as the trust
+	// anchor for StoreKit transactions. Tests inject a throwaway root here.
+	storeKitRoots *x509.CertPool
 }
 
 type restoreChallenge struct {
@@ -149,6 +162,7 @@ func NewRouter(allowedOrigins []string) *Router {
 		DIDRegistry:    NewMemoryDIDRegistry(),
 		TrustRegistry:  onboarding.NewTrustRegistryService(),
 		tokenService:   tokenService,
+		stepUp:         auth.NewStepUpService(),
 	}
 
 	// Wire up JWT-based validation
@@ -359,6 +373,7 @@ var ipThrottledPublicPaths = map[string]bool{
 	"/v1/auth/sms-recovery/challenge": true,
 	"/v3/auth/refresh":                true,
 	"/v1/auth/restore-challenge":      true,
+	adminSafetyReportsPath:            true, // operator token is checked in the handler; curb guessing
 	"/v1/auth/restore-did":            true,
 	"/v1/enrollment/wallet":           true,
 }
@@ -465,6 +480,7 @@ func (rt *Router) authMiddleware(next http.Handler) http.Handler {
 			isOpenIDCredentialPath(r.URL.Path) ||
 			trustRegistryPublicRead(r.URL.Path, r.Method) ||
 			trustRegistryAdminMutation(r.URL.Path, r.Method, r) ||
+			adminAPIRequest(r.URL.Path) ||
 			onboardingSessionPublic(r.URL.Path, r.Method) {
 			next.ServeHTTP(w, r)
 			return
@@ -666,6 +682,8 @@ func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
 		rt.handleDeleteAccount(w, r)
 	case "/v1/safety/reports":
 		rt.handleSafetyReports(w, r)
+	case adminSafetyReportsPath:
+		rt.handleAdminSafetyReports(w, r)
 	case "/v1/identity/link-wallet":
 		rt.handleLinkWallet(w, r)
 	case "/v1/enrollment/mdl/ui":

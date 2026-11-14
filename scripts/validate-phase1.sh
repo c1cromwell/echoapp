@@ -215,6 +215,7 @@ if curl -fsS --max-time 5 "$IDENTITY_L0_URL/node/info" >/dev/null 2>&1; then
     fail "Identity L1 unreachable at $IDENTITY_L1_URL — start it with 'make start-identity' (separate from hydra)"
   fi
 
+  IL0_START=$(curl -fsS --max-time 5 "$IDENTITY_L0_URL/snapshots/latest/ordinal" 2>/dev/null | jq -r '.value // empty')
   NONCE="$(openssl rand -hex 16)"
   TIER_BODY=$(jq -nc --arg did "$DID_KEY" --arg nonce "$NONCE" '{subject_did:$did, tier:2, nonce:$nonce}')
   TIER_CODE=$(curl -sS -o "$TMP_DIR/tier.out" -w '%{http_code}' \
@@ -227,7 +228,28 @@ if curl -fsS --max-time 5 "$IDENTITY_L0_URL/node/info" >/dev/null 2>&1; then
     200)
       COMM=$(jq -r '.commitment // empty' "$TMP_DIR/tier.out")
       if [ "${#COMM}" -eq 64 ]; then
-        ok "trust-tier commitment anchored (H(tier||nonce) = ${COMM:0:16}…)"
+        ok "trust-tier commitment accepted by Identity L1 (H(tier||nonce) = ${COMM:0:16}…)"
+        # Acceptance by L1 is only a mempool admission. It is anchored when an
+        # Identity L0 snapshot carries a data block (needs 3 L1 nodes).
+        DEADLINE=$(( $(date +%s) + FINALITY_TIMEOUT_SECS ))
+        ANCHORED=0
+        NEXT=$(( ${IL0_START:-0} + 1 ))
+        while [ "$(date +%s)" -lt "$DEADLINE" ] && [ "$ANCHORED" -eq 0 ]; do
+          TOP=$(curl -fsS --max-time 5 "$IDENTITY_L0_URL/snapshots/latest/ordinal" 2>/dev/null | jq -r '.value // empty')
+          while [ -n "$TOP" ] && [ "$NEXT" -le "$TOP" ]; do
+            BLOCKS=$(curl -fsS --max-time 5 "$IDENTITY_L0_URL/snapshots/$NEXT" 2>/dev/null | jq -r '.value.dataApplication.blocks | length' 2>/dev/null || echo 0)
+            if [ "${BLOCKS:-0}" -gt 0 ] 2>/dev/null; then
+              ANCHORED=1
+              ok "Identity L0 snapshot $NEXT carries the data block (on-chain)"
+              break
+            fi
+            NEXT=$(( NEXT + 1 ))
+          done
+          [ "$ANCHORED" -eq 1 ] || sleep 3
+        done
+        if [ "$ANCHORED" -ne 1 ]; then
+          fail "commitment never reached an Identity L0 snapshot within ${FINALITY_TIMEOUT_SECS}s (is the Identity L1 a 3-node cluster? check 'docker logs identity-l1' for 'Not enough peers')"
+        fi
       else
         fail "unexpected response body: $(cat "$TMP_DIR/tier.out")"
       fi
@@ -278,37 +300,49 @@ ok "computed Merkle root: $MERKLE_ROOT"
 # Submit via POST /v1/data-l1/merkle-roots (public route, no auth required).
 # Falls back to skip when the backend is unreachable or DataL1 client not configured.
 MERKLE_BODY=$(jq -nc --arg root "$MERKLE_ROOT" '{root:$root, leafCount:1}')
-SUBMIT_RESP=$(curl -fsS --max-time 10 \
+SUBMIT_CODE=$(curl -sS -o "$TMP_DIR/merkle.out" -w '%{http_code}' --max-time 15 \
   -X POST "$BACKEND_URL/v1/data-l1/merkle-roots" \
   -H "Content-Type: application/json" \
-  -d "$MERKLE_BODY" 2>/dev/null) || SUBMIT_RESP=""
+  -d "$MERKLE_BODY" 2>/dev/null) || SUBMIT_CODE="000"
+SUBMIT_RESP=$(cat "$TMP_DIR/merkle.out" 2>/dev/null || true)
 
-if [ -z "$SUBMIT_RESP" ]; then
-  skip "POST /v1/data-l1/merkle-roots returned no response (backend down or DATA_L1_URL not configured)"
-  info "Ensure DATA_L1_URL is set in .env.local and the backend DataL1 client is initialised."
-else
-  TX_ID=$(printf '%s' "$SUBMIT_RESP" | jq -r '.tx_id // .txHash // .id // empty')
-  if [ -n "$TX_ID" ]; then
-    ok "submitted Merkle root, tx_id=$TX_ID"
-    DEADLINE=$(( $(date +%s) + FINALITY_TIMEOUT_SECS ))
-    FINALIZED=0
-    while [ "$(date +%s)" -lt "$DEADLINE" ]; do
-      if curl -fsS --max-time 5 "$DATA_L1_URL/data-application/merkle-roots/$MERKLE_ROOT" \
-           | jq -e '.finalized == true' >/dev/null 2>&1; then
-        FINALIZED=1
-        break
-      fi
-      sleep 2
-    done
-    if [ "$FINALIZED" -eq 1 ]; then
-      ok "Merkle root finalized in <${FINALITY_TIMEOUT_SECS}s"
+case "$SUBMIT_CODE" in
+  200|201)
+    TX_ID=$(printf '%s' "$SUBMIT_RESP" | jq -r '.tx_id // .txHash // .id // empty')
+    if [ -z "$TX_ID" ]; then
+      fail "submit response missing tx_id: $SUBMIT_RESP"
     else
-      fail "Merkle root not finalized within ${FINALITY_TIMEOUT_SECS}s"
+      ok "submitted Merkle root, tx_id=$TX_ID"
+      # Finality is decided by Metagraph L0 (it folds the Data L1 block into a
+      # snapshot). The Data L1 route only reports mempool acceptance.
+      DEADLINE=$(( $(date +%s) + FINALITY_TIMEOUT_SECS ))
+      FINALIZED=0
+      while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+        if curl -fsS --max-time 5 "$METAGRAPH_L0_URL/data-application/merkle-roots/$MERKLE_ROOT" 2>/dev/null \
+             | jq -e '.finalized == true' >/dev/null 2>&1; then
+          FINALIZED=1
+          break
+        fi
+        sleep 2
+      done
+      if [ "$FINALIZED" -eq 1 ]; then
+        ok "Merkle root finalized on Metagraph L0 in <${FINALITY_TIMEOUT_SECS}s"
+      else
+        fail "Merkle root not finalized on Metagraph L0 within ${FINALITY_TIMEOUT_SECS}s"
+      fi
     fi
-  else
-    fail "submit response missing tx_id: $SUBMIT_RESP"
-  fi
-fi
+    ;;
+  503)
+    skip "Data L1 client not configured on the backend (DATA_L1_URL unset): $SUBMIT_RESP"
+    ;;
+  000)
+    fail "POST /v1/data-l1/merkle-roots: backend unreachable"
+    ;;
+  *)
+    fail "POST /v1/data-l1/merkle-roots returned HTTP $SUBMIT_CODE: $SUBMIT_RESP"
+    info "A 404 from Data L1 on /data means the cluster is not running Echo's data application."
+    ;;
+esac
 
 # -----------------------------------------------------------------------------
 # Step 6: Verify snapshot height increments on Global L0

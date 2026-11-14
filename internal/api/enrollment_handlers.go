@@ -437,6 +437,52 @@ func (rt *Router) handleEnrollmentDID(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// The unauthenticated wallet-provisioning route remembers DID -> address so a
+// later restore can find the DID by address. Anyone can call it with any DID,
+// so what it remembers is bounded: at most enrollmentWalletMaxProvisional
+// entries, each kept for enrollmentWalletProvisionalTTL.
+const (
+	enrollmentWalletMaxProvisional = 10000
+	enrollmentWalletProvisionalTTL = 24 * time.Hour
+	enrollmentWalletSweepInterval  = time.Minute
+	enrollmentWalletMaxDIDLen      = 512
+)
+
+// provisionEnrollmentWallet returns the wallet address for did, remembering it
+// when there is room. The address is derived from the DID, so the answer is
+// the same whether or not it was stored.
+func (rt *Router) provisionEnrollmentWallet(did string, now time.Time) string {
+	rt.enrollmentWalletMu.Lock()
+	defer rt.enrollmentWalletMu.Unlock()
+	if addr, ok := rt.enrollmentWalletByDID[did]; ok {
+		return addr
+	}
+	addr := deterministicDAGAddress(did)
+	if len(rt.enrollmentWalletProvisional) >= enrollmentWalletMaxProvisional &&
+		now.Sub(rt.enrollmentWalletLastSweep) >= enrollmentWalletSweepInterval {
+		rt.enrollmentWalletLastSweep = now
+		for stale, added := range rt.enrollmentWalletProvisional {
+			if now.Sub(added) >= enrollmentWalletProvisionalTTL {
+				delete(rt.enrollmentWalletProvisional, stale)
+				delete(rt.enrollmentWalletByDID, stale)
+			}
+		}
+	}
+	if len(rt.enrollmentWalletProvisional) >= enrollmentWalletMaxProvisional {
+		// Full of live entries: answer without storing.
+		return addr
+	}
+	if rt.enrollmentWalletByDID == nil {
+		rt.enrollmentWalletByDID = make(map[string]string)
+	}
+	if rt.enrollmentWalletProvisional == nil {
+		rt.enrollmentWalletProvisional = make(map[string]time.Time)
+	}
+	rt.enrollmentWalletByDID[did] = addr
+	rt.enrollmentWalletProvisional[did] = now
+	return addr
+}
+
 // handleEnrollmentWallet handles POST /v1/enrollment/wallet.
 // Provisions a Constellation wallet address for the enrolled DID (Phase 2 proxy).
 func (rt *Router) handleEnrollmentWallet(w http.ResponseWriter, r *http.Request) {
@@ -452,17 +498,12 @@ func (rt *Router) handleEnrollmentWallet(w http.ResponseWriter, r *http.Request)
 		WriteError(w, http.StatusBadRequest, "MISSING_FIELDS", "did is required", r.Header.Get("X-Request-ID"))
 		return
 	}
+	if len(req.DID) > enrollmentWalletMaxDIDLen {
+		WriteError(w, http.StatusBadRequest, "INVALID_DID", "did is too long", r.Header.Get("X-Request-ID"))
+		return
+	}
 
-	rt.enrollmentWalletMu.Lock()
-	if rt.enrollmentWalletByDID == nil {
-		rt.enrollmentWalletByDID = make(map[string]string)
-	}
-	addr, ok := rt.enrollmentWalletByDID[req.DID]
-	if !ok {
-		addr = deterministicDAGAddress(req.DID)
-		rt.enrollmentWalletByDID[req.DID] = addr
-	}
-	rt.enrollmentWalletMu.Unlock()
+	addr := rt.provisionEnrollmentWallet(req.DID, time.Now())
 
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"address":    addr,

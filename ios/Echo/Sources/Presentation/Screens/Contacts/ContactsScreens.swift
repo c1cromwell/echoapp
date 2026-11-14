@@ -19,6 +19,7 @@ public struct ContactsListView: View {
     @State private var selectedContact: ContactModel?
     @State private var chatThread: StoredConversation?
     @State private var importedContacts: [ContactModel] = []
+    @State private var showContactsAccessDenied = false
     #else
     @State private var contacts: [ContactModel] = []
     #endif
@@ -83,7 +84,8 @@ public struct ContactsListView: View {
                     title: "Contacts",
                     showBackButton: false,
                     trailingAction: { showAddContact = true },
-                    trailingIcon: Image(systemName: "plus")
+                    trailingIcon: Image(systemName: "plus"),
+                    trailingAccessibilityLabel: "Add contact"
                 )
 
                 VStack(spacing: Spacing.lg.rawValue) {
@@ -101,6 +103,7 @@ public struct ContactsListView: View {
                                     .font(.system(size: 14))
                                     .foregroundColor(.echoGray400)
                             }
+                            .accessibilityLabel("Clear search")
                         }
                     }
                     .padding(Spacing.md.rawValue)
@@ -122,10 +125,12 @@ public struct ContactsListView: View {
                     #if os(iOS)
                     if viewModel.isLoading && viewModel.contacts.isEmpty {
                         SkeletonList(count: 8) { ContactRowSkeleton() }
+                    } else if displayedContacts.isEmpty, let loadError = viewModel.errorMessage {
+                        contactsLoadErrorState(loadError)
                     } else if displayedContacts.isEmpty {
                         contactsEmptyState
                     } else if filteredContacts.isEmpty {
-                        contactsEmptyState
+                        contactsNoMatchesState
                     } else {
                         contactsList
                     }
@@ -168,8 +173,72 @@ public struct ContactsListView: View {
         .sheet(isPresented: $showInviteLink) {
             InviteLinkSheet()
         }
+        .alert("Contacts access is off", isPresented: $showContactsAccessDenied) {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("Not now", role: .cancel) {}
+        } message: {
+            Text("To import from your phone, allow Echo to access Contacts in Settings. You can also add people by @username.")
+        }
         #endif
     }
+
+    /// Contacts exist but the search / trust filter / favorites toggle hides all of them.
+    private var contactsNoMatchesState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 40))
+                .foregroundColor(.echoInk40)
+            Text("No contacts match")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.echoInk)
+            Text("Try a different search or clear your filters.")
+                .font(.system(size: 14))
+                .foregroundColor(.echoInk55)
+                .multilineTextAlignment(.center)
+            Button("Clear filters") {
+                searchText = ""
+                selectedFilter = "All"
+                showFavoritesOnly = false
+            }
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundColor(.echoSignal)
+            .frame(minHeight: 44)
+        }
+        .padding(.horizontal, 40)
+        .frame(maxHeight: .infinity, alignment: .center)
+        .accessibilityIdentifier("contacts.noMatches")
+    }
+
+    #if os(iOS)
+    /// The list couldn't load and there is nothing cached to show.
+    private func contactsLoadErrorState(_ message: String) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.system(size: 40))
+                .foregroundColor(.echoInk40)
+            Text("Couldn't load contacts")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.echoInk)
+            Text(message)
+                .font(.system(size: 14))
+                .foregroundColor(.echoInk55)
+                .multilineTextAlignment(.center)
+            Button("Try again") {
+                Task { await viewModel.refresh() }
+            }
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundColor(.echoSignal)
+            .frame(minHeight: 44)
+        }
+        .padding(.horizontal, 40)
+        .frame(maxHeight: .infinity, alignment: .center)
+        .accessibilityIdentifier("contacts.loadError")
+    }
+    #endif
 
     #if os(iOS)
     private func openChat(with contact: ContactModel) async {
@@ -187,7 +256,10 @@ public struct ContactsListView: View {
         let store = CNContactStore()
         do {
             let granted = try await store.requestAccess(for: .contacts)
-            guard granted else { return }
+            guard granted else {
+                showContactsAccessDenied = true
+                return
+            }
             let keys = [CNContactGivenNameKey, CNContactFamilyNameKey, CNContactPhoneNumbersKey] as [CNKeyDescriptor]
             let request = CNContactFetchRequest(keysToFetch: keys)
             var imported: [ContactModel] = []
@@ -202,7 +274,8 @@ public struct ContactsListView: View {
             importedContacts = imported
             await viewModel.refresh()
         } catch {
-            // Permission denied or fetch failed — no action needed
+            // `requestAccess` throws when access was already denied.
+            showContactsAccessDenied = true
         }
     }
     #endif

@@ -312,3 +312,118 @@ final class EnhancedPrivacySettingsTests: XCTestCase {
         XCTAssertEqual(decoded.contactDiscoveryOptIn, true)
     }
 }
+
+// MARK: - Restore: device identity key id + returning-user gates
+
+/// In-memory stand-in for the Secure Enclave key store, keyed by key id.
+private actor FakeRecoveryKeyStore: RecoveryDeviceKeyStore {
+    private(set) var keys: [String: Data] = [:]
+    private(set) var generatedIDs: [String] = []
+    private var nextKey: Data
+    /// When set, `publicKey(id:)` returns this instead of what was generated.
+    private var readBackOverride: Data?
+
+    init(existing: [String: Data] = [:], nextKey: Data, readBackOverride: Data? = nil) {
+        self.keys = existing
+        self.nextKey = nextKey
+        self.readBackOverride = readBackOverride
+    }
+
+    func generateKey(id: String) async throws -> String {
+        generatedIDs.append(id)
+        keys[id] = nextKey
+        return nextKey.base64EncodedString()
+    }
+
+    func publicKey(id: String) async throws -> Data {
+        if let readBackOverride { return readBackOverride }
+        guard let key = keys[id] else {
+            throw SecureEnclaveManager.SecureEnclaveError.keyNotFound(id)
+        }
+        return key
+    }
+}
+
+private actor FakeRecoveryCredentialStore: RecoveryCredentialStore {
+    private(set) var values: [String: String] = [:]
+    func storeString(_ value: String, key: String) async throws { values[key] = value }
+}
+
+final class RecoveryIdentityProvisionerTests: XCTestCase {
+    private let newKey = Data(repeating: 0x04, count: 1) + Data((1...64).map { UInt8($0) })
+
+    func testIdentityKeyIDIsTheOneEverySignerUses() {
+        XCTAssertEqual(IdentitySigningKeyID.current, "echo-identity-signing")
+    }
+
+    func testRestoredDeviceKeyIsStoredUnderTheIdentitySigningID() async throws {
+        let store = FakeRecoveryKeyStore(nextKey: newKey)
+        let sent = try await RecoveryIdentityProvisioner(keyStore: store).provisionDeviceKey()
+
+        let generatedIDs = await store.generatedIDs
+        XCTAssertEqual(generatedIDs, ["echo-identity-signing"])
+        // The bytes sent to restore-did are the key later requests are signed with.
+        let stored = try await store.publicKey(id: "echo-identity-signing")
+        XCTAssertEqual(sent, stored)
+        XCTAssertEqual(sent, newKey)
+        let keys = await store.keys
+        XCTAssertNil(keys["echo-recovery-signing"], "restore must not park the key under the old id")
+    }
+
+    func testStaleIdentityKeyIsReplacedNotReused() async throws {
+        let stale = Data(repeating: 0x04, count: 1) + Data(repeating: 0xAA, count: 64)
+        let store = FakeRecoveryKeyStore(existing: ["echo-identity-signing": stale], nextKey: newKey)
+
+        let sent = try await RecoveryIdentityProvisioner(keyStore: store).provisionDeviceKey()
+
+        XCTAssertNotEqual(sent, stale)
+        let stored = try await store.publicKey(id: "echo-identity-signing")
+        XCTAssertEqual(stored, newKey)
+        XCTAssertEqual(sent, newKey)
+    }
+
+    func testMismatchBetweenGeneratedAndStoredKeyFailsRestore() async {
+        let other = Data(repeating: 0x04, count: 1) + Data(repeating: 0xBB, count: 64)
+        let store = FakeRecoveryKeyStore(nextKey: newKey, readBackOverride: other)
+        do {
+            _ = try await RecoveryIdentityProvisioner(keyStore: store).provisionDeviceKey()
+            XCTFail("a key the device cannot sign with must not be sent to the server")
+        } catch {
+            XCTAssertEqual(error as? RecoveryError, .deviceKeyUnavailable)
+        }
+    }
+
+    func testAllZeroPublicKeyIsRejected() async {
+        let store = FakeRecoveryKeyStore(nextKey: Data(repeating: 0, count: 65))
+        do {
+            _ = try await RecoveryIdentityProvisioner(keyStore: store).provisionDeviceKey()
+            XCTFail("expected deviceKeyUnavailable")
+        } catch {
+            XCTAssertEqual(error as? RecoveryError, .deviceKeyUnavailable)
+        }
+    }
+
+    func testRestoreSetsTheReturningUserGates() async throws {
+        let suite = "recovery.gates.test"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let credentials = FakeRecoveryCredentialStore()
+
+        try await RecoveryIdentityProvisioner.persistRestoredAccount(
+            did: "did:key:zRestored",
+            displayName: " alice ",
+            trustTier: 2,
+            defaults: defaults,
+            credentials: credentials
+        )
+
+        XCTAssertTrue(defaults.bool(forKey: "echo.hasCompletedFirstRun"))
+        XCTAssertEqual(defaults.string(forKey: "echo.did"), "did:key:zRestored")
+        XCTAssertEqual(defaults.string(forKey: "echo.displayName"), "alice")
+        XCTAssertEqual(defaults.integer(forKey: "echo.trustTier"), 2)
+        let values = await credentials.values
+        XCTAssertEqual(values["echo.username.current"], "alice")
+        XCTAssertEqual(values["echo.did.current"], "did:key:zRestored")
+    }
+}

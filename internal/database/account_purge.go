@@ -5,11 +5,18 @@ import (
 	"fmt"
 )
 
-// accountPurgeStep is one DELETE issued when an account is erased. Query takes
-// the account DID as $1.
+// accountPurgeStep is one statement issued when an account is erased. Query
+// takes the account DID as $1.
 type accountPurgeStep struct {
 	Table string
 	Query string
+}
+
+// accountAnonymiseSteps are UPDATEs that strip the account DID from rows that
+// are kept. They run in the same transaction as accountPurgeSteps and are not
+// counted as removed rows.
+var accountAnonymiseSteps = []accountPurgeStep{
+	{"safety_reports", `UPDATE safety_reports SET reporter_did = NULL WHERE reporter_did = $1`},
 }
 
 // accountPurgeSteps lists every server-side row that is personal to one account
@@ -31,6 +38,12 @@ type accountPurgeStep struct {
 //   - comply_*: organisation compliance records under their own retention and
 //     legal-hold rules.
 //   - media object bytes in S3/IPFS: only the index rows are removed here.
+//   - safety_reports: never deleted. Reports ABOUT the account (subject_did)
+//     stay as they are, otherwise deleting an account would erase the abuse
+//     record against it. Reports the account FILED stay too, with reporter_did
+//     cleared (accountAnonymiseSteps), so moderation keeps the report but no
+//     longer knows who sent it.
+//     The reporter's optional free text (details) is kept with the report.
 var accountPurgeSteps = []accountPurgeStep{
 	// Devices, push tokens and key bindings.
 	{"user_devices", `DELETE FROM user_devices WHERE did = $1 OR user_id IN (SELECT user_id FROM users WHERE did = $1)`},
@@ -43,7 +56,6 @@ var accountPurgeSteps = []accountPurgeStep{
 	{"contact_discovery_index", `DELETE FROM contact_discovery_index WHERE did = $1`},
 	{"sms_recovery", `DELETE FROM sms_recovery WHERE did = $1`},
 	{"contacts", `DELETE FROM contacts WHERE owner_did = $1 OR contact_did = $1`},
-	{"safety_reports", `DELETE FROM safety_reports WHERE reporter_did = $1 OR subject_did = $1`},
 	{"invite_links", `DELETE FROM invite_links WHERE inviter_did = $1`},
 
 	// Messaging state held for the account.
@@ -101,11 +113,32 @@ func (p *PostgresDB) PurgeAccount(ctx context.Context, did string) (map[string]i
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
+	tableExists := func(table string) (bool, error) {
+		var exists bool
+		if err := tx.QueryRow(ctx, `SELECT to_regclass('public.' || $1) IS NOT NULL`, table).Scan(&exists); err != nil {
+			return false, fmt.Errorf("purge account: probe %s: %w", table, err)
+		}
+		return exists, nil
+	}
+
+	for _, step := range accountAnonymiseSteps {
+		exists, err := tableExists(step.Table)
+		if err != nil {
+			return nil, err
+		}
+		if !exists {
+			continue
+		}
+		if _, err := tx.Exec(ctx, step.Query, did); err != nil {
+			return nil, fmt.Errorf("purge account: anonymise %s: %w", step.Table, err)
+		}
+	}
+
 	removed := make(map[string]int64, len(accountPurgeSteps))
 	for _, step := range accountPurgeSteps {
-		var exists bool
-		if err := tx.QueryRow(ctx, `SELECT to_regclass('public.' || $1) IS NOT NULL`, step.Table).Scan(&exists); err != nil {
-			return nil, fmt.Errorf("purge account: probe %s: %w", step.Table, err)
+		exists, err := tableExists(step.Table)
+		if err != nil {
+			return nil, err
 		}
 		if !exists {
 			continue

@@ -74,4 +74,119 @@ public struct ContactSafetyBanner: View {
         }
     }
 }
+// MARK: - Report sheet (contact, message, channel, group)
+
+/// Reason picker, confirmation, and success/failure for a safety report.
+/// Same shape as the contact report sheet; the report goes to `/v1/safety/reports`.
+struct SafetyReportSheet: View {
+    @StateObject private var viewModel: SafetyReportViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var showConfirmation = false
+    private let onSubmitted: () -> Void
+
+    init(target: SafetyReportTarget, onSubmitted: @escaping () -> Void = {}) {
+        _viewModel = StateObject(wrappedValue: SafetyReportSheet.liveViewModel(target: target))
+        self.onSubmitted = onSubmitted
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(viewModel.target.prompt)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.Echo.outline)
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color.Echo.error)
+                }
+                ForEach(SafetyReportReason.allCases) { reason in
+                    Button {
+                        viewModel.selectedReason = reason
+                    } label: {
+                        HStack {
+                            Text(reason.label)
+                                .font(.system(size: 16, weight: .semibold))
+                            Spacer()
+                            if viewModel.selectedReason == reason {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    }
+                    .accessibilityAddTraits(viewModel.selectedReason == reason ? .isSelected : [])
+                }
+                TextField("Add details (optional)", text: $viewModel.details, axis: .vertical)
+                    .lineLimit(2...4)
+                    .textFieldStyle(.roundedBorder)
+                Button(role: .destructive) {
+                    showConfirmation = true
+                } label: {
+                    HStack {
+                        if viewModel.phase == .submitting { ProgressView() }
+                        Text(viewModel.target.alsoBlocks ? "Block & report" : "Send report")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                }
+                .disabled(!viewModel.canSubmit)
+                .accessibilityIdentifier("safetyReport.submit")
+                Spacer()
+            }
+            .padding(24)
+            .navigationTitle(viewModel.target.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .confirmationDialog(
+            viewModel.target.alsoBlocks ? "Block this person and send the report?" : "Send this report to Echo?",
+            isPresented: $showConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(viewModel.target.alsoBlocks ? "Block & report" : "Send report", role: .destructive) {
+                Task { await viewModel.submitReport() }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .alert("Report sent", isPresented: Binding(
+            get: { viewModel.phase == .succeeded },
+            set: { _ in }
+        )) {
+            Button("OK", role: .cancel) {
+                onSubmitted()
+                dismiss()
+            }
+        } message: {
+            Text(viewModel.successMessage)
+        }
+    }
+
+    @MainActor
+    private static func liveViewModel(target: SafetyReportTarget) -> SafetyReportViewModel {
+        SafetyReportViewModel(
+            target: target,
+            submit: { request in
+                guard let client = DIContainer.shared.resolveAPIClient() else {
+                    throw SafetyReportError.notSignedIn
+                }
+                try await ContactSocialAPIClient(apiClient: client).submitReport(request)
+            },
+            block: { did in
+                if let useCase = DIContainer.shared.resolveBlockContactUseCase() {
+                    try await useCase.block(did: did)
+                } else if let client = DIContainer.shared.resolveAPIClient() {
+                    try await ContactSocialAPIClient(apiClient: client).blockContact(did: did)
+                } else {
+                    throw SafetyReportError.notSignedIn
+                }
+            }
+        )
+    }
+}
 #endif

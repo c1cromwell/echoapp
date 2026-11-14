@@ -1,7 +1,8 @@
 package api
 
 import (
-	"encoding/base64"
+	"context"
+	"crypto/x509"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -15,12 +16,74 @@ const (
 	vipBundleID         = "com.echo.app"
 )
 
-// vipTransactions remembers which Apple transaction is bound to which DID so
-// one subscription cannot be replayed onto a second account in this process.
+// Highest tier each kind of evidence can set through this endpoint.
+//
+// Anything other than a verified StoreKit transaction is self-asserted: the
+// server has no proof behind it, so it can only record the baseline tier that
+// silent provisioning gives every new account. Higher tiers come from evidence
+// the server checks itself (the StoreKit subscription here; credential
+// enrollment sets its own tier in handleEnrollmentDID).
+const (
+	vipMaxSelfAssertedTier = 1
+	vipSubscriptionTier    = 3
+)
+
+// vipTxnOwner remembers which Apple transaction is bound to which DID so one
+// subscription cannot be replayed onto a second account. It is the fallback
+// when Redis is not configured (or is unreachable); with Redis the binding is
+// shared by every gateway instance and survives a restart.
 var (
 	vipTxnMu    sync.Mutex
 	vipTxnOwner = map[string]string{}
 )
+
+// vipTxnStore is the part of infra.RedisClient the replay guard needs.
+type vipTxnStore interface {
+	SetNX(ctx context.Context, key string, value []byte, ttl time.Duration) (bool, error)
+	CacheGet(ctx context.Context, key string) ([]byte, error)
+}
+
+// claimVIPTransaction binds txnID to did, or reports that it already belongs
+// to a different DID.
+func (rt *Router) claimVIPTransaction(ctx context.Context, txnID, did string, expires time.Time) bool {
+	if rt.Redis != nil {
+		return claimVIPTransactionIn(ctx, rt.Redis, txnID, did, expires)
+	}
+	return claimVIPTransactionIn(ctx, nil, txnID, did, expires)
+}
+
+// claimVIPTransactionIn uses store when it is non-nil and reachable, and the
+// process-local map otherwise. A Redis binding lives until the transaction
+// expires plus a day of slack: after that the transaction is rejected as not
+// current anyway.
+func claimVIPTransactionIn(ctx context.Context, store vipTxnStore, txnID, did string, expires time.Time) bool {
+	if store != nil {
+		ttl := time.Until(expires) + 24*time.Hour
+		if ttl < 24*time.Hour {
+			ttl = 24 * time.Hour
+		}
+		// CacheGet reads under the "cache:" prefix; SetNX takes the full key.
+		key := "vip:txn:" + txnID
+		set, err := store.SetNX(ctx, "cache:"+key, []byte(did), ttl)
+		if err == nil && set {
+			return true
+		}
+		if err == nil {
+			if owner, gerr := store.CacheGet(ctx, key); gerr == nil && owner != nil {
+				return string(owner) == did
+			}
+		}
+		// Redis unreachable (or the key expired between the two calls): fall
+		// through to the process-local guard.
+	}
+	vipTxnMu.Lock()
+	defer vipTxnMu.Unlock()
+	if owner, ok := vipTxnOwner[txnID]; ok && owner != did {
+		return false
+	}
+	vipTxnOwner[txnID] = did
+	return true
+}
 
 // vipTierRecord is an in-memory store for trust tiers. A Postgres/Redis
 // backing store can be wired up when infrastructure is available.
@@ -37,9 +100,20 @@ type vipTierRecord struct {
 //	Body: { "did": "did:key:z…", "trust_tier": 2, "evidence_type": "standard_idv" }
 //
 // Authenticated: the caller must sign the request with the DID's registered
-// device key (X-Sender-DID / X-Signature), and may only set its own tier. The
-// tier is still self-asserted evidence until IDV / StoreKit validation backs it,
-// so nothing should grant privileges from this record alone.
+// device key (X-Sender-DID / X-Signature), and may only set its own tier.
+//
+// The tier that is recorded depends on the evidence, not on what was asked for:
+//
+//   - evidence_type "vip_subscription" needs signed_transaction, a StoreKit 2
+//     JWS that verifies against Apple Root CA - G3 (see verifyStoreKitJWS). It
+//     records at most vipSubscriptionTier.
+//   - every other evidence_type is self-asserted and records at most
+//     vipMaxSelfAssertedTier.
+//
+// A request for more than the evidence supports still returns 200, with the
+// granted tier in trust_tier, the original ask in requested_trust_tier and
+// capped=true, so first-run clients that report a locally computed tier keep
+// working without being able to raise their own tier.
 // The router stores the record; future messages/contact-resolution endpoints
 // will read the tier from the DIDRegistry or this cache.
 func (rt *Router) handleVIPVerify(w http.ResponseWriter, r *http.Request) {
@@ -87,20 +161,40 @@ func (rt *Router) handleVIPVerify(w http.ResponseWriter, r *http.Request) {
 	if req.EvidenceType == "" {
 		req.EvidenceType = "unknown"
 	}
+	maxTier := vipMaxSelfAssertedTier
 	if req.EvidenceType == "vip_subscription" {
-		claims, err := parseStoreKitTransaction(req.SignedTransaction, time.Now())
+		var payload []byte
+		var err error
+		if storeKitUnverifiedAllowed() {
+			// Local Xcode StoreKit testing only; never reachable in production.
+			payload, err = unverifiedStoreKitPayload(req.SignedTransaction)
+		} else {
+			var roots *x509.CertPool
+			roots, err = rt.storeKitRootPool()
+			if err != nil {
+				// Fail closed: without a trust anchor nothing can be verified.
+				WriteError(w, http.StatusServiceUnavailable, "STOREKIT_UNAVAILABLE", "subscription verification is not available", r.Header.Get("X-Request-ID"))
+				return
+			}
+			payload, err = verifyStoreKitJWS(req.SignedTransaction, roots, time.Now())
+		}
+		var claims storeKitClaims
+		if err == nil {
+			claims, err = parseStoreKitClaims(payload, time.Now())
+		}
 		if err != nil {
 			WriteError(w, http.StatusBadRequest, "STOREKIT_REQUIRED", err.Error(), r.Header.Get("X-Request-ID"))
 			return
 		}
-		vipTxnMu.Lock()
-		if owner, ok := vipTxnOwner[claims.TransactionID]; ok && owner != req.DID {
-			vipTxnMu.Unlock()
+		if !rt.claimVIPTransaction(r.Context(), claims.TransactionID, req.DID, time.UnixMilli(claims.ExpiresDate)) {
 			WriteError(w, http.StatusConflict, "TRANSACTION_REUSED", "this subscription is already linked to another account", r.Header.Get("X-Request-ID"))
 			return
 		}
-		vipTxnOwner[claims.TransactionID] = req.DID
-		vipTxnMu.Unlock()
+		maxTier = vipSubscriptionTier
+	}
+	requestedTier := req.TrustTier
+	if req.TrustTier > maxTier {
+		req.TrustTier = maxTier
 	}
 
 	record := vipTierRecord{
@@ -117,11 +211,13 @@ func (rt *Router) handleVIPVerify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"did":           record.DID,
-		"trust_tier":    record.TrustTier,
-		"evidence_type": record.EvidenceType,
-		"updated_at":    record.UpdatedAt.Format(time.RFC3339),
-		"request_id":    r.Header.Get("X-Request-ID"),
+		"did":                  record.DID,
+		"trust_tier":           record.TrustTier,
+		"requested_trust_tier": requestedTier,
+		"capped":               record.TrustTier < requestedTier,
+		"evidence_type":        record.EvidenceType,
+		"updated_at":           record.UpdatedAt.Format(time.RFC3339),
+		"request_id":           r.Header.Get("X-Request-ID"),
 	})
 }
 
@@ -130,21 +226,17 @@ type storeKitClaims struct {
 	BundleID      string `json:"bundleId"`
 	ProductID     string `json:"productId"`
 	ExpiresDate   int64  `json:"expiresDate"`
+	// "Production", "Sandbox" (TestFlight, App Review, sandbox testers) or "Xcode".
+	Environment string `json:"environment"`
+	// Set by Apple when the purchase was refunded or revoked.
+	RevocationDate int64 `json:"revocationDate"`
 }
 
-// parseStoreKitTransaction reads the payload of a StoreKit 2 signed transaction
-// and checks that it is the Echo VIP monthly subscription and still current.
-// Xcode's local StoreKit signer is not Apple's production certificate, so the
-// signature chain is not pinned here.
-func parseStoreKitTransaction(jws string, now time.Time) (storeKitClaims, error) {
-	parts := strings.Split(jws, ".")
-	if len(parts) != 3 || parts[1] == "" {
-		return storeKitClaims{}, errStoreKit("signed_transaction must be a StoreKit transaction")
-	}
-	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		return storeKitClaims{}, errStoreKit("signed_transaction payload is not valid")
-	}
+// parseStoreKitClaims reads the payload of a StoreKit 2 transaction whose
+// signature has already been dealt with (verifyStoreKitJWS, or the explicit
+// non-production bypass) and checks that it is the Echo VIP monthly
+// subscription and still current.
+func parseStoreKitClaims(payload []byte, now time.Time) (storeKitClaims, error) {
 	var claims storeKitClaims
 	if err := json.Unmarshal(payload, &claims); err != nil {
 		return storeKitClaims{}, errStoreKit("signed_transaction payload is not valid")
@@ -154,6 +246,15 @@ func parseStoreKitTransaction(jws string, now time.Time) (storeKitClaims, error)
 	}
 	if claims.ExpiresDate <= now.UnixMilli() {
 		return storeKitClaims{}, errStoreKit("subscription is not current")
+	}
+	if claims.RevocationDate != 0 {
+		return storeKitClaims{}, errStoreKit("subscription was refunded or revoked")
+	}
+	// Apple signs Sandbox transactions with the same chain as real ones, and a
+	// sandbox purchase is free: without this check any sandbox tester gets VIP
+	// on the production gateway.
+	if claims.Environment != "Production" && !storeKitSandboxAllowed() {
+		return storeKitClaims{}, errStoreKit("transaction is not from the production App Store")
 	}
 	return claims, nil
 }

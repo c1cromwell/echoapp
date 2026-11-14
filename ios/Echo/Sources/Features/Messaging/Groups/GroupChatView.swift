@@ -84,6 +84,7 @@ struct GroupChatView: View {
                         .font(.system(size: 24))
                         .foregroundStyle(Color.echoSignal)
                 }
+                .accessibilityLabel(showAttachmentPicker ? "Close attachments" : "Add attachment")
                 TextField("Message", text: $viewModel.composerText, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
                     .onChange(of: viewModel.composerText) { _, text in
@@ -109,6 +110,7 @@ struct GroupChatView: View {
                 Button { showGroupDetail = true } label: {
                     Image(systemName: "person.3")
                 }
+                .accessibilityLabel("Group info")
             }
         }
         .sheet(isPresented: $showGroupDetail) {
@@ -147,6 +149,7 @@ struct GroupChatView: View {
                     .foregroundStyle(Color.echoInk40)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Cancel recording")
 
             Button {
                 Task { await viewModel.sendVoiceNote(from: voiceRecorder) }
@@ -156,6 +159,7 @@ struct GroupChatView: View {
                     .foregroundStyle(Color.echoSignal)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Send voice note")
         }
         .padding(.horizontal, Spacing.md.rawValue)
         .padding(.vertical, 10)

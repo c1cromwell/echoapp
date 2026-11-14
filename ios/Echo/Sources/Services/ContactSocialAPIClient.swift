@@ -1,5 +1,241 @@
-#if os(iOS)
 import Foundation
+
+// MARK: - Safety reports (POST /v1/safety/reports)
+//
+// Platform-neutral so the wire shape and the submit flow are unit-tested headlessly.
+// Field names and allowed values mirror `internal/api/safety_handlers.go`.
+
+enum SafetyReportReason: String, CaseIterable, Identifiable, Sendable {
+    case spam
+    case harassment
+    case impersonation
+    case other
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .spam: return "Spam"
+        case .harassment: return "Harassment"
+        case .impersonation: return "Impersonation"
+        case .other: return "Something else"
+        }
+    }
+}
+
+enum SafetyReportContext: String, Sendable {
+    case contact
+    case message
+    case channel
+}
+
+/// Body of a safety report. The optional fields are encoded only when present.
+struct SafetyReportRequest: Encodable, Equatable, Sendable {
+    static let maxDetailsLength = 1000
+
+    let subjectDid: String
+    let reason: String
+    let context: String
+    let messageId: String?
+    let conversationId: String?
+    let channelId: String?
+    let details: String?
+
+    enum CodingKeys: String, CodingKey {
+        case subjectDid = "subject_did"
+        case reason
+        case context
+        case messageId = "message_id"
+        case conversationId = "conversation_id"
+        case channelId = "channel_id"
+        case details
+    }
+
+    init(
+        subjectDID: String,
+        reason: SafetyReportReason,
+        context: SafetyReportContext,
+        messageId: String? = nil,
+        conversationId: String? = nil,
+        channelId: String? = nil,
+        details: String? = nil
+    ) {
+        self.subjectDid = subjectDID
+        self.reason = reason.rawValue
+        self.context = context.rawValue
+        self.messageId = Self.present(messageId)
+        self.conversationId = Self.present(conversationId)
+        self.channelId = Self.present(channelId)
+        self.details = Self.present(details).map { String($0.prefix(Self.maxDetailsLength)) }
+    }
+
+    private static func present(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+            return nil
+        }
+        return trimmed
+    }
+}
+
+/// What is being reported, and the words the report sheet uses for it.
+struct SafetyReportTarget: Identifiable, Equatable, Sendable {
+    let subjectDID: String
+    let context: SafetyReportContext
+    var messageId: String?
+    var conversationId: String?
+    var channelId: String?
+    var title: String
+    var prompt: String
+    /// "Block & report": the subject is blocked before the report is sent.
+    var alsoBlocks = false
+
+    var id: String {
+        [context.rawValue, subjectDID, messageId ?? "", conversationId ?? "", channelId ?? "", alsoBlocks ? "block" : ""]
+            .joined(separator: "|")
+    }
+
+    func request(reason: SafetyReportReason, details: String?) -> SafetyReportRequest {
+        SafetyReportRequest(
+            subjectDID: subjectDID,
+            reason: reason,
+            context: context,
+            messageId: messageId,
+            conversationId: conversationId,
+            channelId: channelId,
+            details: details
+        )
+    }
+
+    static func contact(did: String, conversationId: String? = nil, alsoBlocks: Bool = false) -> SafetyReportTarget {
+        SafetyReportTarget(
+            subjectDID: did,
+            context: .contact,
+            conversationId: conversationId,
+            title: alsoBlocks ? "Block & report" : "Report contact",
+            prompt: alsoBlocks
+                ? "This person will be blocked and Echo will get a report. Tell Echo what is wrong."
+                : "Tell Echo what is wrong with this contact. The report is stored for review.",
+            alsoBlocks: alsoBlocks
+        )
+    }
+
+    static func message(id: String, senderDID: String, conversationId: String) -> SafetyReportTarget {
+        SafetyReportTarget(
+            subjectDID: senderDID,
+            context: .message,
+            messageId: id,
+            conversationId: conversationId,
+            title: "Report message",
+            prompt: "Tell Echo what is wrong with this message. Echo gets the message's id and who sent it, not its contents."
+        )
+    }
+
+    static func channel(id: String, ownerDID: String) -> SafetyReportTarget {
+        SafetyReportTarget(
+            subjectDID: ownerDID,
+            context: .channel,
+            channelId: id,
+            title: "Report channel",
+            prompt: "Tell Echo what is wrong with this channel. The report names the channel and its owner."
+        )
+    }
+
+    /// Groups use the `channel` context (the server has no separate one); the
+    /// group is identified by its conversation id.
+    static func group(id: String, ownerDID: String) -> SafetyReportTarget {
+        SafetyReportTarget(
+            subjectDID: ownerDID,
+            context: .channel,
+            conversationId: id.hasPrefix("group:") ? id : "group:\(id)",
+            title: "Report group",
+            prompt: "Tell Echo what is wrong with this group. The report names the group and its owner."
+        )
+    }
+}
+
+enum SafetyReportError: LocalizedError, Equatable {
+    case notSignedIn
+    case blockedButNotReported(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .notSignedIn:
+            return "Sign in before sending a report."
+        case .blockedButNotReported(let reason):
+            return "They're blocked, but the report wasn't sent. \(reason)"
+        }
+    }
+}
+
+/// State for the report sheet: pick a reason, confirm, submit, then success or an error to retry.
+@MainActor
+final class SafetyReportViewModel: ObservableObject {
+    enum Phase: Equatable {
+        case editing
+        case submitting
+        case succeeded
+        case failed(String)
+    }
+
+    let target: SafetyReportTarget
+    @Published var selectedReason: SafetyReportReason?
+    @Published var details = ""
+    @Published private(set) var phase: Phase = .editing
+
+    private let submit: (SafetyReportRequest) async throws -> Void
+    private let block: (String) async throws -> Void
+    private var didBlock = false
+
+    init(
+        target: SafetyReportTarget,
+        submit: @escaping (SafetyReportRequest) async throws -> Void,
+        block: @escaping (String) async throws -> Void = { _ in }
+    ) {
+        self.target = target
+        self.submit = submit
+        self.block = block
+    }
+
+    var canSubmit: Bool { selectedReason != nil && phase != .submitting && phase != .succeeded }
+
+    var errorMessage: String? {
+        if case .failed(let message) = phase { return message }
+        return nil
+    }
+
+    var successMessage: String {
+        target.alsoBlocks
+            ? "They're blocked and Echo saved your report."
+            : "Echo saved this report. Blocking is separate and still available."
+    }
+
+    func submitReport() async {
+        guard canSubmit, let reason = selectedReason else { return }
+        phase = .submitting
+        do {
+            if target.alsoBlocks, !didBlock {
+                try await block(target.subjectDID)
+                didBlock = true
+            }
+        } catch {
+            phase = .failed(error.localizedDescription)
+            return
+        }
+        do {
+            try await submit(target.request(reason: reason, details: details))
+            phase = .succeeded
+        } catch {
+            let reasonText = error.localizedDescription
+            phase = .failed(
+                didBlock
+                    ? (SafetyReportError.blockedButNotReported(reasonText).errorDescription ?? reasonText)
+                    : reasonText
+            )
+        }
+    }
+}
+
+#if os(iOS)
 
 // MARK: - Models (WO-222)
 
@@ -106,21 +342,16 @@ struct ContactSocialAPIClient: Sendable {
     }
 
     func reportContact(did: String, reason: String) async throws {
-        struct Body: Encodable {
-            let subjectDid: String
-            let reason: String
-            let context: String
-            enum CodingKeys: String, CodingKey {
-                case subjectDid = "subject_did"
-                case reason
-                case context
-            }
+        guard let reason = SafetyReportReason(rawValue: reason) else {
+            throw APIError.badRequest
         }
+        try await submitReport(SafetyReportRequest(subjectDID: did, reason: reason, context: .contact))
+    }
+
+    /// Files a safety report about a contact, message, channel or group.
+    func submitReport(_ request: SafetyReportRequest) async throws {
         struct Ack: Decodable { let id: String }
-        let _: Ack = try await apiClient.post(
-            endpoint: SafetyEndpoint.report,
-            body: Body(subjectDid: did, reason: reason, context: "contact")
-        )
+        let _: Ack = try await apiClient.post(endpoint: SafetyEndpoint.report, body: request)
     }
 
     func blockContact(did: String) async throws {

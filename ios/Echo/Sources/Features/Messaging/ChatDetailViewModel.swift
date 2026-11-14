@@ -123,9 +123,12 @@ final class ChatDetailViewModel {
             object: nil,
             queue: .main
         ) { [weak self] note in
-            let message = note.userInfo?["message"] as? String ?? "Echo couldn't send that. Try again."
+            let notice = (note.userInfo?["notice"] as? RelayErrorNotice) ?? RelayErrorNotice(
+                code: note.userInfo?["code"] as? String ?? "",
+                message: note.userInfo?["message"] as? String ?? "Echo couldn't send that. Try again."
+            )
             Task { @MainActor in
-                self?.errorMessage = message
+                self?.applyRelayError(notice)
             }
         }
 
@@ -159,6 +162,33 @@ final class ChatDetailViewModel {
         }
 
         installAnchorObservers()
+    }
+
+    /// A relay `error` frame arrived: show it, and mark the outgoing message the
+    /// server dropped as `.failed` — the same state a failed send already uses —
+    /// so it stops reading as sent.
+    func applyRelayError(_ notice: RelayErrorNotice, now: Date = Date()) {
+        guard RelayErrorLogic.concerns(notice, conversationId: conversationId, peerDID: peerDID) else { return }
+        errorMessage = notice.message
+        let failedIDs = RelayErrorLogic.messageIDsToFail(
+            notice: notice,
+            conversationId: conversationId,
+            peerDID: peerDID,
+            messages: messages.map {
+                RelayErrorLogic.OutgoingMessage(
+                    id: $0.id,
+                    isFromCurrentUser: $0.isFromCurrentUser,
+                    deliveryStatus: $0.deliveryStatus,
+                    sentAt: $0.sentAt
+                )
+            },
+            now: now
+        )
+        for id in failedIDs {
+            guard let idx = messages.firstIndex(where: { $0.id == id }) else { continue }
+            messages[idx].deliveryStatus = .failed
+            syncThreadMessage(messages[idx])
+        }
     }
 
     private func installAnchorObservers() {
@@ -255,7 +285,7 @@ final class ChatDetailViewModel {
         do {
             try await signalService.connect(accessToken: accessToken)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = FailedMessageLogic.connectFailureText
         }
     }
 
@@ -518,12 +548,19 @@ final class ChatDetailViewModel {
     /// emit a typing-stop. Returns the optimistic message id so callers can later
     /// reconcile delivery status. Single source of truth for the send path —
     /// `ChatView` calls this instead of mutating `messages` directly.
+    ///
+    /// `fromComposer` is false for a retry of a failed message: the retry keeps its own
+    /// reply context and must not consume or clear whatever the user is composing now.
     @discardableResult
-    func sendMessage(_ text: String, replyTo: ChatDetailMessage? = nil) async -> String? {
+    func sendMessage(
+        _ text: String,
+        replyTo: ChatDetailMessage? = nil,
+        fromComposer: Bool = true
+    ) async -> String? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 
-        let replyTarget = replyTo ?? replyingTo
+        let replyTarget = fromComposer ? (replyTo ?? replyingTo) : replyTo
         let replyId = replyTarget?.id
         let replyPreview = replyTarget.map {
             MessageComposerLogic.replyPreview(authorName: peerDisplayNameForReply($0), content: $0.content)
@@ -615,21 +652,70 @@ final class ChatDetailViewModel {
                     forwardedFromConversationId: nil
                 )
             }
-            if let idx = messages.firstIndex(where: { $0.id == message.id }) {
+            // Still `.sending` unless a relay error already marked it failed.
+            if let idx = messages.firstIndex(where: { $0.id == message.id }),
+               messages[idx].deliveryStatus == .sending {
                 messages[idx].deliveryStatus = .sent
                 syncThreadMessage(messages[idx])
+                // A send that went through supersedes an older "couldn't send" banner.
+                errorMessage = nil
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = FailedMessageLogic.sendFailureText
             if let idx = messages.firstIndex(where: { $0.id == message.id }) {
                 messages[idx].deliveryStatus = .failed
                 syncThreadMessage(messages[idx])
             }
         }
 
-        cancelComposerMode()
-        await onSendTapped()
+        if fromComposer {
+            cancelComposerMode()
+            await onSendTapped()
+        }
         return message.id
+    }
+
+    // MARK: - Failed messages (retry / discard)
+
+    /// Whether a failed outgoing message can be sent again as-is (plain text only).
+    func canRetry(_ message: ChatDetailMessage) -> Bool {
+        FailedMessageLogic.canRetry(message)
+    }
+
+    /// Re-sends a failed text message. The failed row is replaced by a fresh send at the
+    /// end of the thread (new id, so a relay that half-saw the first attempt can't dedupe
+    /// it away). Returns the new message id, or nil when the message isn't retryable.
+    @discardableResult
+    func retryMessage(_ messageId: String) async -> String? {
+        guard let failed = messages.first(where: { $0.id == messageId }),
+              FailedMessageLogic.canRetry(failed) else { return nil }
+        let replyTarget = failed.replyToMessageId.flatMap { replyId in
+            messages.first(where: { $0.id == replyId })
+        }
+        discardFailedMessage(messageId)
+        errorMessage = nil
+        return await sendMessage(failed.content, replyTo: replyTarget, fromComposer: false)
+    }
+
+    /// Removes a message that never left this device. Local only — there is nothing on
+    /// the server or the peer's device to tombstone. Returns false for any other message.
+    @discardableResult
+    func discardFailedMessage(_ messageId: String) -> Bool {
+        guard let message = messages.first(where: { $0.id == messageId }),
+              FailedMessageLogic.isFailedOutgoing(message) else { return false }
+        messages.removeAll { $0.id == messageId }
+        pinnedMessageIDs.remove(messageId)
+        ConversationThreadStore.replace(conversationId: conversationId, messages: messages)
+        DeviceSyncOutboundCoordinator.notifyMessageDeleted(conversationId: conversationId, messageId: messageId)
+        if !messages.contains(where: { FailedMessageLogic.isFailedOutgoing($0) }) {
+            errorMessage = nil
+        }
+        return true
+    }
+
+    /// Clears the inline error banner (the user dismissed it).
+    func dismissError() {
+        errorMessage = nil
     }
 
     /// Send encrypted media (image/video/file/voice) via relay + `/v3/media` (M5).
@@ -688,12 +774,14 @@ final class ChatDetailViewModel {
                 waveformBars: waveformBars,
                 viewOnce: viewOnce
             )
-            if let idx = messages.firstIndex(where: { $0.id == message.id }) {
+            // Still `.sending` unless a relay error already marked it failed.
+            if let idx = messages.firstIndex(where: { $0.id == message.id }),
+               messages[idx].deliveryStatus == .sending {
                 messages[idx].deliveryStatus = .sent
                 syncThreadMessage(messages[idx])
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = FailedMessageLogic.mediaFailureText
             if let idx = messages.firstIndex(where: { $0.id == message.id }) {
                 messages[idx].deliveryStatus = .failed
                 syncThreadMessage(messages[idx])
@@ -781,7 +869,7 @@ final class ChatDetailViewModel {
                 messageIds: [messageId]
             )
         } catch {
-            errorMessage = error.localizedDescription
+            // Background signal — a missed read receipt is not something the user can act on.
         }
         // Durable receipt so read state survives the peer being offline; the server
         // fans out a live read_receipt to the sender (WO-192).
@@ -801,7 +889,7 @@ final class ChatDetailViewModel {
                 messageIds: batch
             )
         } catch {
-            errorMessage = error.localizedDescription
+            // Background signal — see `onMessageAppeared`.
         }
         await persistReadReceipts(batch)
     }
@@ -863,7 +951,7 @@ final class ChatDetailViewModel {
                 emoji: relayEmoji
             )
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = "Couldn't update your reaction. Try again."
         }
     }
 
@@ -876,7 +964,7 @@ final class ChatDetailViewModel {
                 userReactionByMessage[messageId] = mine.emoji
             }
         } catch {
-            errorMessage = error.localizedDescription
+            // Background reconcile on open — never surface a raw error for it.
         }
     }
 
@@ -1034,6 +1122,48 @@ final class ChatDetailViewModel {
             guard !Task.isCancelled else { return }
             self?.peerScreenshotNotice = false
         }
+    }
+}
+
+/// Pure rules for a `.failed` outgoing message: what the row offers and what it says.
+enum FailedMessageLogic {
+    static let sendFailureText = "Message not sent. Tap it to try again."
+    static let mediaFailureText = "Attachment not sent. Check your connection and send it again."
+    static let connectFailureText = "Can't reach Echo right now. Check your connection."
+
+    /// Placeholders the optimistic media row carries while its upload is pending. A failed
+    /// row with one of these bodies was an attachment, whose bytes are no longer held.
+    static let mediaPlaceholders: Set<String> = Set(
+        [MediaKind.image, .video, .audio, .file].map { kind in
+            TextMessagePayload.mediaPlaceholder(for: MediaAttachmentRef(
+                fileId: "pending",
+                mimeType: "",
+                mediaKind: kind.rawValue,
+                byteSize: 0,
+                chunkCount: 0,
+                caption: nil
+            ))
+        }
+    )
+
+    static func isFailedOutgoing(_ message: ChatDetailMessage) -> Bool {
+        guard message.isFromCurrentUser else { return false }
+        return message.deliveryStatus == .failed
+    }
+
+    /// Only plain text can be re-sent from the row itself: attachments and polls no longer
+    /// have their payload, and a payment must never be re-issued by a retry tap.
+    static func canRetry(_ message: ChatDetailMessage) -> Bool {
+        guard isFailedOutgoing(message) else { return false }
+        guard message.mediaRef == nil, message.pollId == nil else { return false }
+        let body = message.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !body.isEmpty, !mediaPlaceholders.contains(body) else { return false }
+        return PaymentMessageEncoding.decode(message.content) == nil
+    }
+
+    /// Caption under a failed bubble.
+    static func caption(for message: ChatDetailMessage) -> String {
+        canRetry(message) ? "Not sent · Tap to retry" : "Not sent · Tap for options"
     }
 }
 

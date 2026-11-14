@@ -59,9 +59,11 @@ struct StakingView: View {
 
                                 Spacer()
 
-                                Text("\(String(format: "%.0f", tier.apr))% APR")
-                                    .font(Font.Echo.bodyLarge)
-                                    .foregroundStyle(Color.Echo.primaryContainer)
+                                if V1ReleaseScope.showsYieldRates {
+                                    Text("\(String(format: "%.0f", tier.apr))% APR")
+                                        .font(Font.Echo.bodyLarge)
+                                        .foregroundStyle(Color.Echo.primaryContainer)
+                                }
 
                                 if viewModel.selectedTier == tier {
                                     Image(systemName: "checkmark.circle.fill")

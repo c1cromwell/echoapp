@@ -8,6 +8,9 @@ struct ChatDestinationView: View {
     @State private var chatViewModel: ChatDetailViewModel?
     @State private var groupViewModel: GroupChatViewModel?
     @State private var currentUserDID = ""
+    /// Set when the chat can't be built, so the screen never sits on a spinner forever.
+    @State private var openFailed = false
+    @Environment(\.dismiss) private var dismiss
 
     private var isGroup: Bool {
         conversation.id.hasPrefix("group:") || conversation.peerDID.hasPrefix("grp-")
@@ -44,6 +47,24 @@ struct ChatDestinationView: View {
                         }
                     }
                 )
+            } else if openFailed {
+                VStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.bubble")
+                        .font(.system(size: 40))
+                        .foregroundColor(.echoInk40)
+                    Text("Couldn't open this chat")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.echoInk)
+                    Text("Go back and try again. If it keeps happening, sign out and back in.")
+                        .font(.system(size: 14))
+                        .foregroundColor(.echoInk55)
+                        .multilineTextAlignment(.center)
+                    Button("Go back") { dismiss() }
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.echoSignal)
+                        .frame(minHeight: 44)
+                }
+                .padding(.horizontal, 40)
             } else {
                 ProgressView("Opening chat…")
             }
@@ -53,6 +74,7 @@ struct ChatDestinationView: View {
             currentUserDID = await CurrentUserSession.currentDID() ?? "did:key:unknown"
             if isGroup, let groupId {
                 groupViewModel = makeGroupChatViewModel(groupId: groupId)
+                openFailed = groupViewModel == nil
                 if let token = try? await KeychainManager.shared.getAuthToken() {
                     await groupViewModel?.configure(accessToken: token)
                 }

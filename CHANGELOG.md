@@ -2,6 +2,36 @@
 
 All notable changes to Echo are documented here.
 
+## [1.0.0] — Echo Messaging v1 release candidate (2026-11-14)
+
+Scope and submission gates: [`docs/V1_RELEASE.md`](docs/V1_RELEASE.md).
+
+### Security
+
+- **StoreKit verification** — ECHO VIP transactions are verified against Apple Root CA G3 (x5c chain, Apple marker OIDs, ES256). Refunded transactions are rejected; Sandbox purchases need `VIP_ALLOW_SANDBOX_STOREKIT`. Self-asserted evidence is capped at tier 1.
+- **Step-up** requires a passkey-signed request; one shared service instance.
+- **Safety reports** carry message / conversation / channel ids and details (migration 035), have an operator queue behind `ADMIN_API_TOKEN`, and survive deletion of the reported account.
+- **Wallet** — bounded enrollment map; `link-wallet` returns 409 for an address linked to another DID.
+- **iOS certificate pinning** no longer blocks every Release request: real SPKI pins come from Info.plist, with standard TLS validation when none are set.
+
+### Metagraph
+
+- `make dev` builds and runs Echo's metagraph (it had been running the stock Euclid template); the build fails if the jar is not `com.echo.*`.
+- Fixed: SHA-256 roots containing a long run of digits were rejected as phone numbers.
+- Finality is reported by Metagraph L0, not on L1 acceptance; the combiner is deterministic.
+- Identity L1 runs three nodes (a single node never reached consensus); Identity L0 detects a re-genesis of the Global L0.
+- `validate-phase1` fails instead of skipping on chain errors and checks on-chain inclusion.
+
+### iOS
+
+- Restore on a new device provisions the `echo-identity-signing` key the rest of the app signs with.
+- Report a message, channel or group; chat "Block & report" reports.
+- Failed messages can be retried or deleted; rate-limited sends are marked failed.
+- Plain-language errors; empty, loading and error states on Messages, Contacts and Rewards; confirmations on destructive actions; VoiceOver labels on the main journeys.
+- VIP price comes only from StoreKit; Terms and Privacy links on the purchase screen.
+- Release configuration: production API URL, legal links, production push entitlement.
+- v1 scope gates: yield percentages, emission internals and unbuilt VIP benefits are not in Release builds.
+
 ## [0.1.0] — Phase 1: Foundation & Security Core (2026-05-11)
 
 Phase 1 delivers the complete security foundation, decentralized identity layer,

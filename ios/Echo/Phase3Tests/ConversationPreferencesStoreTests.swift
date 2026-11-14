@@ -60,4 +60,34 @@ final class ConversationPreferencesStoreTests: XCTestCase {
         XCTAssertTrue(MessageAction.delete.isDestructive)
         XCTAssertFalse(MessageAction.reply.isDestructive)
     }
+
+    func testMessageActions_reportIsOfferedOnlyForOtherPeoplesMessages() {
+        let peer = MessageAction.available(isOwnMessage: false, sentWithinEditWindow: false, showTranslate: false)
+        let own = MessageAction.available(isOwnMessage: true, sentWithinEditWindow: true, showTranslate: false)
+        XCTAssertTrue(peer.contains(.report))
+        XCTAssertFalse(own.contains(.report))
+        XCTAssertFalse(peer.contains(.delete))
+        XCTAssertTrue(own.contains(.edit))
+        XCTAssertTrue(MessageAction.report.isDestructive)
+    }
+
+    func testMessageActions_failedMessageOffersOnlyRetryCopyDelete() {
+        let retryable = MessageAction.available(
+            isOwnMessage: true, sentWithinEditWindow: true, showTranslate: true, isFailed: true, canRetry: true
+        )
+        XCTAssertEqual(retryable, [.retry, .copy, .delete])
+        let attachment = MessageAction.available(
+            isOwnMessage: true, sentWithinEditWindow: true, showTranslate: true, isFailed: true, canRetry: false
+        )
+        XCTAssertEqual(attachment, [.copy, .delete])
+        // Retry never appears on a message that was sent.
+        let sent = MessageAction.available(isOwnMessage: true, sentWithinEditWindow: true, showTranslate: true)
+        XCTAssertFalse(sent.contains(.retry))
+        XCTAssertEqual(MessageAction.retry.title, "Try Again")
+    }
+
+    func testMessageActions_deleteConfirmationWording() {
+        XCTAssertEqual(MessageActionsSheet.deleteConfirmation(isFailed: false).title, "Delete this message for everyone?")
+        XCTAssertEqual(MessageActionsSheet.deleteConfirmation(isFailed: true).title, "Delete this unsent message?")
+    }
 }

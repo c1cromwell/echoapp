@@ -34,10 +34,10 @@ Use this as the **release ticket checklist**. Copy unchecked P0 rows into work o
 
 | # | Item | Status | Owner | Notes |
 |---|------|--------|-------|-------|
-| P0-5 | Add `PrivacyInfo.xcprivacy` to Echo app target | ⬜ | iOS | Required for App Store; declare Required Reason APIs |
+| P0-5 | Add `PrivacyInfo.xcprivacy` to Echo app target | ✅ | iOS | Required for App Store; declare Required Reason APIs |
 | P0-6 | Add `NSPhotoLibraryUsageDescription` | ⬜ | iOS | `AttachmentPickerView` uses `PhotosPicker` |
 | P0-7 | Set `ITSAppUsesNonExemptEncryption` or answer consistently in ASC | ⬜ | iOS | TLS + E2E — standard exemption likely applies |
-| P0-8 | Replace placeholder legal URLs (`https://example.com`) | ⬜ | iOS/Web | `AuthScreens.swift`, Settings privacy/terms |
+| P0-8 | Replace placeholder legal URLs (`https://example.com`) | ✅ | iOS/Web | `AuthScreens.swift`, Settings privacy/terms |
 | P0-9 | Publish hosted **Privacy Policy** + **Terms** URLs | ⬜ | Legal/Web | Required for external TestFlight |
 | P0-10 | Complete App Store Connect **App Privacy** labels | ⬜ | Release | Must match manifest + [`data-classification.md`](data-classification.md) |
 
@@ -45,8 +45,8 @@ Use this as the **release ticket checklist**. Copy unchecked P0 rows into work o
 
 | # | Item | Status | Owner | Notes |
 |---|------|--------|-------|-------|
-| P0-11 | Wire delete through **StepUp** (passkey + OTP) | ⬜ | iOS | `StepUpAction.deleteAccount` — `PrivacyHubView` skips today |
-| P0-12 | Backend: delete profile, devices, discovery, wallet cache, push tokens | ⬜ | Backend | `DELETE /v1/users/account` only revokes refresh tokens today |
+| P0-11 | Wire delete through **StepUp** (passkey + OTP) | ✅ | iOS | `StepUpAction.deleteAccount` — `PrivacyHubView` skips today |
+| P0-12 | Backend: delete profile, devices, discovery, wallet cache, push tokens | ✅ | Backend | `DELETE /v1/users/account` only revokes refresh tokens today |
 | P0-13 | Document retention exceptions (E2E msgs on peers’ devices) | ⬜ | Product/Legal | Already in UI copy — align with policy |
 
 ---

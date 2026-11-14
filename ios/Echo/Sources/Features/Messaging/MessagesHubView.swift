@@ -181,6 +181,7 @@ struct MessagesHubView: View {
                         .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Manage folders")
                 .accessibilityIdentifier("folders.manage")
             }
             .padding(.horizontal, Spacing.lg.rawValue)
@@ -317,6 +318,7 @@ struct MessagesHubView: View {
                         Image(systemName: "xmark.circle.fill").foregroundColor(.echoInk40)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
                 }
             }
             .padding(Spacing.md.rawValue)
@@ -377,13 +379,21 @@ struct MessagesHubView: View {
 
         Spacer().frame(height: 6)
 
-        if filtered.isEmpty && savedMessages == nil {
-            placeholder(icon: "bubble.left.and.bubble.right", text: "No conversations yet.")
+        if let emptyText = MessagesHubEmptyState.chatsText(
+            visibleCount: filtered.count,
+            pinnedCount: pinnedConversations.count,
+            searchText: searchText,
+            folderSelected: folderStore.selectedFolderId != nil
+        ) {
+            placeholder(icon: searchText.isEmpty ? "bubble.left.and.bubble.right" : "magnifyingglass", text: emptyText)
         } else {
             ForEach(filtered) { conv in
                 conversationRow(conv)
                 Divider().background(Color.echoHair).padding(.horizontal, 18)
             }
+        }
+        // Outside the branch above so archived chats stay reachable when the list is empty.
+        if searchText.isEmpty {
             if !archivedConversations.isEmpty {
                 Button {
                     withAnimation { segment = .archived }
@@ -633,7 +643,9 @@ struct MessagesHubView: View {
         Divider().background(Color.echoHair).padding(.leading, Spacing.lg.rawValue)
 
         let groups = filteredGroupConversations
-        if groups.isEmpty {
+        if groups.isEmpty, !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            placeholder(icon: "magnifyingglass", text: MessagesHubEmptyState.noMatches(for: searchText, noun: "groups"))
+        } else if groups.isEmpty {
             placeholder(icon: "person.3", text: "You\u{2019}re not in any groups yet.\nTap \u{201C}New group\u{201D} to start one.")
         } else {
             ForEach(groups) { conv in
@@ -735,6 +747,33 @@ struct MessagesHubView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
         .padding(.horizontal, Spacing.xl.rawValue)
+    }
+}
+
+/// Pure copy rules for the Chats segment when no rows are visible. Returns nil when
+/// there is something to show.
+enum MessagesHubEmptyState {
+    static func noMatches(for searchText: String, noun: String) -> String {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return "No \(noun) match \u{201C}\(query)\u{201D}."
+    }
+
+    static func chatsText(
+        visibleCount: Int,
+        pinnedCount: Int,
+        searchText: String,
+        folderSelected: Bool
+    ) -> String? {
+        guard visibleCount == 0 else { return nil }
+        if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return noMatches(for: searchText, noun: "chats")
+        }
+        if folderSelected {
+            return "No chats in this folder yet."
+        }
+        // Pinned chats live in the strip above, so the list being empty is expected.
+        guard pinnedCount == 0 else { return nil }
+        return "No conversations yet.\nTap the compose button to start one."
     }
 }
 

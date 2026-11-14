@@ -285,6 +285,9 @@ public struct ProfileTabView: View {
                 SettingsNavRow(icon: "paintbrush.fill", title: "Appearance", action: onAppearanceSettings)
                 Divider().padding(.leading, 52)
                 SettingsNavRow(icon: "internaldrive.fill", title: "Storage & Data", action: onStorageSettings)
+                #if DEBUG
+                // WalletAdvancedSettingsView (real-funds kill-switch) is declared inside
+                // this file's `#if DEBUG` block, so the row can only exist in debug builds.
                 Divider().padding(.leading, 52)
                 NavigationLink {
                     WalletAdvancedSettingsView()
@@ -302,6 +305,7 @@ public struct ProfileTabView: View {
                     }
                     .padding(Spacing.md.rawValue)
                 }
+                #endif
                 Divider().padding(.leading, 52)
                 SettingsNavRow(icon: "questionmark.circle.fill", title: "Help & Support", action: onHelpSupport)
                 Divider().padding(.leading, 52)
@@ -1796,23 +1800,32 @@ public struct StorageDataView: View {
 
 public struct AboutView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.openURL) private var openURL
 
     let appVersion: String
-    let onHelpCenter: () -> Void
-    let onContactSupport: () -> Void
-    let onReportProblem: () -> Void
-    let onTerms: () -> Void
-    let onPrivacyPolicy: () -> Void
-    let onOpenSource: () -> Void
+    /// Rows with no handler and no default destination are not shown.
+    let onHelpCenter: (() -> Void)?
+    let onContactSupport: (() -> Void)?
+    let onReportProblem: (() -> Void)?
+    let onTerms: (() -> Void)?
+    let onPrivacyPolicy: (() -> Void)?
+    let onOpenSource: (() -> Void)?
 
+    /// Marketing version of the running app, for the version line.
+    public static var bundleVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+    }
+
+    /// Handlers left nil fall back to `LegalLinks`: Terms and Privacy open
+    /// their URLs, Contact Support and Report a Problem open a `mailto:`.
     public init(
-        appVersion: String = "1.0.0",
-        onHelpCenter: @escaping () -> Void = {},
-        onContactSupport: @escaping () -> Void = {},
-        onReportProblem: @escaping () -> Void = {},
-        onTerms: @escaping () -> Void = {},
-        onPrivacyPolicy: @escaping () -> Void = {},
-        onOpenSource: @escaping () -> Void = {}
+        appVersion: String = AboutView.bundleVersion,
+        onHelpCenter: (() -> Void)? = nil,
+        onContactSupport: (() -> Void)? = nil,
+        onReportProblem: (() -> Void)? = nil,
+        onTerms: (() -> Void)? = nil,
+        onPrivacyPolicy: (() -> Void)? = nil,
+        onOpenSource: (() -> Void)? = nil
     ) {
         self.appVersion = appVersion
         self.onHelpCenter = onHelpCenter
@@ -1852,28 +1865,50 @@ public struct AboutView: View {
 
                         // Support
                         SettingsSectionView(title: "Support") {
-                            SettingsNavRow(icon: "questionmark.circle.fill", title: "Help Center", action: onHelpCenter)
+                            if let onHelpCenter {
+                                SettingsNavRow(icon: "questionmark.circle.fill", title: "Help Center", action: onHelpCenter)
+                                Divider().padding(.leading, 52)
+                            }
+                            SettingsNavRow(
+                                icon: "headphones",
+                                title: "Contact Support",
+                                action: onContactSupport ?? { openURL(LegalLinks.contactSupportURL) }
+                            )
                             Divider().padding(.leading, 52)
-                            SettingsNavRow(icon: "headphones", title: "Contact Support", action: onContactSupport)
-                            Divider().padding(.leading, 52)
-                            SettingsNavRow(icon: "exclamationmark.bubble.fill", title: "Report a Problem", action: onReportProblem)
+                            SettingsNavRow(
+                                icon: "exclamationmark.bubble.fill",
+                                title: "Report a Problem",
+                                action: onReportProblem ?? { openURL(LegalLinks.reportProblemURL) }
+                            )
                         }
 
                         // Legal
                         SettingsSectionView(title: "Legal") {
-                            SettingsNavRow(icon: "doc.text.fill", title: "Terms of Service", action: onTerms)
+                            SettingsNavRow(
+                                icon: "doc.text.fill",
+                                title: "Terms of Service",
+                                action: onTerms ?? { openURL(LegalLinks.termsURL) }
+                            )
                             Divider().padding(.leading, 52)
-                            SettingsNavRow(icon: "hand.raised.fill", title: "Privacy Policy", action: onPrivacyPolicy)
-                            Divider().padding(.leading, 52)
-                            SettingsNavRow(icon: "chevron.left.forwardslash.chevron.right", title: "Open Source Licenses", action: onOpenSource)
+                            SettingsNavRow(
+                                icon: "hand.raised.fill",
+                                title: "Privacy Policy",
+                                action: onPrivacyPolicy ?? { openURL(LegalLinks.privacyURL) }
+                            )
+                            if let onOpenSource {
+                                Divider().padding(.leading, 52)
+                                SettingsNavRow(icon: "chevron.left.forwardslash.chevron.right", title: "Open Source Licenses", action: onOpenSource)
+                            }
                         }
 
-                        // Developer
+                        #if DEBUG
+                        // Developer rows have no destination yet; kept out of release builds.
                         SettingsSectionView(title: "Developer") {
                             SettingsNavRow(icon: "doc.plaintext.fill", title: "API Documentation", action: {})
                             Divider().padding(.leading, 52)
                             SettingsNavRow(icon: "cpu", title: "Create a Bot", action: {})
                         }
+                        #endif
 
                         // Footer
                         VStack(spacing: Spacing.sm.rawValue) {
@@ -2766,14 +2801,18 @@ public struct AboutView: View {
     @State private var showSignOutAlert = false
     @State private var showRenameProfile = false
     @State private var renameText = ""
-    @State private var vipStatusLabel = VIPSubscriptionStore.statusLabel
+    @State private var vipStatusLabel = VIPSubscriptionStore.statusLabel()
+    @Environment(\.openURL) private var openURL
 
-    let onAccountSettings: () -> Void
+    /// Rows with no handler fall back to a working destination (Account → data &
+    /// deletion, Help & Support → support email) or are not shown (Appearance,
+    /// Storage & Data), so no row in the hub is a dead tap.
+    let onAccountSettings: (() -> Void)?
     let onPrivacySettings: () -> Void
     let onNotificationSettings: () -> Void
-    let onAppearanceSettings: () -> Void
-    let onStorageSettings: () -> Void
-    let onHelpSupport: () -> Void
+    let onAppearanceSettings: (() -> Void)?
+    let onStorageSettings: (() -> Void)?
+    let onHelpSupport: (() -> Void)?
     let onAbout: () -> Void
     let onSignOut: () -> Void
     let onNewAccountSetup: () -> Void
@@ -2781,12 +2820,12 @@ public struct AboutView: View {
     @State private var showNewAccountAlert = false
 
      init(
-        onAccountSettings: @escaping () -> Void = {},
+        onAccountSettings: (() -> Void)? = nil,
         onPrivacySettings: @escaping () -> Void = {},
         onNotificationSettings: @escaping () -> Void = {},
-        onAppearanceSettings: @escaping () -> Void = {},
-        onStorageSettings: @escaping () -> Void = {},
-        onHelpSupport: @escaping () -> Void = {},
+        onAppearanceSettings: (() -> Void)? = nil,
+        onStorageSettings: (() -> Void)? = nil,
+        onHelpSupport: (() -> Void)? = nil,
         onAbout: @escaping () -> Void = {},
         onSignOut: @escaping () -> Void = {},
         onNewAccountSetup: @escaping () -> Void = {}
@@ -2884,7 +2923,16 @@ public struct AboutView: View {
                                 )
                             }
                             Divider().padding(.leading, 52)
-                            SettingsNavRow(icon: "person.fill", title: "Account", action: onAccountSettings)
+                            if let onAccountSettings {
+                                SettingsNavRow(icon: "person.fill", title: "Account", action: onAccountSettings)
+                            } else {
+                                NavigationLink {
+                                    AccountDataView()
+                                } label: {
+                                    SettingsNavLinkLabel(icon: "person.fill", title: "Account")
+                                }
+                                .accessibilityIdentifier("settings.account")
+                            }
                             Divider().padding(.leading, 52)
                             NavigationLink {
                                 PrivacyHubView()
@@ -2898,13 +2946,27 @@ public struct AboutView: View {
                                 SettingsNavLinkLabel(icon: "bell.fill", title: "Notifications")
                             }
                             Divider().padding(.leading, 52)
-                            SettingsNavRow(icon: "paintbrush.fill", title: "Appearance", action: onAppearanceSettings)
+                            if let onAppearanceSettings {
+                                SettingsNavRow(icon: "paintbrush.fill", title: "Appearance", action: onAppearanceSettings)
+                                Divider().padding(.leading, 52)
+                            }
+                            if let onStorageSettings {
+                                SettingsNavRow(icon: "internaldrive.fill", title: "Storage & Data", action: onStorageSettings)
+                                Divider().padding(.leading, 52)
+                            }
+                            SettingsNavRow(
+                                icon: "questionmark.circle.fill",
+                                title: "Help & Support",
+                                action: onHelpSupport ?? { openURL(LegalLinks.contactSupportURL) }
+                            )
+                            .accessibilityIdentifier("settings.help")
                             Divider().padding(.leading, 52)
-                            SettingsNavRow(icon: "internaldrive.fill", title: "Storage & Data", action: onStorageSettings)
-                            Divider().padding(.leading, 52)
-                            SettingsNavRow(icon: "questionmark.circle.fill", title: "Help & Support", action: onHelpSupport)
-                            Divider().padding(.leading, 52)
-                            SettingsNavRow(icon: "info.circle.fill", title: "About Echo", action: onAbout)
+                            NavigationLink {
+                                AboutView()
+                            } label: {
+                                SettingsNavLinkLabel(icon: "info.circle.fill", title: "About Echo")
+                            }
+                            .accessibilityIdentifier("settings.about")
                             #if DEBUG
                             Divider().padding(.leading, 52)
                             NavigationLink {
@@ -2925,12 +2987,15 @@ public struct AboutView: View {
                                 size: .large,
                                 action: { showSignOutAlert = true }
                             )
+                            // Onboarding QA reset — not a user feature.
+                            #if DEBUG
                             EchoButton(
                                 "Set up a new account",
                                 style: .secondary,
                                 size: .large,
                                 action: { showNewAccountAlert = true }
                             )
+                            #endif
                         }
                         .padding(.top, Spacing.lg.rawValue)
                     }
@@ -2949,7 +3014,7 @@ public struct AboutView: View {
             Button("Cancel", role: .cancel) {}
             Button("Continue", role: .destructive) { onNewAccountSetup() }
         } message: {
-            Text("Starts onboarding again on this device. Your existing passkey identity may still be in the Secure Enclave — use a second simulator for a clean second account if onboarding fails.")
+            Text("You'll be signed out and taken through setup again on this device. Save your recovery phrase first — you may need it to get back into your current account.")
         }
         .alert("Display name", isPresented: $showRenameProfile) {
             TextField("Name", text: $renameText)
@@ -2958,7 +3023,14 @@ public struct AboutView: View {
         } message: {
             Text("This is the name shown on your primary persona across Echo.")
         }
-        .onAppear { vipStatusLabel = VIPSubscriptionStore.statusLabel }
+        .onAppear {
+            vipStatusLabel = VIPSubscriptionStore.statusLabel()
+        }
+        .task {
+            // Price comes only from the App Store; until it loads the row shows no price.
+            let price = await VIPSubscriptionService.loadMonthlyPrice()
+            vipStatusLabel = VIPSubscriptionStore.statusLabel(displayPrice: price ?? VIPSubscriptionStore.loadedDisplayPrice)
+        }
     }
 }
 

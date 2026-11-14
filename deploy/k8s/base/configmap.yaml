@@ -22,7 +22,17 @@ data:
   # Constellation metagraph endpoints. Localhost defaults are for local dev only; overlays point these
   # at the production metagraph nodes (deploy/terraform/hetzner/metagraph-nodes.tf) once deployed.
   # See docs/ZERO_TO_PRODUCTION.md §5 (wire backend → production metagraph).
+  # Ports follow the PRODUCTION node layout in
+  # deploy/terraform/hetzner/hosts.ansible.yml.tftpl (Metagraph L0 9100,
+  # Currency L1 9200, Data L1 9300). The local dev cluster is different
+  # (9200 / 9300 / 9400, see metagraph/euclid.json) — do not copy local ports here.
   CURRENCY_L1_URL: "http://REPLACE_ME:9200"
   DATA_L1_URL: "http://REPLACE_ME:9300"
+  # Delegated stakes and node parameters are served by the network's Global L0
+  # (integrationnet / mainnet), not by a metagraph node.
+  GLOBAL_L0_URL: "http://REPLACE_ME_GLOBAL_L0:9000"
+  # Accept Apple-signed Sandbox purchases (TestFlight / App Review). Set to
+  # "false" once only App Store builds should earn VIP.
+  VIP_ALLOW_SANDBOX_STOREKIT: "true"
   IDENTITY_L0_URL: "http://REPLACE_ME:9600"
   IDENTITY_L1_URL: "http://REPLACE_ME:9500"

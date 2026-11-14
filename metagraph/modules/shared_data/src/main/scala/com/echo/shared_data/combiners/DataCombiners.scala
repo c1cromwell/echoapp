@@ -9,7 +9,11 @@ object DataCombiners {
   def combineUpdate(
     signed: Signed[DataLayerUpdate],
     state:  DataState[DataLayerOnChainState, DataLayerCalculatedState],
-    nowMs:  Long = System.currentTimeMillis()
+    // Must be deterministic: every L0 facilitator runs `combine` and the
+    // resulting state is hashed into the snapshot. A wall-clock default here
+    // makes validators disagree on state. The anchoring time is recoverable
+    // from the snapshot that carries the update.
+    nowMs:  Long = 0L
   ): DataState[DataLayerOnChainState, DataLayerCalculatedState] = {
     val onChain = foldUpdate(signed.value, state.onChain, nowMs)
     val calc    = recalculate(onChain)

@@ -3,12 +3,10 @@ package api
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 )
 
 // asCaller marks the request as authenticated for did, as the auth middleware would.
@@ -39,8 +37,13 @@ func TestVIPVerify_HappyPath(t *testing.T) {
 	if resp["did"] != "did:key:z6MkTestVIP" {
 		t.Errorf("unexpected did: %v", resp["did"])
 	}
-	if int(resp["trust_tier"].(float64)) != 2 {
-		t.Errorf("unexpected trust_tier: %v", resp["trust_tier"])
+	// standard_idv is self-asserted here: the server holds no proof of it, so
+	// the recorded tier is the baseline, and the response says so.
+	if int(resp["trust_tier"].(float64)) != vipMaxSelfAssertedTier {
+		t.Errorf("self-asserted evidence must be capped at tier %d, got %v", vipMaxSelfAssertedTier, resp["trust_tier"])
+	}
+	if int(resp["requested_trust_tier"].(float64)) != 2 || resp["capped"] != true {
+		t.Errorf("response should report the cap: %v", resp)
 	}
 }
 
@@ -99,29 +102,5 @@ func TestVIPVerify_SubscriptionRequiresStoreKit(t *testing.T) {
 	rt.handleVIPVerify(w, asCaller(req, "did:key:zVIP"))
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("want 400, got %d %s", w.Code, w.Body.String())
-	}
-}
-
-func TestVIPVerify_SubscriptionAcceptsCurrentTransaction(t *testing.T) {
-	rt := &Router{}
-	expires := time.Now().Add(30 * 24 * time.Hour).UnixMilli()
-	payload, _ := json.Marshal(map[string]interface{}{
-		"transactionId": "2000001",
-		"bundleId":      vipBundleID,
-		"productId":     vipMonthlyProductID,
-		"expiresDate":   expires,
-	})
-	jws := "e30." + base64.RawURLEncoding.EncodeToString(payload) + ".c2ln"
-	body, _ := json.Marshal(map[string]interface{}{
-		"did":                "did:key:zVIP",
-		"trust_tier":         3,
-		"evidence_type":      "vip_subscription",
-		"signed_transaction": jws,
-	})
-	req := httptest.NewRequest(http.MethodPost, "/v1/auth/vip-verify", bytes.NewReader(body))
-	w := httptest.NewRecorder()
-	rt.handleVIPVerify(w, asCaller(req, "did:key:zVIP"))
-	if w.Code != http.StatusOK {
-		t.Fatalf("want 200, got %d %s", w.Code, w.Body.String())
 	}
 }

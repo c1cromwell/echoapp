@@ -5,7 +5,6 @@ import Foundation
 
 enum AuthEndpoint: APIEndpoint {
     case register
-    case login
     case refreshToken
     case logout
     case verifyBiometric
@@ -19,8 +18,6 @@ enum AuthEndpoint: APIEndpoint {
         switch self {
         case .register:
             return "/auth/register"
-        case .login:
-            return "/auth/login"
         case .refreshToken:
             return "/auth/refresh"
         case .logout:
@@ -44,7 +41,6 @@ enum AuthEndpoint: APIEndpoint {
 // MARK: - Message Endpoints
 
 enum MessageEndpoint: APIEndpoint {
-    case send
     case fetch(conversationId: String, limit: Int = 50, offset: Int = 0)
     case fetchConversations(limit: Int = 20, offset: Int = 0)
     case createConversation
@@ -58,8 +54,6 @@ enum MessageEndpoint: APIEndpoint {
     
     var path: String {
         switch self {
-        case .send:
-            return "/messages/send"
         case .fetch(let conversationId, let limit, let offset):
             return "/messages/conversations/\(conversationId)?limit=\(limit)&offset=\(offset)"
         case .fetchConversations(let limit, let offset):
@@ -87,8 +81,6 @@ enum MessageEndpoint: APIEndpoint {
 // MARK: - User Endpoints
 
 enum UserEndpoint: APIEndpoint {
-    case getProfile
-    case updateProfile
     case getUser(id: String)
     case searchUsers(query: String)
     case addContact(id: String)
@@ -103,10 +95,6 @@ enum UserEndpoint: APIEndpoint {
     
     var path: String {
         switch self {
-        case .getProfile:
-            return "/users/profile"
-        case .updateProfile:
-            return "/users/profile"
         case .getUser(let id):
             return "/users/\(id)"
         case .searchUsers(let query):
@@ -333,11 +321,6 @@ struct RegisterRequest: Codable {
     let biometricEnabled: Bool
 }
 
-struct LoginRequest: Codable {
-    let email: String
-    let password: String
-}
-
 struct LoginResponse: Codable {
     let accessToken: String
     let refreshToken: String
@@ -361,21 +344,6 @@ struct UserResponse: Codable {
     let avatar: String?
     let publicKey: String
     let createdAt: Date
-}
-
-struct SendMessageRequest: Codable {
-    let conversationId: String
-    let content: String
-    let encryptedContent: String
-    let nonce: String
-    let attachments: [AttachmentRequest]?
-}
-
-struct AttachmentRequest: Codable {
-    let filename: String
-    let mimeType: String
-    let size: Int
-    let url: String
 }
 
 struct MessageResponse: Codable {

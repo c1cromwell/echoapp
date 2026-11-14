@@ -11,9 +11,12 @@ object DataMerkleRootIndex {
   private val roots = new ConcurrentHashMap[String, MerkleRootStatus]()
 
   def record(root: String, leafCount: Int, finalized: Boolean): Unit = {
-    roots.put(
+    // Never downgrade: a root that L0 has folded stays finalized even if the
+    // same root is re-submitted and re-validated afterwards.
+    roots.merge(
       root,
-      MerkleRootStatus(root = root, leafCount = leafCount, finalized = finalized)
+      MerkleRootStatus(root = root, leafCount = leafCount, finalized = finalized),
+      (old, neu) => if (old.finalized) old else neu
     )
     ()
   }

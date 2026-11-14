@@ -468,6 +468,14 @@ extension Notification.Name {
 struct RelayErrorNotice: Equatable {
     let code: String
     let message: String
+    /// Wire type of the frame the server rejected (`text`, `typing`, …), when it says.
+    var rejectedType: String?
+    /// Recipient of the rejected frame, when the server says.
+    var rejectedTo: String?
+    /// Conversation of the rejected frame, when the server says.
+    var conversationId: String?
+
+    static let rateLimitedCode = "RATE_LIMITED"
 
     static func parse(_ text: String) -> RelayErrorNotice? {
         guard let data = text.data(using: .utf8),
@@ -478,11 +486,25 @@ struct RelayErrorNotice: Equatable {
         let payload = payloadObject(obj["payload"])
         let code = payload?["code"] as? String ?? ""
         guard !code.isEmpty else { return nil }
-        if code == "RATE_LIMITED" {
+        let message: String
+        if code == rateLimitedCode {
             let retry = payload?["retry_after_seconds"] as? Int ?? 1
-            return RelayErrorNotice(code: code, message: "Echo is busy. Try again in \(retry) seconds.")
+            message = "Echo is busy. Try again in \(retry) seconds."
+        } else {
+            message = "Echo couldn't send that. Try again."
         }
-        return RelayErrorNotice(code: code, message: "Echo couldn't send that. Try again.")
+        return RelayErrorNotice(
+            code: code,
+            message: message,
+            rejectedType: nonEmpty(payload?["rejected_type"]),
+            rejectedTo: nonEmpty(payload?["to"]),
+            conversationId: nonEmpty(payload?["conversation_id"])
+        )
+    }
+
+    private static func nonEmpty(_ raw: Any?) -> String? {
+        guard let value = raw as? String, !value.isEmpty else { return nil }
+        return value
     }
 
     private static func payloadObject(_ raw: Any?) -> [String: Any]? {

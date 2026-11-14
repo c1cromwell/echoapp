@@ -223,6 +223,22 @@ final class ValidationsSpec extends AnyFunSpec with Matchers {
 
   describe("Validations.rejectUpdatePII (WO-217)") {
 
+    it("accepts a SHA-256 root that happens to contain a long run of digits") {
+      // Found live: this root was rejected as 'contains a phone number'.
+      val root = "c7c1a09e5f18dcc4b6d4a773ddd4c5bd7116b4fa46b6b12158175227dbafec0a"
+      val update = MerkleRootUpdate(root, 1)
+      Validations.rejectUpdatePII(update) shouldBe Right(())
+      Validations.validateMerkleRoot(update) shouldBe Right(())
+    }
+
+    it("does not exempt a 64-character all-digit string") {
+      Validations.rejectPII("field", "1" * 64) shouldBe a [Left[_, _]]
+    }
+
+    it("still rejects a phone number that is not a 64-hex commitment") {
+      Validations.rejectPII("field", "call +14155550123 now") shouldBe a [Left[_, _]]
+    }
+
     it("rejects MerkleRootUpdate whose root embeds PII") {
       val bad = MerkleRootUpdate(root = "did:key:zBadPII", leafCount = 1)
       Validations.rejectUpdatePII(bad) shouldBe a [Left[_, _]]

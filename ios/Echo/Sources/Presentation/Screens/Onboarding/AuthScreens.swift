@@ -165,13 +165,13 @@ public struct PhoneEntryView: View {
                             .typographyStyle(.caption, color: .echoSecondaryText)
                         
                         HStack(spacing: Spacing.xs.rawValue) {
-                            Link("Terms of Service", destination: URL(string: "https://example.com")!)
+                            Link("Terms of Service", destination: LegalLinks.termsURL)
                                 .typographyStyle(.caption, color: .echoPrimary)
                             
                             Text("and")
                                 .typographyStyle(.caption, color: .echoSecondaryText)
                             
-                            Link("Privacy Policy", destination: URL(string: "https://example.com")!)
+                            Link("Privacy Policy", destination: LegalLinks.privacyURL)
                                 .typographyStyle(.caption, color: .echoPrimary)
                         }
                         .multilineTextAlignment(.center)

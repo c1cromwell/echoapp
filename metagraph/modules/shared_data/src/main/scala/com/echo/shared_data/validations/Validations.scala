@@ -40,7 +40,14 @@ object Validations {
    * Used by all update validators that accept free-form string fields.
    */
   def rejectPII(fieldName: String, value: String): Either[String, Unit] = {
-    if (EmailPattern.findFirstIn(value).isDefined)
+    // A 64-char lowercase-hex value is a SHA-256 commitment, never PII. It must
+    // be exempt: the phone pattern matches any run of 10+ digits, which a
+    // random hash contains often enough to reject real Merkle roots outright.
+    // (An all-digit string is not exempt — that could be a padded phone number;
+    // a real digest with no a-f characters does not occur in practice.)
+    if (isHex64(value) && value.exists(c => c >= 'a' && c <= 'f'))
+      Right(())
+    else if (EmailPattern.findFirstIn(value).isDefined)
       Left(s"T0-PII: $fieldName contains an email address — zero PII on-chain invariant violated")
     else if (PhonePattern.findFirstIn(value).isDefined)
       Left(s"T0-PII: $fieldName contains a phone number — zero PII on-chain invariant violated")
@@ -54,9 +61,12 @@ object Validations {
    * Reject a string that is not a valid 64-character lowercase hex SHA-256 hash.
    * T5 and T6 fields must be pure hash commitments — no content, no identifiers.
    */
+  private def isHex64(value: String): Boolean =
+    value.length == 64 && value.forall(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))
+
   def requireHex64(fieldName: String, value: String): Either[String, Unit] =
     Either.cond(
-      value.length == 64 && value.forall(c => c.isDigit || ('a' to 'f').contains(c)),
+      isHex64(value),
       (),
       s"T5/T6: $fieldName must be exactly 64 lowercase hex chars (SHA-256); got length ${value.length}"
     )

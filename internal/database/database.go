@@ -275,21 +275,36 @@ type DB interface {
 	SafetyReportStore
 }
 
+// SafetyReportMaxDetails caps the reporter's free text, in characters.
+const SafetyReportMaxDetails = 1000
+
 // SafetyReport is one user report of a contact, message, or channel.
-// Reason is a short code (spam, harassment, impersonation, other), not free text.
+// Reason is a short code (spam, harassment, impersonation, other).
+//
+// MessageID, ConversationID and ChannelID optionally point at what was
+// reported. Details is optional free text from the reporter: it is user
+// content, so it is only returned by the operator moderation endpoint.
+// ReporterDID is empty once the reporting account has been deleted.
 type SafetyReport struct {
-	ID          string    `json:"id"`
-	ReporterDID string    `json:"reporter_did"`
-	SubjectDID  string    `json:"subject_did"`
-	Reason      string    `json:"reason"`
-	Context     string    `json:"context"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID             string    `json:"id"`
+	ReporterDID    string    `json:"reporter_did"`
+	SubjectDID     string    `json:"subject_did"`
+	Reason         string    `json:"reason"`
+	Context        string    `json:"context"`
+	MessageID      string    `json:"message_id,omitempty"`
+	ConversationID string    `json:"conversation_id,omitempty"`
+	ChannelID      string    `json:"channel_id,omitempty"`
+	Details        string    `json:"details,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 // SafetyReportStore persists abuse reports so they survive a process restart.
 type SafetyReportStore interface {
 	SaveSafetyReport(ctx context.Context, report SafetyReport) error
 	ListSafetyReportsByReporter(ctx context.Context, reporterDID string) ([]SafetyReport, error)
+	// ListSafetyReports is the moderation read path: newest first, optionally
+	// only the reports about subjectDID ("" means everyone).
+	ListSafetyReports(ctx context.Context, subjectDID string, limit, offset int) ([]SafetyReport, error)
 }
 
 // ReactionRow is a single emoji reaction by one reactor on one message.
@@ -456,6 +471,29 @@ func (m *MemoryDB) ListSafetyReportsByReporter(_ context.Context, reporterDID st
 		}
 	}
 	return out, nil
+}
+
+func (m *MemoryDB) ListSafetyReports(_ context.Context, subjectDID string, limit, offset int) ([]SafetyReport, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return PageSafetyReports(m.safetyReports, subjectDID, limit, offset), nil
+}
+
+// PageSafetyReports filters reports (stored oldest first) by subject and
+// returns one newest-first page. It backs the in-memory stores.
+func PageSafetyReports(reports []SafetyReport, subjectDID string, limit, offset int) []SafetyReport {
+	var out []SafetyReport
+	for i := len(reports) - 1; i >= 0 && len(out) < limit; i-- {
+		if subjectDID != "" && reports[i].SubjectDID != subjectDID {
+			continue
+		}
+		if offset > 0 {
+			offset--
+			continue
+		}
+		out = append(out, reports[i])
+	}
+	return out
 }
 
 // --- Reactions (MemoryDB) ---
