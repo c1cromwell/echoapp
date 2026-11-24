@@ -100,6 +100,8 @@ type Router struct {
 	PassportRecovery     *recovery.Service                // WO-296 social-threshold recovery metadata
 	Comply               *ComplyHandlers                  // WO-250 Comply REST (/comply/*)
 	Anchoring            *metagraph.AnchoringService      // WO-15 message integrity batching
+	AnchorStore          metagraph.AnchorStore            // durable anchor proofs + root finality (optional)
+	ChainNetwork         string                           // ECHO_CHAIN_NETWORK ("sovereign" | "constellation")
 	Tokenomics           *TokenomicsHandlers              // WO-206/214/215/225/226/271
 	tokenService         *auth.TokenService               // ES256 JWT token service
 	stepUp               *auth.StepUpService              // step-up action requirements (one instance, see handleStepUp)
@@ -659,6 +661,10 @@ func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.HasPrefix(r.URL.Path, "/v1/messages/") && (strings.HasSuffix(r.URL.Path, "/merkle-proof") || strings.HasSuffix(r.URL.Path, "/proof")) {
 		rt.handleMessageMerkleProof(w, r)
+		return
+	}
+	if strings.HasPrefix(r.URL.Path, "/v1/anchors/") && strings.HasSuffix(r.URL.Path, "/proof") {
+		rt.handleAnchorProofBundle(w, r)
 		return
 	}
 	if strings.HasPrefix(r.URL.Path, "/v1/groups/") && strings.HasSuffix(r.URL.Path, "/blockchain-proof") {

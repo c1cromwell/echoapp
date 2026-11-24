@@ -27,7 +27,7 @@ object Main extends CurrencyL1App(
   name      = "echo-identity-l1",
   header    = "Echo Identity Metagraph L1",
   clusterId = ClusterIds.identityL1,
-  tessellationVersion = TessellationVersion.unsafeFrom("4.0.0-rc.0"),
+  tessellationVersion = TessellationVersion.unsafeFrom("4.0.7"),
   metagraphVersion    = MetagraphVersion.unsafeFrom("0.1.0")
 ) {
 

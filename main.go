@@ -101,10 +101,19 @@ func (s *Server) Start() error {
 		return err
 	}
 
+	// One setting names the chain this gateway anchors to. Fail fast on a typo
+	// rather than silently labelling proofs with the wrong network.
+	chainNetwork, err := metagraph.ChainNetworkFromEnv()
+	if err != nil {
+		return err
+	}
+	log.Printf("Chain network: %s (ECHO_CHAIN_NETWORK)", chainNetwork)
+
 	db, pgDB := s.initDatabase()
 	redisClient := s.initRedis()
 
 	router := api.NewRouter(s.config.AllowedOrigins)
+	router.ChainNetwork = chainNetwork
 	if pgDB != nil {
 		router.DIDRegistry = api.NewPostgresDIDRegistry(pgDB.Pool())
 		router.AccountPurger = pgDB // DELETE /v1/users/account erases server-side data
@@ -250,6 +259,12 @@ func (s *Server) Start() error {
 	}
 
 	emission := rewards.NewEmissionSchedule(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	// Chain snapshots are archived only to real object storage, never to the
+	// in-memory media fallback (which would not survive a restart).
+	var snapshotArchive metagraph.SnapshotArchive
+	if s3Store, ok := storage.(*media.S3Storage); ok {
+		snapshotArchive = s3Store
+	}
 	storage = wrapFilecoinArchiver(storage)
 	mediaSvc := media.NewService(db, storage)
 	mediaSvc.DataL1 = router.DataL1 // D3: anchor media content roots on Data L1
@@ -408,19 +423,38 @@ func (s *Server) Start() error {
 	router.WSHub.SetOfflineOverflowStorage(backupBlobStore)       // WO-237: queue overflow to encblob
 	router.WSHub.SetBotWebhooks(botWebhooks)                      // WO-11 user→bot webhook dispatch
 
+	// Anchor proofs + root finality: durable in PostgreSQL when available, so
+	// they survive restarts and stay readable with the chain switched off.
+	var anchorStore metagraph.AnchorStore
+	if pgDB != nil {
+		anchorStore = metagraph.NewPostgresProofStore(pgDB.Pool())
+		log.Println("Anchor proof store backed by PostgreSQL (migration 036_anchor_proofs)")
+	} else {
+		anchorStore = metagraph.NewRedisProofStore(redisClient, metagraph.NewMemoryProofStore())
+		log.Println("Anchor proof store: Redis/in-memory (set DATABASE_HOST for durable proofs)")
+	}
+	router.AnchorStore = anchorStore
 	if router.DataL1 != nil {
-		memProofs := metagraph.NewMemoryProofStore()
-		proofStore := metagraph.NewRedisProofStore(redisClient, memProofs)
 		anchoring := metagraph.NewAnchoringService(metagraph.AnchoringConfig{
 			DataL1:  router.DataL1,
 			Source:  router.WSHub,
 			Confirm: router.WSHub,
-			Proofs:  proofStore,
+			Proofs:  anchorStore,
+			Network: chainNetwork,
 		})
 		router.Anchoring = anchoring
 		go anchoring.Run(context.Background())
 		log.Println("Message integrity anchoring enabled (WO-15)")
 	}
+	// Follows submitted roots to finality and archives the signed snapshots
+	// (no-op without METAGRAPH_L0_URL).
+	go metagraph.NewFinalityTracker(metagraph.FinalityTrackerConfig{
+		Roots:       anchorStore,
+		Network:     chainNetwork,
+		ML0URL:      os.Getenv("METAGRAPH_L0_URL"),
+		GlobalL0URL: os.Getenv("GLOBAL_L0_URL"),
+		Archive:     snapshotArchive,
+	}).Run(context.Background())
 
 	tokenomicsSvc, err := tokenomics.NewService(tokenomics.Config{
 		GenesisDate: emission.GenesisDate,

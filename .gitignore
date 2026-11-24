@@ -126,3 +126,6 @@ tools/echo-local-dev-mcp/**/__pycache__/
 
 # Local backups of generated/edited project files
 *.bak
+
+# Vendored Tessellation binaries (fetched/verified by metagraph/vendor/fetch.sh; checksums are committed)
+metagraph/vendor/tessellation/

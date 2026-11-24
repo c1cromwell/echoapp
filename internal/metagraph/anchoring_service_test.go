@@ -53,6 +53,7 @@ func TestAnchoringService_SubmitsBatchAndStoresProof(t *testing.T) {
 		Source:    src,
 		Confirm:   confirm,
 		Proofs:    metagraph.NewMemoryProofStore(),
+		Network:   "sovereign",
 		LastFlush: time.Now().Add(-10 * time.Minute),
 	})
 
@@ -76,5 +77,14 @@ func TestAnchoringService_SubmitsBatchAndStoresProof(t *testing.T) {
 	}
 	if confirm.calls != 2 {
 		t.Fatalf("confirmations = %d, want 2", confirm.calls)
+	}
+	// The root is recorded for the finality tracker, and the stored path verifies.
+	roots := svc.ProofStore().(metagraph.RootStore)
+	rec, ok, err := roots.GetRoot(context.Background(), submitted.Root)
+	if err != nil || !ok || rec.LeafCount != 2 || rec.Network != "sovereign" || rec.Finalized {
+		t.Fatalf("anchored root record: %+v ok=%v err=%v", rec, ok, err)
+	}
+	if err := metagraph.VerifyMerklePath(proof.Commitment, proof.Siblings, proof.MerkleLeafIndex, rec.LeafCount, rec.MerkleRoot); err != nil {
+		t.Fatalf("stored proof does not verify: %v", err)
 	}
 }

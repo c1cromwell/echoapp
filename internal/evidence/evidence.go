@@ -78,6 +78,9 @@ type ClientConfig struct {
 	OrganizationID string `json:"organization_id"`
 	TenantID       string `json:"tenant_id"`
 	BaseURL        string `json:"base_url"`
+	// VerifyBaseURL is the prefix for public verification links (optional).
+	// When empty, no explorer link is synthesized.
+	VerifyBaseURL string `json:"verify_base_url,omitempty"`
 }
 
 // Validate checks that the client configuration is complete.

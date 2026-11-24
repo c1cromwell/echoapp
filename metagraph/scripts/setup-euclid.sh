@@ -54,7 +54,10 @@ fi
 EUCLID_DIR="${EUCLID_DIR:-$PROJECT_DIR/../../euclid-development-environment}"
 if [ ! -d "$EUCLID_DIR" ]; then
   echo "Cloning Euclid Development Environment..."
-  git clone https://github.com/Constellation-Labs/euclid-development-environment "$EUCLID_DIR"
+  # Echo's own fork, pinned to the tag in euclid.json (docs/OWN_L0_PLAN.md stage 1).
+  EUCLID_REPO_URL="${EUCLID_REPO_URL:-https://github.com/c1cromwell/euclid-development-environment}"
+  EUCLID_TAG="$(jq -r '.github.tag // "v0.19.0"' "$PROJECT_DIR/euclid.json")"
+  git clone --branch "$EUCLID_TAG" "$EUCLID_REPO_URL" "$EUCLID_DIR"
 fi
 
 cd "$EUCLID_DIR"
@@ -111,13 +114,17 @@ rsync -a --delete \
   "$PROJECT_DIR/" "$SOURCE_DIR/"
 echo "✓ Synced metagraph source → $SOURCE_DIR"
 
-echo ""
-echo "Running hydra install..."
-echo "  This downloads Tessellation ${TESSELLATION_VERSION:-4.0.0-rc.0} framework JARs."
-echo "  First run may take several minutes."
-scripts/hydra install || {
-  echo "NOTE: hydra install may fail if project already installed. Continuing..."
-}
+# 6. Echo's overlay on the Euclid checkout: the node image build takes Tessellation binaries
+#    from Echo's vendored, checksum-verified copies instead of Constellation's GitHub.
+rsync -a "$PROJECT_DIR/euclid-overlay/" "$EUCLID_DIR/"
+TESS_TAG="v$(jq -r .tessellation_version "$PROJECT_DIR/euclid.json")"
+"$PROJECT_DIR/vendor/fetch.sh" "$TESS_TAG"
+mkdir -p "$EUCLID_DIR/infra/metagraph-ubuntu/vendor/$TESS_TAG"
+rsync -a --delete --exclude "*.tar.gz" "$PROJECT_DIR/vendor/tessellation/$TESS_TAG/" "$EUCLID_DIR/infra/metagraph-ubuntu/vendor/$TESS_TAG/"
+echo "✓ Applied Echo overlay and vendored Tessellation $TESS_TAG"
+
+# `hydra install` is deliberately not run: its only jobs are to generate the stock template
+# project from Constellation's GitHub (Echo's source is synced above instead) and to re-init git.
 
 echo ""
 echo "=== Setup complete ==="

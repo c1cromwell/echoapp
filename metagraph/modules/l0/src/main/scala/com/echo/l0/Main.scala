@@ -32,7 +32,7 @@ object Main extends CurrencyL0App(
   name      = "echo-metagraph-l0",
   header    = "Echo Metagraph L0",
   clusterId = ClusterIds.metagraphL0,
-  tessellationVersion = TessellationVersion.unsafeFrom("4.0.0-rc.0"),
+  tessellationVersion = TessellationVersion.unsafeFrom("4.0.7"),
   metagraphVersion    = MetagraphVersion.unsafeFrom("0.1.0")
 ) {
 

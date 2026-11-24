@@ -12,6 +12,8 @@ ThisBuild / assemblyMergeStrategy := {
   case x if x.contains("io.netty.versions.properties")    => MergeStrategy.discard
   case PathList("com", "echo", "buildinfo", xs @ _*)      => MergeStrategy.first
   case PathList(xs @ _*) if xs.last == "module-info.class" => MergeStrategy.first
+  // Tessellation 4.0.7 pulls BouncyCastle 1.83 and jspecify, which each ship this OSGi manifest.
+  case x if x.endsWith("OSGI-INF/MANIFEST.MF")             => MergeStrategy.discard
   case x =>
     val oldStrategy = (assembly / assemblyMergeStrategy).value
     oldStrategy(x)

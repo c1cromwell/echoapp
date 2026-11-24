@@ -19,6 +19,12 @@ data:
   DATABASE_SSLMODE: "require"
   REDIS_HOST: "10.0.1.50"
   REDIS_PORT: "6379"
+  # Chain network the gateway anchors to: "sovereign" (Echo's own chain) or
+  # "constellation" (Constellation's public network). Any other value fails startup.
+  ECHO_CHAIN_NETWORK: "sovereign"
+  # Constellation-hosted Digital Evidence API. The client is constructed only
+  # when this is "true" and DIGITAL_EVIDENCE_API_KEY is set.
+  DIGITAL_EVIDENCE_ENABLED: "false"
   # Constellation metagraph endpoints. Localhost defaults are for local dev only; overlays point these
   # at the production metagraph nodes (deploy/terraform/hetzner/metagraph-nodes.tf) once deployed.
   # See docs/ZERO_TO_PRODUCTION.md §5 (wire backend → production metagraph).

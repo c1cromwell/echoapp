@@ -336,6 +336,9 @@ metagraph-test: ## WO-272/277: run validators + Identity L1 wiring tests (sbt + 
 	  cd metagraph && SBT_OPTS="-Xss8m -Xmx2g" sbt "sharedData/test" "currencyL0/test" "currencyL1/test" "dataL1/test" "identityL0/test" "identityL1/test"; \
 	fi
 
+chain-supply-check: ## Chain builds without Constellation: no hosted URLs in build path, vendored binaries match checksums
+	@EUCLID_DIR="$(EUCLID_DIR)" ./scripts/chain-supply-check.sh
+
 dev-stop: testnet-down ## Tear down backend stack (does not stop metagraph)
 	@echo "Backend stack down. Metagraph still running — use:"
 	@echo "  make dev-stop-all    # also hydra stop + Identity"

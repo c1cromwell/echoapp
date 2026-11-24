@@ -1,10 +1,10 @@
 {
   "github": {
-    "organization": "Constellation-Labs",
+    "organization": "c1cromwell",
     "repo": "euclid-development-environment",
     "tag": "v0.19.0"
   },
-  "tessellation_version": "4.0.0-rc.0",
+  "tessellation_version": "4.0.7",
   "project_name": "echo-metagraph",
   "framework": {
     "version": "v3.6.0",

@@ -39,7 +39,13 @@ func LoadIntegrationFromEnv() IntegrationConfig {
 		log.Printf("comply: Data L1 anchoring enabled (%s)", d1)
 	}
 
-	if deCfg, err := evidence.LoadClientConfigFromEnv(); err == nil {
+	// Digital Evidence is a Constellation-hosted service: constructed only when
+	// DIGITAL_EVIDENCE_ENABLED=true (and the API key is set).
+	if !evidence.Enabled() {
+		if strings.TrimSpace(os.Getenv("DIGITAL_EVIDENCE_API_KEY")) != "" {
+			log.Println("comply: DIGITAL_EVIDENCE_API_KEY is set but DIGITAL_EVIDENCE_ENABLED is not true; Digital Evidence stays off")
+		}
+	} else if deCfg, err := evidence.LoadClientConfigFromEnv(); err == nil {
 		if client, err := evidence.NewHTTPClient(deCfg); err == nil {
 			out.Evidence = client
 			out.EvidenceConfig = deCfg

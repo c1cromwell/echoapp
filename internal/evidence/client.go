@@ -12,7 +12,20 @@ import (
 	"time"
 )
 
-const defaultVerifyBase = "https://digitalevidence.constellationnetwork.io/verify/"
+// Constellation-hosted Digital Evidence endpoints. These are applied as
+// defaults only by LoadClientConfigFromEnv, and only when
+// DIGITAL_EVIDENCE_ENABLED=true: nothing in the gateway points at Constellation
+// unless the operator opts in.
+const (
+	constellationEvidenceBaseURL = "https://evidence.constellationnetwork.io"
+	constellationVerifyBaseURL   = "https://digitalevidence.constellationnetwork.io/verify/"
+)
+
+// Enabled reports whether DIGITAL_EVIDENCE_ENABLED is set to true (default false).
+func Enabled() bool {
+	v := strings.TrimSpace(osGetenv("DIGITAL_EVIDENCE_ENABLED"))
+	return strings.EqualFold(v, "true") || v == "1"
+}
 
 // HTTPClient submits fingerprints to Constellation Digital Evidence REST API.
 type HTTPClient struct {
@@ -81,7 +94,7 @@ func (c *HTTPClient) SubmitFingerprint(ctx context.Context, req *FingerprintRequ
 		}
 	}
 	if out.ExplorerURL == "" && out.EventID != "" {
-		out.ExplorerURL = defaultVerifyBase + out.EventID
+		out.ExplorerURL = c.verifyURL(out.EventID)
 	}
 	for _, key := range []string{"anchored_at", "anchoredAt", "timestamp"} {
 		if v, ok := raw[key]; ok {
@@ -121,28 +134,46 @@ func (c *HTTPClient) VerifyFingerprint(ctx context.Context, eventID string) (*Ve
 		return &VerificationResult{
 			EventID:     eventID,
 			Status:      "verified",
-			ExplorerURL: defaultVerifyBase + eventID,
+			ExplorerURL: c.verifyURL(eventID),
 		}, nil
 	}
 	if result.EventID == "" {
 		result.EventID = eventID
 	}
 	if result.ExplorerURL == "" {
-		result.ExplorerURL = defaultVerifyBase + eventID
+		result.ExplorerURL = c.verifyURL(eventID)
 	}
 	return &result, nil
 }
 
+// verifyURL builds the public verification link for an event, or "" when no
+// verify base is configured (no hard-coded host).
+func (c *HTTPClient) verifyURL(eventID string) string {
+	if c.config.VerifyBaseURL == "" {
+		return ""
+	}
+	return strings.TrimRight(c.config.VerifyBaseURL, "/") + "/" + eventID
+}
+
 // LoadClientConfigFromEnv reads DIGITAL_EVIDENCE_* environment variables.
+// It returns an error unless DIGITAL_EVIDENCE_ENABLED=true, so callers never
+// construct a client for the Constellation-hosted service by accident.
 func LoadClientConfigFromEnv() (*ClientConfig, error) {
+	if !Enabled() {
+		return nil, fmt.Errorf("DIGITAL_EVIDENCE_ENABLED is not true")
+	}
 	cfg := &ClientConfig{
 		APIKey:         strings.TrimSpace(osGetenv("DIGITAL_EVIDENCE_API_KEY")),
 		OrganizationID: strings.TrimSpace(osGetenv("DIGITAL_EVIDENCE_ORG_ID")),
 		TenantID:       strings.TrimSpace(osGetenv("DIGITAL_EVIDENCE_TENANT_ID")),
 		BaseURL:        strings.TrimSpace(osGetenv("DIGITAL_EVIDENCE_BASE_URL")),
+		VerifyBaseURL:  strings.TrimSpace(osGetenv("DIGITAL_EVIDENCE_VERIFY_BASE_URL")),
 	}
 	if cfg.BaseURL == "" {
-		cfg.BaseURL = "https://evidence.constellationnetwork.io"
+		cfg.BaseURL = constellationEvidenceBaseURL
+	}
+	if cfg.VerifyBaseURL == "" {
+		cfg.VerifyBaseURL = constellationVerifyBaseURL
 	}
 	if cfg.APIKey == "" {
 		return nil, fmt.Errorf("DIGITAL_EVIDENCE_API_KEY not set")

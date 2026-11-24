@@ -54,6 +54,10 @@ services:
       - STORAGE_ACCESS_KEY_ID=minioadmin
       - STORAGE_SECRET_ACCESS_KEY=minioadmin
       - STORAGE_FORCE_PATH_STYLE=true
+      # Chain network: sovereign (default) | constellation. Other values fail startup.
+      - ECHO_CHAIN_NETWORK=${ECHO_CHAIN_NETWORK:-sovereign}
+      # Constellation-hosted Digital Evidence stays off unless explicitly enabled.
+      - DIGITAL_EVIDENCE_ENABLED=${DIGITAL_EVIDENCE_ENABLED:-false}
       # Constellation / Euclid SDK metagraph cluster (host-side, via hydra)
       # Ports come from metagraph/euclid.json.
       - GLOBAL_L0_URL=http://host.docker.internal:9000

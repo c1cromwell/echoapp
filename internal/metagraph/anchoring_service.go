@@ -39,6 +39,7 @@ type AnchoringService struct {
 	confirm     ConfirmationPublisher
 	proofs      ProofStore
 	batcher     *AnchoringBatcher
+	network     string
 	interval    time.Duration
 	maxBatch    int
 	lastFlush   time.Time
@@ -52,6 +53,7 @@ type AnchoringConfig struct {
 	Source    CommitmentSource
 	Confirm   ConfirmationPublisher
 	Proofs    ProofStore
+	Network   string // ECHO_CHAIN_NETWORK; recorded with each anchored root
 	Interval  time.Duration
 	LastFlush time.Time // optional; zero defaults to time.Now()
 }
@@ -71,6 +73,7 @@ func NewAnchoringService(cfg AnchoringConfig) *AnchoringService {
 		source:    cfg.Source,
 		confirm:   cfg.Confirm,
 		proofs:    proofs,
+		network:   cfg.Network,
 		batcher:   NewAnchoringBatcher(),
 		interval:  interval,
 		maxBatch:  MaxBatchSize,
@@ -173,6 +176,14 @@ func (s *AnchoringService) submitBatch(ctx context.Context, batch *AnchoringBatc
 	s.lastFlush = time.Now()
 	s.submissions++
 
+	// Durable record of the root, so the finality tracker can follow it across
+	// restarts. Stores that only keep per-message proofs skip this.
+	if roots, ok := s.proofs.(RootStore); ok {
+		if err := roots.RecordRootSubmitted(ctx, tree.Root, batch.CommitmentCount, s.network, s.lastFlush); err != nil {
+			log.Printf("anchoring: record root %s failed: %v", tree.Root, err)
+		}
+	}
+
 	for i, c := range batch.Commitments {
 		if c.MessageID == "" {
 			continue
@@ -186,7 +197,9 @@ func (s *AnchoringService) submitBatch(ctx context.Context, batch *AnchoringBatc
 			MerkleRoot:      tree.Root,
 			SnapshotHeight:  0,
 		}
-		_ = s.proofs.Put(ctx, proof)
+		if err := s.proofs.Put(ctx, proof); err != nil {
+			log.Printf("anchoring: store proof for root %s failed: %v", tree.Root, err)
+		}
 		if s.confirm != nil {
 			sender := s.batcher.senderFor(c.MessageID)
 			if sender != "" {

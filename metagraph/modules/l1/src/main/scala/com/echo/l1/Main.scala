@@ -21,7 +21,7 @@ object Main extends CurrencyL1App(
   name      = "echo-currency-l1",
   header    = "Echo Currency L1",
   clusterId = ClusterIds.currencyL1,
-  tessellationVersion = TessellationVersion.unsafeFrom("4.0.0-rc.0"),
+  tessellationVersion = TessellationVersion.unsafeFrom("4.0.7"),
   metagraphVersion    = MetagraphVersion.unsafeFrom("0.1.0")
 ) {
 

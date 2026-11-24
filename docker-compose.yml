@@ -166,6 +166,8 @@ services:
       - DATA_L1_URL=http://host.docker.internal:9400
       - IDENTITY_SERVICE_KEY_PEM=/app/.keys/identity-service.pem
       # Optional: Constellation Digital Evidence API (Org-tier fingerprinting)
+      # Off unless DIGITAL_EVIDENCE_ENABLED=true (an API key alone is not enough).
+      # - DIGITAL_EVIDENCE_ENABLED=true
       # - DIGITAL_EVIDENCE_API_KEY=
       # - DIGITAL_EVIDENCE_ORG_ID=
       # - DIGITAL_EVIDENCE_TENANT_ID=
