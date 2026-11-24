@@ -75,7 +75,9 @@ struct ReadReceiptPayload: Codable, Sendable, Equatable {
 
 /// Outer sealed-sender body (WO-219). Inner sender DID is encrypted in `ciphertext`.
 struct SealedTextPayload: Codable, Sendable, Equatable {
-    let deliveryToken: String
+    /// Present only on the first-contact path over the logged-in socket. A message sent with the
+    /// recipient's delivery key carries none.
+    let deliveryToken: String?
     let ciphertext: Data
 
     enum CodingKeys: String, CodingKey {

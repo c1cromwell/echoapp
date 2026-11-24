@@ -15,9 +15,11 @@ enum SealedSenderPreferences {
     }
 
     /// When true, sealed-sender applies only to contacts with trust tier ≥ 2 or favorites.
+    /// Off unless the user turns it on: with it on, every other chat tells the server who is
+    /// writing to whom.
     static var trustedContactsOnly: Bool {
         get {
-            if UserDefaults.standard.object(forKey: trustedOnlyKey) == nil { return true }
+            if UserDefaults.standard.object(forKey: trustedOnlyKey) == nil { return false }
             return UserDefaults.standard.bool(forKey: trustedOnlyKey)
         }
         set { UserDefaults.standard.set(newValue, forKey: trustedOnlyKey) }

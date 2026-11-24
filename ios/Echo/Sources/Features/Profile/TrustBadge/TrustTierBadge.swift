@@ -109,3 +109,53 @@ struct TrustTierBadge: View {
         }
     }
 }
+
+// MARK: - Membership mark
+
+/// A mark beside a name that says what kind of account this is. It is not the trust tier:
+/// trust is earned by verification, a mark can be paid for, and each is drawn so one cannot be
+/// taken for the other. Marks are seals, trust tiers are circles; no mark uses the trust blue.
+enum MembershipMark: String, Equatable, CaseIterable {
+    /// An active ECHO VIP subscription.
+    case vip
+    /// A business or organisation Echo has checked. Not issued yet.
+    case organization
+    /// A government or public body Echo has checked. Not issued yet.
+    case official
+
+    /// The server's value; anything unknown (including "") is no mark.
+    init?(serverValue: String?) {
+        guard let serverValue, let mark = MembershipMark(rawValue: serverValue) else { return nil }
+        self = mark
+    }
+
+    var color: Color {
+        switch self {
+        case .vip: return Color(red: 0.49, green: 0.36, blue: 0.96)          // violet
+        case .organization: return Color(red: 0.83, green: 0.62, blue: 0.09) // gold
+        case .official: return Color(red: 0.51, green: 0.55, blue: 0.60)     // grey
+        }
+    }
+
+    /// Says what the mark means and, for a paid one, what it does not mean.
+    var accessibilityText: String {
+        switch self {
+        case .vip: return "VIP member. A paid subscription, not identity verification"
+        case .organization: return "Verified organisation"
+        case .official: return "Government or official account"
+        }
+    }
+}
+
+struct MembershipMarkView: View {
+    let mark: MembershipMark
+    let size: CGFloat
+
+    var body: some View {
+        Image(systemName: "checkmark.seal.fill")
+            .font(.system(size: size))
+            .foregroundStyle(mark.color)
+            .accessibilityLabel(mark.accessibilityText)
+            .accessibilityIdentifier("membership.mark.\(mark.rawValue)")
+    }
+}

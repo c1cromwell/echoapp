@@ -43,7 +43,7 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "A VIP badge on your profile.",
+              "description" : "A violet VIP mark beside your name.",
               "displayName" : "ECHO VIP",
               "locale" : "en_US"
             }

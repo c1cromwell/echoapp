@@ -79,6 +79,7 @@ func (rt *Router) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	rt.clearMembership(r.Context(), userID)
 	if rt.Redis != nil {
 		_ = rt.Redis.DeleteDIDDeviceKeys(r.Context(), userID)
 		_ = rt.Redis.CacheDelete(r.Context(), "vip:tier:"+userID)

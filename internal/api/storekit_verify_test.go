@@ -183,17 +183,57 @@ func postVIPSubscription(rt *Router, did string, tier int, jws string) *httptest
 func TestVIPVerify_SubscriptionAcceptsVerifiedTransaction(t *testing.T) {
 	chain := newTestStoreKitChain(t, testChainOptions{})
 	rt := &Router{storeKitRoots: chain.roots}
-	// Asking for tier 5 with a real subscription still records the VIP tier.
+	// A real subscription buys the VIP mark. It does not buy trust: asking for tier 5 still
+	// leaves the account at the tier any new account has.
 	w := postVIPSubscription(rt, "did:key:zVIP", 5, chain.sign(t, vipClaims("verified-1")))
 	if w.Code != http.StatusOK {
 		t.Fatalf("want 200, got %d %s", w.Code, w.Body.String())
 	}
 	var resp struct {
-		TrustTier int `json:"trust_tier"`
+		TrustTier  int    `json:"trust_tier"`
+		Membership string `json:"membership"`
 	}
 	_ = json.Unmarshal(w.Body.Bytes(), &resp)
-	if resp.TrustTier != vipSubscriptionTier {
-		t.Fatalf("trust_tier = %d, want %d", resp.TrustTier, vipSubscriptionTier)
+	if resp.TrustTier != vipMaxSelfAssertedTier {
+		t.Fatalf("a purchase set trust_tier to %d; paying must not raise trust", resp.TrustTier)
+	}
+	if resp.Membership != MembershipVIP {
+		t.Fatalf("membership = %q, want %q", resp.Membership, MembershipVIP)
+	}
+	if got := rt.membershipOf(context.Background(), "did:key:zVIP"); got != MembershipVIP {
+		t.Fatalf("stored mark = %q", got)
+	}
+
+	// Anyone signed in can see the mark; an account that never paid has none.
+	for did, want := range map[string]string{"did:key:zVIP": MembershipVIP, "did:key:zNobody": MembershipNone} {
+		rec := httptest.NewRecorder()
+		rt.handleMembership(rec, httptest.NewRequest(http.MethodGet, "/v1/membership?did="+did, nil))
+		var out struct {
+			Mark string `json:"mark"`
+		}
+		_ = json.Unmarshal(rec.Body.Bytes(), &out)
+		if rec.Code != http.StatusOK || out.Mark != want {
+			t.Errorf("%s: status %d mark %q, want %q", did, rec.Code, out.Mark, want)
+		}
+	}
+}
+
+// A mark lapses with the subscription, and is removed with the account.
+func TestMembershipLapsesAndIsCleared(t *testing.T) {
+	rt := &Router{}
+	ctx := context.Background()
+	rt.setMembership(ctx, "did:key:zPast", MembershipVIP, time.Now().Add(-time.Minute))
+	if got := rt.membershipOf(ctx, "did:key:zPast"); got != MembershipNone {
+		t.Fatalf("an expired subscription still shows %q", got)
+	}
+	rt.memberships.Store("did:key:zLapsed", membershipRecord{Mark: MembershipVIP, ExpiresAt: time.Now().Add(-time.Second)})
+	if got := rt.membershipOf(ctx, "did:key:zLapsed"); got != MembershipNone {
+		t.Fatalf("a lapsed record still shows %q", got)
+	}
+	rt.setMembership(ctx, "did:key:zGone", MembershipVIP, time.Now().Add(time.Hour))
+	rt.clearMembership(ctx, "did:key:zGone")
+	if got := rt.membershipOf(ctx, "did:key:zGone"); got != MembershipNone {
+		t.Fatalf("a deleted account still shows %q", got)
 	}
 }
 

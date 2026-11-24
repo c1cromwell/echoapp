@@ -13,12 +13,21 @@ have not personally re-read are marked *(reported)*.
 
 *Can someone holding Echo's database, logs or network position say "A messaged B at time T"?*
 
-Before this change: **yes, for every message, for 30 days**, including messages sent with "sealed
-sender". After this change: **only for a message still waiting for an offline recipient**, and
-then only because the app itself still names both parties in the conversation id it sends (§4.1).
-The live server continues to see the sender of every message as it passes, because the app
-connects with an authenticated socket (§4.2). Closing those two is client protocol work that needs
-testing on devices; it is designed in §5 and not done.
+Before this work: **yes, for every message, for 30 days**, including messages sent with "sealed
+sender". Now, for a 1:1 message between two people who have already exchanged one message each
+way: **no — not from the database, the logs, or the message as it passes.** The message arrives on
+a connection with no login, addressed by a key only the recipient's contacts hold, carrying no
+sender and no conversation (§5).
+
+Three things qualify that, and they matter:
+
+- **It is built and unit-tested, not yet proven between two phones.** §5.4 is the test to run.
+- **The first message to a new contact still shows the server who sent it**, because the sender
+  has no delivery key for them yet. Every message after the reply does not.
+- **Typing indicators, read receipts, reactions, edits and calls still travel on the logged-in
+  socket**, naming both people to the live server (not stored). And the sealed request comes from
+  the same network address as the logged-in socket, so a server set on it could match the two.
+  §4.2.
 
 Nothing here makes tracing impossible. See §6 for what no messenger of this design can stop.
 
@@ -64,7 +73,7 @@ in pushes.
 | 6 | Anchoring confirmations are delivered live or not at all; never queued, never pushed | `TestAnchorConfirmationIsNeverQueued` |
 | 7 | A message with no id gets a random one; the conversation is never part of it | `TestCommitmentIDNeverContainsTheConversation` |
 | 8 | The sender recorded for a confirmation is forgotten when the confirmation is sent. With no chain configured, commitments are not collected at all | code; no dedicated test |
-| 1, 9 | Pushes carry no conversation id: only a type, and for a missed call that call's random id | `TestAPNsPayloadCarriesNoConversationOrParty` |
+| 9 | Pushes carry no conversation id: only a type, and for a missed call that call's random id | `TestAPNsPayloadCarriesNoConversationOrParty` |
 | 10 | Without the real private-matching library, contact discovery is off. The test stand-in can no longer be reached from the app | compiles in the app build; no device test |
 | 11 | A forward that cannot be encrypted is not sent | compiles in the app build; no device test |
 | 12 | The app sends the socket token in the `Authorization` header. The server already accepted it there | `WebSocketURLBuilderTests` |
@@ -88,17 +97,21 @@ the consumer messaging gateway.
 
 ## 4. Still open
 
-### 4.1 The conversation id names both parties (finding 1) — the largest remaining leak
+### 4.1 Closed by §5, pending the two-phone test
 
-The app builds `dm:<A>:<B>` and puts it on every message. The server now stores it only inside the
-envelope of a message that is waiting for an offline recipient, and erases it on delivery; it no
-longer goes to Apple. But while a message waits, the pair is in the database, and the live server
-sees it on every message. Fix: §5.
+The conversation id on the wire (finding 1) and the server seeing the sender of each message
+(finding 4), for 1:1 text messages after first contact.
 
-### 4.2 The server sees the sender of every message as it passes (finding 4)
+### 4.2 What sealed delivery does not cover
 
-The socket is authenticated as the sender. "Sealed sender" as built cannot hide the sender from
-the server. Fix: §5.
+| What | Why it is still visible | What would close it |
+|---|---|---|
+| The first message to a new contact | No delivery key for them yet, so it goes over the logged-in socket (sealed for the recipient, with the constant conversation id) | A way to fetch a contact's delivery key privately, e.g. inside the contact-exchange QR or invite link |
+| Typing, read receipts, reactions, edits, deletes, pins, polls, call set-up | They are sent on the logged-in socket with `from` and `to`. Not stored, but the live server sees the pair | Send them through sealed delivery too. They need a signature inside, because the server no longer vouches for the sender |
+| Group messages | Group fan-out is by the server, which knows the membership | A different design (per-member sealed delivery); not started |
+| Network address | The sealed request and the logged-in socket come from the same address | A relay or Tor in front of sealed delivery. The app's SOCKS setting already applies to it |
+| Timing | A send and a delivery a moment apart can be matched by anyone watching both | Delays and cover traffic (§6) |
+| Anchoring confirmation | A sealed message is anchored with no sender recorded, so the server has no one to notify | The app fetches the proof by message id when it wants it |
 
 ### 4.3 The rest
 
@@ -115,32 +128,73 @@ the server. Fix: §5.
 | — | In-memory rate-limit buckets keyed by DID or IP are never evicted *(reported)* | Small |
 | — | `GET /v3/messages/{id}/status` has no check that the caller is a party to the message *(reported)*. Ids are random, which limits the exposure | Small |
 
-## 5. Design for the two large items (not built)
+## 5. Sealed delivery and opaque conversation ids (built 2026-11-24)
 
-Both change the wire protocol between two phones, so both sides must change together and the
-result has to be tested on real devices. I have not done that and will not claim it works until
-it has been.
+### 5.1 How it works
 
-**Opaque conversation ids.** Keep `dm:<A>:<B>` as the app's private, local name for a thread. On
-the wire, send nothing that names the pair. For a sealed message the recipient learns the sender
-from inside the decrypted payload and derives the local thread name itself, so the wire field can
-be a constant. The server's validation already accepts any id beginning `dm:`.
+1. **Delivery key.** Each device makes 32 random bytes and keeps them in the Keychain. It tells
+   the server only the SHA-256 (`PUT /v3/messages/delivery-key`). The server stores
+   hash → account, the two most recent per account.
+2. **Handing it out.** The key travels inside every sealed message, within the encryption, so the
+   recipient can reply. The receiving device starts using it only after the message it came in
+   has been authenticated as from that person; otherwise anyone could redirect replies.
+3. **Sending.** With the recipient's key, the app posts to `POST /v1/sealed/deliver` on a
+   separate connection with no login, no cookie and no device header. The server hashes the key,
+   finds the recipient, and delivers. It records nothing about the caller.
+4. **No conversation on the wire.** A sealed message carries the constant `dm:sealed`. The
+   recipient's device reads the sender from inside the encryption and works out the thread
+   itself. `dm:<A>:<B>` is now only each device's private name for a thread.
+5. **First contact.** With no key yet, the message goes over the logged-in socket, sealed for the
+   recipient and carrying the sender's key. The reply comes back sealed, and from then on both
+   directions are.
+6. **A replaced key.** If the server answers "unknown key", the app forgets that key and uses the
+   first-contact path once; the reply brings the new one.
 
-**Sealed sender that the server cannot see through.**
+### 5.2 Abuse and blocking
 
-1. Each account publishes a *delivery key* to its contacts inside encrypted messages, never to
-   the server in the clear. The server stores only a hash of it.
-2. To send, the app opens a second connection that carries **no** login, and presents the
-   recipient's delivery key. The server checks the hash and accepts the message for that
-   recipient. It never learns who sent it.
-3. The sender's identity, signed, travels inside the encrypted payload.
-4. Abuse control moves to what the server can still see: a rate limit per recipient and per
-   connection; blocking is enforced by the recipient's device, which drops what it does not want.
-5. First contact (no delivery key yet) uses the existing authenticated path, or a recipient can
-   choose to accept unsealed first messages. That choice is the user's.
+The server cannot limit or block a sender it cannot see, so:
 
-**Rotating mailbox identifiers** build on the same connection: the recipient polls for mail under
-an identifier it changes on a schedule, so even the recipient side is not one long-lived name.
+- The rate limit is per recipient mailbox.
+- A delivery key is a permission. Only people the user has messaged hold it.
+- Blocking someone drops their messages on the device, and replaces the delivery key with every
+  earlier key revoked at once, so the copy they hold stops working. Other contacts get "unknown
+  key", use the first-contact path once, and pick up the new key.
+- The old server-side block still applies to everything sent over the logged-in socket.
+
+### 5.3 Verified by
+
+| What | Test |
+|---|---|
+| A message reaches the recipient with no sender and no conversation in the envelope or the stored row | `TestSealedDeliver_ReachesRecipientWithoutNamingTheSender` |
+| A login, header or context identity presented by the caller never reaches storage | `TestSealedDeliver_IgnoresAnyIdentityTheCallerPresents` |
+| Works through the real middleware with no token; registering a key still needs a login | `TestSealedDeliver_ThroughTheRealHandlerChain` |
+| Unknown key, short key, missing or oversized payload are refused and deliver nothing | `TestSealedDeliver_Refusals` |
+| Another account cannot register someone's key; rotation keeps two; revoke-others keeps one | `TestDeliveryKeyRegistration`, `TestDeliveryKeyRevokeOthers`, `TestDeliveryKeysPostgresIntegration` (real Postgres) |
+| A sealed message is anchored with no sender | `TestSealedDeliver_AnchorsWithoutASender` |
+| The app's request contains no DID, token or conversation, and only a content-type header | `SealedDeliveryTests.testDeliveryRequestCarriesNoIdentity` |
+| The recipient derives the same thread name the sender uses locally | `testRecipientDerivesTheThreadLocally` |
+| A key from a message is unused until that message is authenticated | `testPeerKeyIsUsedOnlyAfterTheMessageIsAuthenticated` |
+| The app's key hash equals the server's | `testKeyHashMatchesTheServer` |
+
+### 5.4 Not verified: two phones
+
+Nothing above runs two real apps against each other. Before relying on this, with two devices
+(or one device and a simulator) signed in as A and B against a test backend:
+
+1. A sends B a first message. B receives it in the right thread. (First-contact path.)
+2. B replies. A receives it in the same thread. In the gateway's request log the reply is a
+   `POST /v1/sealed/deliver` with no user, and no `sealed_text` frame from B appears on B's socket.
+3. A sends again. It is also a `POST /v1/sealed/deliver`.
+4. Put B in airplane mode, send from A, bring B back: the message arrives, and the
+   `message_queue` row for it had an empty sender and conversation while it waited.
+5. B blocks A. A's next message does not appear on B. B unblocks; messages flow again after one
+   exchange.
+6. Delete and reinstall B (new delivery key). A's next message still arrives (unknown-key
+   fallback), and the one after that is sealed again.
+7. Replies, forwards and media each arrive in the right thread, and delivery ticks still update.
+
+If step 2 or 3 shows a `sealed_text` frame on the socket instead, the key exchange did not
+complete; the message was still delivered, but not privately.
 
 ## 6. What this cannot stop
 
@@ -149,4 +203,4 @@ an identifier it changes on a schedule, so even the recipient side is not one lo
   speed and battery.
 - **A compromised phone.** Software on the device reads messages before they are encrypted.
 - **An order to change the code.** Reproducible builds make that detectable, not impossible.
-- **The live server during delivery**, until §5 is built.
+- **The live server for what §4.2 lists**: first contact, signals, groups.

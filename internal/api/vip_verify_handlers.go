@@ -25,7 +25,6 @@ const (
 // enrollment sets its own tier in handleEnrollmentDID).
 const (
 	vipMaxSelfAssertedTier = 1
-	vipSubscriptionTier    = 3
 )
 
 // vipTxnOwner remembers which Apple transaction is bound to which DID so one
@@ -106,7 +105,8 @@ type vipTierRecord struct {
 //
 //   - evidence_type "vip_subscription" needs signed_transaction, a StoreKit 2
 //     JWS that verifies against Apple Root CA - G3 (see verifyStoreKitJWS). It
-//     records at most vipSubscriptionTier.
+//     records a VIP membership mark until the subscription's expiry. It does not raise the
+//     trust tier.
 //   - every other evidence_type is self-asserted and records at most
 //     vipMaxSelfAssertedTier.
 //
@@ -162,6 +162,8 @@ func (rt *Router) handleVIPVerify(w http.ResponseWriter, r *http.Request) {
 		req.EvidenceType = "unknown"
 	}
 	maxTier := vipMaxSelfAssertedTier
+	membership := MembershipNone
+	var membershipExpires time.Time
 	if req.EvidenceType == "vip_subscription" {
 		var payload []byte
 		var err error
@@ -190,7 +192,11 @@ func (rt *Router) handleVIPVerify(w http.ResponseWriter, r *http.Request) {
 			WriteError(w, http.StatusConflict, "TRANSACTION_REUSED", "this subscription is already linked to another account", r.Header.Get("X-Request-ID"))
 			return
 		}
-		maxTier = vipSubscriptionTier
+		// Paying buys a membership mark, not trust. The trust tier is earned by verification
+		// and a purchase never raises it.
+		membership = MembershipVIP
+		membershipExpires = time.UnixMilli(claims.ExpiresDate)
+		rt.setMembership(r.Context(), req.DID, membership, membershipExpires)
 	}
 	requestedTier := req.TrustTier
 	if req.TrustTier > maxTier {
@@ -210,7 +216,7 @@ func (rt *Router) handleVIPVerify(w http.ResponseWriter, r *http.Request) {
 		_ = rt.Redis.CacheSet(r.Context(), "vip:tier:"+req.DID, data, 90*24*time.Hour)
 	}
 
-	WriteJSON(w, http.StatusOK, map[string]interface{}{
+	out := map[string]interface{}{
 		"did":                  record.DID,
 		"trust_tier":           record.TrustTier,
 		"requested_trust_tier": requestedTier,
@@ -218,7 +224,99 @@ func (rt *Router) handleVIPVerify(w http.ResponseWriter, r *http.Request) {
 		"evidence_type":        record.EvidenceType,
 		"updated_at":           record.UpdatedAt.Format(time.RFC3339),
 		"request_id":           r.Header.Get("X-Request-ID"),
-	})
+	}
+	if membership != MembershipNone {
+		out["membership"] = membership
+		out["membership_expires_at"] = membershipExpires.UTC().Format(time.RFC3339)
+	}
+	WriteJSON(w, http.StatusOK, out)
+}
+
+// --- Membership marks ---------------------------------------------------------------------
+//
+// A mark beside a name that says what kind of account this is. It is separate from the trust
+// tier on purpose: trust is earned by verification, a mark can be paid for, and the two must
+// never be mistaken for each other. Each mark has its own colour, and none uses the blue of the
+// verified trust tiers.
+//
+//	vip           violet   an active ECHO VIP subscription. Says "this account pays", not "this
+//	                       account is who it claims to be".
+//	organization  gold     a business or organisation Echo has checked. Not issued yet.
+//	official      grey     a government or public body Echo has checked. Not issued yet.
+
+const (
+	MembershipNone         = ""
+	MembershipVIP          = "vip"
+	MembershipOrganization = "organization"
+	MembershipOfficial     = "official"
+)
+
+type membershipRecord struct {
+	Mark      string    `json:"mark"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+func membershipKey(did string) string { return "membership:" + did }
+
+// setMembership records a mark until expires. Kept in Redis when configured, otherwise in memory.
+func (rt *Router) setMembership(ctx context.Context, did, mark string, expires time.Time) {
+	ttl := time.Until(expires)
+	if did == "" || mark == MembershipNone || ttl <= 0 {
+		return
+	}
+	rec := membershipRecord{Mark: mark, ExpiresAt: expires.UTC()}
+	if rt.Redis != nil {
+		data, _ := json.Marshal(rec)
+		_ = rt.Redis.CacheSet(ctx, membershipKey(did), data, ttl)
+		return
+	}
+	rt.memberships.Store(did, rec)
+}
+
+// membershipOf returns the account's current mark, or "" when it has none or it has lapsed.
+func (rt *Router) membershipOf(ctx context.Context, did string) string {
+	var rec membershipRecord
+	if rt.Redis != nil {
+		data, err := rt.Redis.CacheGet(ctx, membershipKey(did))
+		if err != nil || len(data) == 0 || json.Unmarshal(data, &rec) != nil {
+			return MembershipNone
+		}
+	} else {
+		v, ok := rt.memberships.Load(did)
+		if !ok {
+			return MembershipNone
+		}
+		rec = v.(membershipRecord)
+	}
+	if !rec.ExpiresAt.After(time.Now()) {
+		return MembershipNone
+	}
+	return rec.Mark
+}
+
+func (rt *Router) clearMembership(ctx context.Context, did string) {
+	if rt.Redis != nil {
+		_ = rt.Redis.CacheDelete(ctx, membershipKey(did))
+	}
+	rt.memberships.Delete(did)
+}
+
+// handleMembership returns the mark shown beside an account's name.
+// GET /v1/membership?did=did:key:z… -> {"did":"…","mark":"vip"}
+// A mark is public by nature (it is drawn next to the name for everyone who sees the account),
+// so any signed-in user may ask.
+func (rt *Router) handleMembership(w http.ResponseWriter, r *http.Request) {
+	reqID := r.Header.Get("X-Request-ID")
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "GET required", reqID)
+		return
+	}
+	did := r.URL.Query().Get("did")
+	if did == "" {
+		WriteError(w, http.StatusBadRequest, "MISSING_FIELD", "did is required", reqID)
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]interface{}{"did": did, "mark": rt.membershipOf(r.Context(), did)})
 }
 
 type storeKitClaims struct {

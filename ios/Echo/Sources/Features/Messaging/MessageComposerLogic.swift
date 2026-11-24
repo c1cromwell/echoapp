@@ -96,30 +96,13 @@ enum MessageForwarder {
                 peerDID: conversation.peerDID,
                 messageId: message.id
             )
-            if SealedSenderPolicy.shouldUseSealed(peerDID: conversation.peerDID, conversationId: conversation.id),
-               !conversation.id.hasPrefix("group:") {
-                let client = DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
-                let sealedService = SealedSenderService(
-                    identityResolve: IdentityResolveClient(apiClient: client),
-                    apiClient: client
-                )
-                let sealed = try await sealedService.wrap(
-                    payload: payload,
-                    recipientDID: conversation.peerDID,
-                    senderDID: senderDID
-                )
-                try await service.sendSealedTextMessage(
-                    conversationId: conversation.id,
-                    peerDID: conversation.peerDID,
-                    payload: sealed
-                )
-            } else {
-                try await service.sendTextMessage(
-                    conversationId: conversation.id,
-                    peerDID: conversation.peerDID,
-                    payload: payload
-                )
-            }
+            try await DirectMessageSender.send(
+                payload: payload,
+                conversationId: conversation.id,
+                peerDID: conversation.peerDID,
+                senderDID: senderDID,
+                signalService: service
+            )
             if fromMessageId != nil {
                 let ops = DIContainer.shared.resolveMessageOpsAPI()
                 try? await ops?.putMessageRefs(

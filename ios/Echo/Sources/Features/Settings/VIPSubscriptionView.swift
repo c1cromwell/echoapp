@@ -72,7 +72,7 @@ struct VIPSubscriptionView: View {
             // app icons and priority delivery are not implemented yet; listing
             // them on a paid subscription would be selling features that do
             // not exist. Add each row back when its feature ships.
-            benefitRow("checkmark.seal.fill", "VIP trust badge on profile")
+            benefitRow("checkmark.seal.fill", "Violet VIP mark beside your name")
         }
     }
 

@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"github.com/thechadcromwell/echoapp/internal/services/messaging"
 	"log"
 	"net"
 	"net/http"
@@ -85,11 +86,13 @@ type Router struct {
 	DIDRegistry          DIDRegistry            // did:key binding store (WO-230 / WO-278)
 	CredentialStatusPool *pgxpool.Pool          // WO-274 durable VC status list slots (optional)
 	Redis                *infra.RedisClient
+	memberships          sync.Map                         // did -> membershipRecord, when Redis is not configured
 	RateLimiter          *infra.RateLimiter               // WO-44 per-DID tiered rate limiting (optional)
 	PublicRateLimiter    *infra.RateLimiter               // S5: per-IP throttle for pre-auth public endpoints (optional)
 	SMSProvider          infra.SMSProvider                // Wave 12 SMS OTP recovery (optional; stub when nil)
 	IdentityL1           metagraph.IdentitySubmitter      // identity records on Echo's chain: device keys, trust tiers, usernames (optional)
 	DataL1               metagraph.DataSubmitter          // anchors Merkle roots and trust commitments on Echo's chain (optional)
+	DeliveryKeys         messaging.DeliveryKeyStore       // sealed delivery: delivery-key hash -> recipient (optional)
 	CredentialService    *credentials.Service             // WO-274 VC issuance (optional)
 	OIDC                 *gin.Engine                      // OpenID4VCI issuer + verifier mount (optional)
 	OIDCVerifier         *oidc4vc.Verifier                // OIDC4VC presentation verifier (optional)
@@ -272,6 +275,8 @@ func (rt *Router) Handler() http.Handler {
 			rt.handleSMSRecoveryVerify(w, r)
 		case r.URL.Path == "/v1/auth/vip-verify":
 			rt.handleVIPVerify(w, r)
+		case r.URL.Path == "/v1/membership":
+			rt.handleMembership(w, r)
 		case r.URL.Path == "/v1/auth/login/challenge":
 			rt.handleLoginChallenge(w, r)
 		case r.URL.Path == "/v1/auth/sms-recovery/challenge":
@@ -343,6 +348,7 @@ var publicPaths = map[string]bool{
 	"/v1/enrollment/mdl/finish":        true,
 	"/v1/enrollment/mdl/ui":            true,
 	"/v1/enrollment/idv/start":         true,
+	sealedDeliverPath:                  true, // sealed-sender delivery: carries no login by design
 	"/v1/enrollment/idv/await":         true,
 	"/v1/data-l1/merkle-roots":         true,
 	"/v1/phase1/trust-tier-commitment": true,
@@ -678,6 +684,8 @@ func (rt *Router) handleV1(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch r.URL.Path {
+	case sealedDeliverPath:
+		rt.handleSealedDeliver(w, r)
 	case "/v1/users":
 		rt.v1GetUsers(w, r)
 	case "/v1/users/check-username":

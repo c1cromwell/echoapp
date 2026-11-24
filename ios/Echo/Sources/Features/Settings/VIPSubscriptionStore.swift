@@ -72,6 +72,9 @@ enum VIPSubscriptionStore {
         return true
     }
 
+    /// The mark drawn beside this account's own name.
+    static var mark: MembershipMark? { isActive ? .vip : nil }
+
     static var expiresAt: Date? {
         UserDefaults.standard.object(forKey: expiresKey) as? Date
     }
@@ -193,7 +196,8 @@ enum VIPSubscriptionService {
             ?? Date()
         let body: [String: Any] = [
             "did": did,
-            "trust_tier": 3,
+            // A purchase grants the VIP mark. It does not change the trust tier.
+            "trust_tier": 1,
             "evidence_type": "vip_subscription",
             "signed_transaction": signedTransaction
         ]
@@ -208,7 +212,6 @@ enum VIPSubscriptionService {
             throw ActivationError.networkFailed
         }
         VIPSubscriptionStore.markActive(expiresAt: expires)
-        UserDefaults.standard.set(3, forKey: "echo.trustTier")
     }
 }
 #endif

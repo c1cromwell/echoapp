@@ -88,6 +88,9 @@ struct TrustTierBanner: View {
     var body: some View {
         HStack(spacing: 10) {
             TrustTierBadge(tier: tier, size: 22)
+            if let mark = VIPSubscriptionStore.mark {
+                MembershipMarkView(mark: mark, size: 18)
+            }
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(title)

@@ -361,6 +361,13 @@ struct ContactSocialAPIClient: Sendable {
             endpoint: ContactsEndpoint.block,
             body: Body(contactDid: did)
         )
+        #if os(iOS)
+        // The server cannot enforce a block on a sealed message, because it cannot see who sent
+        // it. So this device drops what they send, and the delivery key they hold is replaced.
+        BlockedSenders.set(did, blocked: true)
+        DeliveryKeys.shared.forget(peerDID: did)
+        await DeliveryKeyRegistration.rotateAfterBlocking(apiClient: apiClient)
+        #endif
     }
 
     func unblockContact(did: String) async throws {
@@ -370,6 +377,9 @@ struct ContactSocialAPIClient: Sendable {
             endpoint: ContactsEndpoint.unblock,
             body: Body(contactDid: did)
         )
+        #if os(iOS)
+        BlockedSenders.set(did, blocked: false)
+        #endif
     }
 
     func listBlockedContacts() async throws -> [RemoteContact] {

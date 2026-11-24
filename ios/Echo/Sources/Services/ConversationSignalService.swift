@@ -259,6 +259,21 @@ final class ConversationSignalService: @unchecked Sendable {
 
         guard let event = try? ConversationSignalCodec.decodeEvent(from: text) else { return }
 
+        #if os(iOS)
+        // A sealed message names neither its sender nor its thread. Open it first; everything
+        // after this sees an ordinary message from a known peer in a known thread.
+        if case .textMessage(let textEvent) = event, textEvent.sealedPayload != nil {
+            Task { [weak self] in
+                guard let opened = await SealedInbound.open(textEvent) else { return }
+                self?.dispatch(.textMessage(opened))
+            }
+            return
+        }
+        #endif
+        dispatch(event)
+    }
+
+    private func dispatch(_ event: ConversationSignalEvent) {
         if case .groupKey(let keyEvent) = event {
             lock.lock()
             let handler = onGroupKeyReceived

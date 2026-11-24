@@ -54,6 +54,7 @@ var accountPurgeSteps = []accountPurgeStep{
 	// Discovery, recovery and contacts (both directions: the address book the
 	// account kept, and other people's entries pointing at it).
 	{"contact_discovery_index", `DELETE FROM contact_discovery_index WHERE did = $1`},
+	{"delivery_keys", `DELETE FROM delivery_keys WHERE did = $1`},
 	{"sms_recovery", `DELETE FROM sms_recovery WHERE did = $1`},
 	{"contacts", `DELETE FROM contacts WHERE owner_did = $1 OR contact_did = $1`},
 	{"invite_links", `DELETE FROM invite_links WHERE inviter_did = $1`},

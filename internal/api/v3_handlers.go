@@ -62,6 +62,7 @@ type V3Handlers struct {
 	OverflowStorage          encblob.Storage                               // optional; WO-237 overflow blob retrieval
 	Comply                   *comply.Service                               // optional; WO-250 retention enforcement
 	SealedTokens             *messaging.SealedTokenStore                   // optional; WO-219 sealed-sender tokens
+	DeliveryKeys             messaging.DeliveryKeyStore                    // optional; sealed delivery the server cannot see through
 	Scheduled                *messaging.ScheduledMessageService            // optional; Telegram T2 scheduled send queue
 	ConvNotifPrefs           *messaging.ConversationNotificationPrefsStore // optional; WO-56 mute prefs
 	Agent                    *agentbus.Service                             // headless agent bus

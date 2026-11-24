@@ -19,6 +19,9 @@ enum MessageRelaySession {
         }
 
         try? await service.connect(accessToken: token)
+        if let client = DIContainer.shared.resolveAPIClient() {
+            await DeliveryKeyRegistration.registerIfNeeded(apiClient: client)
+        }
         await IncomingCallPresenter.shared.configureIfNeeded()
         ScreenshotAlertService.shared.configure(signalService: service)
         ScreenshotAlertService.shared.startMonitoring()

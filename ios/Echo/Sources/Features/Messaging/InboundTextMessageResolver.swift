@@ -59,6 +59,14 @@ enum InboundTextMessageResolver {
                 )
             }
             if let decrypted = try? await crypto.decryptPayload(wire, peerDID: peerDID) {
+                // The message is authentically from this peer (a ratchet message decrypts only
+                // with their session; a one-shot message must carry their valid signature), so
+                // the delivery key that came with it can be trusted.
+                var authenticated = wire.encrypted == nil
+                if !authenticated {
+                    authenticated = await crypto.senderVerification(for: wire, expectedSenderDID: peerDID) == .verified
+                }
+                if authenticated { DeliveryKeys.shared.confirm(peerDID: peerDID) }
                 let parsed = ChatMessageEnvelope.parseDecrypted(decrypted)
                 replyToMessageId = parsed.envelope?.replyToMessageId
                 replyPreview = parsed.envelope?.replyPreview

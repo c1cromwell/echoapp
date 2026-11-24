@@ -322,6 +322,12 @@ func (s *Server) Start() error {
 	disappearingRestrictions := messaging.NewDisappearingRestrictionService()
 
 	sealedTokenStore := messaging.NewSealedTokenStore()
+	// Delivery keys: durable when a database is configured, so a restart does not make every
+	// contact's copy of a key stop working.
+	var deliveryKeys messaging.DeliveryKeyStore = messaging.NewMemoryDeliveryKeyStore()
+	if pgDB != nil {
+		deliveryKeys = messaging.NewPostgresDeliveryKeyStore(pgDB.Pool())
+	}
 	convNotifPrefs := messaging.NewConversationNotificationPrefsStore()
 	botInstalls := bots.NewInstallStore()
 	botTokens := bots.NewTokenValidatorFromEnv()
@@ -373,6 +379,7 @@ func (s *Server) Start() error {
 		OverflowStorage:          backupBlobStore,   // WO-237: overflow blob fetch for reconnect manifest
 		Comply:                   complySvc,         // WO-250 retention enforcement hooks
 		SealedTokens:             sealedTokenStore,  // WO-219 sealed-sender delivery tokens
+		DeliveryKeys:             deliveryKeys,      // sealed delivery the server cannot see through
 		Scheduled:                messaging.NewScheduledMessageService(messaging.NewMessagingService()),
 		ConvNotifPrefs:           convNotifPrefs, // WO-56 per-conversation mute prefs
 		Agent:                    agentbus.New(),
@@ -391,8 +398,9 @@ func (s *Server) Start() error {
 	if os.Getenv("COMPLY_SERVICE_TOKEN") != "" {
 		log.Println("ECHO Comply retention service enabled (WO-250)")
 	}
-	router.WSHub.SetGroupMemberLister(router.V3.Groups)           // M2: group text fan-out to members
-	router.WSHub.SetContactBlockChecker(contactsSvc)              // WO-190: block-list relay enforcement
+	router.WSHub.SetGroupMemberLister(router.V3.Groups) // M2: group text fan-out to members
+	router.WSHub.SetContactBlockChecker(contactsSvc)    // WO-190: block-list relay enforcement
+	router.DeliveryKeys = deliveryKeys
 	router.WSHub.SetSealedTokenStore(sealedTokenStore)            // WO-219: sealed-sender token validation
 	router.WSHub.SetConversationNotificationPrefs(convNotifPrefs) // WO-56: mute → push suppression
 	router.WSHub.SetRateLimiter(rateLimiter)                      // WO-44: WS send budget

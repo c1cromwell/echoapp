@@ -617,32 +617,14 @@ final class ChatDetailViewModel {
                 }
             }
             let deliverSilent = outboundSilentDelivery
-            if SealedSenderPolicy.shouldUseSealed(peerDID: peerDID, conversationId: conversationId),
-               !conversationId.hasPrefix("group:") {
-                let client = DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)
-                let sealedService = SealedSenderService(
-                    identityResolve: IdentityResolveClient(apiClient: client),
-                    apiClient: client
-                )
-                let sealed = try await sealedService.wrap(
-                    payload: payload,
-                    recipientDID: peerDID,
-                    senderDID: currentUserDID
-                )
-                try await signalService.sendSealedTextMessage(
-                    conversationId: conversationId,
-                    peerDID: peerDID,
-                    payload: sealed,
-                    silent: deliverSilent
-                )
-            } else {
-                try await signalService.sendTextMessage(
-                    conversationId: conversationId,
-                    peerDID: peerDID,
-                    payload: payload,
-                    silent: deliverSilent
-                )
-            }
+            try await DirectMessageSender.send(
+                payload: payload,
+                conversationId: conversationId,
+                peerDID: peerDID,
+                senderDID: currentUserDID,
+                silent: deliverSilent,
+                signalService: signalService
+            )
             if let replyId {
                 try? await opsAPI?.putMessageRefs(
                     messageId: message.id,
