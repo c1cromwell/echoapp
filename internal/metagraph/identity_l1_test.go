@@ -36,14 +36,6 @@ func TestDeviceKeyRegistrationUpdateJSONShape(t *testing.T) {
 	}
 }
 
-func TestSubmitIdentityL1RequiresURL(t *testing.T) {
-	c := NewMetagraphClient(MetagraphConfig{})
-	_, err := c.SubmitIdentityL1(t.Context(), DeviceKeyRegistrationUpdate{})
-	if err == nil || !strings.Contains(err.Error(), "IdentityL1URL") {
-		t.Fatalf("expected IdentityL1URL error, got %v", err)
-	}
-}
-
 func TestTrustTierCommitmentHex(t *testing.T) {
 	got := TrustTierCommitmentHex(3, "phase1")
 	if len(got) != 64 {

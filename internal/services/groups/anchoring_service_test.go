@@ -2,9 +2,6 @@ package groups
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
@@ -23,14 +20,9 @@ func TestMemberCountHashDeterministic(t *testing.T) {
 
 func TestGroupAnchoringService_CachesProof(t *testing.T) {
 	var submitted bool
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	client := metagraph.SubmitterFunc(func(_ context.Context, tx interface{}) (string, error) {
 		submitted = true
-		_ = json.NewEncoder(w).Encode(map[string]string{"hash": "tx-group-1"})
-	}))
-	t.Cleanup(srv.Close)
-
-	client := metagraph.NewMetagraphClient(metagraph.MetagraphConfig{
-		DataL1URL: srv.URL,
+		return "tx-group-1", nil
 	})
 	svc := NewGroupAnchoringService(client)
 

@@ -1,7 +1,10 @@
 package besu
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -234,3 +237,65 @@ oUQDQgAEVZpRYOFAMptTU8Hw7vI7EjrfoQxg/kj0Wy/eOkISwLr9ZDUBVRg0EOxD
 `
 
 const throwawayKeyAddress = "0x29d1DFBFAB99d15A532d000f88924D1fDF3aA3B1"
+
+func TestIDs(t *testing.T) {
+	// Fixed vector: a third party recomputing SHA-256("echo/v1/did:did:key:zABC") must get this.
+	if got := SubjectID("did:key:zABC").Hex(); got != "0x"+sha256Hex("echo/v1/did:did:key:zABC") {
+		t.Fatalf("SubjectID = %s", got)
+	}
+	// Usernames are case-insensitive; DIDs are not.
+	if UsernameID("Alice") != UsernameID(" alice ") {
+		t.Fatal("username case or padding changes its id")
+	}
+	if SubjectID("did:key:zAbc") == SubjectID("did:key:zabc") {
+		t.Fatal("DIDs that differ in case share an id")
+	}
+	if DeviceKeyID("0xABCD") != DeviceKeyID("abcd") {
+		t.Fatal("hex case or prefix changes a device key id")
+	}
+	// The same text in different domains must never collide.
+	same := "value"
+	ids := map[common.Hash]string{}
+	for name, h := range map[string]common.Hash{
+		"did": SubjectID(same), "username": UsernameID(same), "device key": DeviceKeyID(same),
+		"credential": CredentialID(same), "credential kind": CredentialKindID(same), "attestation": AttestationKindID(same),
+	} {
+		if other, clash := ids[h]; clash {
+			t.Fatalf("%s and %s share an id", name, other)
+		}
+		ids[h] = name
+	}
+}
+
+func sha256Hex(s string) string {
+	sum := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(sum[:])
+}
+
+func TestIdentityNeedsContractAndInput(t *testing.T) {
+	c, err := New(Config{RPCURLs: []string{"http://127.0.0.1:9"}, AnchorContract: common.HexToAddress("0x01")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.RegisterUsername(t.Context(), "alice", "did:key:z1"); !errors.Is(err, ErrNoIdentityContract) {
+		t.Fatalf("err = %v, want ErrNoIdentityContract", err)
+	}
+	withIdentity, _ := New(Config{RPCURLs: []string{"http://127.0.0.1:9"}, AnchorContract: common.HexToAddress("0x01"), IdentityContract: common.HexToAddress("0x02")})
+	for name, call := range map[string]func() error{
+		"empty username": func() error { _, err := withIdentity.RegisterUsername(t.Context(), " ", "did:key:z1"); return err },
+		"empty did":      func() error { _, err := withIdentity.RegisterDeviceKey(t.Context(), "", "04ab"); return err },
+		"bad commitment": func() error { _, err := withIdentity.AnchorTrustTier(t.Context(), "did:key:z1", "xyz"); return err },
+		"zero sequence": func() error {
+			_, err := withIdentity.PublishStatusList(t.Context(), "did:key:z1", 0, []byte{1})
+			return err
+		},
+		"empty list":       func() error { _, err := withIdentity.PublishStatusList(t.Context(), "did:key:z1", 1, nil); return err },
+		"zero digest":      func() error { _, err := withIdentity.Attest(t.Context(), "group_metadata", common.Hash{}); return err },
+		"empty credential": func() error { _, err := withIdentity.IssueCredential(t.Context(), "", "s", "i", "k"); return err },
+	} {
+		// Each must be refused before any network call (the endpoint is dead; a call would report that instead).
+		if err := call(); err == nil || strings.Contains(err.Error(), "reachable") {
+			t.Errorf("%s: err = %v", name, err)
+		}
+	}
+}

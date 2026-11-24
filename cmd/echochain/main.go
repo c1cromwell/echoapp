@@ -2,9 +2,14 @@
 //
 //	echochain address  -key FILE                     print the address of a key (PEM or hex)
 //	echochain newkey   -out FILE                     create a key file (hex), refusing to overwrite
-//	echochain deploy   -rpc URL -owner FILE -signer ADDRESS
-//	                                                 deploy the anchor contract; prints its address
+//	echochain deploy   -rpc URL -owner FILE -signer ADDRESS [-name EchoAnchor|EchoIdentity]
+//	                                                 deploy a contract; prints its address
 //	echochain validators -rpc URL                    print the current validator addresses
+//	echochain trust-tier -rpc URL -identity ADDRESS -commitment HEX
+//	                                                 print the block a trust-tier commitment was
+//	                                                 anchored in; exit 1 if it is not on the chain
+//	echochain username -rpc URL -identity ADDRESS -username NAME -did DID
+//	                                                 report who owns a username; exit 1 unless DID does
 //	echochain prove    -rpc URL -contract ADDRESS -root HEX [-out FILE]
 //	                                                 export a proof bundle for an anchored root,
 //	                                                 read straight from the chain (no gateway)
@@ -30,7 +35,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fail("usage: echochain address|newkey|deploy|validators|prove [flags]")
+		fail("usage: echochain address|newkey|deploy|validators|trust-tier|username|prove [flags]")
 	}
 	fs := flag.NewFlagSet(os.Args[1], flag.ExitOnError)
 	rpcURL := fs.String("rpc", "http://localhost:8545", "Besu JSON-RPC endpoint")
@@ -38,8 +43,13 @@ func main() {
 	ownerFile := fs.String("owner", "", "contract owner key file")
 	signer := fs.String("signer", "", "address allowed to write to the contract")
 	out := fs.String("out", "", "file to write")
+	name := fs.String("name", besu.ContractAnchor, "contract to deploy: EchoAnchor or EchoIdentity")
 	contract := fs.String("contract", "", "anchor contract address")
 	root := fs.String("root", "", "Merkle root (64 hex characters)")
+	identity := fs.String("identity", "", "identity contract address")
+	commitment := fs.String("commitment", "", "trust-tier commitment (64 hex characters)")
+	username := fs.String("username", "", "username")
+	did := fs.String("did", "", "DID")
 	_ = fs.Parse(os.Args[2:])
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
@@ -66,9 +76,9 @@ func main() {
 		}
 		owner, err := besu.LoadKeyFile(*ownerFile)
 		check(err)
-		addr, receipt, err := besu.Deploy(ctx, *rpcURL, owner, common.HexToAddress(*signer))
+		addr, receipt, err := besu.Deploy(ctx, *rpcURL, *name, owner, common.HexToAddress(*signer))
 		check(err)
-		fmt.Fprintf(os.Stderr, "deployed EchoAnchor in block %d (tx %s); writer %s\n", receipt.BlockNumber, receipt.TxHash.Hex(), *signer)
+		fmt.Fprintf(os.Stderr, "deployed %s in block %d (tx %s); writer %s\n", *name, receipt.BlockNumber, receipt.TxHash.Hex(), *signer)
 		fmt.Println(addr.Hex())
 	case "validators":
 		client, err := rpc.DialContext(ctx, *rpcURL)
@@ -80,6 +90,31 @@ func main() {
 			parts[i] = v.Hex()
 		}
 		fmt.Println(strings.Join(parts, ","))
+	case "trust-tier", "username":
+		if !common.IsHexAddress(*identity) {
+			fail(os.Args[1] + " needs -identity ADDRESS")
+		}
+		// Read-only: the anchor contract address is not used, but the client requires one.
+		client, err := besu.New(besu.Config{RPCURLs: []string{*rpcURL}, AnchorContract: common.HexToAddress(*identity), IdentityContract: common.HexToAddress(*identity)})
+		check(err)
+		if os.Args[1] == "trust-tier" {
+			block, err := client.TrustTierAnchoredAt(ctx, *commitment)
+			check(err)
+			if block == 0 {
+				fail("commitment is not anchored")
+			}
+			fmt.Println(block)
+			return
+		}
+		registered, owned, err := client.UsernameOwnedBy(ctx, *username, *did)
+		check(err)
+		switch {
+		case !registered:
+			fail("username is not registered")
+		case !owned:
+			fail("username is registered to a different DID")
+		}
+		fmt.Println("owned")
 	case "prove":
 		if !common.IsHexAddress(*contract) {
 			fail("prove needs -contract ADDRESS")

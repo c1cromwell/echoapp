@@ -201,10 +201,23 @@ func TestBesuAnchor_RejectsUpdatesWithNoOnChainForm(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Group metadata carries an admin DID in clear text; it must never reach the chain as-is.
-	_, err = NewBesuAnchor(client).SubmitDataL1(context.Background(), GroupMetadataUpdate{AdminDID: "did:key:z123"})
-	if !errors.Is(err, ErrUnsupportedUpdate) {
+	// A type with no on-chain form is refused, never written in some default way.
+	type unknown struct{ SubjectDID string }
+	if _, err := NewBesuAnchor(client).SubmitDataL1(context.Background(), unknown{"did:key:z123"}); !errors.Is(err, ErrUnsupportedUpdate) {
 		t.Fatalf("err = %v, want ErrUnsupportedUpdate", err)
+	}
+	if _, err := NewBesuAnchor(client).SubmitIdentityL1(context.Background(), unknown{"did:key:z123"}); !errors.Is(err, ErrUnsupportedUpdate) {
+		t.Fatalf("identity: err = %v, want ErrUnsupportedUpdate", err)
+	}
+	// Group metadata carries an admin DID: it goes on-chain only as a digest, through the identity
+	// contract. With no identity contract it is refused, not sent anywhere else.
+	_, err = NewBesuAnchor(client).SubmitDataL1(context.Background(), GroupMetadataUpdate{Type: "group_metadata", AdminDID: "did:key:z123"})
+	if !errors.Is(err, besu.ErrNoIdentityContract) {
+		t.Fatalf("err = %v, want ErrNoIdentityContract", err)
+	}
+	// A record with no type cannot be attested.
+	if _, err := NewBesuAnchor(client).SubmitDataL1(context.Background(), map[string]interface{}{"voterDid": "did:key:z1"}); !errors.Is(err, ErrUnsupportedUpdate) {
+		t.Fatalf("untyped record: err = %v, want ErrUnsupportedUpdate", err)
 	}
 }
 

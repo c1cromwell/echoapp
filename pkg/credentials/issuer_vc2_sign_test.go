@@ -37,7 +37,6 @@ func TestVC2DataIntegrityIssueAndVerify(t *testing.T) {
 	}
 
 	cfg := DefaultConfig()
-	cfg.MetagraphConfig.IdentityL1URL = ""
 	cfg.MetagraphConfig.EnableAnchor = false
 	cfg.IssuerConfig.IssuerDID = issuerDID
 	cfg.IssuerConfig.PrivateKeyPath = keyPath
@@ -95,7 +94,6 @@ func TestVC2JWTContainsDocMapAndES256(t *testing.T) {
 
 	cfg := DefaultConfig()
 	cfg.MetagraphConfig.EnableAnchor = false
-	cfg.MetagraphConfig.IdentityL1URL = ""
 	cfg.IssuerConfig.IssuerDID = issuerDID
 	cfg.IssuerConfig.PrivateKeyPath = keyPath
 	cfg.MetagraphConfig.IssuerDID = issuerDID

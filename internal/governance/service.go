@@ -20,7 +20,7 @@ type StakeQuerier interface {
 
 // GovernanceService orchestrates proposal CRUD, vote submission, and tally queries.
 type GovernanceService struct {
-	metagraph *metagraph.MetagraphClient
+	metagraph metagraph.DataSubmitter
 	trust     TrustQuerier
 	stake     StakeQuerier
 	store     ProposalStore
@@ -28,7 +28,7 @@ type GovernanceService struct {
 
 // NewGovernanceService creates a GovernanceService with the given dependencies.
 func NewGovernanceService(
-	metagraph *metagraph.MetagraphClient,
+	metagraph metagraph.DataSubmitter,
 	trust TrustQuerier,
 	stake StakeQuerier,
 	store ProposalStore,

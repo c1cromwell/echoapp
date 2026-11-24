@@ -71,10 +71,9 @@ type CredentialConfig struct {
 // MetagraphConfig contains Constellation Identity Metagraph settings used by
 // the credential issuer + StatusList2021 publisher (Phase 1; ADR-0001).
 type MetagraphConfig struct {
-	// L0 + L1 endpoints for the Identity Metagraph (env-overridable;
-	// see docs/E2E_QUICK_START.md and Makefile dev target).
-	IdentityL0URL string
-	IdentityL1URL string
+	// Chain is where issuance records and revocation lists are anchored: Echo's own chain.
+	// Nil turns anchoring off (credentials still issue and verify; nothing is written on-chain).
+	Chain ChainPublisher
 
 	// Authorized issuer DID — Phase 1 always equals the Identity Service
 	// did:key. Phase 4+ this expands to a per-org issuer registry proven
@@ -86,7 +85,7 @@ type MetagraphConfig struct {
 	MaxRetries   int
 	RetryBackoff time.Duration
 
-	// Anchor settings (W3C VC 2.0 issuance records on Identity L1).
+	// Anchor issuance records and revocation lists on the chain (needs Chain).
 	EnableAnchor bool
 
 	// StatusList2021 publishing.
@@ -189,8 +188,6 @@ func DefaultConfig() *Config {
 			StatusListCredentialBaseURL: "https://identity-metagraph.echo.app/status",
 		},
 		MetagraphConfig: MetagraphConfig{
-			IdentityL0URL:             "http://localhost:9600",
-			IdentityL1URL:             "http://localhost:9500",
 			Timeout:                   30 * time.Second,
 			MaxRetries:                3,
 			RetryBackoff:              1 * time.Second,
@@ -287,13 +284,7 @@ func LoadConfig() *Config {
 		config.CredentialConfig.StatusListCredentialBaseURL = val
 	}
 
-	// Identity Metagraph settings (override defaults via IDENTITY_* env vars).
-	if val := os.Getenv("IDENTITY_L0_URL"); val != "" {
-		config.MetagraphConfig.IdentityL0URL = val
-	}
-	if val := os.Getenv("IDENTITY_L1_URL"); val != "" {
-		config.MetagraphConfig.IdentityL1URL = val
-	}
+	// The issuer's DID. The chain publisher is set by the caller (MetagraphConfig.Chain).
 	if val := os.Getenv("IDENTITY_SERVICE_DID"); val != "" {
 		config.MetagraphConfig.IssuerDID = val
 		if config.IssuerConfig.IssuerDID == "" {
@@ -367,11 +358,6 @@ func (c *Config) Validate() error {
 	// Validate verifier settings
 	if c.VerifierConfig.VerifierDID == "" {
 		errors.Add("verifier_did", "verifier DID is required", "MISSING_VERIFIER_DID")
-	}
-
-	// Validate Identity Metagraph settings
-	if c.MetagraphConfig.IdentityL1URL == "" {
-		errors.Add("identity_l1_url", "Identity Metagraph L1 URL is required", "MISSING_IDENTITY_L1_URL")
 	}
 
 	// Validate OIDC4VC settings if enabled

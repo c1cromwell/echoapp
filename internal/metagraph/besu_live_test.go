@@ -3,8 +3,10 @@ package metagraph
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"os"
 	"testing"
 	"time"
@@ -81,5 +83,91 @@ func TestLiveAnchorBatchAndServeVerifiableBundle(t *testing.T) {
 		if err := os.WriteFile("../../cmd/verifyproof/testdata/bundle.json", append(body, '\n'), 0o644); err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+// The gateway's identity path against a live chain: the three record types it writes itself, the
+// two the credentials package writes, and a group record anchored as a digest.
+func TestLiveIdentityRecordsThroughTheGatewayPath(t *testing.T) {
+	anchor, err := BesuAnchorFromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if anchor == nil || !anchor.HasIdentity() {
+		t.Skip("live chain with BESU_IDENTITY_CONTRACT not configured")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	suffix := make([]byte, 10)
+	if _, err := rand.Read(suffix); err != nil {
+		t.Fatal(err)
+	}
+	tag := hex.EncodeToString(suffix)
+	did, username, key := "did:key:zLive"+tag, "live_"+tag, "04"+tag+tag
+	commitment := TrustTierCommitmentHex(2, tag)
+	client := anchor.Client
+
+	for name, tx := range map[string]interface{}{
+		"device key": DeviceKeyRegistrationUpdate{SubjectDID: did, PublicKeyHex: key, DeviceLabel: "Alice's iPhone", AddedAt: time.Now().UnixMilli()},
+		"trust tier": TrustTierCommitmentUpdate{SubjectDID: did, Commitment: commitment, AnchoredAt: time.Now().UnixMilli()},
+		"username":   UsernameRegistrationUpdate{SubjectDID: did, Username: username, RegisteredAt: time.Now().UnixMilli()},
+	} {
+		if ref, err := anchor.SubmitIdentityL1(ctx, tx); err != nil || ref == "" {
+			t.Fatalf("%s: ref=%q err=%v", name, ref, err)
+		}
+	}
+	if at, err := client.DeviceKeyRegisteredAt(ctx, did, key); err != nil || at == 0 {
+		t.Fatalf("device key: block %d, %v", at, err)
+	}
+	if at, err := client.TrustTierAnchoredAt(ctx, commitment); err != nil || at == 0 {
+		t.Fatalf("trust tier: block %d, %v", at, err)
+	}
+	if registered, mine, err := client.UsernameOwnedBy(ctx, username, did); err != nil || !registered || !mine {
+		t.Fatalf("username: registered=%v mine=%v err=%v", registered, mine, err)
+	}
+	// A second DID asking for the same username is refused by the chain.
+	if _, err := anchor.SubmitIdentityL1(ctx, UsernameRegistrationUpdate{SubjectDID: did + "x", Username: username}); !errors.Is(err, besu.ErrUsernameTaken) {
+		t.Fatalf("taken username: %v", err)
+	}
+
+	// Credentials package path.
+	credential, issuer := "urn:uuid:"+tag, "did:key:zIssuer"+tag
+	if ref, err := anchor.PublishCredentialIssuance(ctx, credential, did, issuer, "TrustTierCredential"); err != nil || ref == "" {
+		t.Fatalf("credential: ref=%q err=%v", ref, err)
+	}
+	if at, err := client.CredentialIssuedAt(ctx, credential); err != nil || at == 0 {
+		t.Fatalf("credential: block %d, %v", at, err)
+	}
+	// The publisher counts publications from zero; the first two must both be accepted, in order.
+	for seq, list := range [][]byte{{0x01}, {0x03}} {
+		if err := anchor.PublishStatusList(ctx, issuer, int64(seq), list); err != nil {
+			t.Fatalf("status list publication %d: %v", seq, err)
+		}
+	}
+	current, err := client.CurrentStatusList(ctx, issuer)
+	if err != nil || current.Sequence != 2 || current.ListHash != besu.ListHash([]byte{0x03}) {
+		t.Fatalf("status list: %+v, %v", current, err)
+	}
+	// Publishing an old publication again must be refused.
+	if err := anchor.PublishStatusList(ctx, issuer, 0, []byte{0x01}); err == nil {
+		t.Fatal("a stale revocation list replaced a newer one")
+	}
+
+	// A group record holds an admin DID; only its digest is anchored.
+	group := GroupMetadataUpdate{Type: "group_metadata", GroupID: "g-" + tag, AdminDID: did, MemberCountHash: commitment, CreatedAt: 1}
+	if ref, err := anchor.SubmitDataL1(ctx, group); err != nil || ref == "" {
+		t.Fatalf("group metadata: ref=%q err=%v", ref, err)
+	}
+	raw, _ := json.Marshal(group)
+	if at, err := client.AttestedAt(ctx, "group_metadata", sha256.Sum256(raw)); err != nil || at == 0 {
+		t.Fatalf("group digest: block %d, %v", at, err)
+	}
+	// A governance vote arrives as a map; the same vote always gives the same digest.
+	vote := map[string]interface{}{"type": "governance_vote", "proposalId": "p-" + tag, "voterDid": did, "value": "yes"}
+	if _, err := anchor.SubmitDataL1(ctx, vote); err != nil {
+		t.Fatalf("vote: %v", err)
+	}
+	if _, err := anchor.SubmitDataL1(ctx, map[string]interface{}{"value": "yes", "voterDid": did, "proposalId": "p-" + tag, "type": "governance_vote"}); err == nil {
+		t.Fatal("the same vote was anchored twice (key order must not change the digest)")
 	}
 }

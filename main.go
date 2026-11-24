@@ -140,18 +140,6 @@ func (s *Server) Start() error {
 		// Durable revocation blocklist + single-use nonces survive restarts (S3).
 		router.TokenService().SetRedisBackend(redisClient)
 	}
-	if l1 := os.Getenv("IDENTITY_L1_URL"); l1 != "" {
-		cfg := metagraph.MetagraphConfig{
-			IdentityL1URL: l1,
-			Timeout:       30 * time.Second,
-		}
-		if signer, err := loadIdentitySigningConfig(); err != nil {
-			log.Printf("Identity L1 signing disabled: %v", err)
-		} else if signer != nil {
-			cfg.IdentitySigner = signer
-		}
-		router.IdentityL1 = metagraph.NewMetagraphClient(cfg)
-	}
 	// Echo's own chain (Besu). Unset BESU_RPC_URLS leaves anchoring off; a partly configured
 	// chain is a startup error, so anchoring is never silently missing.
 	chainAnchor, err := metagraph.BesuAnchorFromEnv()
@@ -161,6 +149,12 @@ func (s *Server) Start() error {
 	if chainAnchor != nil {
 		router.DataL1 = chainAnchor
 		log.Printf("Chain anchoring enabled: contract %s, writing as %s", chainAnchor.Client.AnchorContract().Hex(), chainAnchor.Client.SignerAddress().Hex())
+		if chainAnchor.HasIdentity() {
+			router.IdentityL1 = chainAnchor
+			log.Printf("Identity records on-chain: contract %s", chainAnchor.Client.IdentityContract().Hex())
+		} else {
+			log.Println("Identity records are NOT anchored: BESU_IDENTITY_CONTRACT is not set")
+		}
 	}
 	var currencyL1 *metagraph.MetagraphClient
 	if c1 := os.Getenv("CURRENCY_L1_URL"); c1 != "" {
@@ -171,16 +165,15 @@ func (s *Server) Start() error {
 			L0URL:   os.Getenv("GLOBAL_L0_URL"),
 			Timeout: 30 * time.Second,
 		}
-		if signer, err := loadIdentitySigningConfig(); err != nil {
-			log.Printf("Currency L1 signing disabled: %v", err)
-		} else if signer != nil {
-			cfg.IdentitySigner = signer
-		}
 		currencyL1 = metagraph.NewMetagraphClient(cfg)
 		log.Println("Currency L1 submissions enabled (CURRENCY_L1_URL)")
 	}
 
 	credCfg := credentials.LoadConfig()
+	if chainAnchor != nil && chainAnchor.HasIdentity() {
+		// Issuance records and revocation lists are anchored as hashes.
+		credCfg.MetagraphConfig.Chain = chainAnchor
+	}
 	if err := credCfg.Validate(); err != nil {
 		log.Printf("Credential issuance disabled: %v", err)
 	} else {
@@ -756,20 +749,4 @@ func main() {
 	}
 
 	log.Println("Server stopped")
-}
-
-func loadIdentitySigningConfig() (*metagraph.IdentitySigningConfig, error) {
-	pemPath := os.Getenv("IDENTITY_SERVICE_KEY_PEM")
-	if pemPath == "" {
-		return nil, nil
-	}
-	pem, err := os.ReadFile(pemPath)
-	if err != nil {
-		return nil, fmt.Errorf("read IDENTITY_SERVICE_KEY_PEM: %w", err)
-	}
-	cfg, err := metagraph.LoadIdentitySigningFromPEM(pem)
-	if err != nil {
-		return nil, err
-	}
-	return &cfg, nil
 }

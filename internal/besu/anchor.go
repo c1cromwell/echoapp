@@ -42,7 +42,7 @@ func (c *Client) AnchorRoot(ctx context.Context, root string, leafCount int) (Re
 	if leafCount <= 0 || int64(leafCount) > int64(^uint32(0)) {
 		return Receipt{}, fmt.Errorf("besu: leaf count %d is out of range", leafCount)
 	}
-	return c.transact(ctx, "anchorRoot", h, uint32(leafCount))
+	return c.transact(ctx, c.cfg.AnchorContract, anchorABI, "anchorRoot", h, uint32(leafCount))
 }
 
 // AnchorCommitment records a trust commitment for an epoch. It returns once it is final.
@@ -54,7 +54,7 @@ func (c *Client) AnchorCommitment(ctx context.Context, commitment string, epoch 
 	if epoch <= 0 {
 		return Receipt{}, errors.New("besu: epoch must be positive")
 	}
-	return c.transact(ctx, "anchorCommitment", h, uint64(epoch))
+	return c.transact(ctx, c.cfg.AnchorContract, anchorABI, "anchorCommitment", h, uint64(epoch))
 }
 
 // RootStatus is the chain's record of a root.

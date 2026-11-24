@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Generate (if missing) and export Phase-1 Identity Service signing material.
-# Tessellation POST /data requires secp256k1 proof ids + Brotli/SHA-512 signing.
+# Generate (if missing) and export the gateway's signing material:
+#   IDENTITY_SERVICE_KEY_PEM  secp256k1 key the gateway signs chain writes with
+#   IDENTITY_SERVICE_DID      the service's did:key (P-256), used as issuer and authorised sender
 set -euo pipefail
 
 if [ -n "${ECHOAPP_ROOT:-}" ]; then
@@ -21,7 +22,7 @@ DID_PUB_PEM="$KEY_DIR/identity-service-did.pub.pem"
 mkdir -p "$KEY_DIR"
 
 if [ ! -f "$KEY_PEM" ]; then
-  echo "[identity-service-key] Generating secp256k1 Tessellation signing key at $KEY_PEM"
+  echo "[identity-service-key] Generating the secp256k1 chain signing key at $KEY_PEM"
   openssl ecparam -name secp256k1 -genkey -noout -out "$KEY_PEM"
   chmod 600 "$KEY_PEM"
 fi
@@ -39,14 +40,10 @@ fi
 DIDKEY_OUT="$(go run "$ROOT/cmd/didkey" -pem "$DID_PUB_PEM")"
 IDENTITY_SERVICE_DID="$(printf '%s\n' "$DIDKEY_OUT" | awk -F= '/^did=/ {print $2}')"
 
-PROOF_OUT="$(go run "$ROOT/cmd/tessellation-id" -pem "$KEY_PEM")"
-IDENTITY_SERVICE_PUBLIC_KEY_HEX="$(printf '%s\n' "$PROOF_OUT" | awk -F= '/^proof_id=/ {print $2}')"
-
-if [ -z "$IDENTITY_SERVICE_DID" ] || [ -z "$IDENTITY_SERVICE_PUBLIC_KEY_HEX" ]; then
-  echo "ensure-identity-service-key: missing did or proof_id from helper tools" >&2
+if [ -z "$IDENTITY_SERVICE_DID" ]; then
+  echo "ensure-identity-service-key: could not derive the service DID" >&2
   exit 1
 fi
 
 export IDENTITY_SERVICE_KEY_PEM="$KEY_PEM"
 export IDENTITY_SERVICE_DID
-export IDENTITY_SERVICE_PUBLIC_KEY_HEX

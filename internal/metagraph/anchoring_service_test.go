@@ -2,9 +2,6 @@ package metagraph_test
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -33,15 +30,9 @@ func (s *stubConfirm) PublishConfirmation(_ string, _ metagraph.AnchorConfirmati
 
 func TestAnchoringService_SubmitsBatchAndStoresProof(t *testing.T) {
 	var submitted metagraph.DataL1MerkleRootUpdate
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_ = json.NewDecoder(r.Body).Decode(&submitted)
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"hash":"snap-abc"}`))
-	}))
-	defer srv.Close()
-
-	client := metagraph.NewMetagraphClient(metagraph.MetagraphConfig{
-		DataL1URL: srv.URL,
+	client := metagraph.SubmitterFunc(func(_ context.Context, tx interface{}) (string, error) {
+		submitted = tx.(metagraph.DataL1MerkleRootUpdate)
+		return "snap-abc", nil
 	})
 	src := &stubCommitments{entries: []relay.CommitmentEntry{
 		{MessageID: "m1", SenderDID: "did:key:alice", Hash: []byte("hash-one")},

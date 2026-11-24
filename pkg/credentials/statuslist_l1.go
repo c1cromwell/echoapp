@@ -3,12 +3,8 @@ package credentials
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"sync"
 	"time"
 
@@ -16,15 +12,6 @@ import (
 )
 
 const statusListBitCount = 131072
-
-// statusList2021BatchWire matches Scala StatusList2021BatchUpdate (Identity L1 POST /transactions).
-// bitVector is lowercase hex (32768 chars = 16384 bytes) per IdentityValidations.validateStatusList2021.
-type statusList2021BatchWire struct {
-	IssuerOrgDID string `json:"issuerOrgDID"`
-	BitVector    string `json:"bitVector"`
-	PublishedAt  int64  `json:"publishedAt"`
-	Sequence     int64  `json:"sequence"`
-}
 
 // StatusListPublisher maintains an in-memory StatusList2021 bit vector, or persists slots in
 // Postgres when [StatusListPublisher.AttachPostgres] is used. Revocations mark state dirty / pending
@@ -37,7 +24,6 @@ type StatusListPublisher struct {
 	seq            int64
 	dirty          bool
 	cfg            MetagraphConfig
-	client         *http.Client
 	stop           chan struct{}
 	publishTrigger chan struct{}
 	wg             sync.WaitGroup
@@ -50,9 +36,9 @@ type StatusListPublisher struct {
 	lastPublishErr       string
 }
 
-// NewStatusListPublisher returns a publisher, or nil when anchoring/L1 is disabled.
+// NewStatusListPublisher returns a publisher, or nil when anchoring is off or no chain is set.
 func NewStatusListPublisher(cfg MetagraphConfig) *StatusListPublisher {
-	if !cfg.EnableAnchor || cfg.IdentityL1URL == "" {
+	if !cfg.anchoringEnabled() {
 		return nil
 	}
 	timeout := cfg.Timeout
@@ -62,7 +48,6 @@ func NewStatusListPublisher(cfg MetagraphConfig) *StatusListPublisher {
 	return &StatusListPublisher{
 		vec:            make([]byte, statusListBitCount/8),
 		credToIdx:      make(map[string]int),
-		client:         &http.Client{Timeout: timeout},
 		cfg:            cfg,
 		stop:           make(chan struct{}),
 		publishTrigger: make(chan struct{}, 1),
@@ -249,36 +234,17 @@ func (p *StatusListPublisher) runPublishWithRetry() {
 	}
 }
 
-func (p *StatusListPublisher) postStatusListHTTP(ctx context.Context, vec []byte, seq int64) error {
-	body := statusList2021BatchWire{
-		IssuerOrgDID: p.cfg.IssuerDID,
-		BitVector:    hex.EncodeToString(vec),
-		PublishedAt:  time.Now().UnixMilli(),
-		Sequence:     seq,
+// publishToChain anchors one snapshot of the list. Only its hash goes on-chain; the list itself
+// is served by the gateway and checked against that hash.
+func (p *StatusListPublisher) publishToChain(ctx context.Context, vec []byte, seq int64) error {
+	timeout := p.cfg.Timeout
+	if timeout == 0 {
+		timeout = 30 * time.Second
 	}
-	raw, err := json.Marshal(body)
-	if err != nil {
-		return err
-	}
-
-	url := p.cfg.IdentityL1URL + "/transactions"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(raw))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := p.client.Do(req)
-	if err != nil {
-		p.statsMu.Lock()
-		p.lastPublishErr = err.Error()
-		p.statsMu.Unlock()
-		return fmt.Errorf("identity L1 status list POST: %w", err)
-	}
-	defer resp.Body.Close()
-	respBody, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		err = fmt.Errorf("identity L1 status list: status %d: %s", resp.StatusCode, string(respBody))
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	if err := p.cfg.Chain.PublishStatusList(ctx, p.cfg.IssuerDID, seq, vec); err != nil {
+		err = fmt.Errorf("anchor status list: %w", err)
 		p.statsMu.Lock()
 		p.lastPublishErr = err.Error()
 		p.statsMu.Unlock()
@@ -287,7 +253,7 @@ func (p *StatusListPublisher) postStatusListHTTP(ctx context.Context, vec []byte
 	return nil
 }
 
-// Publish posts one snapshot of the bit vector to Identity L1. On HTTP success, bumps sequence
+// Publish anchors one snapshot of the bit vector. On success, bumps sequence
 // and clears dirty if no concurrent revocation modified the vector during the round trip (memory),
 // or updates the Postgres outbox (durable).
 func (p *StatusListPublisher) Publish(ctx context.Context) error {
@@ -303,7 +269,7 @@ func (p *StatusListPublisher) Publish(ctx context.Context) error {
 			}
 			return err
 		}
-		if err := p.postStatusListHTTP(ctx, vec, seq); err != nil {
+		if err := p.publishToChain(ctx, vec, seq); err != nil {
 			return err
 		}
 		if err := p.pg.afterPublishOK(ctx, seq, wm); err != nil {
@@ -328,7 +294,7 @@ func (p *StatusListPublisher) Publish(ctx context.Context) error {
 	seq := p.seq
 	p.mu.Unlock()
 
-	if err := p.postStatusListHTTP(ctx, vecCopy, seq); err != nil {
+	if err := p.publishToChain(ctx, vecCopy, seq); err != nil {
 		return err
 	}
 

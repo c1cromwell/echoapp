@@ -1,6 +1,6 @@
 # Moving Echo's chain from Tessellation to Hyperledger Besu
 
-**Written:** 2026-11-24 · **Status:** decisions final (§0); stage B1 built and its gate met locally (§7); B2–B5 not started
+**Written:** 2026-11-24 · **Status:** decisions final (§0); stages B1 and B2 built and their gates met locally (§7, §9); B3–B5 not started
 
 Supersedes the implementation stages of [`OWN_L0_PLAN.md`](OWN_L0_PLAN.md) (its §12 records why).
 The goal of that plan is unchanged: Echo runs its own chain and depends on no outside network.
@@ -142,7 +142,7 @@ Estimates are from reading the code and one afternoon with Besu. Treat them as g
 |---|---|---|---|
 | B0 | Spike | done 2026-11-24 | — |
 | B1 | Anchoring on Besu: contract, gateway client with fail-over, durable chain proofs, offline verifier with signature checks, four-validator local network in `make dev`, `validate-phase1` on Besu | done 2026-11-24 (§7) | Met locally |
-| B2 | Identity on-chain: `EchoIdentity` contract for the six identity updates as hashes; gateway identity client; data-classification review; group and governance anchors as commitments | 4–6 days | Step 3 of `validate-phase1` and the identity tests pass; no skipped step |
+| B2 | Identity on-chain: `EchoIdentity` contract, records as hashes; gateway and credentials package on it; data-classification review; group and governance records as digests | done 2026-11-24 (§9) | Met locally |
 | B3 | Token on-chain from genesis: token contract (fixed supply, no transfer, no mint), locks, delegation, rewards, VIP allowance; gateway wallet and rewards on the contract; iOS wallet signing and addresses; contract review | 2–3 weeks | Token tests pass; supply and allocations read back exactly; independent review of the token contract done |
 | B4 | Deploy: Terraform for four hosts, Ansible Besu role, key ceremony, permissioning, monitoring, backup, restore drill, daily external checkpoint | 5–7 days | `validate-phase1` and `failure-tests.sh` pass on staging; staging rebuilt from backup alone |
 | B5 | Remove the last Tessellation-era code and documents; 7-day soak with failure tests; launch review; production genesis | 7 days soak + 2 days | Your sign-off before genesis |
@@ -158,7 +158,7 @@ Total remaining: roughly five to six weeks of work plus the soak. B2 and B3 can 
 | Chain growth (a block every 2 seconds when busy, every 30 when idle) | Measure disk use in the soak; set pruning and block period before genesis |
 | Validator set changes are a vote, and a lost majority of keys halts the chain | Same key ceremony discipline as before; four keys in at least two locations |
 | An ERC-20 style token is transferable by default (if option B) | Transfers disabled in the contract itself, not in the app; counsel reviews before any enablement |
-| Several gateway replicas share one signing key (staging runs 2, production 3), and each numbers its own transactions | Two replicas writing at once will collide and one write will fail or stall. Not handled yet. Before B4: one key per replica, each authorised in the contracts, or a single replica elected to do chain writes |
+| Several gateway replicas share one signing key (staging runs 2, production 3), and each numbers its own transactions | Handled in the client since B2: a writer whose transaction number was taken by another re-signs with a fresh one. Tested with three writers at once (18 writes, each landed once). Under heavy contention writes get slower, not lost; one key per replica remains the better design if write volume grows, and is a B4 option |
 | The first write after every validator restarts at once took more than 30 seconds, once | Inclusion timeout raised to 90 seconds; measure properly in the B5 soak |
 | Schedule | Gates after B1 and B3 are the points to stop and reconsider |
 
@@ -236,12 +236,63 @@ with the stage that replaces it:
 
 | What | Goes in |
 |---|---|
-| Tessellation client, signing and transaction types in `internal/metagraph` (identity, currency); `cmd/tessellation-id`; the proof-id half of `scripts/identity/ensure-identity-service-key.sh` | B2 (identity), B3 (currency) |
+| Tessellation currency client and transaction types in `internal/metagraph` (rewards, locks, delegation) | B3 |
 | Wallet DAG addresses and client-signed Tessellation transactions (`internal/wallet`), iOS `Core/Stargazer/` | B3 |
-| Constellation Digital Evidence client (`internal/evidence`, off by default) and its iOS types | B2 — tell me if you want it gone sooner; it is self-contained |
+| Constellation Digital Evidence client (`internal/evidence`, off by default) and its iOS types | Your decision: the Comply service uses it (§9) |
 | The package name `internal/metagraph` itself | B5 (rename only) |
 | Mentions in older documents, `openapi.yaml`, the local-dev MCP server, `Makefile.did`, the tokenomics compose file, the `echo-metagraph-scala` skill | B5 |
 
 On your machine, not in git, and left for you to delete: the `euclid-development-environment`
 clones (in this folder and beside it), build output under `metagraph/`, stray `io/` class files,
 `spike/besu` leftovers, and the old Docker images and volumes (about 20 GB).
+
+## 9. Stage B2 results (2026-11-24) — gate met locally
+
+Gate: step 3 of `validate-phase1` and the identity tests pass, with no skipped step.
+
+| Check | Result |
+|---|---|
+| `make validate-phase1` | 29 passed, 0 failed, 0 skipped |
+| Step 3 in detail | A trust-tier commitment anchored through the gateway; the script recomputes `H(tier ‖ nonce)` itself, reads the commitment back from a validator the gateway does not prefer, and searches that block for the DID's bytes: not present |
+| Live identity tests (`make chain-test`) | Device key, trust tier, username, credential issuance, revocation list, digest attestation, and the whole gateway path. Refused, as they should be: a duplicate device key or credential, a replayed commitment, a username owned by another DID (in any letter case), an older revocation list replacing a newer one, any write from an unlisted key |
+| Several writers sharing the gateway's key | Three clients writing at once: 18 of 18 writes landed, each exactly once |
+
+What changed:
+
+| Piece | Where |
+|---|---|
+| Identity contract: device keys, trust tiers, usernames, credential issuance, revocation lists, digest attestations. Every identifier is a `bytes32` | `chain/contracts/EchoIdentity.sol` |
+| How identifiers are hashed, with domain separation, so a third party can recompute them | `internal/besu/ids.go` |
+| Gateway identity path | `internal/metagraph/chain_identity.go`; `BESU_IDENTITY_CONTRACT` |
+| Credentials package: issuance records and revocation lists go through an interface to the chain; its direct HTTP calls to the old chain are gone | `pkg/credentials` (`ChainPublisher`) |
+| Group metadata and governance votes: anchored as one digest of the record | `BesuAnchor.attest` |
+| Policy document | `docs/data-classification.md` |
+| Removed: Tessellation signing and data/identity submission code, `cmd/tessellation-id`, the proof-id step of the key script | — |
+
+Differences from the old chain that you should know:
+
+- **Less is on-chain than before.** DIDs, usernames, device keys, credential ids and types were
+  written as text; they are hashes now. The device label (free text, e.g. "Alice's iPhone") was
+  written; it is not sent at all. The revocation list's full bit vector was written; only its
+  hash is, and the gateway serves the list.
+- **A hash does not hide a guessable value.** Usernames can be found by hashing candidates. Their
+  ownership is meant to be public; do not treat a username as private. The same goes for a vote
+  digest when the voter and proposal are known.
+- **The timestamps the gateway used to send are gone.** The block's time is the record's time.
+- **Organisation role credentials** have no function of their own: the gateway never submitted
+  one separately. They are covered as credential issuances with their type hashed.
+
+Not done in B2:
+
+- **Offline proofs for identity records.** A root can be proven offline (B1); an identity record
+  can only be read from a validator today. Extending the proof to identity records is small and
+  belongs with B4.
+- **Constellation Digital Evidence client.** I said it was self-contained. It is not: the Comply
+  service's logic uses it. Removing it changes a Comply feature, so it is your decision, not a
+  clean-up. It stays off by default.
+- **A fault I fixed on the way, for the record:** two test packages signing with the same key at
+  once made a write fail with "nonce too low". That was the multi-replica risk from B1 appearing
+  for real; the client now re-signs (see §5).
+- The in-memory revocation-list publisher (used only without Postgres) restarts its count at zero
+  after a restart, and the chain will then refuse its lists as stale. With Postgres the count is
+  durable.

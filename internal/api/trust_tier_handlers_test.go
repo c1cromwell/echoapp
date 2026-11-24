@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,19 +16,11 @@ import (
 // on-chain (raw trust scores stay off-chain).
 func TestTrustTierCommitment_AnchorsHashOnly(t *testing.T) {
 	var onChain []byte
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/transactions" || r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		onChain, _ = io.ReadAll(r.Body)
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"hash":"deadbeef"}`))
-	}))
-	defer srv.Close()
-
 	rt := &Router{
-		IdentityL1: metagraph.NewMetagraphClient(metagraph.MetagraphConfig{IdentityL1URL: srv.URL}),
+		IdentityL1: metagraph.IdentitySubmitterFunc(func(_ context.Context, tx interface{}) (string, error) {
+			onChain, _ = json.Marshal(tx) // what the handler hands to the chain client
+			return "0xtx", nil
+		}),
 	}
 
 	body, _ := json.Marshal(map[string]interface{}{"tier": 3, "nonce": "secret-nonce-xyz"})
@@ -60,7 +51,7 @@ func TestTrustTierCommitment_AnchorsHashOnly(t *testing.T) {
 
 func TestTrustTierCommitment_Validation(t *testing.T) {
 	rt := &Router{
-		IdentityL1: metagraph.NewMetagraphClient(metagraph.MetagraphConfig{IdentityL1URL: "http://unused"}),
+		IdentityL1: metagraph.IdentitySubmitterFunc(func(context.Context, interface{}) (string, error) { return "", nil }),
 	}
 	call := func(payload map[string]interface{}) int {
 		body, _ := json.Marshal(payload)

@@ -2,12 +2,12 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -31,21 +31,13 @@ func TestV3AuthRegister_AnchorsUsername(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var onChain []byte
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/transactions" && r.Method == http.MethodPost {
-			onChain, _ = io.ReadAll(r.Body)
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"hash":"x"}`))
-			return
-		}
-		w.WriteHeader(http.StatusBadRequest)
-	}))
-	defer srv.Close()
-
+	var anchored metagraph.UsernameRegistrationUpdate
 	h := &V3Handlers{
-		DB:         database.NewMemoryDB(),
-		IdentityL1: metagraph.NewMetagraphClient(metagraph.MetagraphConfig{IdentityL1URL: srv.URL}),
+		DB: database.NewMemoryDB(),
+		IdentityL1: metagraph.IdentitySubmitterFunc(func(_ context.Context, tx interface{}) (string, error) {
+			anchored = tx.(metagraph.UsernameRegistrationUpdate)
+			return "0xtx", nil
+		}),
 	}
 
 	body, _ := json.Marshal(map[string]string{"username": "alice", "publicKey": pubHex})
@@ -58,11 +50,7 @@ func TestV3AuthRegister_AnchorsUsername(t *testing.T) {
 		t.Fatalf("register want 201, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	// anchorUsername runs synchronously before the response, so onChain is set.
-	var anchored metagraph.UsernameRegistrationUpdate
-	if err := json.Unmarshal(onChain, &anchored); err != nil {
-		t.Fatalf("on-chain payload not a UsernameRegistrationUpdate: %s", onChain)
-	}
+	// anchorUsername runs synchronously before the response, so anchored is set.
 	if anchored.Username != "alice" {
 		t.Fatalf("anchored username = %q, want alice", anchored.Username)
 	}

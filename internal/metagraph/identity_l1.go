@@ -1,21 +1,18 @@
-// T0–T7 classifications for on-chain Identity Metagraph submissions:
+// Identity records the gateway anchors on Echo's chain. These structs are the gateway's own
+// description of a record; what reaches the chain is hashes only (internal/besu/ids.go):
 //
-//	DeviceKeyRegistrationUpdate — T7 (public chain data):
-//	  SubjectDID, PublicKeyHex, DeviceLabel are public identity data.
-//	  Caller must NOT include plaintext messages, private keys, or PII.
+//	DeviceKeyRegistrationUpdate — the DID and the key are stored as hashes; the device label,
+//	  which is free text, is not sent to the chain at all.
+//	TrustTierCommitmentUpdate — Commitment = H(tier || nonce), already a hash; the DID is hashed.
+//	UsernameRegistrationUpdate — the username and the DID are stored as hashes. A username is
+//	  guessable, so its hash does not hide it; ownership is meant to be checkable.
 //
-//	TrustTierCommitmentUpdate — T6 (trust commitment):
-//	  Commitment = H(tier || nonce) — a hash, never the raw tier + nonce.
-//	  AnchoredAt is epoch millis — no PII.
-//
-// See docs/data-classification.md for full T0–T7 policy.
+// See docs/data-classification.md for the full T0–T7 policy.
 package metagraph
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 )
 
 // DeviceKeyRegistrationUpdate is the JSON request body the Identity Service
@@ -63,17 +60,4 @@ func TrustTierCommitmentHex(tier int, nonce string) string {
 	preimage = append(preimage, []byte(nonce)...)
 	sum := sha256.Sum256(preimage)
 	return hex.EncodeToString(sum[:])
-}
-
-// SubmitIdentityL1 posts an Identity Metagraph L1 data-application update.
-// Tessellation 4.x expects a signed POST /data body when IdentitySigner is set.
-func (c *MetagraphClient) SubmitIdentityL1(ctx context.Context, tx interface{}) (string, error) {
-	base := c.config.IdentityL1URL
-	if base == "" {
-		return "", fmt.Errorf("metagraph: IdentityL1URL is not configured")
-	}
-	if c.config.IdentitySigner != nil {
-		return c.SubmitSignedData(ctx, base, tx, *c.config.IdentitySigner)
-	}
-	return c.submitTransaction(ctx, base+"/transactions", tx)
 }

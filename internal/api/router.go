@@ -88,7 +88,7 @@ type Router struct {
 	RateLimiter          *infra.RateLimiter               // WO-44 per-DID tiered rate limiting (optional)
 	PublicRateLimiter    *infra.RateLimiter               // S5: per-IP throttle for pre-auth public endpoints (optional)
 	SMSProvider          infra.SMSProvider                // Wave 12 SMS OTP recovery (optional; stub when nil)
-	IdentityL1           *metagraph.MetagraphClient       // WO-274 trust-tier commitments
+	IdentityL1           metagraph.IdentitySubmitter      // identity records on Echo's chain: device keys, trust tiers, usernames (optional)
 	DataL1               metagraph.DataSubmitter          // anchors Merkle roots and trust commitments on Echo's chain (optional)
 	CredentialService    *credentials.Service             // WO-274 VC issuance (optional)
 	OIDC                 *gin.Engine                      // OpenID4VCI issuer + verifier mount (optional)

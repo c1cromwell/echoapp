@@ -57,10 +57,13 @@ ECHOAPP_ROOT="$ROOT" source "$ROOT/scripts/identity/ensure-identity-service-key.
 signer="$(chain address -key "$IDENTITY_SERVICE_KEY_PEM")"
 
 [ -f $N/owner.key ] || chain newkey -out "$PWD/$N/owner.key" >/dev/null
-if [ ! -s $N/anchor.address ]; then
-  chain deploy -rpc http://localhost:8545 -owner "$PWD/$N/owner.key" -signer "$signer" > $N/anchor.address
-  echo "  deployed anchor contract $(cat $N/anchor.address)"
-fi
+for contract in anchor:EchoAnchor identity:EchoIdentity; do
+  file="$N/${contract%%:*}.address"
+  if [ ! -s "$file" ]; then
+    chain deploy -rpc http://localhost:8545 -owner "$PWD/$N/owner.key" -signer "$signer" -name "${contract##*:}" > "$file"
+    echo "  deployed ${contract##*:} at $(cat "$file")"
+  fi
+done
 
 cat > $N/chain.env <<ENV
 # Written by deploy/besu/local/up.sh. Local development only.
@@ -68,7 +71,8 @@ export ECHO_CHAIN_NETWORK=besu
 export BESU_RPC_URLS=http://localhost:8545,http://localhost:8546,http://localhost:8547,http://localhost:8548
 export BESU_RPC_URLS_DOCKER=http://host.docker.internal:8545,http://host.docker.internal:8546,http://host.docker.internal:8547,http://host.docker.internal:8548
 export BESU_ANCHOR_CONTRACT=$(cat $N/anchor.address)
+export BESU_IDENTITY_CONTRACT=$(cat $N/identity.address)
 export BESU_VALIDATORS=$(cat $N/node*/address | paste -sd, -)
 export BESU_GATEWAY_ADDRESS=$signer
 ENV
-echo "  chain ready: contract $(cat $N/anchor.address), gateway writes as $signer"
+echo "  chain ready: anchor $(cat $N/anchor.address), identity $(cat $N/identity.address), gateway writes as $signer"

@@ -1,75 +1,43 @@
 package credentials
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"time"
 )
 
-// vcIssuanceL1Wire matches Scala com.echo.shared_data.types.VCIssuanceUpdate JSON
-// (POST {IDENTITY_L1_URL}/transactions).
-type vcIssuanceL1Wire struct {
-	CredentialID   string `json:"credentialId"`
-	SubjectDID     string `json:"subjectDID"`
-	IssuerDID      string `json:"issuerDID"`
-	CredentialType string `json:"credentialType"`
-	IssuedAt       int64  `json:"issuedAt"`
-	SchemaVersion  string `json:"schemaVersion"`
+// ChainPublisher anchors credential records on Echo's chain. Implementations store hashes only:
+// no DID, credential id or type name reaches the chain as text.
+type ChainPublisher interface {
+	// PublishCredentialIssuance records that a credential of a kind was issued to a subject by
+	// an issuer. It returns a reference to the on-chain write.
+	PublishCredentialIssuance(ctx context.Context, credentialID, subjectDID, issuerDID, kind string) (string, error)
+	// PublishStatusList publishes an issuer's revocation list. sequence is the publisher's
+	// zero-based count of publications; a later list always has a higher sequence.
+	PublishStatusList(ctx context.Context, issuerDID string, sequence int64, list []byte) error
 }
 
-// publishVCIssuanceMetadata posts VC issuance metadata to Identity Metagraph L1 (WO-274).
-func (i *Issuer) publishVCIssuanceMetadata(ctx context.Context, credentialID string, req *CredentialIssuanceRequest, issuedAt time.Time) (string, error) {
-	if i.config.MetagraphConfig.IdentityL1URL == "" {
+// anchoringEnabled reports whether issuance records and revocation lists go on-chain.
+func (c MetagraphConfig) anchoringEnabled() bool {
+	return c.EnableAnchor && c.Chain != nil
+}
+
+// publishVCIssuanceMetadata anchors a credential's issuance record (WO-274). The issue time is
+// the block's time; the caller's clock is not written.
+func (i *Issuer) publishVCIssuanceMetadata(ctx context.Context, credentialID string, req *CredentialIssuanceRequest, _ time.Time) (string, error) {
+	if !i.config.MetagraphConfig.anchoringEnabled() {
 		return "", nil
 	}
-	if !i.config.MetagraphConfig.EnableAnchor {
-		return "", nil
-	}
-
-	body := vcIssuanceL1Wire{
-		CredentialID:   fmt.Sprintf("urn:uuid:%s", credentialID),
-		SubjectDID:     req.SubjectDID,
-		IssuerDID:      i.effectiveIssuerDID(),
-		CredentialType: string(req.CredentialType),
-		IssuedAt:       issuedAt.UnixMilli(),
-		SchemaVersion:  "v1.0.0",
-	}
-	raw, err := json.Marshal(body)
-	if err != nil {
-		return "", err
-	}
-
 	timeout := i.config.MetagraphConfig.Timeout
 	if timeout == 0 {
 		timeout = 30 * time.Second
 	}
-	c := &http.Client{Timeout: timeout}
-	url := i.config.MetagraphConfig.IdentityL1URL + "/transactions"
-	r, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(raw))
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	ref, err := i.config.MetagraphConfig.Chain.PublishCredentialIssuance(ctx,
+		fmt.Sprintf("urn:uuid:%s", credentialID), req.SubjectDID, i.effectiveIssuerDID(), string(req.CredentialType))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("anchor credential issuance: %w", err)
 	}
-	r.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.Do(r)
-	if err != nil {
-		return "", fmt.Errorf("identity L1 POST: %w", err)
-	}
-	defer resp.Body.Close()
-	respBody, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return "", fmt.Errorf("identity L1: status %d: %s", resp.StatusCode, string(respBody))
-	}
-
-	var out struct {
-		TxHash string `json:"txHash"`
-	}
-	if err := json.Unmarshal(respBody, &out); err != nil {
-		return "", fmt.Errorf("identity L1 decode: %w", err)
-	}
-	return out.TxHash, nil
+	return ref, nil
 }

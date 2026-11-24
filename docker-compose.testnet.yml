@@ -54,10 +54,10 @@ services:
       - ECHO_CHAIN_NETWORK=besu
       - BESU_RPC_URLS=${BESU_RPC_URLS_DOCKER:-}
       - BESU_ANCHOR_CONTRACT=${BESU_ANCHOR_CONTRACT:-}
+      - BESU_IDENTITY_CONTRACT=${BESU_IDENTITY_CONTRACT:-}
       # Constellation-hosted Digital Evidence stays off unless explicitly enabled.
       - DIGITAL_EVIDENCE_ENABLED=${DIGITAL_EVIDENCE_ENABLED:-false}
       - IDENTITY_SERVICE_DID=${IDENTITY_SERVICE_DID:-}
-      - IDENTITY_SERVICE_PUBLIC_KEY_HEX=${IDENTITY_SERVICE_PUBLIC_KEY_HEX:-}
       - IDENTITY_SERVICE_KEY_PEM=/app/.keys/identity-service.pem
     volumes:
       - ./migrations:/app/migrations:ro

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 )
@@ -16,11 +15,7 @@ import (
 type MetagraphConfig struct {
 	L0URL         string
 	CurrencyL1URL string
-	DataL1URL     string
-	IdentityL1URL string
 	Timeout       time.Duration
-	// Identity signing (Phase 1 POST /data to Identity L1).
-	IdentitySigner *IdentitySigningConfig
 }
 
 // MetagraphClient is an HTTP client for the Constellation metagraph APIs.
@@ -137,29 +132,6 @@ func (c *MetagraphClient) SubmitSignedByType(ctx context.Context, txType string,
 	default:
 		return "", fmt.Errorf("metagraph: unsupported signed tx type %q", txType)
 	}
-}
-
-// SubmitDataL1 posts a Data L1 data-application update.
-// Tessellation 4.x expects a signed POST /data body when IdentitySigner is set.
-func (c *MetagraphClient) SubmitDataL1(ctx context.Context, tx interface{}) (string, error) {
-	base := c.config.DataL1URL
-	if base == "" {
-		return "", fmt.Errorf("metagraph: DataL1URL is not configured")
-	}
-	signer := c.config.IdentitySigner
-	// Fail closed in production: never anchor unsigned data that the metagraph and
-	// downstream verifiers would otherwise have to trust without provenance. In
-	// dev/test an unsigned submission is allowed so the stack runs without a key.
-	// (Config errors are returned before the breaker so they don't trip it.)
-	if signer == nil && os.Getenv("ENVIRONMENT") == "production" {
-		return "", fmt.Errorf("metagraph: refusing unsigned Data L1 submission in production (configure IdentitySigner / IDENTITY_SERVICE_KEY_PEM)")
-	}
-	return c.guarded(func() (string, error) {
-		if signer != nil {
-			return c.SubmitSignedData(ctx, base, tx, *signer)
-		}
-		return c.submitTransaction(ctx, base+"/transactions", tx)
-	})
 }
 
 // QueryValidators returns the validator set from the Global L0.

@@ -3,10 +3,6 @@ package media
 import (
 	"bytes"
 	"context"
-	"encoding/json"
-	"io"
-	"net/http"
-	"net/http/httptest"
 	"regexp"
 	"testing"
 
@@ -20,20 +16,14 @@ var hex64 = regexp.MustCompile(`^[0-9a-f]{64}$`)
 // content-addressed backend anchors a SHA-256 Merkle root over the chunk CIDs on
 // Data L1, and surfaces that root to the caller.
 func TestUpload_AnchorsContentRootOnDataL1(t *testing.T) {
-	var anchored []byte
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/transactions" && r.Method == http.MethodPost {
-			anchored, _ = io.ReadAll(r.Body)
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"hash":"x"}`))
-			return
-		}
-		w.WriteHeader(http.StatusBadRequest)
-	}))
-	defer srv.Close()
+	var update metagraph.DataL1MerkleRootUpdate
+	chain := metagraph.SubmitterFunc(func(_ context.Context, tx interface{}) (string, error) {
+		update = tx.(metagraph.DataL1MerkleRootUpdate)
+		return "0xtx", nil
+	})
 
 	svc := NewService(database.NewMemoryDB(), NewMemoryStorage()) // MemoryStorage returns content hashes as CIDs
-	svc.DataL1 = metagraph.NewMetagraphClient(metagraph.MetagraphConfig{DataL1URL: srv.URL})
+	svc.DataL1 = chain
 
 	res, err := svc.Upload(context.Background(), UploadRequest{
 		UploaderDID:   "did:key:zUploader",
@@ -49,10 +39,6 @@ func TestUpload_AnchorsContentRootOnDataL1(t *testing.T) {
 		t.Fatalf("ContentRoot should be a 64-hex Merkle root, got %q", res.ContentRoot)
 	}
 
-	var update metagraph.DataL1MerkleRootUpdate
-	if err := json.Unmarshal(anchored, &update); err != nil {
-		t.Fatalf("anchored payload not a DataL1MerkleRootUpdate: %s", anchored)
-	}
 	if update.Root != res.ContentRoot {
 		t.Fatalf("anchored root %q != result root %q", update.Root, res.ContentRoot)
 	}

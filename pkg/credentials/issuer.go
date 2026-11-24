@@ -131,13 +131,13 @@ func (i *Issuer) IssueCredential(ctx context.Context, req *CredentialIssuanceReq
 		)
 	}
 
-	if i.config.MetagraphConfig.EnableAnchor && i.config.MetagraphConfig.IdentityL1URL != "" {
+	if i.config.MetagraphConfig.anchoringEnabled() {
 		progress.Progress = 65
-		progress.CurrentStep = "Anchoring VC issuance metadata to Identity L1"
+		progress.CurrentStep = "Anchoring the issuance record on-chain"
 		progress.UpdatedAt = time.Now()
 		i.setProgress(credentialID, progress)
 		if _, err := i.publishVCIssuanceMetadata(ctx, credentialID, req, vc.IssuanceDate); err != nil {
-			fmt.Printf("Warning: Identity L1 VC issuance anchor failed: %v\n", err)
+			fmt.Printf("Warning: credential issuance anchor failed: %v\n", err)
 		}
 	}
 

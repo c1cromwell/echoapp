@@ -4,7 +4,7 @@
 # Runs the end-to-end check against the backend and Echo's chain (`make dev`):
 #   1. Derive did:key locally from a P-256 key pair (no chain transaction)
 #   2. Register DID with local Identity Service (POST /identity/register)
-#   3. Identity commitment on-chain — pending (docs/BESU_MIGRATION_PLAN.md stage B2)
+#   3. Anchor a trust-tier commitment through the gateway and read it back from a validator
 #   4. Send a test message through the local relay
 #   5. Anchor a Merkle root through the gateway, export its proof from a
 #      validator, and verify that proof offline, signatures included
@@ -218,8 +218,64 @@ esac
 # -----------------------------------------------------------------------------
 # Step 3: identity commitments on-chain
 # -----------------------------------------------------------------------------
-step 3 "Anchor test trust-tier commitment on-chain"
-skip "identity commitments are not on Echo's chain yet (docs/BESU_MIGRATION_PLAN.md stage B2)"
+step 3 "Anchor a trust-tier commitment on-chain"
+
+if [ -z "${BESU_IDENTITY_CONTRACT:-}" ]; then
+  fail "BESU_IDENTITY_CONTRACT is not set; run 'make dev'"
+else
+  NONCE="$(openssl rand -hex 16)"
+  TIER_BODY=$(jq -nc --arg did "$DID_KEY" --arg nonce "$NONCE" '{subject_did:$did, tier:2, nonce:$nonce}')
+  TIER_CODE=$(curl -sS -o "$TMP_DIR/tier.out" -w '%{http_code}' \
+    --max-time "$FINALITY_TIMEOUT_SECS" \
+    -X POST "$BACKEND_URL/v1/phase1/trust-tier-commitment" \
+    -H "Content-Type: application/json" \
+    -d "$TIER_BODY" 2>/dev/null) || TIER_CODE="000"
+  case "$TIER_CODE" in
+    200)
+      COMM=$(jq -r '.commitment // empty' "$TMP_DIR/tier.out")
+      # The commitment is SHA-256(tier byte || nonce); recompute it here so the check does not
+      # rest on what the gateway says it anchored.
+      EXPECTED=$( { printf '\x02'; printf '%s' "$NONCE"; } | openssl dgst -sha256 2>/dev/null | sed -E 's/^.*[= ]//')
+      if [ "${#COMM}" -ne 64 ]; then
+        fail "response has no 64-character commitment: $(cat "$TMP_DIR/tier.out")"
+      elif [ "$COMM" != "$EXPECTED" ]; then
+        fail "gateway returned commitment $COMM; H(tier||nonce) is $EXPECTED"
+      else
+        ok "gateway anchored H(tier||nonce) = ${COMM:0:16}…"
+        # Read it back from a validator the gateway does not use first.
+        READER="${CHAIN_NODES[$(( ${#CHAIN_NODES[@]} - 1 ))]}"
+        if BLOCK=$(cd "$REPO_ROOT" && go run ./cmd/echochain trust-tier -rpc "$READER" -identity "$BESU_IDENTITY_CONTRACT" -commitment "$COMM" 2>"$TMP_DIR/tier.err"); then
+          ok "commitment is on-chain in block $BLOCK (read from $READER)"
+        else
+          fail "commitment not found on-chain: $(tr '\n' ' ' < "$TMP_DIR/tier.err")"
+        fi
+        # The record is stored under a hash of the DID. Check the block itself: the DID's bytes
+        # must not appear anywhere in the transactions it carries.
+        if [[ "${BLOCK:-}" =~ ^[0-9]+$ ]]; then
+          DID_HEX=$(printf '%s' "$DID_KEY" | xxd -p | tr -d '\n')
+          BLOCK_JSON=$(curl -s --max-time 5 -X POST -H 'Content-Type: application/json' \
+            --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getBlockByNumber\",\"params\":[\"$(printf '0x%x' "$BLOCK")\",true],\"id\":1}" "$READER" 2>/dev/null)
+          if ! printf '%s' "$BLOCK_JSON" | jq -e '.result.transactions | length > 0' >/dev/null 2>&1; then
+            fail "could not read block $BLOCK to check its contents"
+          elif printf '%s' "$BLOCK_JSON" | grep -qi "$DID_HEX"; then
+            fail "block $BLOCK contains the DID in clear text"
+          else
+            ok "block $BLOCK does not contain the DID: it is stored as a hash"
+          fi
+        fi
+      fi
+      ;;
+    503)
+      fail "the backend has no identity contract configured: $(cat "$TMP_DIR/tier.out")"
+      ;;
+    000)
+      fail "POST /v1/phase1/trust-tier-commitment: backend unreachable"
+      ;;
+    *)
+      fail "POST /v1/phase1/trust-tier-commitment returned HTTP $TIER_CODE: $(cat "$TMP_DIR/tier.out")"
+      ;;
+  esac
+fi
 
 # -----------------------------------------------------------------------------
 # Step 4: Send a test message through the local relay
@@ -353,7 +409,7 @@ fi
 printf "\n%s===== Summary =====%s\n" "$BOLD" "$RESET"
 printf "  passed:  %s%d%s\n" "$GREEN"  "$PASS" "$RESET"
 printf "  failed:  %s%d%s\n" "$RED"    "$FAIL" "$RESET"
-printf "  skipped: %s%d%s (Step 3: identity commitments move on-chain in plan stage B2)\n" "$YELLOW" "$SKIP" "$RESET"
+printf "  skipped: %s%d%s\n" "$YELLOW" "$SKIP" "$RESET"
 
 if [ "$FAIL" -gt 0 ]; then
   printf "\n%sGo/No-Go: NO-GO%s\n" "$RED" "$RESET"

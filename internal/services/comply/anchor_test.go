@@ -2,9 +2,6 @@ package comply
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -14,19 +11,13 @@ import (
 
 func TestMetagraphAnchor_SubmitAndHealth(t *testing.T) {
 	var posted bool
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/transactions" {
-			http.NotFound(w, r)
-			return
+	client := metagraph.SubmitterFunc(func(_ context.Context, tx interface{}) (string, error) {
+		// A compliance anchor is a trust commitment: a 32-byte hash and an epoch, nothing else.
+		if _, ok := tx.(metagraph.DataL1TrustCommitmentUpdate); !ok {
+			t.Errorf("anchored a %T, want a trust commitment", tx)
 		}
 		posted = true
-		_ = json.NewEncoder(w).Encode(map[string]string{"txHash": "tx-abc"})
-	}))
-	defer srv.Close()
-
-	client := metagraph.NewMetagraphClient(metagraph.MetagraphConfig{
-		DataL1URL: srv.URL,
-		Timeout:   2 * time.Second,
+		return "tx-abc", nil
 	})
 	anchor := NewMetagraphAnchor(client)
 
@@ -36,7 +27,7 @@ func TestMetagraphAnchor_SubmitAndHealth(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !posted {
-		t.Fatal("expected Data L1 POST")
+		t.Fatal("expected a chain submission")
 	}
 	if tx != "tx-abc" {
 		t.Fatalf("tx = %q", tx)

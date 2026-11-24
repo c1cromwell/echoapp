@@ -28,6 +28,7 @@ data:
   # without anchoring by accident.
   BESU_RPC_URLS: "http://REPLACE_ME:8545"
   BESU_ANCHOR_CONTRACT: "REPLACE_ME"
+  BESU_IDENTITY_CONTRACT: "REPLACE_ME"
   # Constellation-hosted Digital Evidence API. The client is constructed only
   # when this is "true" and DIGITAL_EVIDENCE_API_KEY is set.
   DIGITAL_EVIDENCE_ENABLED: "false"

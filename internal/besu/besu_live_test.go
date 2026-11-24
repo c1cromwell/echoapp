@@ -6,8 +6,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -31,7 +33,8 @@ func liveClient(t *testing.T) (*Client, []common.Address) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err := New(Config{RPCURLs: strings.Split(urls, ","), AnchorContract: common.HexToAddress(contract), Signer: key})
+	c, err := New(Config{RPCURLs: strings.Split(urls, ","), AnchorContract: common.HexToAddress(contract),
+		IdentityContract: common.HexToAddress(os.Getenv("BESU_IDENTITY_CONTRACT")), Signer: key})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,5 +146,48 @@ func TestLiveFailsOverToAnotherEndpoint(t *testing.T) {
 	}
 	if _, err := withDead.AnchorRoot(ctx, randomHash(t), 1); err != nil {
 		t.Fatalf("anchoring with one dead endpoint: %v", err)
+	}
+}
+
+// Three separate clients share one signing key and write at the same time, as gateway replicas
+// do. They pick the same transaction numbers; every write must still land exactly once.
+func TestLiveSeveralWritersShareOneKey(t *testing.T) {
+	c, _ := liveClient(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	const writers, each = 3, 6
+	roots := make([][]string, writers)
+	errs := make(chan error, writers*each)
+	var wg sync.WaitGroup
+	for w := 0; w < writers; w++ {
+		replica, err := New(Config{RPCURLs: c.cfg.RPCURLs, AnchorContract: c.cfg.AnchorContract, Signer: c.cfg.Signer})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i := 0; i < each; i++ {
+			roots[w] = append(roots[w], randomHash(t))
+		}
+		wg.Add(1)
+		go func(w int, replica *Client) {
+			defer wg.Done()
+			for _, root := range roots[w] {
+				if _, err := replica.AnchorRoot(ctx, root, 1); err != nil {
+					errs <- fmt.Errorf("writer %d: %w", w, err)
+				}
+			}
+		}(w, replica)
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Error(err)
+	}
+	for w := range roots {
+		for _, root := range roots[w] {
+			if _, err := c.RootStatus(ctx, root); err != nil {
+				t.Errorf("writer %d: root %s is not on the chain: %v", w, root[:8], err)
+			}
+		}
 	}
 }

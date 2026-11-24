@@ -8,7 +8,7 @@
 ## Why This Matters
 
 **Zero PII on any blockchain is a hard system invariant.**  
-The Constellation Identity Metagraph and Data L1 validators reject any submission containing personal identifiers, message content, or user behavioral data beyond the allowances for tiers T5–T7. The Semgrep rules in `.semgrep/t0_t7_rules.yaml` enforce this at CI time so violations are caught before code reaches the chain.
+Echo's chain (a private Hyperledger Besu network, [`BESU_MIGRATION_PLAN.md`](BESU_MIGRATION_PLAN.md)) accepts 32-byte hashes and small numbers only: the contracts have no field that could hold a personal identifier, message content or behavioural data. The Semgrep rules in `.semgrep/t0_t7_rules.yaml` add a check at CI time, before code reaches the chain.
 
 ---
 
@@ -29,7 +29,26 @@ The Constellation Identity Metagraph and Data L1 validators reject any submissio
 
 ## What Goes On-Chain
 
-Only **T5**, **T6**, and **T7** data is permitted in metagraph submissions.
+Only **T5**, **T6**, and **T7** data is permitted on-chain, and since the move to Besu
+(2026-11-24) even T7 identifiers are written as hashes, never as text.
+
+| Record | What the chain stores | What stays off-chain |
+|---|---|---|
+| Message-batch Merkle root (T5) | The root and a leaf count | The messages and their commitments |
+| Trust commitment (T6) | `H(tier \|\| nonce)` | The tier and the nonce |
+| Device key | Hash of the DID, hash of the public key | The device label (free text a user chose, e.g. "Alice's iPhone") |
+| Username | Hash of the lower-cased username, hash of the DID | — |
+| Credential issuance | Hashes of the credential id, subject DID, issuer DID and type | The credential |
+| Revocation list | Hash of the issuer DID, a sequence number, hash of the list | The list (served by the gateway, checked against the hash) |
+| Group metadata, governance votes | One digest of the whole record | The record, including the admin's or voter's DID |
+
+Identifiers are hashed as `SHA-256("echo/v1/" + domain + ":" + value)` (`internal/besu/ids.go`).
+
+**What a hash does not hide.** A DID is a long random key, so its hash tells nothing to someone
+who does not already hold the DID. A username is short and guessable: anyone can hash candidate
+names and find which are registered. Username ownership is meant to be checkable, so this is
+accepted — but a username must not be treated as private. The same applies to a vote digest: a
+vote by a known DID on a known proposal can be confirmed by guessing it.
 
 ### T5 — Merkle root (hash commitment)
 ```go
@@ -48,13 +67,13 @@ sub := validation.DataL1Submission{
 commitment := metagraph.TrustTierCommitmentHex(tier, nonce)  // returns hex(SHA-256)
 ```
 
-### T7 — DID document / public key registration
+### T7 — public key registration
 ```go
-// ✅ Correct: public identity data for the DID document
+// ✅ Correct: describe the record; the chain client hashes the DID and the key.
 tx := metagraph.DeviceKeyRegistrationUpdate{
-    SubjectDID:   "did:key:z...",     // T7: public DID
-    PublicKeyHex: "04abcd...",        // T7: public key (P-256 uncompressed)
-    DeviceLabel:  "iPhone 16 Pro",    // T7: device label
+    SubjectDID:   "did:key:z...",     // stored on-chain as a hash
+    PublicKeyHex: "04abcd...",        // stored on-chain as a hash
+    DeviceLabel:  "iPhone 16 Pro",    // NOT sent to the chain
     AddedAt:      time.Now().UnixMilli(),
 }
 ```
@@ -128,15 +147,19 @@ Edit `.semgrep/t0_t7_rules.yaml`. Each rule should:
 
 ---
 
-## Metagraph Validator Enforcement (Scala)
+## Enforcement on the chain
 
-The Data L1 Scala validator in `metagraph/modules/shared_data/src/main/scala/com/echo/shared_data/validations/Validations.scala` enforces:
+The contracts in `chain/contracts/` are the last line of defence, and they enforce the rule by
+construction, not by inspection:
 
-- **`requireHex64`** — MerkleRoot and TrustCommitment fields must be exactly 64 lowercase hex characters (pure SHA-256 hash).
-- **`rejectPII`** — Rejects email addresses, phone numbers, and embedded DID strings in any free-form field.
-- **`rejectUpdatePII`** — Dispatches PII rejection across all `EchoUpdate` variants before structural validation.
+- Every value they accept is a `bytes32` or an integer. Text cannot be submitted, so there is
+  nothing to scan for emails, phone numbers or DIDs.
+- Only the gateway's key may write (`NotAuthorisedSigner` otherwise).
+- The Go client refuses anything that is not exactly 64 hex characters before it reaches the
+  chain (`internal/besu`, `parseHash32`), and refuses update types that have no on-chain form.
 
-These checks run at L1 consensus time. Any transaction that passes CI but fails these checks will be rejected by the metagraph.
+`make validate-phase1` step 3 checks a live block for a copy of the DID it just anchored and fails
+if it finds one.
 
 ---
 

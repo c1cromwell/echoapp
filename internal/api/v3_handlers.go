@@ -54,7 +54,7 @@ type V3Handlers struct {
 	Groups                   *groups.GroupService
 	Broadcasts               *broadcast_channels.ChannelService
 	RateLimiter              *infra.RateLimiter                            // optional; enforces per-DID claim velocity (WO-35)
-	IdentityL1               *metagraph.MetagraphClient                    // optional; anchors @username -> DID on the Identity Metagraph (D1)
+	IdentityL1               metagraph.IdentitySubmitter                   // optional; anchors @username -> DID on Echo's chain (D1)
 	Signals                  SignalPublisher                               // optional; pushes live typing/receipt/reaction signals over WS (WO-10/192)
 	Notifier                 OfflineNotifier                               // optional; content-blind push when a signal target is offline (WO-57)
 	MessageBackup            *passport.SyncService                         // optional; WO-64/CA2 client-encrypted history backup relay

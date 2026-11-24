@@ -32,7 +32,22 @@ var anchorABIJSON string
 //go:embed contract/EchoAnchor.bin
 var anchorBinHex string
 
-var anchorABI = mustABI(anchorABIJSON)
+//go:embed contract/EchoIdentity.abi
+var identityABIJSON string
+
+//go:embed contract/EchoIdentity.bin
+var identityBinHex string
+
+var (
+	anchorABI   = mustABI(anchorABIJSON)
+	identityABI = mustABI(identityABIJSON)
+)
+
+// Contract names accepted by Deploy.
+const (
+	ContractAnchor   = "EchoAnchor"
+	ContractIdentity = "EchoIdentity"
+)
 
 func mustABI(raw string) abi.ABI {
 	parsed, err := abi.JSON(strings.NewReader(raw))
@@ -49,6 +64,9 @@ type Config struct {
 	RPCURLs []string
 	// AnchorContract is the deployed EchoAnchor address.
 	AnchorContract common.Address
+	// IdentityContract is the deployed EchoIdentity address. Optional: without it the identity
+	// methods return ErrNoIdentityContract.
+	IdentityContract common.Address
 	// Signer signs the gateway's transactions. Its address must be an authorised signer of the
 	// contract. Nil gives a read-only client.
 	Signer *ecdsa.PrivateKey
@@ -100,6 +118,9 @@ func (c *Client) SignerAddress() common.Address {
 
 // AnchorContract is the EchoAnchor address this client writes to.
 func (c *Client) AnchorContract() common.Address { return c.cfg.AnchorContract }
+
+// IdentityContract is the EchoIdentity address this client writes to, or zero if not configured.
+func (c *Client) IdentityContract() common.Address { return c.cfg.IdentityContract }
 
 // conn returns a connection to the validator that is furthest ahead. A validator that has just
 // restarted answers before it has caught up; reading the account's next transaction number or a
@@ -209,74 +230,122 @@ type Receipt struct {
 	BlockHash   common.Hash
 }
 
-// transact sends one call to the anchor contract and waits until it is final.
+// Ref is the reference callers store for a write: its transaction hash.
+func (r Receipt) Ref() string { return r.TxHash.Hex() }
+
+// transact sends one call to a contract and waits until it is final.
 //
-// The transaction is signed once. It is then submitted to, and looked for on, whichever validator
-// is answering at that moment. Resubmitting the same signed transaction is harmless, and any
-// validator can report the result.
-func (c *Client) transact(ctx context.Context, method string, args ...interface{}) (Receipt, error) {
+// Each attempt signs one transaction, then submits it to, and looks for it on, whichever validator
+// is furthest ahead. Resubmitting the same signed transaction is harmless, and any validator can
+// report the result.
+//
+// Another process may be writing with the same key (a second gateway replica). Both then pick the
+// same transaction number and only one transaction can use it. The loser sees its number refused
+// as already used while its own transaction has no receipt; it signs again with a fresh number.
+// That cannot execute the call twice: a transaction whose number has been used by a different
+// transaction can never be included.
+func (c *Client) transact(ctx context.Context, contract common.Address, contractABI abi.ABI, method string, args ...interface{}) (Receipt, error) {
 	c.txMu.Lock()
 	defer c.txMu.Unlock()
 
-	ec, err := c.conn(ctx)
-	if err != nil {
-		return Receipt{}, err
-	}
-	opts, err := c.transactOpts(ctx, ec)
-	if err != nil {
-		return Receipt{}, err
-	}
-	opts.NoSend = true // builds and signs; gas estimation here is where a contract refusal shows
-	tx, err := bind.NewBoundContract(c.cfg.AnchorContract, anchorABI, ec, ec, ec).Transact(opts, method, args...)
-	if err != nil {
-		return Receipt{}, fmt.Errorf("besu: %s: %w", method, describeRevert(err))
-	}
-
-	// A validator can accept a transaction and restart before passing it on, after which the
-	// transaction exists nowhere. So it is submitted again every few seconds until it is seen in
-	// a block; a validator that already has it, or already included it, just says so.
-	const resubmitEvery = 4 * time.Second
 	deadline := time.Now().Add(c.cfg.ReceiptTimeout)
-	accepted := false // some validator has taken the transaction at least once
-	var lastSubmit time.Time
+	const maxSignings = 8
 	var lastErr error
-	for {
-		if live, err := c.conn(ctx); err != nil {
-			lastErr = err
-		} else {
-			if time.Since(lastSubmit) >= resubmitEvery {
-				lastSubmit = time.Now()
-				switch err := live.SendTransaction(ctx, tx); {
-				case err == nil, isAlreadyKnown(err):
-					accepted = true
-				case isNodeRejection(err) && !accepted:
-					// Refused outright on first submission: a real rejection.
-					return Receipt{}, fmt.Errorf("besu: %s: %w", method, describeRevert(err))
-				default:
-					// A transport failure, or a refusal of a resubmission (for example "nonce too
-					// low" once it has been included). The receipt check below decides.
-					lastErr = err
-				}
-			}
-			receipt, err := live.TransactionReceipt(ctx, tx.Hash())
-			switch {
-			case err == nil && receipt.Status != types.ReceiptStatusSuccessful:
+	for signing := 1; signing <= maxSignings; signing++ {
+		ec, err := c.conn(ctx)
+		if err != nil {
+			return Receipt{}, err
+		}
+		opts, err := c.transactOpts(ctx, ec)
+		if err != nil {
+			return Receipt{}, err
+		}
+		opts.NoSend = true // builds and signs; gas estimation here is where a contract refusal shows
+		tx, err := bind.NewBoundContract(contract, contractABI, ec, ec, ec).Transact(opts, method, args...)
+		if err != nil {
+			return Receipt{}, fmt.Errorf("besu: %s: %w", method, describeRevert(contractABI, err))
+		}
+		receipt, superseded, err := c.submitAndWait(ctx, tx, deadline)
+		switch {
+		case err != nil && isNodeRejection(err):
+			return Receipt{}, fmt.Errorf("besu: %s: %w", method, describeRevert(contractABI, err))
+		case err != nil:
+			return Receipt{}, fmt.Errorf("besu: %s: %w", method, err)
+		case !superseded:
+			if receipt.Status != types.ReceiptStatusSuccessful {
 				return Receipt{}, fmt.Errorf("besu: %s: transaction %s reverted", method, tx.Hash().Hex())
-			case err == nil:
-				return Receipt{TxHash: tx.Hash(), BlockNumber: receipt.BlockNumber.Uint64(), BlockHash: receipt.BlockHash}, nil
-			case !errors.Is(err, ethereum.NotFound):
-				lastErr = err
 			}
+			return Receipt{TxHash: tx.Hash(), BlockNumber: receipt.BlockNumber.Uint64(), BlockHash: receipt.BlockHash}, nil
 		}
-		if time.Now().After(deadline) {
-			return Receipt{}, fmt.Errorf("besu: %s: transaction %s not included within %s (last error: %v)", method, tx.Hash().Hex(), c.cfg.ReceiptTimeout, lastErr)
-		}
+		lastErr = fmt.Errorf("transaction number %d was used by another writer", tx.Nonce())
+		// Let the other writer's transaction land before reading the next number.
 		select {
 		case <-ctx.Done():
 			return Receipt{}, fmt.Errorf("besu: %s: %w", method, ctx.Err())
+		case <-time.After(time.Duration(signing) * 300 * time.Millisecond):
+		}
+	}
+	return Receipt{}, fmt.Errorf("besu: %s: gave up after %d signings: %v", method, maxSignings, lastErr)
+}
+
+// submitAndWait submits one signed transaction and waits for its receipt. superseded is true when
+// the transaction can no longer be included because its number was used by a different one.
+//
+// A validator can accept a transaction and restart before passing it on, after which the
+// transaction exists nowhere. So it is submitted again every few seconds until it is seen in a
+// block; a validator that already has it just says so.
+func (c *Client) submitAndWait(ctx context.Context, tx *types.Transaction, deadline time.Time) (receipt *types.Receipt, superseded bool, err error) {
+	const resubmitEvery = 4 * time.Second
+	accepted := false // some validator has taken this transaction at least once
+	var lastSubmit time.Time
+	var lastErr error
+	for {
+		if live, connErr := c.conn(ctx); connErr != nil {
+			lastErr = connErr
+		} else {
+			numberUsed := false
+			if time.Since(lastSubmit) >= resubmitEvery {
+				lastSubmit = time.Now()
+				switch sendErr := live.SendTransaction(ctx, tx); {
+				case sendErr == nil, isAlreadyKnown(sendErr):
+					accepted = true
+				case isNumberUsed(sendErr):
+					numberUsed = true
+					lastErr = sendErr
+				case isNodeRejection(sendErr) && !accepted:
+					return nil, false, sendErr // refused outright on first submission
+				default:
+					lastErr = sendErr // transport failure, or a refusal of a resubmission
+				}
+			}
+			r, rcptErr := live.TransactionReceipt(ctx, tx.Hash())
+			switch {
+			case rcptErr == nil:
+				return r, false, nil
+			case !errors.Is(rcptErr, ethereum.NotFound):
+				lastErr = rcptErr
+			case numberUsed:
+				// The same validator says the number is used and has no receipt for this
+				// transaction: a different transaction took the number.
+				return nil, true, nil
+			}
+		}
+		if time.Now().After(deadline) {
+			return nil, false, fmt.Errorf("transaction %s not included within %s (last error: %v)", tx.Hash().Hex(), c.cfg.ReceiptTimeout, lastErr)
+		}
+		select {
+		case <-ctx.Done():
+			return nil, false, ctx.Err()
 		case <-time.After(500 * time.Millisecond):
 		}
 	}
+}
+
+// isNumberUsed reports a node refusing a transaction because its number is taken: either already
+// used on the chain, or held by a different pending transaction from the same key.
+func isNumberUsed(err error) bool {
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "nonce too low") || strings.Contains(msg, "replacement transaction underpriced")
 }
 
 // isAlreadyKnown reports a node saying it already holds this exact transaction, which is what a
@@ -294,7 +363,7 @@ func isNodeRejection(err error) bool {
 }
 
 // describeRevert names the contract's custom error when the node reports one.
-func describeRevert(err error) error {
+func describeRevert(contractABI abi.ABI, err error) error {
 	var de interface{ ErrorData() interface{} }
 	if !errors.As(err, &de) {
 		return err
@@ -304,7 +373,7 @@ func describeRevert(err error) error {
 		return err
 	}
 	selector := common.FromHex(data)[:4]
-	for name, e := range anchorABI.Errors {
+	for name, e := range contractABI.Errors {
 		if string(e.ID[:4]) == string(selector) {
 			return fmt.Errorf("rejected by contract: %s", name)
 		}
@@ -312,9 +381,22 @@ func describeRevert(err error) error {
 	return err
 }
 
-// Deploy publishes a new EchoAnchor owned by ownerKey, with signer as its only authorised writer.
-// Used at genesis and by the local development network; not by the running gateway.
-func Deploy(ctx context.Context, rpcURL string, ownerKey *ecdsa.PrivateKey, signer common.Address) (common.Address, Receipt, error) {
+// Deploy publishes a new contract (ContractAnchor or ContractIdentity) owned by ownerKey, with
+// signer as its only authorised writer. Used at genesis and by the local development network; not
+// by the running gateway.
+func Deploy(ctx context.Context, rpcURL, contract string, ownerKey *ecdsa.PrivateKey, signer common.Address) (common.Address, Receipt, error) {
+	var (
+		contractABI abi.ABI
+		bin         string
+	)
+	switch contract {
+	case ContractAnchor:
+		contractABI, bin = anchorABI, anchorBinHex
+	case ContractIdentity:
+		contractABI, bin = identityABI, identityBinHex
+	default:
+		return common.Address{}, Receipt{}, fmt.Errorf("besu: unknown contract %q", contract)
+	}
 	ec, err := ethclient.DialContext(ctx, rpcURL)
 	if err != nil {
 		return common.Address{}, Receipt{}, err
@@ -330,7 +412,7 @@ func Deploy(ctx context.Context, rpcURL string, ownerKey *ecdsa.PrivateKey, sign
 	}
 	opts.Context = ctx
 	opts.GasPrice = big.NewInt(0)
-	addr, tx, _, err := bind.DeployContract(opts, anchorABI, common.FromHex(anchorBinHex), ec, signer)
+	addr, tx, _, err := bind.DeployContract(opts, contractABI, common.FromHex(bin), ec, signer)
 	if err != nil {
 		return common.Address{}, Receipt{}, err
 	}

@@ -16,9 +16,18 @@ import (
 )
 
 // DataSubmitter writes data-layer updates to Echo's chain and returns a reference to the write.
-// The chain accepts 32-byte hashes only: Merkle roots and trust commitments.
+// The chain accepts 32-byte hashes only: Merkle roots, trust commitments, and the digest of any
+// other record (group metadata, governance votes).
 type DataSubmitter interface {
 	SubmitDataL1(ctx context.Context, tx interface{}) (string, error)
+}
+
+// SubmitterFunc adapts a function to DataSubmitter, for tests and small adapters.
+type SubmitterFunc func(ctx context.Context, tx interface{}) (string, error)
+
+// SubmitDataL1 implements DataSubmitter.
+func (f SubmitterFunc) SubmitDataL1(ctx context.Context, tx interface{}) (string, error) {
+	return f(ctx, tx)
 }
 
 // RootProver exports the chain's evidence that a root is anchored.
@@ -56,6 +65,13 @@ func (a *BesuAnchor) SubmitDataL1(ctx context.Context, tx interface{}) (string, 
 		receipt, err = a.Client.AnchorCommitment(ctx, u.Commitment, u.Epoch)
 	case *DataL1TrustCommitmentUpdate:
 		receipt, err = a.Client.AnchorCommitment(ctx, u.Commitment, u.Epoch)
+	case GroupMetadataUpdate:
+		return a.attest(ctx, u.Type, u)
+	case GovernanceVoteAnchor:
+		return a.attest(ctx, u.Type, u)
+	case map[string]interface{}:
+		kind, _ := u["type"].(string)
+		return a.attest(ctx, kind, u)
 	default:
 		return "", fmt.Errorf("%w (%T)", ErrUnsupportedUpdate, tx)
 	}
@@ -177,6 +193,7 @@ func backfillOnce(ctx context.Context, prover RootProver, store RootStore) {
 //
 //	BESU_RPC_URLS             comma-separated JSON-RPC endpoints of Echo's validators
 //	BESU_ANCHOR_CONTRACT      address of the EchoAnchor contract
+//	BESU_IDENTITY_CONTRACT    address of the EchoIdentity contract (optional: identity records)
 //	IDENTITY_SERVICE_KEY_PEM  path to the gateway's secp256k1 signing key
 //
 // It returns (nil, nil) when BESU_RPC_URLS is unset: the chain is optional in development, and
@@ -199,7 +216,14 @@ func BesuAnchorFromEnv() (*BesuAnchor, error) {
 	if err != nil {
 		return nil, fmt.Errorf("IDENTITY_SERVICE_KEY_PEM: %w", err)
 	}
-	client, err := besu.New(besu.Config{RPCURLs: strings.Split(urls, ","), AnchorContract: common.HexToAddress(contract), Signer: key})
+	cfg := besu.Config{RPCURLs: strings.Split(urls, ","), AnchorContract: common.HexToAddress(contract), Signer: key}
+	if identity := strings.TrimSpace(os.Getenv("BESU_IDENTITY_CONTRACT")); identity != "" {
+		if !common.IsHexAddress(identity) {
+			return nil, fmt.Errorf("BESU_IDENTITY_CONTRACT %q is not an address", identity)
+		}
+		cfg.IdentityContract = common.HexToAddress(identity)
+	}
+	client, err := besu.New(cfg)
 	if err != nil {
 		return nil, err
 	}
