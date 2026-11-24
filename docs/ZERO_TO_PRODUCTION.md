@@ -117,6 +117,14 @@ Certificates are issued automatically by cert-manager via the `letsencrypt-prod`
 
 ## 4. Metagraph → local genesis → integrationnet → mainnet
 
+> **Superseded on 2026-11-17.** Echo runs its own Global L0 instead of joining Constellation's
+> networks ([`OWN_L0_PLAN.md`](OWN_L0_PLAN.md), option A). The current procedure is: keys with
+> [`KEY_CEREMONY.md`](KEY_CEREMONY.md), hosts with `deploy/terraform/hetzner` (`chain_enabled=true`),
+> then [`deploy/ansible/README.md`](../deploy/ansible/README.md). No DAG collateral, no seedlist
+> registration with Constellation, no `hydra remote-deploy`.
+> The rest of this section is kept unchanged as the record of the Constellation path (option B)
+> in case Echo ever needs it.
+
 > The generic mechanics live in `euclid-development-environment/README.md`
 > ("Deploying and Running the Metagraph from Genesis"). This section is the **Echo-specific** procedure.
 > Everything runs from inside the Euclid clone (`../euclid-development-environment`).
@@ -174,6 +182,11 @@ scripts/hydra remote-status
 ---
 
 ## 5. Wire the backend → the production metagraph
+
+> **Updated 2026-11-23.** On Echo's own network the chain addresses are fixed private addresses
+> and are already set in `deploy/k8s/base/configmap.yaml` (including `METAGRAPH_L0_URL`, which
+> switches on the anchor finality tracker). What remains per environment is the secret: the gateway
+> signing key from the key ceremony. The text below describes the superseded Constellation path.
 
 The gateway reads `CURRENCY_L1_URL`, `DATA_L1_URL`, `IDENTITY_L0_URL`, `IDENTITY_L1_URL` (see
 `pkg/config`). Locally these are localhost; in `deploy/k8s/base/configmap.yaml` they are `REPLACE_ME`.

@@ -1,0 +1,19 @@
+---
+# Checks the one thing node states do not show: that Global L0 is actually including each
+# metagraph's snapshots. A metagraph can be `Ready` on every node and still be cut off from Global
+# L0 (seen in rehearsal: its nodes built on a snapshot Global L0 had not accepted). Nothing it
+# anchors is final for outsiders while that lasts.
+#   ansible-playbook -i <inventory> playbooks/verify.yml
+- name: Metagraph snapshots are being included by Global L0
+  hosts: gl0[0]
+  gather_facts: false
+  vars:
+    max_behind: 5
+    metagraphs:
+      - { layer: metagraph-l0, name: ECHO }
+      - { layer: identity-l0, name: Identity }
+  tasks:
+    - name: Compare each metagraph's newest snapshot with the newest one Global L0 has included
+      ansible.builtin.include_tasks: tasks-inclusion.yml
+      loop: "{{ metagraphs }}"
+      loop_control: { loop_var: mg }

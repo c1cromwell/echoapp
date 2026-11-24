@@ -2,7 +2,8 @@
 	dev dev-stop dev-stop-all dev-resume dev-reset start-identity stop-identity \
 	dev-status dev-logs dev-restart dev-comply dev-comply-stop validate-phase1 metagraph-verify-skeleton metagraph-test \
 	testnet-up testnet-down release-check regression regression-quick regression-with-phase1 ios-preflight \
-	phase3-signals-proof echooprf-ios screen-catalog knowledge-graph
+	phase3-signals-proof echooprf-ios screen-catalog knowledge-graph \
+	sovereign-up sovereign-down sovereign-reset sovereign-status
 
 # Variables
 BINARY_NAME=echoapp
@@ -338,6 +339,26 @@ metagraph-test: ## WO-272/277: run validators + Identity L1 wiring tests (sbt + 
 
 chain-supply-check: ## Chain builds without Constellation: no hosted URLs in build path, vendored binaries match checksums
 	@EUCLID_DIR="$(EUCLID_DIR)" ./scripts/chain-supply-check.sh
+
+# Rehearsal of the production-shaped network (docs/OWN_L0_PLAN.md stage 2): three Global L0 nodes
+# and three metagraph hosts, every process started by the production launcher with enforced
+# seedlists and signer allowlists. Uses the same host ports as `make dev`; run one or the other.
+COMPOSE_SOVEREIGN := docker compose -f deploy/sovereign/stack/docker-compose.yml
+SOVEREIGN_ENV := ECHOAPP_ROOT=$(CURDIR) bash -c 'source ./scripts/identity/ensure-identity-service-key.sh && exec "$$@"' --
+
+sovereign-up: ## Start the production-shaped chain rehearsal (3 Global L0 + 3 metagraph hosts)
+	@cd metagraph && SBT_OPTS="-Xss8m -Xmx3g" sbt -batch currencyL0/assembly currencyL1/assembly dataL1/assembly identityL0/assembly identityL1/assembly
+	@$(SOVEREIGN_ENV) $(COMPOSE_SOVEREIGN) up -d
+	@echo "Started. Layers come up in order over about 5 minutes: make sovereign-status"
+
+sovereign-status: ## State of every node in the rehearsal
+	@./deploy/sovereign/stack/status.sh
+
+sovereign-down: ## Stop the rehearsal (keeps keys and chain data)
+	@IDENTITY_SERVICE_PUBLIC_KEY_HEX=x IDENTITY_SERVICE_DID=x $(COMPOSE_SOVEREIGN) down
+
+sovereign-reset: ## Stop the rehearsal and delete its keys and chain data
+	@IDENTITY_SERVICE_PUBLIC_KEY_HEX=x IDENTITY_SERVICE_DID=x $(COMPOSE_SOVEREIGN) down -v
 
 dev-stop: testnet-down ## Tear down backend stack (does not stop metagraph)
 	@echo "Backend stack down. Metagraph still running — use:"

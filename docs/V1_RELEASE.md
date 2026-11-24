@@ -67,7 +67,10 @@ Owner actions — none of these can be done from the codebase:
    `VIP_ALLOW_SANDBOX_STOREKIT=true` while in TestFlight / App Review, then `false`;
    `JWT_SIGNING_KEY`; `ECHO_WALLET_GENESIS_AUTO` off; `TRUSTED_PROXY_HOPS` matched to the load balancer.
 5. **Metagraph:** production genesis allocation (the local cluster uses the Euclid template's
-   30,000 tokens, not the 1B ECHO supply); an authorised-signer check on Data L1 before any public network.
+   30,000 tokens, not the 1B ECHO supply) — the key ceremony now writes the 1B genesis file
+   ([`KEY_CEREMONY.md`](KEY_CEREMONY.md)); it takes effect at the staging and production geneses.
+   The authorised-signer check on Data L1 is implemented (`DATA_AUTHORIZED_SIGNERS`) and the
+   production launcher refuses to start without it.
 6. **Manual pass on two devices** — [`E2E_TESTING.md`](E2E_TESTING.md) §5, plus: restore from phrase and
    relaunch, each report flow, retry of a failed message, account deletion, VIP purchase in sandbox.
 7. **Decide:** deployment target is iOS 26.0, which excludes most devices in use.

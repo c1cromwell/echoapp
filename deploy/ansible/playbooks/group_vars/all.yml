@@ -1,0 +1,82 @@
+# Settings shared by every Echo chain host. Per-network facts (node ids, seedlists, genesis files)
+# live in deploy/sovereign/networks/<echo_network>/ and come from the key ceremony
+# (docs/KEY_CEREMONY.md). Secrets never live in this repository: see echo_secrets_dir.
+
+# Values here outrank the inventory, so anything an inventory or -e should decide is NOT given a
+# default in this file:
+#   echo_network          set by the inventory terraform renders (staging | prod)
+#   echo_secrets_dir      -e echo_secrets_dir=/path : directory on the operator's machine holding
+#                         <key name>.p12 for every key and passwords.yml. Outside the repository.
+#   echo_manage_firewall  default true (role); false only where ufw cannot run
+
+repo_root: "{{ playbook_dir }}/../../.."
+echo_network_dir: "{{ repo_root }}/deploy/sovereign/networks/{{ echo_network }}"
+
+# Tessellation binaries, verified against metagraph/vendor/SHA256SUMS-* by metagraph/vendor/fetch.sh.
+echo_tessellation_dir: "{{ repo_root }}/metagraph/vendor/tessellation/v4.0.7"
+# Echo's metagraph jars, from `sbt <module>/assembly`.
+echo_modules_dir: "{{ repo_root }}/metagraph/modules"
+
+echo_user: echo
+echo_opt: /opt/echo
+echo_etc: /etc/echo
+echo_var: /var/lib/echo
+
+# Chain ports are reachable only from this range (the private network), enforced by the host firewall.
+echo_chain_cidr: 10.0.0.0/16
+
+# The gateway's signing key id (128 hex), from the network manifest. Data L1 and Identity L1 accept
+# updates signed by this key only.
+echo_gateway_signer: "{{ manifest.gateway_signer }}"
+echo_identity_service_did: "{{ manifest.identity_service_did }}"
+
+# JVM heap per layer is `heap` below. A test on small machines can cap every layer at once with
+# -e echo_heap_max=640m -e echo_heap_min=128m.
+
+# kind: gl0 = Global L0, l0 = a metagraph's L0, l1 = a metagraph's L1 (its L0 is `l0`).
+# The public port is `port`; p2p and cli are port+1 and port+2.
+echo_layers:
+  global-l0:
+    kind: gl0
+    group: gl0
+    port: 9000
+    jar: "{{ echo_tessellation_dir }}/cl-node.jar"
+    heap: 4g
+    genesis: global-l0-genesis.csv
+  metagraph-l0:
+    kind: l0
+    group: metagraph
+    port: 9100
+    jar: "{{ echo_modules_dir }}/l0/target/scala-2.13/echo-currency-l0-assembly-0.1.0-SNAPSHOT.jar"
+    heap: 2g
+    genesis: echo-genesis.csv
+    owner: echo-owner
+  currency-l1:
+    kind: l1
+    group: metagraph
+    port: 9200
+    l0: metagraph-l0
+    jar: "{{ echo_modules_dir }}/l1/target/scala-2.13/echo-currency-l1-assembly-0.1.0-SNAPSHOT.jar"
+    heap: 1g
+  data-l1:
+    kind: l1
+    group: metagraph
+    port: 9300
+    l0: metagraph-l0
+    jar: "{{ echo_modules_dir }}/data_l1/target/scala-2.13/echo-data-l1-assembly-0.1.0-SNAPSHOT.jar"
+    heap: 1g
+  identity-l0:
+    kind: l0
+    group: metagraph
+    port: 9600
+    jar: "{{ echo_modules_dir }}/identity_l0/target/scala-2.13/echo-identity-l0-assembly-0.1.0-SNAPSHOT.jar"
+    heap: 2g
+    genesis: identity-genesis.csv
+    owner: identity-owner
+  identity-l1:
+    kind: l1
+    group: metagraph
+    port: 9500
+    l0: identity-l0
+    jar: "{{ echo_modules_dir }}/identity_l1/target/scala-2.13/echo-identity-l1-assembly-0.1.0-SNAPSHOT.jar"
+    heap: 1g

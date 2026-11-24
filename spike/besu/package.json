@@ -1,0 +1,6 @@
+{
+  "name": "echo-besu-spike",
+  "private": true,
+  "description": "Compiler for the spike contract only",
+  "devDependencies": { "solc": "0.8.28" }
+}

@@ -1,0 +1,65 @@
+---
+# Brings one layer up across its hosts: the lead first, then each validator in turn (a validator
+# only learns the peers that exist when it joins, so they must not join together).
+# vars: layer, and layer_group (its inventory group: gl0 or metagraph). Safe to re-run: a node that is already Ready is left alone.
+- name: "Install and start the lead"
+  hosts: "{{ layer_group }}[0]"
+  become: true
+  tasks:
+    - name: Prepare host
+      ansible.builtin.import_role: { name: echo_node }
+    - name: Metagraph id recorded by an earlier run, if any
+      ansible.builtin.set_fact:
+        metagraph_id: "{{ lookup('ansible.builtin.file', echo_network_dir + '/' + (echo_layers[layer].l0 | default(layer)) + '.metagraph-id', errors='ignore') | default('', true) }}"
+      when: echo_layers[layer].kind != 'gl0'
+    - name: An L1 needs its metagraph's id
+      ansible.builtin.assert:
+        that: metagraph_id | length > 0
+        fail_msg: "No metagraph id for {{ echo_layers[layer].l0 | default('') }}; bring that layer up first."
+      when: echo_layers[layer].kind == 'l1'
+    - name: Install layer
+      ansible.builtin.include_role: { name: echo_node, tasks_from: layer }
+    - name: Start
+      ansible.builtin.include_tasks: tasks-start.yml
+
+    # A new metagraph's id exists only after its genesis. Record it in the repository so the
+    # validators, the L1 layers and the gateway configuration can use it.
+    - name: Read the metagraph id
+      ansible.builtin.slurp:
+        src: "{{ echo_var }}/{{ layer }}/genesis.address"
+      register: address
+      when: echo_layers[layer].kind == 'l0'
+    - name: Record the metagraph id
+      ansible.builtin.copy:
+        content: "{{ address.content | b64decode | trim }}\n"
+        dest: "{{ echo_network_dir }}/{{ layer }}.metagraph-id"
+        mode: "0644"
+      delegate_to: localhost
+      become: false
+      when: echo_layers[layer].kind == 'l0'
+
+    # The owner key signs the genesis and is not needed by a running node.
+    - name: Remove the owner key from the host
+      ansible.builtin.file:
+        path: "{{ echo_etc }}/keys/{{ echo_layers[layer].owner }}.p12"
+        state: absent
+      when: echo_layers[layer].owner is defined
+    - name: Rewrite the environment without the owner key
+      ansible.builtin.include_role: { name: echo_node, tasks_from: layer }
+      when: echo_layers[layer].owner is defined
+
+- name: "Install and start the validators, one at a time"
+  hosts: "{{ layer_group }}[1:]"
+  become: true
+  serial: 1
+  tasks:
+    - name: Prepare host
+      ansible.builtin.import_role: { name: echo_node }
+    - name: Metagraph id
+      ansible.builtin.set_fact:
+        metagraph_id: "{{ lookup('ansible.builtin.file', echo_network_dir + '/' + (echo_layers[layer].l0 | default(layer)) + '.metagraph-id') }}"
+      when: echo_layers[layer].kind != 'gl0'
+    - name: Install layer
+      ansible.builtin.include_role: { name: echo_node, tasks_from: layer }
+    - name: Start
+      ansible.builtin.include_tasks: tasks-start.yml

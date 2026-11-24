@@ -4,8 +4,14 @@
 # These nodes are provisioned here but CONFIGURED by hydra + Ansible (`hydra remote-deploy` /
 # `remote-start`), which installs Java/deps and ships the metagraph JARs — so no cloud-init here.
 # Disabled by default so backend-only applies never create them; enable with -var metagraph_enabled=true.
-# The gl0 (Global L0) node is NOT provisioned here — Constellation recommends running it via `nodectl`
-# (see docs/ZERO_TO_PRODUCTION.md §4). Populate euclid.json deploy.network.gl0_node before remote-start.
+#
+# Two modes:
+#   chain_enabled = true  (Echo's own network, the chosen path — docs/OWN_L0_PLAN.md): the hosts
+#     join the private chain network, no chain port is public, and deploy/ansible configures them.
+#     The Global L0 hosts are in gl0-nodes.tf.
+#   chain_enabled = false (SUPERSEDED: Constellation's integrationnet / mainnet, kept so that path
+#     stays documented): ports 9100-9302 are public, hydra remote-deploy configures the hosts, and
+#     the Global L0 is Constellation's (docs/ZERO_TO_PRODUCTION.md §4).
 
 variable "metagraph_enabled" {
   description = "Provision the Constellation metagraph node VMs. Keep false for backend-only environments."
@@ -49,7 +55,7 @@ locals {
 
 # Metagraph nodes need public reachability for L0/L1 public + p2p (remote base ports 9100-9302).
 resource "hcloud_firewall" "metagraph" {
-  count = var.metagraph_enabled ? 1 : 0
+  count = var.metagraph_enabled && !var.chain_enabled ? 1 : 0
   name  = "${local.name_prefix}-mg-fw"
 
   rule {
@@ -75,7 +81,17 @@ resource "hcloud_server" "metagraph" {
   image        = "ubuntu-24.04"
   location     = var.location
   ssh_keys     = [hcloud_ssh_key.default.id]
-  firewall_ids = [hcloud_firewall.metagraph[0].id]
+  firewall_ids = [var.chain_enabled ? hcloud_firewall.chain[0].id : hcloud_firewall.metagraph[0].id]
+
+  dynamic "network" {
+    for_each = var.chain_enabled ? [1] : []
+    content {
+      network_id = hcloud_network.main.id
+      ip         = local.metagraph_private_ips[count.index]
+    }
+  }
+
+  depends_on = [hcloud_network_subnet.chain]
 
   labels = {
     environment = var.environment
@@ -87,7 +103,7 @@ resource "hcloud_server" "metagraph" {
 # Render the Ansible inventory hydra remote-deploy/remote-start consume, from the live node IPs.
 # Monitoring is co-located on node-1 by default (override the template for a dedicated host).
 resource "local_file" "ansible_inventory" {
-  count           = var.metagraph_enabled ? 1 : 0
+  count           = var.metagraph_enabled && !var.chain_enabled ? 1 : 0
   filename        = local.metagraph_inventory_path
   file_permission = "0644"
   content = templatefile("${path.module}/hosts.ansible.yml.tftpl", {
@@ -103,6 +119,6 @@ output "metagraph_node_ips" {
 }
 
 output "metagraph_ansible_inventory" {
-  value       = var.metagraph_enabled ? local.metagraph_inventory_path : ""
+  value       = var.metagraph_enabled && !var.chain_enabled ? local.metagraph_inventory_path : ""
   description = "Copy this into <euclid clone>/infra/ansible/remote/hosts.ansible.yml"
 }

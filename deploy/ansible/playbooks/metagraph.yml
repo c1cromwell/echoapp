@@ -1,0 +1,15 @@
+---
+# Brings up Echo's two metagraphs on the metagraph hosts, attached to Echo's Global L0:
+# the ECHO metagraph (Metagraph L0, Currency L1, Data L1) and the Identity metagraph (L0, L1).
+# Requires a Ready Global L0 (global-l0-genesis.yml). First run performs each metagraph's genesis
+# and writes its id to deploy/sovereign/networks/<network>/<layer>.metagraph-id — commit those.
+- ansible.builtin.import_playbook: layer.yml
+  vars: { layer: metagraph-l0, layer_group: metagraph }
+- ansible.builtin.import_playbook: layer.yml
+  vars: { layer: currency-l1, layer_group: metagraph }
+- ansible.builtin.import_playbook: layer.yml
+  vars: { layer: data-l1, layer_group: metagraph }
+- ansible.builtin.import_playbook: layer.yml
+  vars: { layer: identity-l0, layer_group: metagraph }
+- ansible.builtin.import_playbook: layer.yml
+  vars: { layer: identity-l1, layer_group: metagraph }

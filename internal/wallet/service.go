@@ -3,6 +3,8 @@ package wallet
 import (
 	"context"
 	"time"
+
+	"github.com/thechadcromwell/echoapp/internal/metagraph"
 )
 
 // MetagraphQuerier abstracts metagraph on-chain queries and transaction submission.
@@ -256,6 +258,16 @@ func (s *WalletService) computeVestingState(lock TokenLockPos, did string) *Vest
 		CliffDate:        cliffDate,
 		CliffCompleted:   cliffCompleted,
 		VestingPercent:   vestingPercent,
-		ExplorerURL:      "https://dagexplorer.io/address/" + did,
+		ExplorerURL:      explorerURL(did),
 	}
+}
+
+// explorerURL links to Constellation's public explorer, which only knows
+// Constellation's network. Echo's own chain has no public explorer yet, so the
+// link is left empty there and clients hide it.
+func explorerURL(did string) string {
+	if network, err := metagraph.ChainNetworkFromEnv(); err != nil || network != metagraph.ChainNetworkConstellation {
+		return ""
+	}
+	return "https://dagexplorer.io/address/" + did
 }

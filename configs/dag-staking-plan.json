@@ -1,5 +1,6 @@
 {
   "dag_staking_plan": {
+    "status": "SUPERSEDED 2026-11-17: Echo runs its own Global L0 (docs/OWN_L0_PLAN.md, option A), which needs no DAG collateral. Kept as the record of what joining Constellation's mainnet (option B) would require.",
     "requirement": "750,000 DAG total (250,000 per L0 hybrid node × 3 nodes)",
     "purpose": "Mainnet Hypergraph L0 validator staking for Echo metagraph",
 

@@ -1,0 +1,27 @@
+---
+# vars: mg = { layer, name }, max_behind
+- name: "{{ mg.name }} | lag behind Global L0"
+  vars:
+    metagraph_id: "{{ lookup('ansible.builtin.file', echo_network_dir + '/' + mg.layer + '.metagraph-id') | trim }}"
+    l0_host: "{{ hostvars[groups['metagraph'][0]].chain_ip }}"
+  block:
+    - name: "{{ mg.name }} | read both sides until the lag is small (up to 5 minutes)"
+      ansible.builtin.shell: |
+        set -eu
+        own=$(curl -fsS -m 5 http://{{ l0_host }}:{{ echo_layers[mg.layer].port }}/snapshots/latest/ordinal | tr -dc 0-9)
+        included=$(curl -fsS -m 10 -H 'Accept: application/json' http://{{ chain_ip }}:{{ echo_layers['global-l0'].port }}/global-snapshots/latest/combined \
+          | python3 -c "import sys, json; print(json.load(sys.stdin)[1]['lastCurrencySnapshots']['{{ metagraph_id }}']['Right'][0]['value']['ordinal'])")
+        echo "own=$own included=$included behind=$((own - included))"
+        [ $((own - included)) -le {{ max_behind }} ]
+      args: { executable: /bin/bash }
+      register: lag
+      changed_when: false
+      until: lag.rc == 0
+      retries: 10
+      delay: 30
+  rescue:
+    - name: "{{ mg.name }} | not being included"
+      ansible.builtin.fail:
+        msg: >-
+          {{ mg.name }} metagraph: {{ lag.stdout | default('no reading') }}. Global L0 is not including its
+          snapshots. Do not send traffic. See docs/OWN_L0_PLAN.md §12.

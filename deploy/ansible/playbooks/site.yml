@@ -1,0 +1,5 @@
+---
+# The whole chain, in order, then a check that Global L0 is including both metagraphs. Safe to re-run.
+- ansible.builtin.import_playbook: global-l0-genesis.yml
+- ansible.builtin.import_playbook: metagraph.yml
+- ansible.builtin.import_playbook: verify.yml

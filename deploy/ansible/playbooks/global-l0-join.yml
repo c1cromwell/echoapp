@@ -1,0 +1,22 @@
+---
+# Starts (or restarts) one Global L0 validator and waits until it has rejoined.
+#   ansible-playbook -i <inventory> playbooks/global-l0-join.yml -l gl0-2 -e echo_secrets_dir=...
+# For a NEW node: add its id to the manifest and the seedlists first, re-run global-l0-genesis.yml
+# so every node receives the new seedlist, then restart the nodes one at a time with this playbook.
+- name: Join a Global L0 validator
+  hosts: gl0
+  become: true
+  serial: 1
+  vars: { layer: global-l0 }
+  tasks:
+    - name: Prepare host
+      ansible.builtin.import_role: { name: echo_node }
+    - name: Install layer
+      ansible.builtin.include_role: { name: echo_node, tasks_from: layer }
+    - name: Restart so the current seedlist and settings are in force
+      ansible.builtin.systemd:
+        name: echo-node@global-l0
+        state: restarted
+        enabled: true
+    - name: Wait until Ready
+      ansible.builtin.include_tasks: tasks-start.yml

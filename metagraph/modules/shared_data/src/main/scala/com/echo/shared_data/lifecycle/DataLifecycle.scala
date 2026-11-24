@@ -15,6 +15,33 @@ import io.constellationnetwork.security.signature.Signed
 
 object DataLifecycle {
 
+  /**
+   * Public keys (Tessellation peer-id hex, 128 chars) allowed to sign Data L1
+   * updates, from the comma-separated `DATA_AUTHORIZED_SIGNERS`. Unset or empty
+   * means no restriction, which is only acceptable on a local cluster: without
+   * it, anyone who can reach a Data L1 port can anchor roots. The production
+   * launcher (deploy/sovereign/node/echo-node.sh) refuses to start Metagraph L0
+   * unless it is set.
+   */
+  def parseAuthorizedSigners(raw: Option[String]): Option[Set[String]] =
+    raw.map(_.split(',').map(_.trim.toLowerCase).filter(_.nonEmpty).toSet).filter(_.nonEmpty)
+
+  lazy val authorizedSigners: Option[Set[String]] =
+    parseAuthorizedSigners(sys.env.get("DATA_AUTHORIZED_SIGNERS"))
+
+  /** Every proof on the update must come from an authorised key. */
+  def checkSigners(proofIds: List[String], allowed: Option[Set[String]]): Either[String, Unit] =
+    allowed match {
+      case None => Right(())
+      case Some(keys) =>
+        proofIds.find(id => !keys.contains(id.toLowerCase)) match {
+          case None if proofIds.nonEmpty => Right(())
+          case None                      => Left("Data L1 update carries no signature proof")
+          case Some(id) =>
+            Left(s"Data L1 update signed by a key that is not an authorised signer (${id.take(16)}…)")
+        }
+    }
+
   def validateUpdate[F[_]: Async](
     update: DataLayerUpdate
   ): F[DataApplicationValidationErrorOr[Unit]] =
@@ -37,11 +64,20 @@ object DataLifecycle {
     state:   DataState[DataLayerOnChainState, DataLayerCalculatedState],
     updates: NonEmptyList[Signed[DataLayerUpdate]]
   ): F[DataApplicationValidationErrorOr[Unit]] =
+    validateSigned[F](updates, authorizedSigners)
+
+  def validateSigned[F[_]: Async](
+    updates: NonEmptyList[Signed[DataLayerUpdate]],
+    allowed: Option[Set[String]]
+  ): F[DataApplicationValidationErrorOr[Unit]] =
     updates.traverse { signed =>
-      Async[F].delay(dispatch(signed.value) match {
-        case Right(()) => DataErrors.valid
-        case Left(msg) => DataErrors.invalid(msg)
-      })
+      Async[F].delay {
+        val proofIds = signed.proofs.toNonEmptyList.toList.map(_.id.hex.value)
+        checkSigners(proofIds, allowed).flatMap(_ => dispatch(signed.value)) match {
+          case Right(()) => DataErrors.valid
+          case Left(msg) => DataErrors.invalid(msg)
+        }
+      }
     }.map(_.reduce)
 
   def combine[F[_]: Async](

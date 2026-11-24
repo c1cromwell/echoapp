@@ -1,0 +1,56 @@
+# Spike: four Besu validators, QBFT consensus, one machine. Run ./setup.sh first.
+# JSON-RPC of nodes 1-4 is published on localhost:8545-8548.
+name: echo-besu-spike
+x-node: &node
+  image: ${BESU_IMAGE:-hyperledger/besu:26.11.2}
+  restart: unless-stopped
+  user: root
+services:
+  node1:
+    <<: *node
+    container_name: echo-besu-1
+    command: ["--data-path=/data", "--genesis-file=/config/genesis.json", "--node-private-key-file=/config/key", "--static-nodes-file=/config/static-nodes.json", "--discovery-enabled=false", "--min-gas-price=0", "--rpc-http-enabled", "--rpc-http-host=0.0.0.0", "--rpc-http-api=ETH,NET,WEB3,QBFT,DEBUG,ADMIN", "--host-allowlist=*", "--p2p-host=172.63.0.11"]
+    volumes:
+      - ./.network/genesis.json:/config/genesis.json:ro
+      - ./.network/static-nodes.json:/config/static-nodes.json:ro
+      - ./.network/node1/key:/config/key:ro
+      - data1:/data
+    ports: ["8545:8545"]
+    networks: { besu: { ipv4_address: 172.63.0.11 } }
+  node2:
+    <<: *node
+    container_name: echo-besu-2
+    command: ["--data-path=/data", "--genesis-file=/config/genesis.json", "--node-private-key-file=/config/key", "--static-nodes-file=/config/static-nodes.json", "--discovery-enabled=false", "--min-gas-price=0", "--rpc-http-enabled", "--rpc-http-host=0.0.0.0", "--rpc-http-api=ETH,NET,WEB3,QBFT,DEBUG,ADMIN", "--host-allowlist=*", "--p2p-host=172.63.0.12"]
+    volumes:
+      - ./.network/genesis.json:/config/genesis.json:ro
+      - ./.network/static-nodes.json:/config/static-nodes.json:ro
+      - ./.network/node2/key:/config/key:ro
+      - data2:/data
+    ports: ["8546:8545"]
+    networks: { besu: { ipv4_address: 172.63.0.12 } }
+  node3:
+    <<: *node
+    container_name: echo-besu-3
+    command: ["--data-path=/data", "--genesis-file=/config/genesis.json", "--node-private-key-file=/config/key", "--static-nodes-file=/config/static-nodes.json", "--discovery-enabled=false", "--min-gas-price=0", "--rpc-http-enabled", "--rpc-http-host=0.0.0.0", "--rpc-http-api=ETH,NET,WEB3,QBFT,DEBUG,ADMIN", "--host-allowlist=*", "--p2p-host=172.63.0.13"]
+    volumes:
+      - ./.network/genesis.json:/config/genesis.json:ro
+      - ./.network/static-nodes.json:/config/static-nodes.json:ro
+      - ./.network/node3/key:/config/key:ro
+      - data3:/data
+    ports: ["8547:8545"]
+    networks: { besu: { ipv4_address: 172.63.0.13 } }
+  node4:
+    <<: *node
+    container_name: echo-besu-4
+    command: ["--data-path=/data", "--genesis-file=/config/genesis.json", "--node-private-key-file=/config/key", "--static-nodes-file=/config/static-nodes.json", "--discovery-enabled=false", "--min-gas-price=0", "--rpc-http-enabled", "--rpc-http-host=0.0.0.0", "--rpc-http-api=ETH,NET,WEB3,QBFT,DEBUG,ADMIN", "--host-allowlist=*", "--p2p-host=172.63.0.14"]
+    volumes:
+      - ./.network/genesis.json:/config/genesis.json:ro
+      - ./.network/static-nodes.json:/config/static-nodes.json:ro
+      - ./.network/node4/key:/config/key:ro
+      - data4:/data
+    ports: ["8548:8545"]
+    networks: { besu: { ipv4_address: 172.63.0.14 } }
+volumes: { data1: {}, data2: {}, data3: {}, data4: {} }
+networks:
+  besu:
+    ipam: { config: [{ subnet: 172.63.0.0/24 }] }

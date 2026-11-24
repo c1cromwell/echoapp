@@ -14,6 +14,7 @@ Quick entry point for Cursor agents working in this repo. Read this first, then 
 | Local cluster / validate / release check | MCP **`echo-local-dev`** (see `.cursor/mcp.json`) |
 | **v1.0 release scope & submission gates** | [`docs/V1_RELEASE.md`](docs/V1_RELEASE.md) |
 | Sept 1 Messaging go-live | [`docs/GO_LIVE_SEPT_1_2026.md`](docs/GO_LIVE_SEPT_1_2026.md) |
+| Chain: own network, moving Tessellation → Besu | [`docs/BESU_MIGRATION_PLAN.md`](docs/BESU_MIGRATION_PLAN.md) (current) · [`docs/OWN_L0_PLAN.md`](docs/OWN_L0_PLAN.md) (history, findings) |
 | Signal vs Echo parity (post-launch waves) | [`docs/SIGNAL_ECHO_PARITY.md`](docs/SIGNAL_ECHO_PARITY.md) |
 | Telegram vs Echo parity (post-launch waves) | [`docs/TELEGRAM_ECHO_PARITY.md`](docs/TELEGRAM_ECHO_PARITY.md) |
 | TestFlight / Phase 1 go-no-go | Skill: **`echo-phase1-validate`** + [`docs/E2E_TESTING.md`](docs/E2E_TESTING.md) |

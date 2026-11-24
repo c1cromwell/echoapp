@@ -1,0 +1,113 @@
+---
+# Host preparation shared by every layer: Java, the service account, the launcher, the unit, the
+# seedlists and the host firewall. Idempotent; never starts or stops a node.
+- name: Required settings
+  ansible.builtin.assert:
+    that: [echo_network is defined, echo_secrets_dir is defined]
+    fail_msg: "Set echo_network in the inventory and pass -e echo_secrets_dir=/path/to/secrets"
+
+- name: Load the network manifest and key passwords
+  ansible.builtin.include_vars: "{{ item }}"
+  loop:
+    - "{{ echo_network_dir }}/manifest.yml"
+    - "{{ echo_secrets_dir }}/passwords.yml"
+  no_log: true
+
+- name: This host's key must match the id recorded at the ceremony
+  ansible.builtin.assert:
+    that: manifest.nodes[inventory_hostname] is defined
+    fail_msg: "{{ inventory_hostname }} has no id in {{ echo_network_dir }}/manifest.yml"
+
+- name: Install Java and tools
+  ansible.builtin.apt:
+    name: [openjdk-21-jre-headless, curl, ufw]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Service account
+  ansible.builtin.user:
+    name: "{{ echo_user }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ echo_var }}"
+    create_home: false
+
+- name: Directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ echo_user }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ echo_opt }}/bin", mode: "0755" }
+    - { path: "{{ echo_opt }}/jars", mode: "0755" }
+    - { path: "{{ echo_opt }}/tools", mode: "0755" }
+    - { path: "{{ echo_etc }}", mode: "0750" }
+    - { path: "{{ echo_etc }}/keys", mode: "0750" }
+    - { path: "{{ echo_var }}", mode: "0750", owner: "{{ echo_user }}" }
+
+- name: Launcher
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/deploy/sovereign/node/echo-node.sh"
+    dest: "{{ echo_opt }}/bin/echo-node.sh"
+    mode: "0755"
+
+- name: Snapshot helper
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/deploy/sovereign/node/latest-snapshot.sh"
+    dest: "{{ echo_opt }}/bin/latest-snapshot.sh"
+    mode: "0755"
+
+- name: Wallet tool
+  ansible.builtin.copy:
+    src: "{{ echo_tessellation_dir }}/cl-wallet.jar"
+    dest: "{{ echo_opt }}/tools/cl-wallet.jar"
+    mode: "0644"
+
+- name: Seedlists
+  ansible.builtin.copy:
+    src: "{{ echo_network_dir }}/{{ item }}"
+    dest: "{{ echo_etc }}/{{ item }}"
+    mode: "0644"
+  loop: [gl0.seedlist, gl0.priority, mg.seedlist]
+
+- name: Node key
+  ansible.builtin.copy:
+    src: "{{ echo_secrets_dir }}/{{ inventory_hostname }}.p12"
+    dest: "{{ echo_etc }}/keys/{{ inventory_hostname }}.p12"
+    group: "{{ echo_user }}"
+    mode: "0640"
+
+- name: Log configuration
+  ansible.builtin.template:
+    src: logback.xml.j2
+    dest: "{{ echo_etc }}/logback.xml"
+    mode: "0644"
+
+- name: systemd unit
+  ansible.builtin.template:
+    src: echo-node@.service.j2
+    dest: /etc/systemd/system/echo-node@.service
+    mode: "0644"
+  register: unit
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: unit.changed
+
+- name: Host firewall
+  when: echo_manage_firewall | default(true) | bool
+  block:
+    - name: Allow SSH
+      community.general.ufw: { rule: allow, port: "22", proto: tcp }
+    - name: Allow chain ports from the private network only
+      community.general.ufw:
+        rule: allow
+        src: "{{ echo_chain_cidr }}"
+        port: "9000:9699"
+        proto: tcp
+    - name: Deny everything else inbound
+      community.general.ufw: { state: enabled, policy: deny, direction: incoming }

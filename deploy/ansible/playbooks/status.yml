@@ -1,0 +1,18 @@
+---
+# Prints the state of every layer on every host.
+- name: Status
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Ask each layer
+      ansible.builtin.uri:
+        url: "http://{{ chain_ip }}:{{ item.value.port }}/node/info"
+        return_content: true
+        timeout: 5
+      register: info
+      failed_when: false
+      loop: "{{ echo_layers | dict2items | selectattr('value.group', 'in', group_names) }}"
+      loop_control: { label: "{{ item.key }}" }
+    - name: Report
+      ansible.builtin.debug:
+        msg: "{{ info.results | map(attribute='item.key') | zip(info.results | map(attribute='json.state', default='down')) | map('join', ': ') | list }}"

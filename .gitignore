@@ -129,3 +129,4 @@ tools/echo-local-dev-mcp/**/__pycache__/
 
 # Vendored Tessellation binaries (fetched/verified by metagraph/vendor/fetch.sh; checksums are committed)
 metagraph/vendor/tessellation/
+deploy/sovereign/networks/local/
