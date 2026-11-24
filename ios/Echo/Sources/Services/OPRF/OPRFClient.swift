@@ -14,7 +14,8 @@ struct OPRFBlindResult: Sendable {
     let blinded: [String]
 }
 
-/// In-memory mock for unit tests — returns deterministic keys from phone hash (not production safe).
+/// In-memory mock for unit tests ONLY. Its "blinded" values contain the phone numbers in the
+/// clear. `OPRFClientFactory.makeDefault()` never returns it.
 final class MockOPRFClient: OPRFClient, @unchecked Sendable {
     private struct Session { let phones: [String] }
 

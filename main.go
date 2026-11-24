@@ -156,18 +156,9 @@ func (s *Server) Start() error {
 			log.Println("Identity records are NOT anchored: BESU_IDENTITY_CONTRACT is not set")
 		}
 	}
+	// The token is on hold and the chain it once ran on is gone: no currency client is created.
+	// Code that takes one treats nil as "no chain".
 	var currencyL1 *metagraph.MetagraphClient
-	if c1 := os.Getenv("CURRENCY_L1_URL"); c1 != "" {
-		cfg := metagraph.MetagraphConfig{
-			CurrencyL1URL: c1,
-			// Delegated stakes, their last-reference and the validator set live
-			// on the Global L0, not the Currency L1.
-			L0URL:   os.Getenv("GLOBAL_L0_URL"),
-			Timeout: 30 * time.Second,
-		}
-		currencyL1 = metagraph.NewMetagraphClient(cfg)
-		log.Println("Currency L1 submissions enabled (CURRENCY_L1_URL)")
-	}
 
 	credCfg := credentials.LoadConfig()
 	if chainAnchor != nil && chainAnchor.HasIdentity() {
@@ -430,6 +421,11 @@ func (s *Server) Start() error {
 		router.Anchoring = anchoring
 		go anchoring.Run(context.Background())
 		log.Println("Message integrity anchoring enabled (WO-15)")
+	}
+	if router.DataL1 == nil {
+		// With no chain nothing drains the commitment batch, so it would only grow, holding a
+		// sender for every message since start. Do not collect it.
+		router.WSHub.SetCommitmentBatch(nil)
 	}
 	// Completes any root whose chain proof could not be taken when it was anchored.
 	if chainAnchor != nil {

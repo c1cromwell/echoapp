@@ -187,7 +187,7 @@ public struct DriversLicenseEnrollmentView: View {
             Image(systemName: "gift.fill")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Color.Echo.primaryContainer)
-            Text("Any successful path rewards you with **100 ECHO** and Tier 4 Verified status.")
+            Text("Any successful path gives you Tier 4 Verified status.")
                 .font(.system(size: 12))
                 .foregroundStyle(Color.Echo.onSurfaceVariant)
                 .lineSpacing(2)

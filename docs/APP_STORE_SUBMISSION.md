@@ -28,7 +28,7 @@ Use this as the **release ticket checklist**. Copy unchecked P0 rows into work o
 | P0-1 | VIP subscribe goes through StoreKit, not a free `vip-verify` | ✅ | iOS | `com.echo.app.vip.monthly` in `VIPSubscriptionView.swift`. Create the same auto-renewable product in App Store Connect |
 | P0-2 | Ensure no other paid digital goods bypass IAP | ⬜ | iOS | VIP themes/rate limits must not be purchasable off-store |
 | P0-3 | Keep `ECHO_IN_CHAT_PAYMENTS` **off** in Release schemes | ⬜ | iOS | `WalletTransferAvailability` — real P2P pay is WO-299 |
-| P0-4 | Rewards ships in v1 as earned rewards / staking, with no “buy ECHO” or on-ramp copy | ✅ | iOS/Product | Rewards tab stays. VIP is the only StoreKit product |
+| P0-4 | Rewards ships in v1 as **points** (a score). No token, wallet, balance or staking in the app | ✅ | iOS/Product | The ECHO token is on hold (2026-11-24). Rewards tab stays, in points. VIP is the only StoreKit product and adds nothing to points |
 
 ### Privacy manifests & declarations
 
@@ -82,8 +82,8 @@ Use this as the **release ticket checklist**. Copy unchecked P0 rows into work o
 
 | # | Item | Status | Owner | Notes |
 |---|------|--------|-------|-------|
-| P1-5 | App Review notes: wallet = rewards/staking, not IAP crypto purchase | ⬜ | Release | Guidelines 3.1.5 / 4.7 |
-| P1-6 | Disable dev genesis credit in production (`ECHO_WALLET_GENESIS_AUTO`) | ⬜ | Backend | TestFlight/prod env |
+| P1-5 | App Review notes: the app has no cryptocurrency, wallet or token. Rewards are points with no value; nothing is offered for completing tasks beyond a score | ⬜ | Release | Guideline 3.1.5 no longer applies while the token is on hold. Do not describe points as a currency |
+| P1-6 | Dev genesis credit cannot run in production | ✅ | Backend | Now needs both `ECHO_TOKEN_ENABLED=true` and `ECHO_WALLET_GENESIS_AUTO=1`. It used to run on any server not marked `ENVIRONMENT=production` |
 | P1-7 | Bluetooth background modes: justify mesh or remove from v1 build | ⬜ | iOS/Product | `EchoMessaging-Info.plist` UIBackgroundModes |
 
 ---

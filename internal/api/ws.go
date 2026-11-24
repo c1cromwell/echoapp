@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"github.com/thechadcromwell/echoapp/internal/features"
 	"log"
 	"net/http"
 	"strings"
@@ -304,11 +305,19 @@ func (h *Hub) PublishConfirmation(to string, confirmation metagraph.AnchorConfir
 	if err != nil {
 		return false
 	}
-	return h.PublishSignal(to, WSMessage{
-		Type:    "confirmation",
-		To:      to,
-		Payload: payload,
+	// Live only. A confirmation names a message id; queued for an offline sender it would be a
+	// stored record tying that sender to that message. A sender who is offline simply does not
+	// get the notice; the proof stays retrievable by message id.
+	data, err := json.Marshal(WSMessage{
+		Type:      "confirmation",
+		To:        to,
+		Payload:   payload,
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	})
+	if err != nil {
+		return false
+	}
+	return h.SendToUser(to, data)
 }
 
 // It fills Timestamp when empty. Returns false if `to` is empty or offline.
@@ -347,18 +356,23 @@ func (h *Hub) deliverOrQueue(recipient string, data []byte, senderID, conversati
 
 func (h *Hub) enqueueOffline(recipient string, data []byte, senderID, conversationID string) {
 	if h.durableQueue != nil {
+		// The queue needs to know one thing: whose message this is. Who sent it and which
+		// conversation it belongs to are not recorded beside it (see features.RetainMessageMetadata).
+		if !features.RetainMessageMetadata() {
+			senderID, conversationID = "", ""
+		}
 		_ = h.durableQueue.Enqueue(context.Background(), &database.QueuedMessage{
 			MessageID:      uuid.New().String(),
 			ConversationID: conversationID,
 			SenderDID:      senderID,
 			RecipientDID:   recipient,
 			Payload:        append([]byte(nil), data...),
-			ExpiresAt:      time.Now().Add(wsOfflineRetention),
+			ExpiresAt:      time.Now().Add(features.OfflineRetention()),
 		})
 		return
 	}
 	if h.offlineQueue != nil {
-		h.offlineQueue.Enqueue(recipient, data, wsOfflineRetention)
+		h.offlineQueue.Enqueue(recipient, data, features.OfflineRetention())
 	}
 }
 
@@ -482,7 +496,7 @@ func (h *Hub) flushOffline(c *Client) {
 		// Put back this blob and everything after it, not just the one that
 		// failed to fit.
 		for _, rest := range drain.Blobs[i:] {
-			h.offlineQueue.Enqueue(c.userID, rest, wsOfflineRetention)
+			h.offlineQueue.Enqueue(c.userID, rest, features.OfflineRetention())
 		}
 		return
 	}
@@ -777,7 +791,9 @@ func (c *Client) routeInbound(msg WSMessage) {
 	if c.hub.commitments != nil && (msg.Type == "text" || msg.Type == "sealed_text") {
 		if messageID, hash, ok := commitmentFromWSMessage(msg); ok && len(hash) > 0 {
 			if messageID == "" {
-				messageID = msg.ConversationID + ":" + msg.Timestamp
+				// Never derive the id from the conversation: it is stored with the proof for
+				// good, and a conversation id can name both parties.
+				messageID = uuid.New().String()
 			}
 			sender := msg.From
 			if sender == "" {

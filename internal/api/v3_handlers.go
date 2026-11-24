@@ -15,6 +15,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
+	"github.com/thechadcromwell/echoapp/internal/features"
 	"io"
 	"log"
 	"net/http"
@@ -108,14 +109,16 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/v3/profile", h.handleProfile)
 	mux.HandleFunc("/v3/profile/", h.handleProfile)
 
-	// Rewards endpoints
-	mux.HandleFunc("/v3/rewards/claim", h.handleRewardsClaim)
-	mux.HandleFunc("/v3/rewards/pending/", h.handleRewardsPending)
-	mux.HandleFunc("/v3/rewards/daily-stats", h.handleRewardsDailyStats)
-	mux.HandleFunc("/v3/rewards/auto-scale-rate", h.handleRewardsAutoScaleRate)
-
-	// Wallet + staking (Currency L1 ledger)
-	if h.Wallet != nil {
+	// Token rewards, wallet and staking exist only while the token is switched on. The token is on
+	// hold (internal/features): by default none of these routes is registered. The wallet store
+	// itself stays constructed, because account recovery looks accounts up through it.
+	if features.TokenEnabled() {
+		mux.HandleFunc("/v3/rewards/claim", h.handleRewardsClaim)
+		mux.HandleFunc("/v3/rewards/pending/", h.handleRewardsPending)
+		mux.HandleFunc("/v3/rewards/daily-stats", h.handleRewardsDailyStats)
+		mux.HandleFunc("/v3/rewards/auto-scale-rate", h.handleRewardsAutoScaleRate)
+	}
+	if h.Wallet != nil && features.TokenEnabled() {
 		mux.HandleFunc("/v3/wallet", h.Wallet.handleWalletRoot)
 		mux.HandleFunc("/v3/wallet/stake", h.Wallet.handleWalletStake)
 		mux.HandleFunc("/v3/wallet/unstake", h.Wallet.handleWalletUnstake)
@@ -1038,7 +1041,8 @@ func (h *V3Handlers) anchorUsername(ctx context.Context, did, username string) {
 		RegisteredAt: time.Now().UnixMilli(),
 	})
 	if err != nil {
-		log.Printf("v3: username anchor failed for %q (%s): %v", username, did, err)
+		// No username or DID in logs: a log line outlives every retention rule.
+		log.Printf("v3: username anchor failed: %v", err)
 	}
 }
 

@@ -18,9 +18,9 @@ either delivers that or is hidden. Echo Comply and Echo Passport ship separately
 | **Contacts** | Username / QR / invite-link discovery, block, trust badges | |
 | **Safety (App Review 1.2)** | Report a contact, message, channel or group; block; operator moderation queue (`GET /v1/admin/safety/reports`); published support contact | Reports survive deletion of the reported account |
 | **Privacy controls** | Privacy hub, account deletion with passkey step-up (server purges 35 tables), data export copy | App returns to first run after deletion |
-| **Rewards** | Echo Score, quests, earned ECHO, leaderboard, staking positions | **Value-free:** no purchase, no redemption, no transfer, no yield figures |
-| **ECHO VIP** | StoreKit auto-renewable `com.echo.app.vip.monthly`, Restore and Manage, price from the App Store only | Server verifies Apple's signature; refunded and (optionally) sandbox purchases are rejected |
-| **Integrity anchoring** | Message-batch Merkle roots on Data L1, trust-tier commitments on the Identity metagraph | Invisible to users; verified end to end on the local cluster |
+| **Rewards** | Echo Score, streaks, quests and a leaderboard, all in **points** | Points are a score, not a token. No wallet, balance, staking or token wording anywhere in the app or API: the ECHO token is on hold ([`BESU_MIGRATION_PLAN.md`](BESU_MIGRATION_PLAN.md) §0), behind `ECHO_TOKEN_ENABLED` (server) and `V1ReleaseScope.showsToken` (app), both off |
+| **ECHO VIP** | StoreKit auto-renewable `com.echo.app.vip.monthly`, Restore and Manage, price from the App Store only. A paid feature set (today: the VIP badge); it adds nothing to points and has no token tie | Server verifies Apple's signature; refunded and (optionally) sandbox purchases are rejected |
+| **Integrity anchoring** | Message-batch Merkle roots and trust-tier commitments on Echo's own chain (Besu) | Invisible to users; `make validate-phase1` verifies it end to end on the local chain, including an offline proof |
 
 ## Hidden in the v1 Release build
 

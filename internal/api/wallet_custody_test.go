@@ -14,6 +14,7 @@ import (
 // In real-funds mode with no proof verifier wired, value-moving operations must
 // hard-block (the signing SDK isn't available yet), not silently proceed.
 func TestWalletRealFundsHardBlocksStake(t *testing.T) {
+	tokenOn(t)
 	store := wallet.NewMemStore()
 	ledger := wallet.NewLedgerQuerier(store, nil)
 	svc := wallet.NewWalletService(ledger, &walletTestRewards{})
@@ -35,6 +36,7 @@ func TestWalletRealFundsHardBlocksStake(t *testing.T) {
 
 // Interim mode (default) must not gate the existing TestFlight flow.
 func TestWalletInterimAllowsStake(t *testing.T) {
+	tokenOn(t)
 	t.Setenv("ECHO_WALLET_GENESIS_AUTO", "1")
 	store := wallet.NewMemStore()
 	ledger := wallet.NewLedgerQuerier(store, nil)
@@ -63,6 +65,7 @@ func TestWalletInterimAllowsStake(t *testing.T) {
 // In real-funds mode, linking a server-derivable address (DAG=SHA256(did)) must
 // be rejected even when a proof verifier accepts everything.
 func TestWalletRealFundsRejectsServerDerivableAddress(t *testing.T) {
+	tokenOn(t)
 	store := wallet.NewMemStore()
 	h := &WalletHandlers{Store: store, RealFunds: true, Proof: allowAllProof{}}
 	mux := http.NewServeMux()
@@ -83,6 +86,7 @@ func TestWalletRealFundsRejectsServerDerivableAddress(t *testing.T) {
 
 // The challenge endpoint issues a per-DID nonce for proof-of-ownership.
 func TestWalletChallengeEndpoint(t *testing.T) {
+	tokenOn(t)
 	h := &WalletHandlers{Store: wallet.NewMemStore(), Challenges: wallet.NewChallengeStore()}
 	mux := http.NewServeMux()
 	(&V3Handlers{Wallet: h}).RegisterV3Routes(mux)
@@ -119,6 +123,7 @@ func (f fakeTxContext) LastRef(_ context.Context, _, _ string) (string, int64, e
 
 // tx-context returns the linked address as source plus the last-reference parent.
 func TestWalletTxContext(t *testing.T) {
+	tokenOn(t)
 	store := wallet.NewMemStore()
 	_ = store.LinkDAGAccount(context.Background(), "did:key:zTC", "DAG4realaddress", "04pub")
 	h := &WalletHandlers{Store: store, TxContext: fakeTxContext{hash: "parenthash", ordinal: 7}}
@@ -150,6 +155,7 @@ func TestWalletTxContext(t *testing.T) {
 
 // tx-context must 409 when no wallet is linked yet.
 func TestWalletTxContext_NotLinked(t *testing.T) {
+	tokenOn(t)
 	h := &WalletHandlers{Store: wallet.NewMemStore(), TxContext: fakeTxContext{}}
 	mux := http.NewServeMux()
 	(&V3Handlers{Wallet: h}).RegisterV3Routes(mux)

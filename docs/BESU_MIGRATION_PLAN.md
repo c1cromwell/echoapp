@@ -13,7 +13,24 @@ The goal of that plan is unchanged: Echo runs its own chain and depends on no ou
 | The ECHO token is on-chain from genesis | A token contract deployed at genesis holds the full 1,000,000,000 supply. Reason given: there are no users yet, so there is nothing to migrate later and no period in which balances exist only in a database. This replaces my recommendation (ledger in Postgres for v1) |
 | Tessellation and Constellation code is removed | Done on 2026-11-24 for everything that could go without breaking the gateway (§8). The rest is replaced stage by stage and listed there |
 
-What "on-chain from genesis" commits Echo to, stated once so it is not a surprise later:
+### Revised the same day: the ECHO token is on hold
+
+After weighing the legal read (a non-transferable token is low risk; the risk sits in founder and
+team allocations, investment vocabulary, any hint of future value, paid VIP tied to tokens, and
+Apple's rule against crypto for tasks), the owner decided:
+
+| Decision | Detail |
+|---|---|
+| No ECHO token for users, for now | No mention and no use of an ECHO token in the app, the API, store metadata or public documents. It may return later as an additional feature |
+| The supply is still created at genesis, in one place | 1,000,000,000 units minted once to a single address called **reserved**. No "founders", "team", "treasury" or other labelled allocations. Nothing can move out of it: the contract has no transfer and no mint function |
+| VIP is a paid set of features and nothing else | No token benefit, multiplier, allowance or balance is attached to VIP |
+| Constellation Digital Evidence stays, for Comply | Comply is a separate product that may need a public chain. It remains off by default in the messaging gateway |
+
+This replaces the token design described under "The token" in §3 and shrinks stage B3 (§4). The
+five-way allocation table in `OWN_L0_PLAN.md` §10 is superseded.
+
+What "on-chain from genesis" committed Echo to under the earlier decision (kept for the record;
+the points about a token contract holding user balances no longer apply):
 
 - The token contract must be right before production genesis. It holds the whole supply, and a
   deployed contract cannot be edited. It gets its own review (stage B3 gate).

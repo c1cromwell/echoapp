@@ -194,8 +194,8 @@ func (s *AnchoringService) submitBatch(ctx context.Context, batch *AnchoringBatc
 		if err := s.proofs.Put(ctx, proof); err != nil {
 			log.Printf("anchoring: store proof for root %s failed: %v", tree.Root, err)
 		}
+		sender := s.batcher.takeSender(c.MessageID)
 		if s.confirm != nil {
-			sender := s.batcher.senderFor(c.MessageID)
 			if sender != "" {
 				s.confirm.PublishConfirmation(sender, AnchorConfirmation{
 					Type:            "confirmation",

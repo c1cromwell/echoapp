@@ -167,7 +167,7 @@ private struct QuestRow: View {
                         .lineLimit(2)
                 }
                 Spacer()
-                Text("+\(formatEcho(quest.rewardAmount))")
+                Text(V1ReleaseScope.showsToken ? "+\(formatEcho(quest.rewardAmount))" : "+\(NSDecimalNumber(decimal: quest.rewardAmount).intValue) pts")
                     .typographyStyle(.bodySmall, color: .echoSignal)
             }
 

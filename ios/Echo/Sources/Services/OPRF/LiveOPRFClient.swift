@@ -31,6 +31,18 @@ enum OPRFRuntimeMode: Sendable {
     case mockDev
 }
 
+/// Stands in when the real OPRF library is not linked. It refuses to blind anything, so no
+/// contact data can leave the device.
+struct UnavailableOPRFClient: OPRFClient {
+    func blind(phones: [String]) async throws -> OPRFBlindResult {
+        throw ContactDiscoveryError.discoveryUnavailable
+    }
+
+    func finalize(sessionID: String, evaluated: [String]) async throws -> [String] {
+        throw ContactDiscoveryError.discoveryUnavailable
+    }
+}
+
 enum OPRFClientFactory {
     static var runtimeMode: OPRFRuntimeMode {
         #if canImport(Echooprf)
@@ -46,15 +58,18 @@ enum OPRFClientFactory {
         case .live:
             return "Private scan uses live OPRF (EchoOPRF). Matches require the same framework build on both devices."
         case .mockDev:
-            return "Dev build uses a mock OPRF — scans won't match real users until you embed EchoOPRF.xcframework (`make echooprf-ios`)."
+            return "Contact discovery is off in this build: the private-matching library (EchoOPRF.xcframework, `make echooprf-ios`) is not embedded, and contacts are never uploaded without it."
         }
     }
 
+    /// The client the app uses. Without the real OPRF library there is no private way to match
+    /// contacts, so discovery is switched off: it must never fall back to the mock, whose
+    /// "blinded" values are the phone numbers themselves, readable by the server.
     static func makeDefault() -> any OPRFClient {
         #if canImport(Echooprf)
         return LiveOPRFClient()
         #else
-        return MockOPRFClient()
+        return UnavailableOPRFClient()
         #endif
     }
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/thechadcromwell/echoapp/internal/features"
 	"os"
 	"strconv"
 	"time"
@@ -57,9 +58,11 @@ func genesisCreditDatum() int64 {
 	return int64(f * float64(DatumPerECHO))
 }
 
+// genesisAutoEnabled gates the development credit. It needs BOTH the token switched on and the
+// explicit flag. (It used to be on for every server not marked ENVIRONMENT=production, which
+// handed a balance to any account on a server that merely lacked that variable.)
 func genesisAutoEnabled() bool {
-	return os.Getenv("ECHO_WALLET_GENESIS_AUTO") == "1" ||
-		os.Getenv("ENVIRONMENT") != "production"
+	return features.TokenEnabled() && os.Getenv("ECHO_WALLET_GENESIS_AUTO") == "1"
 }
 
 // EnsureGenesisCredit seeds dev/TestFlight balance when cache row is missing.

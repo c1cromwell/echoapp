@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"github.com/thechadcromwell/echoapp/internal/features"
 	"sync"
 	"time"
 
@@ -10,8 +11,7 @@ import (
 
 const (
 	wsOfflineMaxDepth    = 1000
-	wsOfflineRetention   = 30 * 24 * time.Hour // 1:1 + group directed WS blobs
-	wsOfflineGroupRetain = 7 * 24 * time.Hour  // large-group policy hook (same default for M2)
+	wsOfflineGroupRetain = 7 * 24 * time.Hour // large-group policy hook (same default for M2)
 )
 
 type wsOfflineEntry struct {
@@ -49,7 +49,7 @@ func (q *wsOfflineQueue) Enqueue(recipient string, data []byte, retention time.D
 		return
 	}
 	if retention <= 0 {
-		retention = wsOfflineRetention
+		retention = features.OfflineRetention()
 	}
 	q.mu.Lock()
 	defer q.mu.Unlock()

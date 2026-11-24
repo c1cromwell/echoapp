@@ -73,7 +73,6 @@ struct VIPSubscriptionView: View {
             // them on a paid subscription would be selling features that do
             // not exist. Add each row back when its feature ships.
             benefitRow("checkmark.seal.fill", "VIP trust badge on profile")
-            benefitRow("heart.fill", "Supports the community treasury")
         }
     }
 
@@ -153,7 +152,7 @@ struct VIPSubscriptionView: View {
 
     private var legalNote: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Payment is charged to your Apple ID. ECHO VIP renews each month until you cancel in Settings → Apple ID → Subscriptions. Free Echo keeps full private messaging. VIP adds convenience and status, not extra security. Rewards in the Rewards tab are earned and are not part of this purchase.")
+            Text("Payment is charged to your Apple ID. ECHO VIP renews each month until you cancel in Settings → Apple ID → Subscriptions. Free Echo keeps full private messaging. VIP adds convenience and status, not extra security. Points in the Rewards tab are earned through activity and are not part of this purchase; VIP does not add to them.")
                 .font(.system(size: 12))
                 .foregroundColor(.echoInk55)
                 .fixedSize(horizontal: false, vertical: true)

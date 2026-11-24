@@ -90,16 +90,12 @@ enum MessageForwarder {
                 forwardedFromMessageId: fromMessageId,
                 forwardedFromConversationId: fromConversationId
             ).serialized()
-            let payload: TextMessagePayload
-            do {
-                payload = try await crypto.encryptPayload(
-                    plaintext: wirePlain,
-                    peerDID: conversation.peerDID,
-                    messageId: message.id
-                )
-            } catch {
-                payload = TextMessagePayload(messageId: message.id, text: body, encrypted: nil)
-            }
+            // If encryption fails the forward is not sent. It must never go out in the clear.
+            let payload = try await crypto.encryptPayload(
+                plaintext: wirePlain,
+                peerDID: conversation.peerDID,
+                messageId: message.id
+            )
             if SealedSenderPolicy.shouldUseSealed(peerDID: conversation.peerDID, conversationId: conversation.id),
                !conversation.id.hasPrefix("group:") {
                 let client = DIContainer.shared.resolveAPIClient() ?? APIClient(configuration: .default)

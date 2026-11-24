@@ -412,8 +412,7 @@ func (rt *Router) handleIdentityAddDevice(w http.ResponseWriter, r *http.Request
 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 			defer cancel()
 			if _, err := rt.IdentityL1.SubmitIdentityL1(ctx, tx); err != nil {
-				log.Printf("identity L1 device-key anchor failed (non-fatal): subjectDID=%s deviceLabel=%s err=%v",
-					tx.SubjectDID, tx.DeviceLabel, err)
+				log.Printf("device-key anchor failed (non-fatal): %v", err)
 			}
 		}(l1tx)
 	}

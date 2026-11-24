@@ -14,6 +14,7 @@ import (
 )
 
 func TestWalletGetState_EmptyDIDRejected(t *testing.T) {
+	tokenOn(t)
 	store := wallet.NewMemStore()
 	ledger := wallet.NewLedgerQuerier(store, nil)
 	svc := wallet.NewWalletService(ledger, &walletTestRewards{})
@@ -33,6 +34,7 @@ func TestWalletGetState_EmptyDIDRejected(t *testing.T) {
 }
 
 func TestWalletGetState_GenesisCredit(t *testing.T) {
+	tokenOn(t)
 	t.Setenv("ECHO_WALLET_GENESIS_AUTO", "1")
 
 	store := wallet.NewMemStore()
@@ -66,6 +68,7 @@ func TestWalletGetState_GenesisCredit(t *testing.T) {
 }
 
 func TestWalletStakeAndUnstake(t *testing.T) {
+	tokenOn(t)
 	t.Setenv("ECHO_WALLET_GENESIS_AUTO", "1")
 	t.Setenv("ECHO_WALLET_GENESIS_ECHO", "1000")
 
@@ -130,6 +133,7 @@ func TestWalletStakeAndUnstake(t *testing.T) {
 }
 
 func TestWalletLink(t *testing.T) {
+	tokenOn(t)
 	store := wallet.NewMemStore()
 	h := &WalletHandlers{Store: store}
 	mux := http.NewServeMux()

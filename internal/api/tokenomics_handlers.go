@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"github.com/thechadcromwell/echoapp/internal/features"
 	"io"
 	"net/http"
 	"strings"
@@ -93,6 +94,33 @@ func (h *TokenomicsHandlers) handleQuestsList(w http.ResponseWriter, r *http.Req
 		WriteError(w, http.StatusInternalServerError, "QUESTS_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
+	if !features.TokenEnabled() {
+		// Quests about staking, delegation, governance weight or buying VIP do not exist while
+		// the token is on hold, and no quest names a token amount: rewards are points.
+		starter, advanced := make([]questPointsEntry, 0), make([]questPointsEntry, 0)
+		for _, e := range catalog {
+			if quests.IsTokenQuest(e.Definition) {
+				continue
+			}
+			entry := questPointsEntry{
+				ID: e.ID, Title: e.Title, Description: e.Description, Action: e.Action, RequiredCount: e.RequiredCount,
+				Points: e.RewardECHO / features.PointsPerUnit, Badge: e.Badge, Tier: e.Tier, MinTrustTier: e.MinTrustTier,
+				CompletedAt: e.CompletedAt, RewardClaimed: e.RewardClaimed, Progress: e.Progress,
+			}
+			if e.Tier == quests.TierAdvanced {
+				advanced = append(advanced, entry)
+			} else {
+				starter = append(starter, entry)
+			}
+		}
+		WriteJSON(w, http.StatusOK, map[string]interface{}{
+			"starter":    starter,
+			"advanced":   advanced,
+			"unit":       "points",
+			"request_id": r.Header.Get("X-Request-ID"),
+		})
+		return
+	}
 	starter := make([]quests.CatalogEntry, 0)
 	advanced := make([]quests.CatalogEntry, 0)
 	for _, e := range catalog {
@@ -166,11 +194,40 @@ func (h *TokenomicsHandlers) handleLeaderboard(w http.ResponseWriter, r *http.Re
 		WriteError(w, http.StatusInternalServerError, "LEADERBOARD_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
+	if !features.TokenEnabled() {
+		// Scores are shown in whole points.
+		for i := range snap.Entries {
+			snap.Entries[i].Score /= features.PointsPerUnit
+		}
+		WriteJSON(w, http.StatusOK, map[string]interface{}{
+			"snapshot":   snap,
+			"unit":       "points",
+			"request_id": r.Header.Get("X-Request-ID"),
+		})
+		return
+	}
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"snapshot":   snap,
 		"redeemable": false,
 		"request_id": r.Header.Get("X-Request-ID"),
 	})
+}
+
+// questPointsEntry is a quest as served while the token is on hold: the same quest, with its
+// reward expressed in points and no token-denominated field.
+type questPointsEntry struct {
+	ID            string      `json:"questId"`
+	Title         string      `json:"title"`
+	Description   string      `json:"description"`
+	Action        string      `json:"action"`
+	RequiredCount int         `json:"requiredCount"`
+	Points        int64       `json:"points"`
+	Badge         string      `json:"badge"`
+	Tier          quests.Tier `json:"tier"`
+	MinTrustTier  int         `json:"minTrustTier,omitempty"`
+	CompletedAt   string      `json:"completedAt,omitempty"`
+	RewardClaimed bool        `json:"rewardClaimed"`
+	Progress      int         `json:"progress"`
 }
 
 // handleStreak serves the authenticated user's daily-activity streak
@@ -211,13 +268,17 @@ func (h *TokenomicsHandlers) handleGamificationStatus(w http.ResponseWriter, r *
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
 		return
 	}
-	realFunds := wallet.RealFundsEnabled()
-	body := map[string]interface{}{
-		"custody_mode": wallet.CustodyMode(),
-		"redeemable":   realFunds,
-		"transferable": realFunds,
-		"disclaimer":   "ECHO earned in-app has no cash value and cannot be transferred or redeemed.",
-		"request_id":   r.Header.Get("X-Request-ID"),
+	body := map[string]interface{}{"request_id": r.Header.Get("X-Request-ID")}
+	if features.TokenEnabled() {
+		realFunds := wallet.RealFundsEnabled()
+		body["custody_mode"] = wallet.CustodyMode()
+		body["redeemable"] = realFunds
+		body["transferable"] = realFunds
+		body["disclaimer"] = "ECHO earned in-app has no cash value and cannot be transferred or redeemed."
+	} else {
+		// Points are a score. They are not a token, hold no value and convert to nothing.
+		body["unit"] = "points"
+		body["disclaimer"] = "Points are a score for activity in the app. They have no cash value and cannot be transferred, redeemed or exchanged for anything."
 	}
 	if snap, ok := h.echoScoreForRequest(r); ok {
 		body["echo_score"] = snap
@@ -524,6 +585,11 @@ func (rt *Router) handleTokenomicsSubroutes(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	path := r.URL.Path
+	// The token is on hold: its routes do not exist. Gamification (points) stays.
+	if !features.TokenEnabled() && !strings.HasPrefix(path, "/v1/gamification/") {
+		WriteError(w, http.StatusNotFound, "NOT_FOUND", "Not found", r.Header.Get("X-Request-ID"))
+		return
+	}
 	switch {
 	case path == "/v1/tokens/emission/status":
 		rt.Tokenomics.handleEmissionStatus(w, r)

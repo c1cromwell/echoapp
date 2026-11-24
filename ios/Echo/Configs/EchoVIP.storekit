@@ -43,7 +43,7 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Premium themes, a VIP badge, higher rate limits, and priority delivery.",
+              "description" : "A VIP badge on your profile.",
               "displayName" : "ECHO VIP",
               "locale" : "en_US"
             }

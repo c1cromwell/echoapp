@@ -3,6 +3,33 @@ import Foundation
 
 // MARK: - Quest models (WO-271)
 
+extension QuestItem {
+    private enum PointsKey: String, CodingKey { case points }
+
+    /// The server sends a quest's reward as whole `points`. (Older servers sent `reward_echo` in
+    /// 8-decimal units; both decode to the same stored amount.)
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        questId = try c.decode(String.self, forKey: .questId)
+        title = try c.decode(String.self, forKey: .title)
+        description = try c.decode(String.self, forKey: .description)
+        action = try c.decode(String.self, forKey: .action)
+        requiredCount = try c.decode(Int.self, forKey: .requiredCount)
+        badge = try c.decode(String.self, forKey: .badge)
+        tier = try c.decode(String.self, forKey: .tier)
+        minTrustTier = try c.decodeIfPresent(Int.self, forKey: .minTrustTier)
+        completedAt = try c.decodeIfPresent(String.self, forKey: .completedAt)
+        rewardClaimed = try c.decodeIfPresent(Bool.self, forKey: .rewardClaimed) ?? false
+        progress = try c.decodeIfPresent(Int.self, forKey: .progress) ?? 0
+        if let legacy = try c.decodeIfPresent(Int64.self, forKey: .rewardEcho) {
+            rewardEcho = legacy
+        } else {
+            let points = try decoder.container(keyedBy: PointsKey.self).decodeIfPresent(Int64.self, forKey: .points) ?? 0
+            rewardEcho = points * 100_000_000
+        }
+    }
+}
+
 struct QuestItem: Codable, Sendable, Equatable, Identifiable {
     var id: String { questId }
     let questId: String
@@ -25,6 +52,7 @@ struct QuestItem: Codable, Sendable, Equatable, Identifiable {
         case completedAt, rewardClaimed, progress
     }
 
+    /// The quest's reward in points (whole units).
     var rewardAmount: Decimal { EchoDatum.fromDatum(rewardEcho) }
 
     var isCompleted: Bool { completedAt != nil && !completedAt!.isEmpty }
@@ -93,8 +121,9 @@ struct LeaderboardEntry: Codable, Sendable, Identifiable {
         case trustTier = "trust_tier"
     }
 
-    /// ECHO earned in the window (display-only; no cash value at launch).
-    var scoreAmount: Decimal { EchoDatum.fromDatum(score) }
+    /// Points earned in the window. The server sends whole points; with the dormant token surface
+    /// switched on it sends 8-decimal units instead.
+    var scoreAmount: Decimal { V1ReleaseScope.showsToken ? EchoDatum.fromDatum(score) : Decimal(score) }
 }
 
 struct LeaderboardSnapshot: Codable, Sendable {
@@ -112,7 +141,7 @@ struct LeaderboardSnapshot: Codable, Sendable {
 
 struct LeaderboardResponse: Codable, Sendable {
     let snapshot: LeaderboardSnapshot
-    let redeemable: Bool
+    let redeemable: Bool?
 }
 
 struct StreakInfo: Codable, Sendable {
@@ -135,12 +164,13 @@ struct StreakResponse: Codable, Sendable {
     let streak: StreakInfo
 }
 
-/// Launch compliance posture — drives the persistent "no cash value" disclaimer.
-/// While `custodyMode == "interim"`, `redeemable`/`transferable` are false.
+/// What the server says about rewards — drives the persistent "no cash value" note. Points are
+/// a score; the custody and redeemability fields belong to the dormant token surface and are
+/// absent unless it is switched on.
 struct GamificationStatus: Codable, Sendable {
-    let custodyMode: String
-    let redeemable: Bool
-    let transferable: Bool
+    let custodyMode: String?
+    let redeemable: Bool?
+    let transferable: Bool?
     let disclaimer: String?
     let echoScore: EchoScoreWire?
 

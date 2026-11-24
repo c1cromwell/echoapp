@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/thechadcromwell/echoapp/internal/features"
 	"testing"
 	"time"
 
@@ -10,8 +11,8 @@ import (
 
 func TestWSOfflineQueue_EnqueueAndDequeue(t *testing.T) {
 	q := newWSOfflineQueue()
-	q.Enqueue("did:key:bob", []byte(`{"type":"text"}`), wsOfflineRetention)
-	q.Enqueue("did:key:bob", []byte(`{"type":"text2"}`), wsOfflineRetention)
+	q.Enqueue("did:key:bob", []byte(`{"type":"text"}`), features.OfflineRetention())
+	q.Enqueue("did:key:bob", []byte(`{"type":"text2"}`), features.OfflineRetention())
 
 	got := q.DequeueAll("did:key:bob")
 	if len(got.Blobs) != 2 {
@@ -31,7 +32,7 @@ func TestFlushOffline_DeliversOnReconnect(t *testing.T) {
 	h.mu.Lock()
 	h.clients[bob.userID] = bob // flushOffline only writes to the registered socket
 	h.mu.Unlock()
-	h.offlineQueue.Enqueue("did:key:bob", []byte(`{"queued":true}`), wsOfflineRetention)
+	h.offlineQueue.Enqueue("did:key:bob", []byte(`{"queued":true}`), features.OfflineRetention())
 
 	h.flushOffline(bob)
 

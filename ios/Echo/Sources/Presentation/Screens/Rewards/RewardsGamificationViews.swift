@@ -21,13 +21,13 @@ private extension View {
 
 // MARK: - No-value disclaimer
 
-/// Persistent, non-alarming banner stating the launch compliance posture. Rendered
-/// whenever the token is not redeemable (interim custody). Driven by GamificationStatus.
+/// Persistent, non-alarming note that points are a score and nothing more. Driven by
+/// GamificationStatus.
 struct NoValueDisclaimerBanner: View {
     let status: GamificationStatus?
 
     private var message: String {
-        status?.disclaimer ?? "ECHO earned in-app has no cash value and can't be transferred or redeemed."
+        status?.disclaimer ?? "Points are a score for activity in the app. They have no cash value and can't be transferred, redeemed or exchanged for anything."
     }
 
     var body: some View {
@@ -77,7 +77,7 @@ struct EchoScoreSection: View {
                     Text(String(format: "%.1f×", score.multiplier))
                         .font(.echomono(18, weight: .medium))
                         .foregroundStyle(Color.echoTrustGreen)
-                    Text("earn rate")
+                    Text("points rate")
                         .typographyStyle(.caption, color: .echoInk40)
                 }
             }
@@ -306,14 +306,14 @@ struct LeaderboardSection: View {
 
     private func formattedScore(_ amount: Decimal) -> String {
         let n = NSDecimalNumber(decimal: amount)
-        return String(format: "%.0f ECHO", n.doubleValue)
+        return String(format: V1ReleaseScope.showsToken ? "%.0f ECHO" : "%.0f pts", n.doubleValue)
     }
 }
 
 // MARK: - Rewards gamification hub (Wave R0)
 
-/// The value-free Rewards tab: score, streak, next unlock, claim, then leaderboard.
-/// Wallet/balance stays reachable behind a link. Pings daily activity on appear.
+/// The Rewards tab: score, streak, next unlock, claim, then leaderboard, all in points.
+/// There is no wallet or balance. Pings daily activity on appear.
 struct RewardsHubView: View {
     let gamification: GamificationAPI
     let walletAPI: WalletAPIClient
@@ -380,12 +380,14 @@ struct RewardsHubView: View {
                 }
                 .buttonStyle(.plain)
 
-                NavigationLink {
-                    WalletTab(api: walletAPI)
-                } label: {
-                    RewardHubNavRow(title: "Wallet & balance")
+                if V1ReleaseScope.showsToken {
+                    NavigationLink {
+                        WalletTab(api: walletAPI)
+                    } label: {
+                        RewardHubNavRow(title: "Wallet & balance")
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
             .padding(Spacing.lg.rawValue)
         }

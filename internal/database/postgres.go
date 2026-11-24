@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/thechadcromwell/echoapp/internal/features"
 	"sort"
 	"time"
 
@@ -248,7 +249,7 @@ func (p *PostgresDB) RevokeCredential(ctx context.Context, credentialID string) 
 func (p *PostgresDB) Enqueue(ctx context.Context, msg *QueuedMessage) error {
 	msg.CreatedAt = time.Now()
 	if msg.ExpiresAt.IsZero() {
-		msg.ExpiresAt = msg.CreatedAt.Add(30 * 24 * time.Hour)
+		msg.ExpiresAt = msg.CreatedAt.Add(features.OfflineRetention())
 	}
 	_, err := p.pool.Exec(ctx,
 		`INSERT INTO message_queue (message_id, conversation_id, sender_did, recipient_did, encrypted_payload, status, queued_at, expires_at)
@@ -260,15 +261,31 @@ func (p *PostgresDB) Enqueue(ctx context.Context, msg *QueuedMessage) error {
 	return nil
 }
 
+// Dequeue hands a recipient their queued messages and, in the same statement, erases what the
+// row said about them: the sender, the conversation and the envelope. What is left is a stub
+// naming the recipient and the delivery time, which delivery and read status need for a day
+// (PurgeExpired). With features.RetainMessageMetadata the row is kept whole, as before.
 func (p *PostgresDB) Dequeue(ctx context.Context, recipientDID string, limit int) ([]*QueuedMessage, error) {
+	erase := `, sender_did = '', conversation_id = '', encrypted_payload = ''::bytea`
+	if features.RetainMessageMetadata() {
+		erase = ""
+	}
 	rows, err := p.pool.Query(ctx,
-		`UPDATE message_queue SET status = 'delivered', delivered_at = NOW()
-		 WHERE message_id IN (
-		   SELECT message_id FROM message_queue
+		`WITH picked AS (
+		   SELECT message_id, sender_did, recipient_did, encrypted_payload, queued_at, expires_at
+		   FROM message_queue
 		   WHERE recipient_did = $1 AND status = 'queued' AND expires_at > NOW()
 		   ORDER BY queued_at ASC LIMIT $2
+		   FOR UPDATE SKIP LOCKED
+		 ), done AS (
+		   UPDATE message_queue q SET status = 'delivered', delivered_at = NOW()`+erase+`
+		   FROM picked WHERE q.message_id = picked.message_id
+		   RETURNING q.message_id
 		 )
-		 RETURNING message_id, sender_did, recipient_did, encrypted_payload, status, queued_at, expires_at`,
+		 SELECT picked.message_id, picked.sender_did, picked.recipient_did, picked.encrypted_payload,
+		        'delivered', picked.queued_at, picked.expires_at
+		 FROM picked JOIN done USING (message_id)
+		 ORDER BY picked.queued_at ASC`,
 		recipientDID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("dequeue messages: %w", err)
@@ -370,8 +387,14 @@ func (p *PostgresDB) GetMessageMeta(ctx context.Context, messageID string) (*Mes
 }
 
 func (p *PostgresDB) PurgeExpired(ctx context.Context) (int, error) {
-	tag, err := p.pool.Exec(ctx,
-		`DELETE FROM message_queue WHERE expires_at < NOW()`)
+	// Undelivered messages go when they expire. Delivered stubs go a day after delivery, unless
+	// this deployment retains message metadata.
+	query := `DELETE FROM message_queue WHERE expires_at < NOW()
+		OR (status = 'delivered' AND delivered_at < NOW() - make_interval(secs => $1))`
+	if features.RetainMessageMetadata() {
+		query = `DELETE FROM message_queue WHERE expires_at < NOW() AND $1 >= 0`
+	}
+	tag, err := p.pool.Exec(ctx, query, features.DeliveredRetention.Seconds())
 	if err != nil {
 		return 0, fmt.Errorf("purge expired: %w", err)
 	}

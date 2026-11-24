@@ -162,15 +162,15 @@ actor WebSocketClient: NSObject, URLSessionWebSocketDelegate {
         try await connectInternal(url: configuration.baseURL, delegate: delegate)
     }
 
-    /// Connect with JWT/query token against the backend `/ws` endpoint (Phase 3 signals).
+    /// Connect to the backend `/ws` endpoint, authenticated by a bearer token in the header.
     func connect(accessToken: String, apiBaseURL: URL, delegate: WebSocketDelegate) async throws {
-        guard let url = WebSocketURLBuilder.webSocketURL(apiBaseURL: apiBaseURL, accessToken: accessToken) else {
+        guard let url = WebSocketURLBuilder.webSocketURL(apiBaseURL: apiBaseURL) else {
             throw WebSocketError.invalidURL
         }
-        try await connectInternal(url: url, delegate: delegate)
+        try await connectInternal(url: url, accessToken: accessToken, delegate: delegate)
     }
 
-    private func connectInternal(url: URL, delegate: WebSocketDelegate) async throws {
+    private func connectInternal(url: URL, accessToken: String? = nil, delegate: WebSocketDelegate) async throws {
         self.delegate = delegate
         
         let config = URLSessionConfiguration.default
@@ -182,7 +182,10 @@ actor WebSocketClient: NSObject, URLSessionWebSocketDelegate {
             throw WebSocketError.sessionCreationFailed
         }
         
-        let request = URLRequest(url: url)
+        var request = URLRequest(url: url)
+        if let accessToken {
+            request.setValue(WebSocketURLBuilder.authorizationHeader(accessToken: accessToken), forHTTPHeaderField: "Authorization")
+        }
         webSocket = session.webSocketTask(with: request)
         webSocket?.resume()
         

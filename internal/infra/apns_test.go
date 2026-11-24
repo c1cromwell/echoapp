@@ -51,11 +51,8 @@ func TestGenerateAPNsJWT(t *testing.T) {
 
 func TestAPNsPayloadOmitsMessageBody(t *testing.T) {
 	client := NewAPNsClient(APNsConfig{BundleID: "com.echo.app"})
-	payload := APNsPayload{
-		APS:            APS{Alert: APSAlert{Title: "Echo", Body: "You have a new message"}},
-		Type:           "message",
-		ConversationID: "dm:alice:bob",
-	}
+	// What is actually sent for a message addressed by a conversation id that names both parties.
+	payload := buildAPNsPayload("dm:did:key:zAlice:did:key:zBob", "message", false)
 	raw, err := json.Marshal(payload)
 	if err != nil {
 		t.Fatal(err)
@@ -64,8 +61,25 @@ func TestAPNsPayloadOmitsMessageBody(t *testing.T) {
 	if strings.Contains(s, "hello") || strings.Contains(s, "ciphertext") {
 		t.Fatalf("payload leaked content: %s", s)
 	}
-	if !strings.Contains(s, "conversationId") {
-		t.Fatalf("missing conversationId: %s", s)
-	}
 	_ = client
+}
+
+// Apple keeps what it relays. A push must not tell it who is talking to whom.
+func TestAPNsPayloadCarriesNoConversationOrParty(t *testing.T) {
+	for _, silent := range []bool{false, true} {
+		raw, err := json.Marshal(buildAPNsPayload("dm:did:key:zAlice:did:key:zBob", "message", silent))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, leak := range []string{"zAlice", "zBob", "dm:", "conversation"} {
+			if strings.Contains(string(raw), leak) {
+				t.Fatalf("silent=%v: push payload contains %q: %s", silent, leak, raw)
+			}
+		}
+	}
+	// A missed call carries its own random id, and only that.
+	raw, _ := json.Marshal(buildAPNsPayload("call-7f3a", "missed_call", false))
+	if !strings.Contains(string(raw), `"callId":"call-7f3a"`) {
+		t.Fatalf("missed call payload lost its call id: %s", raw)
+	}
 }

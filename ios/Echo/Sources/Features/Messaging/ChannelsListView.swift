@@ -12,7 +12,10 @@ struct ChannelsListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            engagementBanner
+            // The banner offered token rewards for engagement. The token is on hold.
+            if V1ReleaseScope.showsToken {
+                engagementBanner
+            }
 
             if isLoading && channels.isEmpty {
                 ProgressView("Loading channels…")
@@ -31,7 +34,7 @@ struct ChannelsListView: View {
                 EmptyStateView(
                     icon: "megaphone",
                     title: "No communities yet",
-                    subtitle: "Create a community channel and earn ECHO when people engage.",
+                    subtitle: "Create a community channel for the people you want to reach.",
                     actionTitle: "Create channel",
                     action: { showCreate = true }
                 )
@@ -177,7 +180,7 @@ private struct CreateChannelSheet: View {
                     TextField("Topic", text: $topic)
                 }
                 Section {
-                    Text("Creating a community channel auto-subscribes you. Posts and reactions earn ECHO engagement rewards (Tier 2+).")
+                    Text("Creating a community channel auto-subscribes you.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -323,7 +326,7 @@ struct ChannelDetailView: View {
             Text(channel.topic ?? "community")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Color.echoSignal)
-            Text("\(channel.subscriberCount ?? 0) members · earn ECHO for posts & reactions")
+            Text("\(channel.subscriberCount ?? 0) members")
                 .font(.caption)
                 .foregroundStyle(Color.echoInk55)
         }

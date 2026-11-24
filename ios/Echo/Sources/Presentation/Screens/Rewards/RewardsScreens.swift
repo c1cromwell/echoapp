@@ -9,13 +9,16 @@ public struct RewardsDashboardView: View {
     public init() {}
 
     public var body: some View {
-        // Wave R0: the Rewards tab is the value-free gamification hub. The full
-        // wallet/balance remains reachable from inside the hub. Falls back to the
-        // wallet directly if gamification DI is unavailable.
+        // The Rewards tab is the points hub. There is no wallet behind it: the token is on hold
+        // (V1ReleaseScope.showsToken), so if the hub cannot be built the tab says so, and never
+        // falls back to a balance screen.
         if let gamification = DIContainer.shared.resolveGamificationAPI() {
             RewardsHubView(gamification: gamification, walletAPI: resolvedWalletAPI())
-        } else {
+        } else if V1ReleaseScope.showsToken {
             WalletTab(api: resolvedWalletAPI())
+        } else {
+            ContentUnavailableView("Rewards are unavailable", systemImage: "gift",
+                                   description: Text("Try again in a moment."))
         }
     }
 

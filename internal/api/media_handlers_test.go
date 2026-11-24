@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/thechadcromwell/echoapp/internal/features"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -59,10 +60,10 @@ func TestWSOfflineQueue_OverflowToEncblob(t *testing.T) {
 	q.SetOverflowStorage(stub)
 
 	for i := 0; i < wsOfflineMaxDepth; i++ {
-		q.Enqueue("did:key:bob", []byte(`{"type":"text"}`), wsOfflineRetention)
+		q.Enqueue("did:key:bob", []byte(`{"type":"text"}`), features.OfflineRetention())
 	}
 	overflow := []byte(`{"type":"overflow-blob"}`)
-	q.Enqueue("did:key:bob", overflow, wsOfflineRetention)
+	q.Enqueue("did:key:bob", overflow, features.OfflineRetention())
 
 	drain := q.DequeueAll("did:key:bob")
 	if len(drain.Blobs) != wsOfflineMaxDepth {
@@ -85,9 +86,9 @@ func TestFlushOffline_SendsOverflowManifest(t *testing.T) {
 	stub := encblob.NewStubStorage()
 	h.offlineQueue.SetOverflowStorage(stub)
 	for i := 0; i < wsOfflineMaxDepth; i++ {
-		h.offlineQueue.Enqueue("did:key:bob", []byte(`{"queued":true}`), wsOfflineRetention)
+		h.offlineQueue.Enqueue("did:key:bob", []byte(`{"queued":true}`), features.OfflineRetention())
 	}
-	h.offlineQueue.Enqueue("did:key:bob", []byte(`{"overflow":true}`), wsOfflineRetention)
+	h.offlineQueue.Enqueue("did:key:bob", []byte(`{"overflow":true}`), features.OfflineRetention())
 
 	bob := &Client{hub: h, userID: "did:key:bob", send: make(chan []byte, wsOfflineMaxDepth+2)}
 	h.mu.Lock()

@@ -105,6 +105,7 @@ func TestGamificationStatus_IncludesEchoScoreWhenAuthed(t *testing.T) {
 }
 
 func TestGamificationStatus_InterimNonRedeemable(t *testing.T) {
+	tokenOn(t)
 	t.Setenv("ECHO_WALLET_REAL_FUNDS", "")
 	svc, err := tokenomics.NewService(tokenomics.Config{
 		GenesisDate: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -163,6 +164,7 @@ func TestActivityPing_IncrementsStreakIdempotentSameDay(t *testing.T) {
 }
 
 func TestLeaderboard_EmptyOK(t *testing.T) {
+	tokenOn(t)
 	svc, err := tokenomics.NewService(tokenomics.Config{
 		GenesisDate: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 	})

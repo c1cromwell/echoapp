@@ -3,19 +3,27 @@ import XCTest
 
 final class WebSocketURLBuilderTests: XCTestCase {
 
-    func testHTTPS_becomesWSSWithToken() throws {
+    func testHTTPS_becomesWSS() throws {
         let api = URL(string: "https://echo.local:8000")!
-        let ws = try XCTUnwrap(WebSocketURLBuilder.webSocketURL(apiBaseURL: api, accessToken: "jwt-abc"))
+        let ws = try XCTUnwrap(WebSocketURLBuilder.webSocketURL(apiBaseURL: api))
         XCTAssertEqual(ws.scheme, "wss")
         XCTAssertEqual(ws.host, "echo.local")
         XCTAssertEqual(ws.port, 8000)
         XCTAssertEqual(ws.path, "/ws")
-        XCTAssertEqual(URLComponents(url: ws, resolvingAgainstBaseURL: false)?.queryItems?.first?.value, "jwt-abc")
+    }
+
+    /// The access token must never be part of the URL: URLs are logged by proxies.
+    func testAccessTokenIsNotInTheURL() throws {
+        let api = URL(string: "https://echo.local:8000?token=stale")!
+        let ws = try XCTUnwrap(WebSocketURLBuilder.webSocketURL(apiBaseURL: api))
+        XCTAssertNil(ws.query)
+        XCTAssertFalse(ws.absoluteString.contains("token"))
+        XCTAssertEqual(WebSocketURLBuilder.authorizationHeader(accessToken: "jwt-abc"), "Bearer jwt-abc")
     }
 
     func testHTTP_becomesWS() throws {
         let api = URL(string: "http://127.0.0.1:8000")!
-        let ws = try XCTUnwrap(WebSocketURLBuilder.webSocketURL(apiBaseURL: api, accessToken: "t"))
+        let ws = try XCTUnwrap(WebSocketURLBuilder.webSocketURL(apiBaseURL: api))
         XCTAssertEqual(ws.scheme, "ws")
         XCTAssertEqual(ws.host, "127.0.0.1")
     }

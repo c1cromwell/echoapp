@@ -66,10 +66,15 @@ func (b *AnchoringBatcher) SetSender(messageID, senderDID string) {
 	b.senders[messageID] = senderDID
 }
 
-func (b *AnchoringBatcher) senderFor(messageID string) string {
+// takeSender returns the sender recorded for a message and forgets it. The pairing exists only
+// to route one confirmation; it is held in memory for the minutes between a message and its
+// batch, and never kept after.
+func (b *AnchoringBatcher) takeSender(messageID string) string {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	return b.senders[messageID]
+	sender := b.senders[messageID]
+	delete(b.senders, messageID)
+	return sender
 }
 
 // AddCommitment adds a message commitment to the current batch.

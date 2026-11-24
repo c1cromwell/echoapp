@@ -76,3 +76,13 @@ func ByID(id string) (Definition, bool) {
 	}
 	return Definition{}, false
 }
+
+// tokenActions are quest actions that only make sense with a token: staking, delegation,
+// stake-weighted governance, and paying for VIP (a purchase must never earn anything).
+var tokenActions = map[string]bool{
+	"stake": true, "stake_platinum": true, "delegate_30d": true, "governance_vote": true, "vip_subscription": true,
+}
+
+// IsTokenQuest reports whether a quest depends on the token. Such quests are not offered while
+// the token is on hold.
+func IsTokenQuest(d Definition) bool { return tokenActions[d.Action] }

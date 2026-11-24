@@ -59,12 +59,14 @@ func NewAPNsClient(cfg APNsConfig) *APNsClient {
 	}
 }
 
-// APNsPayload is the content-blind notification sent to iOS devices.
-// Custom keys sit beside `aps` so the client can reconnect WS; never ciphertext.
+// APNsPayload is the notification sent to iOS devices through Apple. It says only that
+// something is waiting: no content, no sender, and no conversation id (a conversation id can
+// name both parties, and Apple keeps what it relays). The app reconnects and fetches.
+// CallID is a random per-call id, sent for missed calls only.
 type APNsPayload struct {
 	APS              APS    `json:"aps"`
 	Type             string `json:"type,omitempty"`
-	ConversationID   string `json:"conversationId,omitempty"`
+	CallID           string `json:"callId,omitempty"`
 	ContentAvailable *int   `json:"-"`
 }
 
@@ -90,33 +92,10 @@ type APNsResponse struct {
 	Reason     string
 }
 
-// SendPush sends a content-blind push notification to a device token.
-// Only conversation IDs and a generic wake title are sent — never message content.
-func (a *APNsClient) SendPush(ctx context.Context, deviceToken string, conversationID string, notifType string, silent bool) (*APNsResponse, error) {
-	var payload APNsPayload
-	if silent {
-		payload = APNsPayload{
-			APS: APS{
-				ContentAvailable: 1,
-			},
-			Type:           notifType,
-			ConversationID: conversationID,
-		}
-	} else {
-		payload = APNsPayload{
-			APS: APS{
-				Alert: APSAlert{
-					Title: "Echo",
-					Body:  "You have a new message",
-				},
-				Sound:            "default",
-				MutableContent:   1,
-				ContentAvailable: 1,
-			},
-			Type:           notifType,
-			ConversationID: conversationID,
-		}
-	}
+// SendPush sends a content-blind push notification to a device token. reference is ignored for
+// messages; for a missed call it is the call's random id.
+func (a *APNsClient) SendPush(ctx context.Context, deviceToken string, reference string, notifType string, silent bool) (*APNsResponse, error) {
+	payload := buildAPNsPayload(reference, notifType, silent)
 
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -284,4 +263,23 @@ func NewAPNsPushSenderFromEnv() *APNsPushSender {
 		Production: production,
 	})
 	return &APNsPushSender{Client: client}
+}
+
+// buildAPNsPayload builds what Apple is sent for one notification.
+func buildAPNsPayload(reference, notifType string, silent bool) APNsPayload {
+	payload := APNsPayload{Type: notifType}
+	if notifType == "missed_call" {
+		payload.CallID = reference
+	}
+	if silent {
+		payload.APS = APS{ContentAvailable: 1}
+		return payload
+	}
+	payload.APS = APS{
+		Alert:            APSAlert{Title: "Echo", Body: "You have a new message"},
+		Sound:            "default",
+		MutableContent:   1,
+		ContentAvailable: 1,
+	}
+	return payload
 }

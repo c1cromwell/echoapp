@@ -4,6 +4,7 @@ package rewards
 import (
 	"context"
 	"errors"
+	"github.com/thechadcromwell/echoapp/internal/features"
 	"sync"
 	"time"
 
@@ -304,6 +305,10 @@ func (s *Service) RecordMessage() {
 // network activity weight so auto-scale reflects community usage.
 // eventType: channel_post | channel_react | channel_subscribe | channel_view | channel_comment
 func (s *Service) RecordEngagement(did, eventType string) float64 {
+	// Nothing accrues toward a token while it is on hold.
+	if !features.TokenEnabled() {
+		return 0
+	}
 	weight := engagementWeight(eventType)
 	if weight <= 0 || did == "" {
 		return 0

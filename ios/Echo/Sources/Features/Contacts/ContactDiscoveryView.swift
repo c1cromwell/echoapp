@@ -10,7 +10,7 @@ struct ContactDiscoveryView: View {
             #if DEBUG
             Section {
                 Label(
-                    OPRFClientFactory.runtimeMode == .live ? "Live OPRF" : "Mock OPRF (dev)",
+                    OPRFClientFactory.runtimeMode == .live ? "Private matching on" : "Unavailable in this build",
                     systemImage: OPRFClientFactory.runtimeMode == .live ? "lock.shield" : "hammer"
                 )
                 .font(.subheadline)
