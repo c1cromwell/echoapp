@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# scripts/validate-phase1.sh — Phase-1 testnet go/no-go validation script (WO-230).
+# scripts/validate-phase1.sh — local go/no-go validation script (WO-230).
 #
-# Runs the 6-step end-to-end check defined in WO-230:
+# Runs the end-to-end check against the backend and Echo's chain (`make dev`):
 #   1. Derive did:key locally from a P-256 key pair (no chain transaction)
 #   2. Register DID with local Identity Service (POST /identity/register)
-#   3. Issue a test trust tier VC and confirm it anchors on local Identity
-#      Metagraph (finality < 30s)
+#   3. Identity commitment on-chain — pending (docs/BESU_MIGRATION_PLAN.md stage B2)
 #   4. Send a test message through the local relay
-#   5. Confirm Merkle root committed to local Data L1 (finality < 30s)
-#   6. Verify snapshot height increments on Global L0
+#   5. Anchor a Merkle root through the gateway, export its proof from a
+#      validator, and verify that proof offline, signatures included
+#   6. Every validator keeps producing blocks and they agree on the chain
 #
 # Exit codes:
 #   0  — all steps passed
@@ -20,11 +20,15 @@ set -uo pipefail
 # -----------------------------------------------------------------------------
 # Configuration
 # -----------------------------------------------------------------------------
-GLOBAL_L0_URL="${GLOBAL_L0_URL:-http://localhost:9000}"
-METAGRAPH_L0_URL="${METAGRAPH_L0_URL:-http://localhost:9200}"
-CURRENCY_L1_URL="${CURRENCY_L1_URL:-http://localhost:9300}"
-DATA_L1_URL="${DATA_L1_URL:-http://localhost:9400}"
-IDENTITY_L0_URL="${IDENTITY_L0_URL:-http://localhost:9600}"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# Echo's chain: a private Besu network. `make dev` writes its settings here.
+CHAIN_ENV="${CHAIN_ENV:-$REPO_ROOT/deploy/besu/local/.network/chain.env}"
+# shellcheck disable=SC1090
+[ -f "$CHAIN_ENV" ] && . "$CHAIN_ENV"
+BESU_RPC_URLS="${BESU_RPC_URLS:-http://localhost:8545,http://localhost:8546,http://localhost:8547,http://localhost:8548}"
+BESU_ANCHOR_CONTRACT="${BESU_ANCHOR_CONTRACT:-}"
+BESU_VALIDATORS="${BESU_VALIDATORS:-}"
+IFS=',' read -r -a CHAIN_NODES <<< "$BESU_RPC_URLS"
 BACKEND_URL="${BACKEND_URL:-http://localhost:8000}"
 FINALITY_TIMEOUT_SECS="${FINALITY_TIMEOUT_SECS:-60}"
 
@@ -60,11 +64,8 @@ require_cmd() {
 # -----------------------------------------------------------------------------
 printf "%s===== Phase-1 Testnet Go/No-Go Validation =====%s\n" "$BOLD" "$RESET"
 printf "Backend:        %s\n" "$BACKEND_URL"
-printf "Global L0:      %s\n" "$GLOBAL_L0_URL"
-printf "Metagraph L0:   %s\n" "$METAGRAPH_L0_URL"
-printf "Currency L1:    %s\n" "$CURRENCY_L1_URL"
-printf "Data L1:        %s\n" "$DATA_L1_URL"
-printf "Identity L0:    %s (separate metagraph — 'make start-identity')\n" "$IDENTITY_L0_URL"
+printf "Chain:          %s validators (%s)\n" "${#CHAIN_NODES[@]}" "$BESU_RPC_URLS"
+printf "Anchor contract: %s\n" "${BESU_ANCHOR_CONTRACT:-(not set)}"
 printf "Finality limit: %ss\n" "$FINALITY_TIMEOUT_SECS"
 
 step 0 "Prerequisites"
@@ -99,11 +100,25 @@ check_endpoint() {
   fi
 }
 
+# Block height of one validator, or empty if it does not answer.
+chain_height() {
+  local hex
+  hex=$(curl -s --max-time 3 -X POST -H 'Content-Type: application/json' \
+    --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' "$1" 2>/dev/null \
+    | sed -n 's/.*"result":"\(0x[0-9a-f]*\)".*/\1/p')
+  [ -n "$hex" ] && printf '%d' "$hex"
+}
+
 CLUSTER_OK=1
-check_endpoint "Global L0"    "$GLOBAL_L0_URL"    || CLUSTER_OK=0
-check_endpoint "Metagraph L0" "$METAGRAPH_L0_URL" || CLUSTER_OK=0
-check_endpoint "Data L1"      "$DATA_L1_URL"      || CLUSTER_OK=0
-check_endpoint "Currency L1"  "$CURRENCY_L1_URL"  || CLUSTER_OK=0
+for node in "${CHAIN_NODES[@]}"; do
+  h=$(chain_height "$node" || true)
+  if [ -n "$h" ]; then ok "validator $node at block $h"; else fail "validator $node NOT reachable"; CLUSTER_OK=0; fi
+done
+if [ -n "$BESU_ANCHOR_CONTRACT" ] && [ -n "$BESU_VALIDATORS" ]; then
+  ok "anchor contract $BESU_ANCHOR_CONTRACT"
+else
+  fail "chain settings missing (BESU_ANCHOR_CONTRACT, BESU_VALIDATORS); run 'make dev'"; CLUSTER_OK=0
+fi
 check_endpoint "Backend"      "$BACKEND_URL"      || CLUSTER_OK=0
 
 if [ "$CLUSTER_OK" -ne 1 ]; then
@@ -201,74 +216,10 @@ case "$REGISTER_HTTP_CODE" in
 esac
 
 # -----------------------------------------------------------------------------
-# Step 3: trust-tier commitment on Identity L1 (via dev-only API proxy)
+# Step 3: identity commitments on-chain
 # -----------------------------------------------------------------------------
-step 3 "Anchor test trust-tier commitment on Identity Metagraph"
-
-IDENTITY_L1_URL="${IDENTITY_L1_URL:-http://localhost:9500}"
-
-if curl -fsS --max-time 5 "$IDENTITY_L0_URL/node/info" >/dev/null 2>&1; then
-  ok "Identity Metagraph L0 reachable ($IDENTITY_L0_URL)"
-  if curl -fsS --max-time 5 "$IDENTITY_L1_URL/node/info" >/dev/null 2>&1; then
-    ok "Identity Metagraph L1 reachable ($IDENTITY_L1_URL)"
-  else
-    fail "Identity L1 unreachable at $IDENTITY_L1_URL — start it with 'make start-identity' (separate from hydra)"
-  fi
-
-  IL0_START=$(curl -fsS --max-time 5 "$IDENTITY_L0_URL/snapshots/latest/ordinal" 2>/dev/null | jq -r '.value // empty')
-  NONCE="$(openssl rand -hex 16)"
-  TIER_BODY=$(jq -nc --arg did "$DID_KEY" --arg nonce "$NONCE" '{subject_did:$did, tier:2, nonce:$nonce}')
-  TIER_CODE=$(curl -sS -o "$TMP_DIR/tier.out" -w '%{http_code}' \
-    --max-time "$FINALITY_TIMEOUT_SECS" \
-    -X POST "$BACKEND_URL/v1/phase1/trust-tier-commitment" \
-    -H "Content-Type: application/json" \
-    -d "$TIER_BODY" 2>/dev/null) || TIER_CODE="000"
-
-  case "$TIER_CODE" in
-    200)
-      COMM=$(jq -r '.commitment // empty' "$TMP_DIR/tier.out")
-      if [ "${#COMM}" -eq 64 ]; then
-        ok "trust-tier commitment accepted by Identity L1 (H(tier||nonce) = ${COMM:0:16}…)"
-        # Acceptance by L1 is only a mempool admission. It is anchored when an
-        # Identity L0 snapshot carries a data block (needs 3 L1 nodes).
-        DEADLINE=$(( $(date +%s) + FINALITY_TIMEOUT_SECS ))
-        ANCHORED=0
-        NEXT=$(( ${IL0_START:-0} + 1 ))
-        while [ "$(date +%s)" -lt "$DEADLINE" ] && [ "$ANCHORED" -eq 0 ]; do
-          TOP=$(curl -fsS --max-time 5 "$IDENTITY_L0_URL/snapshots/latest/ordinal" 2>/dev/null | jq -r '.value // empty')
-          while [ -n "$TOP" ] && [ "$NEXT" -le "$TOP" ]; do
-            BLOCKS=$(curl -fsS --max-time 5 "$IDENTITY_L0_URL/snapshots/$NEXT" 2>/dev/null | jq -r '.value.dataApplication.blocks | length' 2>/dev/null || echo 0)
-            if [ "${BLOCKS:-0}" -gt 0 ] 2>/dev/null; then
-              ANCHORED=1
-              ok "Identity L0 snapshot $NEXT carries the data block (on-chain)"
-              break
-            fi
-            NEXT=$(( NEXT + 1 ))
-          done
-          [ "$ANCHORED" -eq 1 ] || sleep 3
-        done
-        if [ "$ANCHORED" -ne 1 ]; then
-          fail "commitment never reached an Identity L0 snapshot within ${FINALITY_TIMEOUT_SECS}s (is the Identity L1 a 3-node cluster? check 'docker logs identity-l1' for 'Not enough peers')"
-        fi
-      else
-        fail "unexpected response body: $(cat "$TMP_DIR/tier.out")"
-      fi
-      ;;
-    403)
-      fail "Phase-1 validate endpoint disabled — API must run with ENVIRONMENT=development (or PHASE1_ALLOW_OPEN_VALIDATE=true)"
-      ;;
-    000)
-      fail "POST /v1/phase1/trust-tier-commitment: backend unreachable"
-      ;;
-    *)
-      fail "POST /v1/phase1/trust-tier-commitment returned HTTP $TIER_CODE: $(cat "$TMP_DIR/tier.out")"
-      ;;
-  esac
-else
-  skip "Identity Metagraph not running — start with 'make dev' (WO-276 skeleton + WO-272 validators landed)"
-  info "CI/static skeleton: run 'make metagraph-verify-skeleton' (jq). Full compile: cd metagraph && sbt compile;"
-  info "cluster boot requires Docker + Euclid sibling repo + hydra (see metagraph/scripts/setup-euclid.sh)."
-fi
+step 3 "Anchor test trust-tier commitment on-chain"
+skip "identity commitments are not on Echo's chain yet (docs/BESU_MIGRATION_PLAN.md stage B2)"
 
 # -----------------------------------------------------------------------------
 # Step 4: Send a test message through the local relay
@@ -285,22 +236,21 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# Step 5: Confirm Merkle root committed to local Data L1 (finality < 30s)
+# Step 5: Anchor a Merkle root, then prove it without trusting the gateway or the chain
 # -----------------------------------------------------------------------------
-step 5 "Commit Merkle root to local Data L1 and verify finality"
+step 5 "Anchor a Merkle root and verify its proof offline"
 
 # Build a deterministic 32-byte SHA-256 root.
 # macOS LibreSSL prints "(stdin)= <hex>"; GNU openssl uses "<hex>".
-MERKLE_ROOT=$(printf 'phase1-validation-%s' "$DID_KEY" | openssl dgst -sha256 2>/dev/null | sed -E 's/^.*[= ]//')
+MERKLE_ROOT=$(printf 'phase1-validation-%s-%s' "$DID_KEY" "$(date +%s)" | openssl dgst -sha256 2>/dev/null | sed -E 's/^.*[= ]//')
 if [ -z "$MERKLE_ROOT" ] || [ "${#MERKLE_ROOT}" -ne 64 ]; then
-  MERKLE_ROOT=$(printf 'phase1-validation-%s' "$DID_KEY" | shasum -a 256 2>/dev/null | awk '{print $1}')
+  MERKLE_ROOT=$(printf 'phase1-validation-%s-%s' "$DID_KEY" "$(date +%s)" | shasum -a 256 2>/dev/null | awk '{print $1}')
 fi
 ok "computed Merkle root: $MERKLE_ROOT"
 
-# Submit via POST /v1/data-l1/merkle-roots (public route, no auth required).
-# Falls back to skip when the backend is unreachable or DataL1 client not configured.
 MERKLE_BODY=$(jq -nc --arg root "$MERKLE_ROOT" '{root:$root, leafCount:1}')
-SUBMIT_CODE=$(curl -sS -o "$TMP_DIR/merkle.out" -w '%{http_code}' --max-time 15 \
+SUBMIT_STARTED=$(date +%s)
+SUBMIT_CODE=$(curl -sS -o "$TMP_DIR/merkle.out" -w '%{http_code}' --max-time "$FINALITY_TIMEOUT_SECS" \
   -X POST "$BACKEND_URL/v1/data-l1/merkle-roots" \
   -H "Content-Type: application/json" \
   -d "$MERKLE_BODY" 2>/dev/null) || SUBMIT_CODE="000"
@@ -312,74 +262,89 @@ case "$SUBMIT_CODE" in
     if [ -z "$TX_ID" ]; then
       fail "submit response missing tx_id: $SUBMIT_RESP"
     else
-      ok "submitted Merkle root, tx_id=$TX_ID"
-      # Finality is decided by Metagraph L0 (it folds the Data L1 block into a
-      # snapshot). The Data L1 route only reports mempool acceptance.
-      DEADLINE=$(( $(date +%s) + FINALITY_TIMEOUT_SECS ))
-      FINALIZED=0
-      while [ "$(date +%s)" -lt "$DEADLINE" ]; do
-        if curl -fsS --max-time 5 "$METAGRAPH_L0_URL/data-application/merkle-roots/$MERKLE_ROOT" 2>/dev/null \
-             | jq -e '.finalized == true' >/dev/null 2>&1; then
-          FINALIZED=1
-          break
+      # The gateway answers only once the write is final: QBFT has no forks, so a
+      # transaction that is in a block cannot be undone.
+      ok "gateway anchored the root, final after $(( $(date +%s) - SUBMIT_STARTED ))s (tx $TX_ID)"
+
+      # Ask a validator the gateway does not use first, and build the proof from
+      # the chain alone. Nothing from the gateway is trusted from here on.
+      PROVER="${CHAIN_NODES[$(( ${#CHAIN_NODES[@]} - 1 ))]}"
+      if (cd "$REPO_ROOT" && go run ./cmd/echochain prove -rpc "$PROVER" -contract "$BESU_ANCHOR_CONTRACT" \
+            -root "$MERKLE_ROOT" -out "$TMP_DIR/bundle.json") 2>"$TMP_DIR/prove.err"; then
+        ok "proof exported from validator $PROVER"
+        # Offline: no network access. Checks the validators' signatures on the
+        # block, the state proof, and the stored entry.
+        if (cd "$REPO_ROOT" && go run ./cmd/verifyproof -bundle "$TMP_DIR/bundle.json" -validators "$BESU_VALIDATORS") >"$TMP_DIR/verify.out" 2>&1; then
+          ok "proof verified offline: $(grep -m1 'carries valid signatures' "$TMP_DIR/verify.out" | sed 's/^OK *//')"
+        else
+          fail "offline verification failed: $(tr '\n' ' ' < "$TMP_DIR/verify.out")"
         fi
-        sleep 2
-      done
-      if [ "$FINALIZED" -eq 1 ]; then
-        ok "Merkle root finalized on Metagraph L0 in <${FINALITY_TIMEOUT_SECS}s"
+        # The same proof must be refused by a verifier that trusts other validators.
+        if (cd "$REPO_ROOT" && go run ./cmd/verifyproof -bundle "$TMP_DIR/bundle.json" \
+              -validators 0x0000000000000000000000000000000000000001,0x0000000000000000000000000000000000000002,0x0000000000000000000000000000000000000003,0x0000000000000000000000000000000000000004) >/dev/null 2>&1; then
+          fail "proof was accepted against validators that did not sign it"
+        else
+          ok "proof is refused when checked against other validators"
+        fi
       else
-        fail "Merkle root not finalized on Metagraph L0 within ${FINALITY_TIMEOUT_SECS}s"
+        fail "could not export a proof from $PROVER: $(tr '\n' ' ' < "$TMP_DIR/prove.err")"
       fi
     fi
     ;;
   503)
-    skip "Data L1 client not configured on the backend (DATA_L1_URL unset): $SUBMIT_RESP"
+    fail "the backend has no chain configured (BESU_RPC_URLS / BESU_ANCHOR_CONTRACT): $SUBMIT_RESP"
     ;;
   000)
     fail "POST /v1/data-l1/merkle-roots: backend unreachable"
     ;;
   *)
     fail "POST /v1/data-l1/merkle-roots returned HTTP $SUBMIT_CODE: $SUBMIT_RESP"
-    info "A 404 from Data L1 on /data means the cluster is not running Echo's data application."
     ;;
 esac
 
 # -----------------------------------------------------------------------------
-# Step 6: Verify snapshot height increments on Global L0
+# Step 6: every validator advances, and they agree on the chain
 # -----------------------------------------------------------------------------
-step 6 "Verify Global L0 snapshot height increments"
+step 6 "Verify validators keep producing blocks and agree"
 
-read_height() {
-  # Constellation API returns {"value":N} — extract the integer regardless of wrapper.
-  local raw
-  raw=$(curl -fsS --max-time 5 "$GLOBAL_L0_URL/global-snapshots/latest/ordinal" 2>/dev/null \
-     || curl -fsS --max-time 5 "$GLOBAL_L0_URL/snapshots/latest/ordinal" 2>/dev/null) || true
-  if [[ "$raw" == \{* ]]; then
-    printf '%s' "$raw" | jq -r '.value // .ordinal // .height // empty'
-  else
-    printf '%s' "$raw"
-  fi
+block_hash() { # block_hash <node> <decimal height>
+  curl -s --max-time 3 -X POST -H 'Content-Type: application/json' \
+    --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getBlockByNumber\",\"params\":[\"$(printf '0x%x' "$2")\",false],\"id\":1}" "$1" 2>/dev/null \
+    | jq -r '.result.hash // empty'
 }
 
-START_HEIGHT=$(read_height || echo "")
-if [ -z "$START_HEIGHT" ] || ! [[ "$START_HEIGHT" =~ ^[0-9]+$ ]]; then
-  fail "could not read Global L0 snapshot ordinal (got: '${START_HEIGHT}')"
+START_HEIGHT=$(chain_height "${CHAIN_NODES[0]}" || true)
+if ! [[ "$START_HEIGHT" =~ ^[0-9]+$ ]]; then
+  fail "could not read the block height"
 else
-  ok "Global L0 starting ordinal: $START_HEIGHT"
-  # Allow at least one snapshot interval before the first poll.
-  sleep 5
+  ok "starting block: $START_HEIGHT"
+  # Blocks arrive every 2 seconds under load and every 30 when idle; a write forces one.
+  curl -s -o /dev/null --max-time "$FINALITY_TIMEOUT_SECS" -X POST "$BACKEND_URL/v1/data-l1/merkle-roots" \
+    -H "Content-Type: application/json" -d "$(jq -nc --arg root "$(openssl rand -hex 32)" '{root:$root, leafCount:1}')" || true
   DEADLINE=$(( $(date +%s) + FINALITY_TIMEOUT_SECS ))
-  ADVANCED=0
+  BEHIND=""
   while [ "$(date +%s)" -lt "$DEADLINE" ]; do
-    NOW_HEIGHT=$(read_height || echo "")
-    if [[ "$NOW_HEIGHT" =~ ^[0-9]+$ ]] && [ "$NOW_HEIGHT" -gt "$START_HEIGHT" ]; then
-      ok "Global L0 ordinal advanced: $START_HEIGHT → $NOW_HEIGHT"
-      ADVANCED=1
-      break
-    fi
-    sleep 3
+    BEHIND=""
+    for node in "${CHAIN_NODES[@]}"; do
+      h=$(chain_height "$node" || true)
+      { [[ "$h" =~ ^[0-9]+$ ]] && [ "$h" -gt "$START_HEIGHT" ]; } || BEHIND="$BEHIND $node"
+    done
+    [ -z "$BEHIND" ] && break
+    sleep 2
   done
-  [ "$ADVANCED" -eq 1 ] || fail "Global L0 ordinal did not advance within ${FINALITY_TIMEOUT_SECS}s"
+  if [ -z "$BEHIND" ]; then
+    ok "all ${#CHAIN_NODES[@]} validators advanced past block $START_HEIGHT"
+  else
+    fail "validators did not advance within ${FINALITY_TIMEOUT_SECS}s:$BEHIND"
+  fi
+  # One hash per validator for the same height: more than one distinct value would be a fork.
+  CHECK=$(( START_HEIGHT + 1 ))
+  HASHES=$(for node in "${CHAIN_NODES[@]}"; do block_hash "$node" "$CHECK"; done | sort -u | grep -c .)
+  if [ "$HASHES" -eq 1 ]; then
+    ok "all validators hold the same block $CHECK"
+  else
+    fail "validators disagree on block $CHECK ($HASHES distinct hashes)"
+  fi
 fi
 
 # -----------------------------------------------------------------------------
@@ -388,7 +353,7 @@ fi
 printf "\n%s===== Summary =====%s\n" "$BOLD" "$RESET"
 printf "  passed:  %s%d%s\n" "$GREEN"  "$PASS" "$RESET"
 printf "  failed:  %s%d%s\n" "$RED"    "$FAIL" "$RESET"
-printf "  skipped: %s%d%s (Step 3 VC anchor optional; Step 5 finality poll if Data L1 exposes read API)\n" "$YELLOW" "$SKIP" "$RESET"
+printf "  skipped: %s%d%s (Step 3: identity commitments move on-chain in plan stage B2)\n" "$YELLOW" "$SKIP" "$RESET"
 
 if [ "$FAIL" -gt 0 ]; then
   printf "\n%sGo/No-Go: NO-GO%s\n" "$RED" "$RESET"

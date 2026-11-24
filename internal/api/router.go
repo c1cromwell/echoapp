@@ -89,7 +89,7 @@ type Router struct {
 	PublicRateLimiter    *infra.RateLimiter               // S5: per-IP throttle for pre-auth public endpoints (optional)
 	SMSProvider          infra.SMSProvider                // Wave 12 SMS OTP recovery (optional; stub when nil)
 	IdentityL1           *metagraph.MetagraphClient       // WO-274 trust-tier commitments
-	DataL1               *metagraph.MetagraphClient       // WO-230 Data L1 Merkle proxy (optional)
+	DataL1               metagraph.DataSubmitter          // anchors Merkle roots and trust commitments on Echo's chain (optional)
 	CredentialService    *credentials.Service             // WO-274 VC issuance (optional)
 	OIDC                 *gin.Engine                      // OpenID4VCI issuer + verifier mount (optional)
 	OIDCVerifier         *oidc4vc.Verifier                // OIDC4VC presentation verifier (optional)

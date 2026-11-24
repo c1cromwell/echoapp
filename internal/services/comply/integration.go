@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/evidence"
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
@@ -17,26 +16,15 @@ type IntegrationConfig struct {
 	EvidenceConfig *evidence.ClientConfig
 }
 
-// LoadIntegrationFromEnv wires metagraph Data L1 and Digital Evidence clients from env.
+// LoadIntegrationFromEnv wires the chain anchor and Digital Evidence clients from env.
 func LoadIntegrationFromEnv() IntegrationConfig {
 	var out IntegrationConfig
 
-	if d1 := strings.TrimSpace(os.Getenv("DATA_L1_URL")); d1 != "" {
-		cfg := metagraph.MetagraphConfig{
-			DataL1URL: d1,
-			Timeout:   30 * time.Second,
-		}
-		if pemPath := strings.TrimSpace(os.Getenv("IDENTITY_SERVICE_KEY_PEM")); pemPath != "" {
-			if pem, err := os.ReadFile(pemPath); err != nil {
-				log.Printf("comply: Data L1 signing disabled: read key: %v", err)
-			} else if signer, err := metagraph.LoadIdentitySigningFromPEM(pem); err != nil {
-				log.Printf("comply: Data L1 signing disabled: %v", err)
-			} else {
-				cfg.IdentitySigner = &signer
-			}
-		}
-		out.DataL1 = NewMetagraphAnchor(metagraph.NewMetagraphClient(cfg))
-		log.Printf("comply: Data L1 anchoring enabled (%s)", d1)
+	if anchor, err := metagraph.BesuAnchorFromEnv(); err != nil {
+		log.Printf("comply: chain anchoring disabled: %v", err)
+	} else if anchor != nil {
+		out.DataL1 = NewMetagraphAnchor(anchor)
+		log.Printf("comply: chain anchoring enabled (contract %s)", anchor.Client.AnchorContract().Hex())
 	}
 
 	// Digital Evidence is a Constellation-hosted service: constructed only when

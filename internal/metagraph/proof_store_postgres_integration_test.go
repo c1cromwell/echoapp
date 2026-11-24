@@ -4,6 +4,7 @@ package metagraph
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -17,8 +18,8 @@ import (
 //
 //	DATABASE_URL=postgres://... go test -tags integration ./internal/metagraph/ -run PostgresProofStore
 //
-// The test applies migrations/036_anchor_proofs.sql itself (twice, to check it
-// is idempotent) and removes the rows it writes.
+// The test applies migrations 036 and 037 itself (twice, to check they are
+// idempotent) and removes the rows it writes.
 func TestPostgresProofStoreIntegration(t *testing.T) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
@@ -31,13 +32,15 @@ func TestPostgresProofStoreIntegration(t *testing.T) {
 	}
 	defer pool.Close()
 
-	migration, err := os.ReadFile(filepath.Join("..", "..", "migrations", "036_anchor_proofs.sql"))
-	if err != nil {
-		t.Fatal(err)
-	}
 	for i := 0; i < 2; i++ {
-		if _, err := pool.Exec(ctx, string(migration)); err != nil {
-			t.Fatalf("apply migration (pass %d): %v", i+1, err)
+		for _, name := range []string{"036_anchor_proofs.sql", "037_anchor_chain_proof.sql"} {
+			migration, err := os.ReadFile(filepath.Join("..", "..", "migrations", name))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := pool.Exec(ctx, string(migration)); err != nil {
+				t.Fatalf("apply %s (pass %d): %v", name, i+1, err)
+			}
 		}
 	}
 
@@ -77,26 +80,26 @@ func TestPostgresProofStoreIntegration(t *testing.T) {
 	// --- anchored roots ---
 	t0 := time.Now().UTC().Truncate(time.Microsecond)
 	for i, r := range []string{rootA, rootB, rootC} {
-		if err := store.RecordRootSubmitted(ctx, r, 4, ChainNetworkSovereign, t0.Add(time.Duration(i)*time.Second)); err != nil {
+		if err := store.RecordRootSubmitted(ctx, r, 4, ChainNetworkBesu, t0.Add(time.Duration(i)*time.Second)); err != nil {
 			t.Fatal(err)
 		}
 	}
 	// Re-recording must not reset an existing row.
-	if err := store.RecordRootSubmitted(ctx, rootA, 99, ChainNetworkConstellation, t0.Add(time.Hour)); err != nil {
+	if err := store.RecordRootSubmitted(ctx, rootA, 99, "other", t0.Add(time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 	rec, ok, err := store.GetRoot(ctx, rootA)
 	if err != nil || !ok {
 		t.Fatalf("get root: ok=%v err=%v", ok, err)
 	}
-	if rec.LeafCount != 4 || rec.Network != ChainNetworkSovereign || !rec.SubmittedAt.Equal(t0) || rec.Finalized || rec.FinalizedAt != nil || rec.ML0 != nil || rec.GL0 != nil {
+	if rec.LeafCount != 4 || rec.Network != ChainNetworkBesu || !rec.SubmittedAt.Equal(t0) || rec.Finalized || rec.FinalizedAt != nil || rec.Chain != nil {
 		t.Fatalf("fresh root: %+v", rec)
 	}
 	if _, ok, _ := store.GetRoot(ctx, "it-anchor-root-missing"); ok {
 		t.Fatal("unexpected root")
 	}
 
-	// Finality without snapshots (no object storage / URLs): archive fields stay NULL.
+	// Finality before the chain proof is recorded: the proof columns stay NULL.
 	if err := store.MarkRootFinalized(ctx, rootA, t0.Add(time.Minute)); err != nil {
 		t.Fatal(err)
 	}
@@ -104,37 +107,34 @@ func TestPostgresProofStoreIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 	rec, _, _ = store.GetRoot(ctx, rootA)
-	if !rec.Finalized || rec.FinalizedAt == nil || !rec.FinalizedAt.Equal(t0.Add(time.Minute)) || rec.ML0 != nil {
+	if !rec.Finalized || rec.FinalizedAt == nil || !rec.FinalizedAt.Equal(t0.Add(time.Minute)) || rec.Chain != nil {
 		t.Fatalf("finalized root: %+v", rec)
 	}
 
-	// Snapshot evidence: ML0 without archive on B; full ML0+GL0 on A.
-	no := false
-	if err := store.SaveRootSnapshots(ctx, rootB, &SnapshotRef{Ordinal: 7, Hash: "h7", Signers: []string{"p1"}, ContainsRoot: &no}, nil); err != nil {
-		t.Fatal(err)
-	}
-	rec, _, _ = store.GetRoot(ctx, rootB)
-	if rec.ML0 == nil || rec.ML0.ArchiveKey != "" || rec.ML0.SHA256 != "" || rec.ML0.ContainsRoot == nil || *rec.ML0.ContainsRoot || rec.GL0 != nil {
-		t.Fatalf("root B: ml0=%+v gl0=%+v", rec.ML0, rec.GL0)
-	}
-	var nullKey, nullSHA bool
-	if err := pool.QueryRow(ctx, `SELECT ml0_archive_key IS NULL, gl0_snapshot_ordinal IS NULL FROM anchor_roots WHERE merkle_root = $1`, rootB).Scan(&nullKey, &nullSHA); err != nil || !nullKey || !nullSHA {
-		t.Fatalf("archive columns should be NULL: %v %v err=%v", nullKey, nullSHA, err)
+	var nullProof bool
+	if err := pool.QueryRow(ctx, `SELECT chain_proof IS NULL FROM anchor_roots WHERE merkle_root = $1`, rootA).Scan(&nullProof); err != nil || !nullProof {
+		t.Fatalf("chain_proof should be NULL before it is saved: %v err=%v", nullProof, err)
 	}
 
-	yes := true
-	ml0 := &SnapshotRef{Ordinal: 42, Hash: "mh", Signers: []string{"p1", "p2"}, ArchiveKey: "chain-archive/sovereign/ml0/42-mh.json", SHA256: "s1", ContainsRoot: &yes}
-	gl0 := &SnapshotRef{Ordinal: 900, Hash: "gh", Signers: []string{"g1"}, ArchiveKey: "chain-archive/sovereign/gl0/900-gh.json", SHA256: "s2"}
-	if err := store.SaveRootSnapshots(ctx, rootA, ml0, gl0); err != nil {
+	// Chain evidence: a proof on A (finalized -> complete); a block but no proof yet on B.
+	full := ChainAnchor{BlockNumber: 42, TxHash: "0xtx", Contract: "0xc0", Proof: json.RawMessage(`{"root": "0x00"}`)}
+	if err := store.SaveChainAnchor(ctx, rootA, full); err != nil {
 		t.Fatal(err)
 	}
 	rec, _, _ = store.GetRoot(ctx, rootA)
-	if !reflect.DeepEqual(rec.ML0, ml0) || !reflect.DeepEqual(rec.GL0, gl0) {
-		t.Fatalf("root A snapshots: ml0=%+v gl0=%+v", rec.ML0, rec.GL0)
+	if rec.Chain == nil || rec.Chain.BlockNumber != 42 || rec.Chain.TxHash != "0xtx" || rec.Chain.Contract != "0xc0" || !json.Valid(rec.Chain.Proof) || len(rec.Chain.Proof) == 0 {
+		t.Fatalf("root A chain evidence: %+v", rec.Chain)
+	}
+	if err := store.SaveChainAnchor(ctx, rootB, ChainAnchor{BlockNumber: 7}); err != nil {
+		t.Fatal(err)
+	}
+	rec, _, _ = store.GetRoot(ctx, rootB)
+	if rec.Chain == nil || rec.Chain.BlockNumber != 7 || len(rec.Chain.Proof) != 0 {
+		t.Fatalf("root B chain evidence: %+v", rec.Chain)
 	}
 
-	// Incomplete = not finalized OR no ML0 snapshot; newest first.
-	// A: finalized + ML0 -> complete. B: ML0 but not finalized. C: untouched.
+	// Incomplete = not finalized OR no chain proof; newest first.
+	// A: finalized + proof -> complete. B: block but no proof, not finalized. C: untouched.
 	list, err := store.ListIncompleteRoots(ctx, 1000)
 	if err != nil {
 		t.Fatal(err)
@@ -154,7 +154,7 @@ func TestPostgresProofStoreIntegration(t *testing.T) {
 
 	// The bundle is served from the durable record alone.
 	b, err := BuildProofBundle(ctx, store, "", rootA, proof.MessageID)
-	if err != nil || !b.Finalized || b.MetagraphSnapshot == nil || b.Message == nil {
+	if err != nil || !b.Finalized || b.Chain == nil || b.Message == nil {
 		t.Fatalf("bundle: %+v err=%v", b, err)
 	}
 }

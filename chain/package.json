@@ -1,0 +1,6 @@
+{
+  "name": "echo-chain-contracts",
+  "private": true,
+  "description": "Pinned Solidity compiler for Echo's contracts. Artefacts are committed; this is only needed to change a contract.",
+  "devDependencies": { "solc": "0.8.28" }
+}

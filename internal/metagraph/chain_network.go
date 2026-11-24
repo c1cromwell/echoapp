@@ -6,25 +6,19 @@ import (
 	"strings"
 )
 
-// Chain network names accepted in ECHO_CHAIN_NETWORK.
-const (
-	// ChainNetworkSovereign is Echo's own self-run chain (default).
-	ChainNetworkSovereign = "sovereign"
-	// ChainNetworkConstellation is Constellation's public network.
-	ChainNetworkConstellation = "constellation"
-)
+// ChainNetworkBesu is Echo's own chain: a private Hyperledger Besu network. It is the only
+// network the gateway anchors to (docs/BESU_MIGRATION_PLAN.md).
+const ChainNetworkBesu = "besu"
 
-// ParseChainNetwork validates an ECHO_CHAIN_NETWORK value. Empty means the
-// default (sovereign); anything other than the two known names is an error.
+// ParseChainNetwork validates an ECHO_CHAIN_NETWORK value. Empty means the default (besu);
+// anything else is an error, so a stale setting from an earlier chain stops startup instead of
+// being silently ignored.
 func ParseChainNetwork(raw string) (string, error) {
 	switch v := strings.ToLower(strings.TrimSpace(raw)); v {
-	case "":
-		return ChainNetworkSovereign, nil
-	case ChainNetworkSovereign, ChainNetworkConstellation:
-		return v, nil
+	case "", ChainNetworkBesu:
+		return ChainNetworkBesu, nil
 	default:
-		return "", fmt.Errorf("invalid ECHO_CHAIN_NETWORK %q: must be %q or %q",
-			raw, ChainNetworkSovereign, ChainNetworkConstellation)
+		return "", fmt.Errorf("invalid ECHO_CHAIN_NETWORK %q: must be %q", raw, ChainNetworkBesu)
 	}
 }
 

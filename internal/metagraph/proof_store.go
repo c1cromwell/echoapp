@@ -27,23 +27,17 @@ type ProofStore interface {
 	Get(ctx context.Context, messageID string) (MessageAnchorProof, bool, error)
 }
 
-// SnapshotRef describes one signed snapshot captured as finality evidence.
-// Ordinal and Hash are as reported by the node; SHA256 is the digest of the
-// archived JSON body (not the Tessellation snapshot hash). ArchiveKey/SHA256
-// are empty when no object storage was configured.
-type SnapshotRef struct {
-	Ordinal    int64    `json:"ordinal"`
-	Hash       string   `json:"hash"`
-	Signers    []string `json:"signers"`
-	ArchiveKey string   `json:"archiveKey,omitempty"`
-	SHA256     string   `json:"sha256,omitempty"`
-	// ContainsRoot is set for Metagraph L0 snapshots only: true when the root
-	// was found in the snapshot's data-application on-chain state, false when
-	// the snapshot only bounds finality ("at or before this ordinal").
-	ContainsRoot *bool `json:"containsRoot,omitempty"`
+// ChainAnchor is the chain's evidence for one anchored root: where it was recorded, and a proof
+// that can be checked offline (besu.Proof as JSON). The gateway stores it so a proof bundle can be
+// served, and verified, with the chain switched off.
+type ChainAnchor struct {
+	BlockNumber int64           `json:"blockNumber"` // block the root was recorded in
+	TxHash      string          `json:"txHash"`
+	Contract    string          `json:"contract"`
+	Proof       json.RawMessage `json:"proof,omitempty"`
 }
 
-// AnchoredRoot is the durable record of one Merkle root submitted to Data L1.
+// AnchoredRoot is the durable record of one Merkle root submitted to the chain.
 type AnchoredRoot struct {
 	MerkleRoot  string
 	Network     string
@@ -51,22 +45,20 @@ type AnchoredRoot struct {
 	SubmittedAt time.Time
 	Finalized   bool
 	FinalizedAt *time.Time
-	ML0         *SnapshotRef
-	GL0         *SnapshotRef
+	Chain       *ChainAnchor
 }
 
-// RootStore persists anchored roots and what was observed about their finality.
+// RootStore persists anchored roots and the chain's evidence for them.
 type RootStore interface {
 	// RecordRootSubmitted inserts the root if it is not already known.
 	RecordRootSubmitted(ctx context.Context, root string, leafCount int, network string, at time.Time) error
 	GetRoot(ctx context.Context, root string) (AnchoredRoot, bool, error)
-	// ListIncompleteRoots returns roots that are not finalized or have no
-	// metagraph snapshot recorded yet, newest first.
+	// ListIncompleteRoots returns roots that are not finalized or have no chain proof yet, newest first.
 	ListIncompleteRoots(ctx context.Context, limit int) ([]AnchoredRoot, error)
 	// MarkRootFinalized sets finalized; the first finalized_at wins.
 	MarkRootFinalized(ctx context.Context, root string, at time.Time) error
-	// SaveRootSnapshots records snapshot evidence; a nil ref leaves that side untouched.
-	SaveRootSnapshots(ctx context.Context, root string, ml0, gl0 *SnapshotRef) error
+	// SaveChainAnchor records the chain's evidence for the root.
+	SaveChainAnchor(ctx context.Context, root string, anchor ChainAnchor) error
 }
 
 // AnchorStore is a ProofStore that also tracks anchored roots.
@@ -114,7 +106,7 @@ func (s *MemoryProofStore) ListIncompleteRoots(_ context.Context, limit int) ([]
 	defer s.mu.RUnlock()
 	var out []AnchoredRoot
 	for _, r := range s.roots {
-		if !r.Finalized || r.ML0 == nil {
+		if !r.Finalized || r.Chain == nil || len(r.Chain.Proof) == 0 {
 			out = append(out, r)
 		}
 	}
@@ -141,22 +133,16 @@ func (s *MemoryProofStore) MarkRootFinalized(_ context.Context, root string, at 
 	return nil
 }
 
-// SaveRootSnapshots implements RootStore.
-func (s *MemoryProofStore) SaveRootSnapshots(_ context.Context, root string, ml0, gl0 *SnapshotRef) error {
+// SaveChainAnchor implements RootStore.
+func (s *MemoryProofStore) SaveChainAnchor(_ context.Context, root string, anchor ChainAnchor) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	r, ok := s.roots[root]
 	if !ok {
 		return nil
 	}
-	if ml0 != nil {
-		c := *ml0
-		r.ML0 = &c
-	}
-	if gl0 != nil {
-		c := *gl0
-		r.GL0 = &c
-	}
+	c := anchor
+	r.Chain = &c
 	s.roots[root] = r
 	return nil
 }

@@ -48,8 +48,9 @@ services:
       - DATABASE_USER=echoapp
       - DATABASE_PASSWORD=echoapp_dev
       - DATABASE_SSLMODE=disable
-      # Optional Data L1 anchoring — point at your tenant cluster or leave default for local dev
-      - DATA_L1_URL=${DATA_L1_URL:-http://host.docker.internal:9400}
+      # Optional chain anchoring: set both (see deploy/besu/local/.network/chain.env after `make chain-up`).
+      - BESU_RPC_URLS=${BESU_RPC_URLS_DOCKER:-}
+      - BESU_ANCHOR_CONTRACT=${BESU_ANCHOR_CONTRACT:-}
       - IDENTITY_SERVICE_KEY_PEM=/app/.keys/identity-service.pem
     volumes:
       - ./migrations:/app/migrations:ro

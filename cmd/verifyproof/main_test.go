@@ -7,222 +7,167 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/metagraph"
 )
 
-// snapshotFile builds a signed-snapshot JSON body; roots == nil means no
-// data-application part (Global L0 style).
-func snapshotFile(ordinal int64, signers []string, roots []string) []byte {
-	value := map[string]any{"ordinal": ordinal}
-	if roots != nil {
-		mr := map[string]any{}
-		for _, r := range roots {
-			mr[r] = map[string]any{"root": r}
-		}
-		state, _ := json.Marshal(map[string]any{"merkleRoots": mr})
-		ints := make([]int, len(state))
-		for i, b := range state {
-			ints[i] = int(b)
-		}
-		value["dataApplication"] = map[string]any{"onChainState": ints}
-	}
-	proofs := []map[string]string{}
-	for _, s := range signers {
-		proofs = append(proofs, map[string]string{"id": s, "signature": "3045"})
-	}
-	b, _ := json.Marshal(map[string]any{"value": value, "proofs": proofs})
-	return b
-}
-
-type fixture struct {
-	dir                  string
-	bundle               metagraph.ProofBundle
-	ml0Body, gl0Body     []byte
-	bundlePath, ml0, gl0 string
-	trustedPath          string
-}
-
-func newFixture(t *testing.T) *fixture {
+// testdata/bundle.json is a real bundle: three message commitments anchored on a four-validator
+// chain through the gateway's own code path, as served by GET /v1/anchors/{root}/proof
+// (BESU_UPDATE_FIXTURE=1 go test ./internal/metagraph -run TestLiveAnchorBatch).
+func fixture(t *testing.T) (*metagraph.ProofBundle, string) {
 	t.Helper()
-	leaves := make([]string, 5)
-	for i := range leaves {
-		leaves[i] = metagraph.SHA256Hex([]byte{byte(i)})
-	}
-	tree := metagraph.BuildMerkleTree(leaves)
-	f := &fixture{dir: t.TempDir()}
-	f.ml0Body = snapshotFile(42, []string{"peer-a", "peer-b"}, []string{tree.Root})
-	f.gl0Body = snapshotFile(900, []string{"gpeer"}, nil)
-	yes, now := true, time.Now().UTC()
-	f.bundle = metagraph.ProofBundle{
-		Version: metagraph.ProofBundleVersion, Network: "sovereign", MerkleRoot: tree.Root, LeafCount: 5,
-		SubmittedAt: now, Finalized: true, FinalizedAt: &now,
-		MetagraphSnapshot: &metagraph.SnapshotRef{Ordinal: 42, Hash: "mh", Signers: []string{"peer-a", "peer-b"},
-			ArchiveKey: "chain-archive/sovereign/ml0/42-mh.json", SHA256: metagraph.SHA256Hex(f.ml0Body), ContainsRoot: &yes},
-		GlobalSnapshot: &metagraph.SnapshotRef{Ordinal: 900, Hash: "gh", Signers: []string{"gpeer"},
-			ArchiveKey: "chain-archive/sovereign/gl0/900-gh.json", SHA256: metagraph.SHA256Hex(f.gl0Body)},
-		Message: &metagraph.ProofBundleMessage{MessageID: "m4", Commitment: leaves[4], Siblings: tree.ProofSiblings(4), LeafIndex: 4},
-	}
-	f.ml0 = f.write(t, "ml0.json", f.ml0Body)
-	f.gl0 = f.write(t, "gl0.json", f.gl0Body)
-	f.trustedPath = f.write(t, "trusted.txt", []byte("# validators\nPEER-A\npeer-b  # second\n\ngpeer\n"))
-	return f
-}
-
-func (f *fixture) write(t *testing.T, name string, data []byte) string {
-	t.Helper()
-	p := filepath.Join(f.dir, name)
-	if err := os.WriteFile(p, data, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	return p
-}
-
-// verify writes the (possibly mutated) bundle and runs the verifier.
-func (f *fixture) verify(t *testing.T, extra ...string) (int, string) {
-	t.Helper()
-	raw, err := json.Marshal(f.bundle)
+	raw, err := os.ReadFile("testdata/bundle.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.bundlePath = f.write(t, "bundle.json", raw)
+	var f struct {
+		Validators string                 `json:"validators"`
+		Bundle     *metagraph.ProofBundle `json:"bundle"`
+	}
+	if err := json.Unmarshal(raw, &f); err != nil {
+		t.Fatal(err)
+	}
+	return f.Bundle, f.Validators
+}
+
+// runWith writes the bundle to a temp file and runs the verifier on it.
+func runWith(t *testing.T, b *metagraph.ProofBundle, extra ...string) (int, string) {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "bundle.json")
+	raw, err := json.Marshal(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
 	var out, errOut bytes.Buffer
-	code := run(append([]string{"-bundle", f.bundlePath}, extra...), &out, &errOut)
+	code := run(append([]string{"-bundle", path}, extra...), &out, &errOut)
 	return code, out.String() + errOut.String()
 }
 
-func (f *fixture) all() []string {
-	return []string{"-ml0", f.ml0, "-gl0", f.gl0, "-trusted", f.trustedPath}
+// copyBundle deep-copies so a test can tamper with it.
+func copyBundle(t *testing.T, b *metagraph.ProofBundle) *metagraph.ProofBundle {
+	t.Helper()
+	raw, _ := json.Marshal(b)
+	var out metagraph.ProofBundle
+	if err := json.Unmarshal(raw, &out); err != nil {
+		t.Fatal(err)
+	}
+	return &out
 }
 
-func TestVerify_FullBundlePasses(t *testing.T) {
-	f := newFixture(t)
-	code, out := f.verify(t, f.all()...)
+func TestVerify_RealBundlePasses(t *testing.T) {
+	b, validators := fixture(t)
+	code, out := runWith(t, b, "-validators", validators)
 	if code != 0 {
 		t.Fatalf("exit %d\n%s", code, out)
 	}
 	for _, want := range []string{
-		"merkle path for message m4 recomputes to the root",
-		"metagraph snapshot: sha256 matches bundle",
-		"global snapshot: sha256 matches bundle",
-		"root is present in the file's data-application on-chain state",
-		"all 2 signer id(s) are in the trusted set",
-		"NOT VERIFIED: snapshot signatures",
-		"signatures NOT verified",
+		"is leaf 1 of 3 under the root",
+		"root is recorded in contract",
+		"carries valid signatures from",
+		"leaf count on the chain matches the bundle (3)",
+		"RESULT: VERIFIED",
 	} {
 		if !strings.Contains(out, want) {
-			t.Errorf("output missing %q\n%s", want, out)
+			t.Errorf("output is missing %q\n%s", want, out)
 		}
 	}
 	if strings.Contains(out, "FAIL") {
-		t.Errorf("unexpected FAIL line\n%s", out)
+		t.Errorf("a passing run printed FAIL\n%s", out)
 	}
 }
 
-// The signature disclaimer is printed on every run, pass or fail, with or
-// without snapshot files.
-func TestVerify_AlwaysPrintsSignatureDisclaimer(t *testing.T) {
-	f := newFixture(t)
-	code, out := f.verify(t)
-	if code != 0 || !strings.Contains(out, "NOT VERIFIED: snapshot signatures") {
-		t.Fatalf("bundle only: exit %d\n%s", code, out)
+func TestVerify_ValidatorsFromFile(t *testing.T) {
+	b, validators := fixture(t)
+	path := filepath.Join(t.TempDir(), "validators.txt")
+	body := "# Echo validators\n" + strings.ReplaceAll(validators, ",", "\n") + "\n"
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
 	}
-	if !strings.Contains(out, "SKIP  metagraph snapshot: no file supplied") || !strings.Contains(out, "SKIP  trusted signers") {
-		t.Errorf("skipped checks must be reported as skipped\n%s", out)
+	if code, out := runWith(t, b, "-validators-file", path); code != 0 {
+		t.Fatalf("exit %d\n%s", code, out)
 	}
-	f.bundle.Message.Commitment = metagraph.SHA256Hex([]byte("forged"))
-	code, out = f.verify(t)
-	if code != 1 || !strings.Contains(out, "NOT VERIFIED: snapshot signatures") {
-		t.Fatalf("failing run: exit %d\n%s", code, out)
+}
+
+func TestVerify_RootOnlyBundle(t *testing.T) {
+	b, validators := fixture(t)
+	b = copyBundle(t, b)
+	b.Message = nil
+	code, out := runWith(t, b, "-validators", validators)
+	if code != 0 || !strings.Contains(out, "SKIP  no message in the bundle") {
+		t.Fatalf("exit %d\n%s", code, out)
 	}
 }
 
 func TestVerify_Failures(t *testing.T) {
-	cases := map[string]struct {
-		mutate func(t *testing.T, f *fixture)
-		want   string
+	good, validators := fixture(t)
+	strangers := "0x0000000000000000000000000000000000000001,0x0000000000000000000000000000000000000002,0x0000000000000000000000000000000000000003,0x0000000000000000000000000000000000000004"
+	twoOfFour := strings.Join(strings.Split(validators, ",")[:2], ",")
+
+	cases := []struct {
+		name       string
+		tamper     func(b *metagraph.ProofBundle)
+		validators string
+		want       string
 	}{
-		"forged commitment": {func(_ *testing.T, f *fixture) { f.bundle.Message.Commitment = metagraph.SHA256Hex([]byte("x")) }, "FAIL  merkle path"},
-		"tampered sibling":  {func(_ *testing.T, f *fixture) { f.bundle.Message.Siblings[0] = metagraph.SHA256Hex([]byte("x")) }, "FAIL  merkle path"},
-		"wrong leaf index":  {func(_ *testing.T, f *fixture) { f.bundle.Message.LeafIndex = 0 }, "FAIL  merkle path"},
-		"wrong leaf count":  {func(_ *testing.T, f *fixture) { f.bundle.LeafCount = 6 }, "FAIL  merkle path"},
-		"different root":    {func(_ *testing.T, f *fixture) { f.bundle.MerkleRoot = metagraph.SHA256Hex([]byte("other root")) }, "FAIL  merkle path"},
-		"not finalized":     {func(_ *testing.T, f *fixture) { f.bundle.Finalized = false }, "does not state the root as finalized"},
-		"ml0 file altered": {func(t *testing.T, f *fixture) {
-			f.ml0 = f.write(t, "ml0.json", append(append([]byte(nil), f.ml0Body...), '\n'))
-		}, "FAIL  metagraph snapshot: sha256"},
-		"gl0 file altered": {func(t *testing.T, f *fixture) {
-			f.gl0 = f.write(t, "gl0.json", snapshotFile(900, []string{"gpeer", "extra"}, nil))
-		}, "FAIL  global snapshot: sha256"},
-		"bundle sha256 missing": {func(_ *testing.T, f *fixture) { f.bundle.MetagraphSnapshot.SHA256 = "" }, "no sha256 to compare"},
-		"untrusted ml0 signer": {func(t *testing.T, f *fixture) {
-			f.trustedPath = f.write(t, "trusted.txt", []byte("peer-a\ngpeer\n"))
-		}, "FAIL  metagraph snapshot: 1 signer id(s) not in the trusted set: peer-b"},
-		"untrusted gl0 signer": {func(t *testing.T, f *fixture) {
-			f.trustedPath = f.write(t, "trusted.txt", []byte("peer-a\npeer-b\n"))
-		}, "FAIL  global snapshot: 1 signer id(s) not in the trusted set: gpeer"},
-		"bundle signers differ from file": {func(_ *testing.T, f *fixture) {
-			f.bundle.MetagraphSnapshot.Signers = []string{"peer-a"}
-		}, "signer ids in file do not match the bundle"},
-		"no signers recorded": {func(_ *testing.T, f *fixture) { f.bundle.GlobalSnapshot.Signers = nil }, "FAIL  global snapshot"},
-		"ordinal mismatch":    {func(_ *testing.T, f *fixture) { f.bundle.MetagraphSnapshot.Ordinal = 43 }, "file ordinal 42 does not match bundle 43"},
-		"claimed root not in snapshot file": {func(t *testing.T, f *fixture) {
-			body := snapshotFile(42, []string{"peer-a", "peer-b"}, []string{})
-			f.ml0 = f.write(t, "ml0.json", body)
-			f.bundle.MetagraphSnapshot.SHA256 = metagraph.SHA256Hex(body)
-		}, "bundle states the root is in the snapshot, but it is not in the file"},
-		"snapshot file without bundle record": {func(_ *testing.T, f *fixture) { f.bundle.GlobalSnapshot = nil }, "file supplied but the bundle records no global snapshot"},
+		{"validators the block was not signed by", func(*metagraph.ProofBundle) {}, strangers, "not a trusted validator"},
+		{"only two of the four real validators trusted", func(*metagraph.ProofBundle) {}, twoOfFour, "not a trusted validator"},
+		{"chain proof removed", func(b *metagraph.ProofBundle) { b.Chain = nil }, validators, "carries no chain proof"},
+		{"chain proof emptied", func(b *metagraph.ProofBundle) { b.Chain.Proof = nil }, validators, "carries no chain proof"},
+		{"chain proof is not JSON for a proof", func(b *metagraph.ProofBundle) { b.Chain.Proof = json.RawMessage(`"x"`) }, validators, "malformed"},
+		{"bundle claims a different root than the proof", func(b *metagraph.ProofBundle) {
+			b.MerkleRoot = strings.Repeat("ab", 32)
+		}, validators, "FAIL"},
+		{"bundle claims more leaves than the chain recorded", func(b *metagraph.ProofBundle) {
+			b.LeafCount = 4
+		}, validators, "FAIL"},
+		{"bundle claims a different block", func(b *metagraph.ProofBundle) { b.Chain.BlockNumber++ }, validators, "the bundle says block"},
+		{"bundle names a different contract", func(b *metagraph.ProofBundle) {
+			b.Chain.Contract = "0x00000000000000000000000000000000000000ff"
+		}, validators, "the bundle names contract"},
+		{"message commitment swapped", func(b *metagraph.ProofBundle) {
+			b.Message.Commitment = strings.Repeat("cd", 32)
+		}, validators, "is not under the root"},
+		{"message path sibling altered", func(b *metagraph.ProofBundle) {
+			b.Message.Siblings[0] = strings.Repeat("ef", 32)
+		}, validators, "is not under the root"},
+		{"message claimed at another position", func(b *metagraph.ProofBundle) { b.Message.LeafIndex = 0 }, validators, "is not under the root"},
 	}
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			f := newFixture(t)
-			tc.mutate(t, f)
-			code, out := f.verify(t, f.all()...)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			b := copyBundle(t, good)
+			tc.tamper(b)
+			code, out := runWith(t, b, "-validators", tc.validators)
 			if code != 1 {
 				t.Fatalf("exit %d, want 1\n%s", code, out)
 			}
 			if !strings.Contains(out, tc.want) || !strings.Contains(out, "RESULT: FAILED") {
-				t.Fatalf("output missing %q or RESULT: FAILED\n%s", tc.want, out)
+				t.Fatalf("output should mention %q and RESULT: FAILED\n%s", tc.want, out)
 			}
 		})
 	}
 }
 
-// A snapshot that only bounds finality is reported as such, not as inclusion.
-func TestVerify_BoundOnlySnapshotIsNotReportedAsInclusion(t *testing.T) {
-	f := newFixture(t)
-	no := false
-	body := snapshotFile(42, []string{"peer-a", "peer-b"}, []string{})
-	f.ml0 = f.write(t, "ml0.json", body)
-	f.bundle.MetagraphSnapshot.SHA256 = metagraph.SHA256Hex(body)
-	f.bundle.MetagraphSnapshot.ContainsRoot = &no
-	code, out := f.verify(t, f.all()...)
-	if code != 0 {
-		t.Fatalf("exit %d\n%s", code, out)
-	}
-	if !strings.Contains(out, "root NOT shown inside it") || strings.Contains(out, "root is present in the file") {
-		t.Fatalf("bound-only snapshot misreported\n%s", out)
-	}
-}
-
 func TestVerify_UsageErrors(t *testing.T) {
-	f := newFixture(t)
+	good, validators := fixture(t)
+	if code, _ := runWith(t, good); code != 2 {
+		t.Errorf("no validators: exit %d, want 2 (nothing can be verified without a trust anchor)", code)
+	}
+	if code, _ := runWith(t, good, "-validators", "not-an-address"); code != 2 {
+		t.Errorf("malformed validator: exit %d, want 2", code)
+	}
 	var out, errOut bytes.Buffer
-	if code := run(nil, &out, &errOut); code != 2 {
-		t.Errorf("no args: exit %d", code)
+	if code := run([]string{"-validators", validators}, &out, &errOut); code != 2 {
+		t.Errorf("no bundle: exit %d, want 2", code)
 	}
-	if code := run([]string{"-bundle", filepath.Join(f.dir, "missing.json")}, &out, &errOut); code != 2 {
-		t.Errorf("missing bundle: exit %d", code)
+	if code := run([]string{"-bundle", "/nonexistent", "-validators", validators}, &out, &errOut); code != 2 {
+		t.Errorf("missing file: exit %d, want 2", code)
 	}
-	bad := f.write(t, "bad.json", []byte("{not json"))
-	if code := run([]string{"-bundle", bad}, &out, &errOut); code != 2 {
-		t.Errorf("bad bundle: exit %d", code)
-	}
-	if code, _ := f.verify(t, "-trusted", filepath.Join(f.dir, "missing.txt")); code != 2 {
-		t.Errorf("missing trusted file: exit %d", code)
-	}
-	if code, o := f.verify(t, "-ml0", filepath.Join(f.dir, "missing-ml0.json")); code != 1 || !strings.Contains(o, "FAIL  metagraph snapshot: read") {
-		t.Errorf("missing snapshot file: exit %d\n%s", code, o)
+	noRoot := copyBundle(t, good)
+	noRoot.MerkleRoot = ""
+	if code, _ := runWith(t, noRoot, "-validators", validators); code != 2 {
+		t.Errorf("bundle with no root: exit %d, want 2", code)
 	}
 }

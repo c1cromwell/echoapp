@@ -163,7 +163,9 @@ services:
       - DATABASE_USER=echoapp
       - DATABASE_PASSWORD=echoapp_dev
       - DATABASE_SSLMODE=disable
-      - DATA_L1_URL=http://host.docker.internal:9400
+      # Echo's chain (optional): set both to anchor compliance commitments.
+      - BESU_RPC_URLS=${BESU_RPC_URLS_DOCKER:-}
+      - BESU_ANCHOR_CONTRACT=${BESU_ANCHOR_CONTRACT:-}
       - IDENTITY_SERVICE_KEY_PEM=/app/.keys/identity-service.pem
       # Optional: Constellation Digital Evidence API (Org-tier fingerprinting)
       # Off unless DIGITAL_EVIDENCE_ENABLED=true (an API key alone is not enough).

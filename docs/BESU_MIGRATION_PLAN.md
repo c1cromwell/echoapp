@@ -1,9 +1,29 @@
 # Moving Echo's chain from Tessellation to Hyperledger Besu
 
-**Written:** 2026-11-24 · **Status:** direction chosen by the owner on 2026-11-24; spike done (§2); stages B1–B5 not started and each needs approval at its gate
+**Written:** 2026-11-24 · **Status:** decisions final (§0); stage B1 built and its gate met locally (§7); B2–B5 not started
 
 Supersedes the implementation stages of [`OWN_L0_PLAN.md`](OWN_L0_PLAN.md) (its §12 records why).
 The goal of that plan is unchanged: Echo runs its own chain and depends on no outside network.
+
+## 0. Decisions (owner, 2026-11-24) — final
+
+| Decision | Detail |
+|---|---|
+| Echo's chain is Hyperledger Besu | Private network, QBFT consensus, four validators run by Echo. Tessellation and Constellation are no longer part of Echo |
+| The ECHO token is on-chain from genesis | A token contract deployed at genesis holds the full 1,000,000,000 supply. Reason given: there are no users yet, so there is nothing to migrate later and no period in which balances exist only in a database. This replaces my recommendation (ledger in Postgres for v1) |
+| Tessellation and Constellation code is removed | Done on 2026-11-24 for everything that could go without breaking the gateway (§8). The rest is replaced stage by stage and listed there |
+
+What "on-chain from genesis" commits Echo to, stated once so it is not a surprise later:
+
+- The token contract must be right before production genesis. It holds the whole supply, and a
+  deployed contract cannot be edited. It gets its own review (stage B3 gate).
+- The launch posture is unchanged and is enforced **in the contract**: no transfer between users,
+  no redemption, no minting after genesis. Enabling transfer later is a deliberate contract
+  change after counsel has ruled, not a setting.
+- Whether a deployed token changes how regulators see a value-free leaderboard is a question for
+  counsel. I have flagged it; I cannot answer it.
+- The iOS wallet's signing code is rewritten for this chain (stage B3), and every account gets an
+  address on it.
 
 ## 1. Why
 
@@ -66,18 +86,19 @@ key the gateway already signs with (secp256k1).
 Contracts stay small, have no upgrade proxy in v1 (a new version is a new address in gateway
 config), and get a review before production genesis.
 
-### The token — a decision for you (§6)
+### The token — on-chain from genesis (decided, §0)
 
-The ECHO ledger users see in v1 is already in Postgres (`internal/wallet/pg_store.go`); chain
-submissions accompany it. v1 is value-free: no transfer, no redemption. So there are two ways:
-
-- **A (recommended): v1 chain carries anchoring and identity only.** The value-free ledger stays in
-  Postgres as it is today, and its state is anchored like everything else (a daily Merkle root of
-  balances). A token contract comes with v1.1, when transfer is designed and counsel has ruled.
-  Smallest migration; nothing a user sees changes.
-- **B: port the token now** as a contract with transfers disabled, plus locks, delegation and
-  rewards as contract functions. Adds an estimated one to two weeks and a contract that holds the
-  whole supply and must be right.
+- One contract holds the supply: 1,000,000,000 ECHO, 8 decimals, minted once in the constructor
+  to the five allocation addresses (community rewards 400M, treasury 220M, founders 180M, team and
+  advisors 100M, ecosystem 100M). There is no mint function.
+- No transfer between users in v1. Balances change only through the functions Echo's rules need:
+  reward payout from the community-rewards allocation, lock and unlock for staking tiers,
+  delegation, the VIP allowance. Each is a contract function with the rule from
+  `Validations.scala` (git history) behind it.
+- The gateway's Postgres ledger becomes a cache of the chain, as it was designed to be; the chain
+  is the record.
+- Who signs: rewards are paid by the gateway's key; a user's own actions (lock, delegate) are
+  signed on the device with the account key and relayed by the gateway.
 
 ### Gateway (Go)
 
@@ -119,14 +140,14 @@ Estimates are from reading the code and one afternoon with Besu. Treat them as g
 
 | Stage | What | Estimate | Gate |
 |---|---|---|---|
-| B0 | Spike | done | — |
-| B1 | Chain interface; anchoring on Besu behind `ECHO_CHAIN_NETWORK=besu`; four-node local network replacing the hydra cluster in `make dev`; offline verifier with signature checks; `validate-phase1` chain steps on Besu | 4–6 days | `validate-phase1` passes on Besu, including a proof verified with the chain stopped |
-| B2 | `EchoIdentity` contract; gateway identity client; data-classification review of the new on-chain shapes | 4–6 days | Identity steps of `validate-phase1` and the identity tests pass |
-| B3 | Deploy: Terraform for four hosts, Ansible Besu role, key ceremony adapted, permissioning, monitoring, backup, restore drill, daily external checkpoint | 5–7 days | `validate-phase1` passes on staging; staging rebuilt from backup alone |
-| B4 | Token, per your choice in §6: A = daily balance anchor; B = token contract and iOS signing | A: 2–3 days · B: 1–2 weeks | A: a balance proof verifies offline · B: token tests and a contract review |
-| B5 | Remove Tessellation code and docs; 7-day soak with failure tests; launch review; production genesis | 7 days soak + 2 days | Your sign-off before genesis |
+| B0 | Spike | done 2026-11-24 | — |
+| B1 | Anchoring on Besu: contract, gateway client with fail-over, durable chain proofs, offline verifier with signature checks, four-validator local network in `make dev`, `validate-phase1` on Besu | done 2026-11-24 (§7) | Met locally |
+| B2 | Identity on-chain: `EchoIdentity` contract for the six identity updates as hashes; gateway identity client; data-classification review; group and governance anchors as commitments | 4–6 days | Step 3 of `validate-phase1` and the identity tests pass; no skipped step |
+| B3 | Token on-chain from genesis: token contract (fixed supply, no transfer, no mint), locks, delegation, rewards, VIP allowance; gateway wallet and rewards on the contract; iOS wallet signing and addresses; contract review | 2–3 weeks | Token tests pass; supply and allocations read back exactly; independent review of the token contract done |
+| B4 | Deploy: Terraform for four hosts, Ansible Besu role, key ceremony, permissioning, monitoring, backup, restore drill, daily external checkpoint | 5–7 days | `validate-phase1` and `failure-tests.sh` pass on staging; staging rebuilt from backup alone |
+| B5 | Remove the last Tessellation-era code and documents; 7-day soak with failure tests; launch review; production genesis | 7 days soak + 2 days | Your sign-off before genesis |
 
-Total with option A: roughly three weeks of work plus the soak. B1 and B2 can overlap.
+Total remaining: roughly five to six weeks of work plus the soak. B2 and B3 can overlap; B3 is the long one and the one with the most risk.
 
 ## 5. Risks and unknowns
 
@@ -137,13 +158,90 @@ Total with option A: roughly three weeks of work plus the soak. B1 and B2 can ov
 | Chain growth (a block every 2 seconds when busy, every 30 when idle) | Measure disk use in the soak; set pruning and block period before genesis |
 | Validator set changes are a vote, and a lost majority of keys halts the chain | Same key ceremony discipline as before; four keys in at least two locations |
 | An ERC-20 style token is transferable by default (if option B) | Transfers disabled in the contract itself, not in the app; counsel reviews before any enablement |
+| Several gateway replicas share one signing key (staging runs 2, production 3), and each numbers its own transactions | Two replicas writing at once will collide and one write will fail or stall. Not handled yet. Before B4: one key per replica, each authorised in the contracts, or a single replica elected to do chain writes |
+| The first write after every validator restarts at once took more than 30 seconds, once | Inclusion timeout raised to 90 seconds; measure properly in the B5 soak |
 | Schedule | Gates after B1 and B3 are the points to stop and reconsider |
 
 ## 6. Needed from you
 
-| Decision | My recommendation |
+| Item | Needed by | Note |
+|---|---|---|
+| Counsel's view on a deployed, non-transferable token under the value-free launch posture | Before B3's gate | One question; the contract design does not depend on the answer, the launch does |
+| Where the four validators run, and server types from the Hetzner Cloud Console | B4 | I could not price Hetzner reliably |
+| Who reviews the token contract | B3 gate | It should not be only me: I wrote it |
+| Run the key ceremony | B4 | Keys must not pass through me |
+
+## 7. Stage B1 results (2026-11-24) — gate met locally
+
+Gate: `validate-phase1` passes on Besu, including a proof verified with the chain stopped.
+
+| Check | Result |
 |---|---|
-| Token in v1: A (ledger stays in Postgres, anchored daily) or B (contract now) | A |
-| Where the four validators run: four dedicated hosts, or fewer hosts shared with other workloads | Four small dedicated hosts; price them from the Hetzner Cloud Console, which I could not do reliably |
-| The uncommitted stage 2 Tessellation work (launcher, Ansible, ceremony, Terraform) | Commit it once as a record, then retire it in B5. The Terraform and ceremony parts are reused |
-| Whether a few weeks' delay to launch is acceptable | — |
+| `make dev` from nothing | Four validators, contract deployed, backend anchoring, in under two minutes |
+| `make validate-phase1` | 26 passed, 0 failed, 1 skipped. The skip is step 3 (identity commitment), which has no on-chain form until B2 |
+| Step 5 in detail | Root anchored through the gateway, final 2 seconds after submit; proof exported from a validator the gateway does not use first; verified offline with signatures from 3 of 4 validators; the same proof refused against other validators |
+| Proof with the chain stopped | The gateway's own stored proof (Postgres) verified with zero validators running |
+| Live tests (`make chain-test`) | Anchor, prove, verify, duplicate root refused, unlisted signer refused by the contract, trust commitment, fail-over past a dead endpoint, and a full batch through the gateway's code path |
+| Failure tests through the gateway (`deploy/besu/local/failure-tests.sh`) | Pass, on the fourth run: one validator down; the gateway's preferred validator down; below quorum the chain stops without forking and resumes 8 seconds after restart; a validator that lost its disk resyncs in 9 seconds; 36 of 36 anchors accepted while every validator is restarted in turn. The first three runs each lost 1 anchor of 36 — see "Two faults" below |
+| Offline verifier tests | A recorded real bundle passes; 12 kinds of tampering and wrong trust anchors are each rejected (`cmd/verifyproof`, `internal/besu`) |
+
+What exists now:
+
+| Piece | Where |
+|---|---|
+| Contract and pinned compiler; artefacts committed so builds need no Solidity tools | `chain/`, `internal/besu/contract/`, `make contracts-check` |
+| Chain client: several endpoints tried in turn, writes return when final | `internal/besu/` |
+| Offline proof: block header with validator signatures + state proof + storage entry | `internal/besu/proof.go`, `cmd/verifyproof` |
+| Durable proofs: stored with the root when it is anchored, completed later if that step fails | `internal/metagraph/chain_anchor.go`, migration 037 |
+| Local chain | `deploy/besu/local/` (`make dev`, `make chain-up`, `make dev-reset`) |
+| Failure tests driven through the gateway | `deploy/besu/local/failure-tests.sh` |
+| Operator tool: keys, deploy, validators, proof export | `cmd/echochain` |
+
+Two faults the failure tests found in my client, both fixed:
+
+- A validator can accept a transaction and restart before passing it on; the transaction then
+  exists nowhere. The client now signs once and resubmits the same transaction every few seconds
+  until it is in a block.
+- A validator that has just restarted answers before it has caught up, and gave out a stale
+  transaction number. The client now uses whichever validator is furthest ahead for every call.
+
+One clean run after the fixes is the evidence so far; the B5 soak repeats these tests for days.
+
+Changed behaviour to know about:
+
+- `ECHO_CHAIN_NETWORK` accepts only `besu`. A value left over from before stops startup.
+- If `BESU_RPC_URLS` is set, a bad contract address or a missing signing key stops startup. Unset
+  means no chain and no anchoring, for development only. The Kubernetes config carries
+  placeholders that stop startup until B4 fills them in.
+- Group metadata and governance-vote anchors are refused (`ErrUnsupportedUpdate`). They carried a
+  DID in clear text and the previous chain rejected them too; they return as hash commitments in B2.
+- Identity, currency and wallet chain calls have nothing to talk to until B2 and B3. The features
+  behave as they do when those endpoints are unset.
+
+Not verified: more than minutes of running; more than one machine; node and account
+permissioning (the local network is closed only by a static peer list).
+
+## 8. Removal of Tessellation and Constellation (2026-11-24)
+
+Recorded in git first (commit `f06352b`), then removed:
+
+- The Scala metagraph, Euclid and hydra tooling, vendored Tessellation scripts and checksums.
+- The stage 2 launcher, rehearsal, Ansible playbooks, key ceremony script and runbook.
+- The Constellation deploy path (hydra inventory, DAG staking plan) and the metagraph CI workflow.
+- In the gateway: the finality tracker and snapshot evidence, the Tessellation proof verifier,
+  the `sovereign` / `constellation` network values, the Constellation explorer link.
+
+Still in the repository, because deleting it today would break the build or a feature. Each goes
+with the stage that replaces it:
+
+| What | Goes in |
+|---|---|
+| Tessellation client, signing and transaction types in `internal/metagraph` (identity, currency); `cmd/tessellation-id`; the proof-id half of `scripts/identity/ensure-identity-service-key.sh` | B2 (identity), B3 (currency) |
+| Wallet DAG addresses and client-signed Tessellation transactions (`internal/wallet`), iOS `Core/Stargazer/` | B3 |
+| Constellation Digital Evidence client (`internal/evidence`, off by default) and its iOS types | B2 — tell me if you want it gone sooner; it is self-contained |
+| The package name `internal/metagraph` itself | B5 (rename only) |
+| Mentions in older documents, `openapi.yaml`, the local-dev MCP server, `Makefile.did`, the tokenomics compose file, the `echo-metagraph-scala` skill | B5 |
+
+On your machine, not in git, and left for you to delete: the `euclid-development-environment`
+clones (in this folder and beside it), build output under `metagraph/`, stray `io/` class files,
+`spike/besu` leftovers, and the old Docker images and volumes (about 20 GB).

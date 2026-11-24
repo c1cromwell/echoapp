@@ -1,7 +1,0 @@
----
-# Creates Echo's Global L0: genesis on the first node, then the others join one at a time.
-# First run on a new network performs the genesis; later runs only start nodes that are stopped.
-#   ansible-playbook -i <inventory> playbooks/global-l0-genesis.yml -e echo_secrets_dir=...
-- name: Global L0
-  ansible.builtin.import_playbook: layer.yml
-  vars: { layer: global-l0, layer_group: gl0 }

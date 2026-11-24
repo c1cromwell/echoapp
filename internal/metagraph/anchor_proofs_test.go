@@ -2,21 +2,29 @@ package metagraph
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 	"time"
+
+	"github.com/thechadcromwell/echoapp/internal/besu"
 )
+
+func sha256Hex(b []byte) string {
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:])
+}
 
 func testLeaves(n int) []string {
 	out := make([]string, n)
 	for i := range out {
-		out[i] = SHA256Hex([]byte(fmt.Sprintf("leaf-%d", i)))
+		out[i] = sha256Hex([]byte(fmt.Sprintf("leaf-%d", i)))
 	}
 	return out
 }
@@ -37,7 +45,7 @@ func TestVerifyMerklePath_Failures(t *testing.T) {
 	leaves := testLeaves(5)
 	tree := BuildMerkleTree(leaves)
 	sib := tree.ProofSiblings(2)
-	other := SHA256Hex([]byte("other"))
+	other := sha256Hex([]byte("other"))
 	tampered := append([]string(nil), sib...)
 	tampered[0] = other
 
@@ -60,352 +68,170 @@ func TestVerifyMerklePath_Failures(t *testing.T) {
 }
 
 func TestParseChainNetwork(t *testing.T) {
-	for in, want := range map[string]string{
-		"": ChainNetworkSovereign, "sovereign": ChainNetworkSovereign,
-		" Constellation ": ChainNetworkConstellation, "constellation": ChainNetworkConstellation,
-	} {
+	for _, in := range []string{"", "besu", " BESU "} {
 		got, err := ParseChainNetwork(in)
-		if err != nil || got != want {
-			t.Errorf("ParseChainNetwork(%q) = %q, %v; want %q", in, got, err, want)
+		if err != nil || got != ChainNetworkBesu {
+			t.Errorf("ParseChainNetwork(%q) = %q, %v", in, got, err)
 		}
 	}
-	for _, in := range []string{"mainnet", "testnet", "sovereign2", "local"} {
-		if _, err := ParseChainNetwork(in); err == nil || !strings.Contains(err.Error(), "ECHO_CHAIN_NETWORK") {
-			t.Errorf("ParseChainNetwork(%q): want a clear error, got %v", in, err)
+	// Settings left over from the chains Echo no longer uses must stop startup.
+	for _, in := range []string{"sovereign", "constellation", "mainnet", "ethereum"} {
+		if _, err := ParseChainNetwork(in); err == nil {
+			t.Errorf("ParseChainNetwork(%q) accepted", in)
 		}
-	}
-	t.Setenv("ECHO_CHAIN_NETWORK", "bogus")
-	if _, err := ChainNetworkFromEnv(); err == nil {
-		t.Error("ChainNetworkFromEnv should reject bogus value")
 	}
 }
 
-// snapshotJSON builds a signed-snapshot body shaped like Tessellation's:
-// onChainState is a JSON array of byte values holding the state JSON.
-func snapshotJSON(ordinal int64, signers []string, roots ...string) []byte {
-	value := map[string]any{"ordinal": ordinal, "lastSnapshotHash": "00"}
-	if roots != nil {
-		mr := map[string]any{}
-		for _, r := range roots {
-			mr[r] = map[string]any{"root": r, "leafCount": 1}
-		}
-		state, _ := json.Marshal(map[string]any{"merkleRoots": mr, "trustCommitments": map[string]any{}})
-		ints := make([]int, len(state))
-		for i, b := range state {
-			ints[i] = int(int8(b)) // signed, as circe emits
-		}
-		value["dataApplication"] = map[string]any{"onChainState": ints, "blocks": []any{}}
-	}
-	proofs := []map[string]string{}
-	for _, s := range signers {
-		proofs = append(proofs, map[string]string{"id": s, "signature": "3045"})
-	}
-	b, _ := json.Marshal(map[string]any{"value": value, "proofs": proofs})
-	return b
+// fakeChain is a DataSubmitter and RootProver that records what it was asked.
+type fakeChain struct {
+	submitErr error
+	proveErr  error
+	submitted []interface{}
+	proved    []string
 }
 
-func TestParseSignedSnapshot(t *testing.T) {
-	root := SHA256Hex([]byte("r"))
-	info, err := ParseSignedSnapshot(snapshotJSON(7, []string{"bb", "aa", "bb"}, root))
+func (f *fakeChain) SubmitDataL1(_ context.Context, tx interface{}) (string, error) {
+	if f.submitErr != nil {
+		return "", f.submitErr
+	}
+	f.submitted = append(f.submitted, tx)
+	return "0xtx", nil
+}
+
+func (f *fakeChain) ProveRoot(_ context.Context, root string) (ChainAnchor, error) {
+	f.proved = append(f.proved, root)
+	if f.proveErr != nil {
+		return ChainAnchor{}, f.proveErr
+	}
+	return ChainAnchor{BlockNumber: 42, Contract: "0xc0", Proof: json.RawMessage(`{"root":"x"}`)}, nil
+}
+
+func TestAnchorRoot_RecordsFinalityAndProof(t *testing.T) {
+	ctx := context.Background()
+	store := NewMemoryProofStore()
+	chain := &fakeChain{}
+	root := sha256Hex([]byte("root"))
+
+	ref, err := AnchorRoot(ctx, chain, store, ChainNetworkBesu, root, 3)
+	if err != nil || ref != "0xtx" {
+		t.Fatalf("AnchorRoot = %q, %v", ref, err)
+	}
+	rec, ok, _ := store.GetRoot(ctx, root)
+	if !ok || !rec.Finalized || rec.FinalizedAt == nil || rec.LeafCount != 3 || rec.Network != ChainNetworkBesu {
+		t.Fatalf("record: %+v", rec)
+	}
+	if rec.Chain == nil || rec.Chain.BlockNumber != 42 || rec.Chain.TxHash != "0xtx" || len(rec.Chain.Proof) == 0 {
+		t.Fatalf("chain evidence: %+v", rec.Chain)
+	}
+	if incomplete, _ := store.ListIncompleteRoots(ctx, 0); len(incomplete) != 0 {
+		t.Fatalf("a fully recorded root is listed as incomplete: %+v", incomplete)
+	}
+}
+
+func TestAnchorRoot_SubmitFailureRecordsNothing(t *testing.T) {
+	ctx := context.Background()
+	store := NewMemoryProofStore()
+	root := sha256Hex([]byte("root"))
+	if _, err := AnchorRoot(ctx, &fakeChain{submitErr: errors.New("chain down")}, store, ChainNetworkBesu, root, 1); err == nil {
+		t.Fatal("submit failure not returned")
+	}
+	if _, ok, _ := store.GetRoot(ctx, root); ok {
+		t.Fatal("a root that never reached the chain was recorded")
+	}
+}
+
+// A proof that cannot be taken right after anchoring must not fail the anchor (the root is on the
+// chain) and must be completed later.
+func TestAnchorRoot_ProofFailureIsBackfilled(t *testing.T) {
+	ctx := context.Background()
+	store := NewMemoryProofStore()
+	chain := &fakeChain{proveErr: errors.New("node restarting")}
+	root := sha256Hex([]byte("root"))
+
+	if _, err := AnchorRoot(ctx, chain, store, ChainNetworkBesu, root, 1); err != nil {
+		t.Fatalf("anchor must succeed when only the proof step fails: %v", err)
+	}
+	rec, _, _ := store.GetRoot(ctx, root)
+	if !rec.Finalized || rec.Chain != nil {
+		t.Fatalf("record after failed proof: %+v", rec)
+	}
+	if incomplete, _ := store.ListIncompleteRoots(ctx, 0); len(incomplete) != 1 {
+		t.Fatalf("root without a proof must be listed as incomplete, got %d", len(incomplete))
+	}
+
+	chain.proveErr = nil
+	backfillOnce(ctx, chain, store)
+	rec, _, _ = store.GetRoot(ctx, root)
+	if rec.Chain == nil || len(rec.Chain.Proof) == 0 {
+		t.Fatalf("backfill did not record the proof: %+v", rec)
+	}
+	if incomplete, _ := store.ListIncompleteRoots(ctx, 0); len(incomplete) != 0 {
+		t.Fatal("root still incomplete after backfill")
+	}
+}
+
+func TestBackfill_RootNotOnChainStaysIncomplete(t *testing.T) {
+	ctx := context.Background()
+	store := NewMemoryProofStore()
+	root := sha256Hex([]byte("never anchored"))
+	_ = store.RecordRootSubmitted(ctx, root, 1, ChainNetworkBesu, time.Now())
+	backfillOnce(ctx, &fakeChain{proveErr: besu.ErrNotAnchored}, store)
+	rec, _, _ := store.GetRoot(ctx, root)
+	if rec.Finalized || rec.Chain != nil {
+		t.Fatalf("a root the chain does not hold was marked final: %+v", rec)
+	}
+}
+
+func TestAnchorRoot_WithoutStoreOrProver(t *testing.T) {
+	ctx := context.Background()
+	if _, err := AnchorRoot(ctx, nil, nil, ChainNetworkBesu, "r", 1); err == nil {
+		t.Fatal("nil submitter accepted")
+	}
+	if ref, err := AnchorRoot(ctx, &fakeChain{}, nil, ChainNetworkBesu, sha256Hex([]byte("r")), 1); err != nil || ref == "" {
+		t.Fatalf("anchoring with no store: %q, %v", ref, err)
+	}
+}
+
+func TestBesuAnchor_RejectsUpdatesWithNoOnChainForm(t *testing.T) {
+	a := NewBesuAnchor(nil)
+	if _, err := a.SubmitDataL1(context.Background(), DataL1MerkleRootUpdate{}); err == nil {
+		t.Fatal("unconfigured anchor accepted a write")
+	}
+	client, err := besu.New(besu.Config{RPCURLs: []string{"http://127.0.0.1:9"}, AnchorContract: [20]byte{1}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Ordinal != 7 || !info.HasDataState || !info.ContainsRoot(root) || info.ContainsRoot("nope") {
-		t.Fatalf("unexpected info: %+v", info)
-	}
-	if strings.Join(info.Signers, ",") != "aa,bb" {
-		t.Fatalf("signers = %v", info.Signers)
-	}
-	// Global-style snapshot: no data application.
-	info, err = ParseSignedSnapshot(snapshotJSON(9, []string{"cc"}))
-	if err != nil || info.HasDataState || info.ContainsRoot(root) {
-		t.Fatalf("global snapshot: %+v err=%v", info, err)
-	}
-	// Opaque (non-JSON) on-chain state is not an error, just undecoded.
-	info, err = ParseSignedSnapshot([]byte(`{"value":{"ordinal":1,"dataApplication":{"onChainState":[1,2,-3]}},"proofs":[]}`))
-	if err != nil || info.HasDataState {
-		t.Fatalf("opaque state: %+v err=%v", info, err)
-	}
-	for _, bad := range []string{`not json`, `{"proofs":[]}`} {
-		if _, err := ParseSignedSnapshot([]byte(bad)); err == nil {
-			t.Errorf("ParseSignedSnapshot(%q): expected error", bad)
-		}
+	// Group metadata carries an admin DID in clear text; it must never reach the chain as-is.
+	_, err = NewBesuAnchor(client).SubmitDataL1(context.Background(), GroupMetadataUpdate{AdminDID: "did:key:z123"})
+	if !errors.Is(err, ErrUnsupportedUpdate) {
+		t.Fatalf("err = %v, want ErrUnsupportedUpdate", err)
 	}
 }
 
-// fakeChain serves the ML0 / Global L0 endpoints the tracker uses.
-type fakeChain struct {
-	mu        sync.Mutex
-	finalized map[string]bool // root -> finalized (absent = 404)
-	ordinal   int64
-	hash      string
-	signers   []string
-	roots     []string // roots present in on-chain state; nil = no data application
-	prefix    string
-	hits      int
-}
-
-func (c *fakeChain) handler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		c.mu.Lock()
-		defer c.mu.Unlock()
-		c.hits++
-		// Mirrors Tessellation 4.0.7, which rejects snapshot reads that carry no Accept header.
-		if strings.HasPrefix(r.URL.Path, c.prefix+"/") && r.Header.Get("Accept") == "" {
-			w.WriteHeader(http.StatusUnsupportedMediaType)
-			return
-		}
-		switch {
-		case strings.HasPrefix(r.URL.Path, "/data-application/merkle-roots/"):
-			root := strings.TrimPrefix(r.URL.Path, "/data-application/merkle-roots/")
-			fin, ok := c.finalized[root]
-			if !ok {
-				http.NotFound(w, r)
-				return
-			}
-			_ = json.NewEncoder(w).Encode(map[string]any{"root": root, "leafCount": 2, "finalized": fin})
-		case r.URL.Path == c.prefix+"/latest/metadata":
-			_ = json.NewEncoder(w).Encode(map[string]any{"ordinal": c.ordinal, "hash": c.hash, "lastSnapshotHash": "00"})
-		case r.URL.Path == fmt.Sprintf("%s/%d", c.prefix, c.ordinal):
-			_, _ = w.Write(snapshotJSON(c.ordinal, c.signers, c.roots...))
-		default:
-			http.NotFound(w, r)
-		}
-	})
-}
-
-type memArchive struct {
-	mu      sync.Mutex
-	objects map[string][]byte
-	err     error
-}
-
-func (a *memArchive) Store(_ context.Context, key string, data []byte) (string, error) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	if a.err != nil {
-		return "", a.err
+func TestBesuAnchorFromEnv(t *testing.T) {
+	t.Setenv("BESU_RPC_URLS", "")
+	if a, err := BesuAnchorFromEnv(); a != nil || err != nil {
+		t.Fatalf("unset: %v, %v (want nil, nil: the chain is optional)", a, err)
 	}
-	if a.objects == nil {
-		a.objects = map[string][]byte{}
+	t.Setenv("BESU_RPC_URLS", "http://127.0.0.1:8545")
+	t.Setenv("BESU_ANCHOR_CONTRACT", "not-an-address")
+	if _, err := BesuAnchorFromEnv(); err == nil {
+		t.Fatal("malformed contract address accepted")
 	}
-	a.objects[key] = append([]byte(nil), data...)
-	return "", nil
-}
-
-func seedRoot(t *testing.T, store *MemoryProofStore, root string) {
-	t.Helper()
-	if err := store.RecordRootSubmitted(context.Background(), root, 2, ChainNetworkSovereign, time.Now()); err != nil {
+	t.Setenv("BESU_ANCHOR_CONTRACT", "0x0000000000000000000000000000000000000001")
+	t.Setenv("IDENTITY_SERVICE_KEY_PEM", "")
+	if _, err := BesuAnchorFromEnv(); err == nil {
+		t.Fatal("a chain with no signing key must be a startup error, not silent")
+	}
+	keyFile := filepath.Join(t.TempDir(), "gateway.key")
+	if err := os.WriteFile(keyFile, []byte(strings.Repeat("11", 32)), 0o600); err != nil {
 		t.Fatal(err)
 	}
-}
-
-func TestFinalityTracker_FinalizedArchivesSnapshots(t *testing.T) {
-	ctx := context.Background()
-	root := SHA256Hex([]byte("root-1"))
-	ml0 := &fakeChain{finalized: map[string]bool{root: true}, ordinal: 42, hash: "ab12", signers: []string{"peer-b", "peer-a"}, roots: []string{root}, prefix: "/snapshots"}
-	gl0 := &fakeChain{ordinal: 900, hash: "cd34", signers: []string{"gpeer"}, prefix: "/global-snapshots"}
-	ml0Srv, gl0Srv := httptest.NewServer(ml0.handler()), httptest.NewServer(gl0.handler())
-	defer ml0Srv.Close()
-	defer gl0Srv.Close()
-
-	store, archive := NewMemoryProofStore(), &memArchive{}
-	seedRoot(t, store, root)
-	NewFinalityTracker(FinalityTrackerConfig{
-		Roots: store, Network: ChainNetworkSovereign, ML0URL: ml0Srv.URL + "/", GlobalL0URL: gl0Srv.URL, Archive: archive,
-	}).CheckOnce(ctx)
-
-	rec, _, _ := store.GetRoot(ctx, root)
-	if !rec.Finalized || rec.FinalizedAt == nil || rec.ML0 == nil || rec.GL0 == nil {
-		t.Fatalf("record incomplete: %+v", rec)
+	t.Setenv("IDENTITY_SERVICE_KEY_PEM", keyFile)
+	a, err := BesuAnchorFromEnv()
+	if err != nil || a == nil {
+		t.Fatalf("complete configuration: %v, %v", a, err)
 	}
-	wantML0Key := "chain-archive/sovereign/ml0/42-ab12.json"
-	wantGL0Key := "chain-archive/sovereign/gl0/900-cd34.json"
-	if rec.ML0.Ordinal != 42 || rec.ML0.Hash != "ab12" || rec.ML0.ArchiveKey != wantML0Key {
-		t.Fatalf("ml0 ref: %+v", rec.ML0)
-	}
-	if rec.ML0.ContainsRoot == nil || !*rec.ML0.ContainsRoot {
-		t.Fatalf("ml0 should record the root as contained: %+v", rec.ML0)
-	}
-	if strings.Join(rec.ML0.Signers, ",") != "peer-a,peer-b" || strings.Join(rec.GL0.Signers, ",") != "gpeer" {
-		t.Fatalf("signers: %v / %v", rec.ML0.Signers, rec.GL0.Signers)
-	}
-	if rec.GL0.Ordinal != 900 || rec.GL0.ArchiveKey != wantGL0Key || rec.GL0.ContainsRoot != nil {
-		t.Fatalf("gl0 ref: %+v", rec.GL0)
-	}
-	if got := SHA256Hex(archive.objects[wantML0Key]); got != rec.ML0.SHA256 || rec.ML0.SHA256 == "" {
-		t.Fatalf("ml0 sha256 %q vs archived %q", rec.ML0.SHA256, got)
-	}
-	if got := SHA256Hex(archive.objects[wantGL0Key]); got != rec.GL0.SHA256 {
-		t.Fatalf("gl0 sha256 %q vs archived %q", rec.GL0.SHA256, got)
-	}
-	// Completed roots are not polled again.
-	if left, _ := store.ListIncompleteRoots(ctx, 10); len(left) != 0 {
-		t.Fatalf("root still listed incomplete: %+v", left)
-	}
-}
-
-func TestFinalityTracker_NotFinalized(t *testing.T) {
-	ctx := context.Background()
-	pending, unknown := SHA256Hex([]byte("pending")), SHA256Hex([]byte("unknown"))
-	ml0 := &fakeChain{finalized: map[string]bool{pending: false}, ordinal: 1, hash: "aa", prefix: "/snapshots"}
-	srv := httptest.NewServer(ml0.handler())
-	defer srv.Close()
-	store, archive := NewMemoryProofStore(), &memArchive{}
-	seedRoot(t, store, pending)
-	seedRoot(t, store, unknown) // 404 from ML0
-	NewFinalityTracker(FinalityTrackerConfig{Roots: store, ML0URL: srv.URL, Archive: archive}).CheckOnce(ctx)
-	for _, r := range []string{pending, unknown} {
-		if rec, _, _ := store.GetRoot(ctx, r); rec.Finalized || rec.ML0 != nil {
-			t.Fatalf("root %s must stay unfinalized: %+v", r, rec)
-		}
-	}
-	if len(archive.objects) != 0 {
-		t.Fatalf("nothing should be archived, got %d objects", len(archive.objects))
-	}
-}
-
-func TestFinalityTracker_ML0Down(t *testing.T) {
-	ctx := context.Background()
-	root := SHA256Hex([]byte("root-down"))
-	srv := httptest.NewServer(http.NotFoundHandler())
-	url := srv.URL
-	srv.Close() // connection refused
-	store := NewMemoryProofStore()
-	seedRoot(t, store, root)
-	NewFinalityTracker(FinalityTrackerConfig{Roots: store, ML0URL: url}).CheckOnce(ctx)
-	if rec, _, _ := store.GetRoot(ctx, root); rec.Finalized {
-		t.Fatal("root must not be finalized when ML0 is unreachable")
-	}
-
-	// ML0 answering 500 is also not finality.
-	srv500 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		http.Error(w, "boom", http.StatusInternalServerError)
-	}))
-	defer srv500.Close()
-	NewFinalityTracker(FinalityTrackerConfig{Roots: store, ML0URL: srv500.URL}).CheckOnce(ctx)
-	if rec, _, _ := store.GetRoot(ctx, root); rec.Finalized {
-		t.Fatal("root must not be finalized on ML0 errors")
-	}
-}
-
-func TestFinalityTracker_NoObjectStorageOrGlobalL0(t *testing.T) {
-	ctx := context.Background()
-	root := SHA256Hex([]byte("root-noarchive"))
-	ml0 := &fakeChain{finalized: map[string]bool{root: true}, ordinal: 5, hash: "ee", signers: []string{"p"}, roots: []string{root}, prefix: "/snapshots"}
-	srv := httptest.NewServer(ml0.handler())
-	defer srv.Close()
-	store := NewMemoryProofStore()
-	seedRoot(t, store, root)
-	NewFinalityTracker(FinalityTrackerConfig{Roots: store, ML0URL: srv.URL}).CheckOnce(ctx)
-	rec, _, _ := store.GetRoot(ctx, root)
-	if !rec.Finalized || rec.ML0 == nil {
-		t.Fatalf("finality must be recorded without object storage: %+v", rec)
-	}
-	if rec.ML0.ArchiveKey != "" || rec.ML0.SHA256 != "" || rec.GL0 != nil {
-		t.Fatalf("archive fields must stay empty: ml0=%+v gl0=%+v", rec.ML0, rec.GL0)
-	}
-}
-
-func TestFinalityTracker_SnapshotFailuresKeepFinalityAndRetry(t *testing.T) {
-	ctx := context.Background()
-	root := SHA256Hex([]byte("root-retry"))
-	ml0 := &fakeChain{finalized: map[string]bool{root: true}, ordinal: 5, hash: "ee", signers: []string{"p"}, roots: []string{root}, prefix: "/snapshots"}
-	srv := httptest.NewServer(ml0.handler())
-	defer srv.Close()
-	gl0Down := httptest.NewServer(http.NotFoundHandler())
-	gl0URL := gl0Down.URL
-	gl0Down.Close()
-
-	store, archive := NewMemoryProofStore(), &memArchive{err: errors.New("bucket unavailable")}
-	seedRoot(t, store, root)
-	tr := NewFinalityTracker(FinalityTrackerConfig{Roots: store, ML0URL: srv.URL, GlobalL0URL: gl0URL, Archive: archive})
-	tr.CheckOnce(ctx)
-	rec, _, _ := store.GetRoot(ctx, root)
-	if !rec.Finalized || rec.ML0 != nil {
-		t.Fatalf("archive failure: want finalized without snapshot, got %+v", rec)
-	}
-
-	// Storage recovers; Global L0 is still down. The ML0 side is retried and
-	// recorded, the Global L0 side stays empty.
-	archive.err = nil
-	tr.CheckOnce(ctx)
-	rec, _, _ = store.GetRoot(ctx, root)
-	if rec.ML0 == nil || rec.ML0.ArchiveKey == "" || rec.GL0 != nil {
-		t.Fatalf("after retry: ml0=%+v gl0=%+v", rec.ML0, rec.GL0)
-	}
-}
-
-func TestFinalityTracker_RootNotInSnapshotIsNotClaimed(t *testing.T) {
-	ctx := context.Background()
-	root := SHA256Hex([]byte("root-absent"))
-	ml0 := &fakeChain{finalized: map[string]bool{root: true}, ordinal: 5, hash: "ee", signers: []string{"p"}, roots: []string{}, prefix: "/snapshots"}
-	srv := httptest.NewServer(ml0.handler())
-	defer srv.Close()
-	store := NewMemoryProofStore()
-	seedRoot(t, store, root)
-	tr := NewFinalityTracker(FinalityTrackerConfig{Roots: store, ML0URL: srv.URL})
-	now := time.Now()
-	tr.now = func() time.Time { return now }
-
-	// Within the grace period: finalized, but no snapshot is attached yet.
-	tr.CheckOnce(ctx)
-	rec, _, _ := store.GetRoot(ctx, root)
-	if !rec.Finalized || rec.ML0 != nil {
-		t.Fatalf("within grace: %+v", rec)
-	}
-
-	// After the grace period: the snapshot is recorded as a bound only.
-	now = now.Add(rootInSnapshotGrace + time.Second)
-	tr.CheckOnce(ctx)
-	rec, _, _ = store.GetRoot(ctx, root)
-	if rec.ML0 == nil || rec.ML0.ContainsRoot == nil || *rec.ML0.ContainsRoot {
-		t.Fatalf("after grace: snapshot must be recorded with containsRoot=false, got %+v", rec.ML0)
-	}
-
-	// If the root shows up before the grace expires, it is recorded as contained.
-	root2 := SHA256Hex([]byte("root-late"))
-	seedRoot(t, store, root2)
-	ml0.mu.Lock()
-	ml0.finalized[root2] = true
-	ml0.mu.Unlock()
-	tr.CheckOnce(ctx)
-	ml0.mu.Lock()
-	ml0.roots = []string{root2}
-	ml0.mu.Unlock()
-	tr.CheckOnce(ctx)
-	rec, _, _ = store.GetRoot(ctx, root2)
-	if rec.ML0 == nil || rec.ML0.ContainsRoot == nil || !*rec.ML0.ContainsRoot {
-		t.Fatalf("late root: %+v", rec.ML0)
-	}
-}
-
-func TestFinalityTracker_RunStopsOnCancelAndSkipsWithoutURL(t *testing.T) {
-	NewFinalityTracker(FinalityTrackerConfig{Roots: NewMemoryProofStore()}).Run(context.Background()) // returns: no URL
-
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
-	go func() {
-		NewFinalityTracker(FinalityTrackerConfig{Roots: NewMemoryProofStore(), ML0URL: "http://127.0.0.1:1", Interval: time.Millisecond}).Run(ctx)
-		close(done)
-	}()
-	time.Sleep(10 * time.Millisecond)
-	cancel()
-	select {
-	case <-done:
-	case <-time.After(5 * time.Second):
-		t.Fatal("Run did not stop after cancel")
-	}
-}
-
-type panicRoots struct{ RootStore }
-
-func (panicRoots) ListIncompleteRoots(context.Context, int) ([]AnchoredRoot, error) {
-	panic("store exploded")
-}
-
-func TestFinalityTracker_RecoversFromPanic(t *testing.T) {
-	NewFinalityTracker(FinalityTrackerConfig{Roots: panicRoots{}, ML0URL: "http://127.0.0.1:1"}).CheckOnce(context.Background())
 }
 
 func TestBuildProofBundle(t *testing.T) {
@@ -413,7 +239,7 @@ func TestBuildProofBundle(t *testing.T) {
 	store := NewRedisProofStore(nil, nil) // fallback store must satisfy AnchorStore
 	leaves := testLeaves(3)
 	tree := BuildMerkleTree(leaves)
-	if err := store.RecordRootSubmitted(ctx, tree.Root, 3, ChainNetworkSovereign, time.Now()); err != nil {
+	if err := store.RecordRootSubmitted(ctx, tree.Root, 3, ChainNetworkBesu, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	_ = store.Put(ctx, MessageAnchorProof{MessageID: "m2", Commitment: leaves[2], Siblings: tree.ProofSiblings(2), MerkleLeafIndex: 2, MerkleRoot: tree.Root})
@@ -423,7 +249,7 @@ func TestBuildProofBundle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if b.Network != ChainNetworkSovereign || b.Finalized || b.LeafCount != 3 || b.Message == nil {
+	if b.Network != ChainNetworkBesu || b.Finalized || b.LeafCount != 3 || b.Message == nil {
 		t.Fatalf("bundle: %+v", b)
 	}
 	if err := VerifyMerklePath(b.Message.Commitment, b.Message.Siblings, b.Message.LeafIndex, b.LeafCount, b.MerkleRoot); err != nil {

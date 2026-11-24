@@ -23,7 +23,7 @@ func (rt *Router) handleDataL1MerkleRoots(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if rt.DataL1 == nil {
-		WriteError(w, http.StatusServiceUnavailable, "DATA_L1_NOT_CONFIGURED", "DATA_L1_URL is not set", r.Header.Get("X-Request-ID"))
+		WriteError(w, http.StatusServiceUnavailable, "DATA_L1_NOT_CONFIGURED", "the chain is not configured (BESU_RPC_URLS, BESU_ANCHOR_CONTRACT)", r.Header.Get("X-Request-ID"))
 		return
 	}
 
@@ -91,8 +91,12 @@ func (rt *Router) handleDataL1MerkleRoots(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	tx := metagraph.DataL1MerkleRootUpdate{Root: root, LeafCount: leaf}
-	txID, err := rt.DataL1.SubmitDataL1(r.Context(), tx)
+	// Recorded with the chain's proof, so GET /v1/anchors/{root}/proof can serve it.
+	var roots metagraph.RootStore
+	if rt.AnchorStore != nil {
+		roots = rt.AnchorStore
+	}
+	txID, err := metagraph.AnchorRoot(r.Context(), rt.DataL1, roots, rt.ChainNetwork, root, leaf)
 	if err != nil {
 		WriteError(w, http.StatusBadGateway, "DATA_L1_SUBMIT_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
 		return

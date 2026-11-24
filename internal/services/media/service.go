@@ -90,7 +90,7 @@ type Service struct {
 	// DataL1 optionally anchors a content Merkle root (over chunk CIDs) on the
 	// Data L1 metagraph so media integrity/provenance is publicly verifiable (D3).
 	// Nil disables anchoring; only content-addressed backends (IPFS) yield CIDs.
-	DataL1 *metagraph.MetagraphClient
+	DataL1 metagraph.DataSubmitter
 }
 
 // NewService creates a media service.

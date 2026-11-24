@@ -21,15 +21,15 @@ type AnchorHealth interface {
 	LastSuccessAt() *time.Time
 }
 
-// MetagraphAnchor submits TrustCommitmentUpdate payloads via the metagraph client.
+// MetagraphAnchor submits trust commitments to Echo's chain.
 type MetagraphAnchor struct {
-	client  *metagraph.MetagraphClient
+	client  metagraph.DataSubmitter
 	mu      sync.Mutex
 	lastOK  *time.Time
 	lastErr error
 }
 
-func NewMetagraphAnchor(client *metagraph.MetagraphClient) *MetagraphAnchor {
+func NewMetagraphAnchor(client metagraph.DataSubmitter) *MetagraphAnchor {
 	return &MetagraphAnchor{client: client}
 }
 

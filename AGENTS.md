@@ -14,7 +14,7 @@ Quick entry point for Cursor agents working in this repo. Read this first, then 
 | Local cluster / validate / release check | MCP **`echo-local-dev`** (see `.cursor/mcp.json`) |
 | **v1.0 release scope & submission gates** | [`docs/V1_RELEASE.md`](docs/V1_RELEASE.md) |
 | Sept 1 Messaging go-live | [`docs/GO_LIVE_SEPT_1_2026.md`](docs/GO_LIVE_SEPT_1_2026.md) |
-| Chain: own network, moving Tessellation → Besu | [`docs/BESU_MIGRATION_PLAN.md`](docs/BESU_MIGRATION_PLAN.md) (current) · [`docs/OWN_L0_PLAN.md`](docs/OWN_L0_PLAN.md) (history, findings) |
+| Chain (Echo's own Hyperledger Besu network), contracts, anchoring, proofs | [`docs/BESU_MIGRATION_PLAN.md`](docs/BESU_MIGRATION_PLAN.md) — decisions, stages and gates · history: [`docs/OWN_L0_PLAN.md`](docs/OWN_L0_PLAN.md) |
 | Signal vs Echo parity (post-launch waves) | [`docs/SIGNAL_ECHO_PARITY.md`](docs/SIGNAL_ECHO_PARITY.md) |
 | Telegram vs Echo parity (post-launch waves) | [`docs/TELEGRAM_ECHO_PARITY.md`](docs/TELEGRAM_ECHO_PARITY.md) |
 | TestFlight / Phase 1 go-no-go | Skill: **`echo-phase1-validate`** + [`docs/E2E_TESTING.md`](docs/E2E_TESTING.md) |
@@ -28,7 +28,6 @@ Quick entry point for Cursor agents working in this repo. Read this first, then 
 | Phase 3 messaging UI (Xcode wiring) | Skill: **`echo-phase3-ios-wire`** |
 | UI/UX design + full iOS feature map | [`docs/ux-spec.md`](docs/ux-spec.md) + [`docs/ECHO_IOS_UI_IMPLEMENTATION_SPEC.md`](docs/ECHO_IOS_UI_IMPLEMENTATION_SPEC.md) |
 | Design prototype (React, **post-auth only**) | [`docs/Echo Design System Setup_latest/`](docs/Echo%20Design%20System%20Setup_latest/) — **not** onboarding/login |
-| Metagraph Scala L1 validators | Skill: **`echo-metagraph-scala`** |
 
 Planning history and MCP roadmap: [`docs/AGENT_TOOLING_RECOMMENDATIONS.md`](docs/AGENT_TOOLING_RECOMMENDATIONS.md).
 
@@ -37,7 +36,7 @@ Planning history and MCP roadmap: [`docs/AGENT_TOOLING_RECOMMENDATIONS.md`](docs
 | Server | Purpose |
 |--------|---------|
 | `software-factory-echo` | Work orders, blueprints, requirements (user/global config) |
-| `echo-local-dev` | `make dev-status`, `release-check`, `validate-phase1`, `metagraph-test`, iOS Phase 3 tests, `/health` |
+| `echo-local-dev` | `make dev-status`, `release-check`, `validate-phase1`, iOS Phase 3 tests, `/health` (its `metagraph-test` tool no longer has a target) |
 
 Reload MCP in Cursor after pulling. Setup: [`tools/echo-local-dev-mcp/README.md`](tools/echo-local-dev-mcp/README.md).
 
@@ -50,13 +49,21 @@ echoapp/
 ├── internal/auth/          JWT, passkey validation, rate limits
 ├── pkg/didkey/             did:key derivation (Phase 1 identity)
 ├── pkg/credentials/        VC 2.0 + OIDC4VC
-├── metagraph/              Scala L1 validators (Identity, Data, Currency)
+├── internal/besu/          Client for Echo's chain: anchoring, proofs, offline verification
+├── chain/contracts/        Solidity contracts (artefacts committed in internal/besu/contract)
+├── deploy/besu/local/      Local chain: four Besu validators (QBFT), started by `make dev`
+├── cmd/echochain, cmd/verifyproof   Operator tool; offline proof verifier
 ├── ios/Echo/               SwiftPM library + EchoApp.xcodeproj
 ├── scripts/validate-phase1.sh   WO-230 go/no-go
 └── docs/                   Phase WOs, launch guides, gap audits, ADRs
 ```
 
 **Phase 1 identity:** `did:key` only — **no Cardano / Atala PRISM** in Phase 1–2 ([ADR-0001](docs/adr/0001-phase1-identity-method.md)).
+
+**Chain:** Echo runs its own private Hyperledger Besu network (QBFT, four validators). Tessellation
+and Constellation were removed on 2026-11-24; do not add code for them. Only 32-byte hashes go
+on-chain. `internal/metagraph` keeps its name until the rename in plan stage B5 and still holds
+Tessellation client code for identity and currency that stages B2 and B3 replace.
 
 ## Source-of-truth hierarchy
 
@@ -71,9 +78,10 @@ Avoid loading [`docs/Echo_Combined_Requirements.md`](docs/Echo_Combined_Requirem
 
 ```bash
 make release-check          # Go build + test + vet + fmt
-make dev                    # Docker backend stack
-make validate-phase1        # 6-step E2E (needs cluster + JDK 21)
-make metagraph-test         # Scala L1 tests
+make dev                    # Local chain (4 Besu validators) + contract + backend stack
+make validate-phase1        # End-to-end go/no-go, including an offline proof check (needs make dev)
+make chain-test             # Tests that need the live chain
+make contracts-check        # Committed contract artefacts match chain/contracts
 cd ios/Echo && swift test --filter EchoPhase3Tests
 ```
 
@@ -99,5 +107,4 @@ E2E (canonical): [`docs/E2E_TESTING.md`](docs/E2E_TESTING.md). Sept 1 go-live: [
 | `echo-phase1-validate` | ✅ Step 4 |
 | `echo-phase2-gaps` | ✅ Step 4 |
 | `echo-phase3-ios-wire` | ✅ Step 4 |
-| `echo-metagraph-scala` | ✅ Step 4 |
 | `echo-knowledge-graph` | Factory 8090 WO ↔ requirements ↔ code |

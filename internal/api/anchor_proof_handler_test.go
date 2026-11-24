@@ -18,18 +18,15 @@ func TestHandleAnchorProofBundle(t *testing.T) {
 	leaves := []string{strings.Repeat("a", 64), strings.Repeat("b", 64), strings.Repeat("c", 64)}
 	tree := metagraph.BuildMerkleTree(leaves)
 	root := tree.Root
-	_ = store.RecordRootSubmitted(ctx, root, len(leaves), "sovereign", time.Now())
+	_ = store.RecordRootSubmitted(ctx, root, len(leaves), "besu", time.Now())
 	_ = store.MarkRootFinalized(ctx, root, time.Now())
-	yes := true
-	_ = store.SaveRootSnapshots(ctx, root,
-		&metagraph.SnapshotRef{Ordinal: 42, Hash: "mh", Signers: []string{"p1", "p2"}, ArchiveKey: "chain-archive/sovereign/ml0/42-mh.json", SHA256: "s1", ContainsRoot: &yes},
-		&metagraph.SnapshotRef{Ordinal: 900, Hash: "gh", Signers: []string{"g1"}, ArchiveKey: "chain-archive/sovereign/gl0/900-gh.json", SHA256: "s2"})
+	_ = store.SaveChainAnchor(ctx, root, metagraph.ChainAnchor{BlockNumber: 42, TxHash: "0xtx", Contract: "0xc0", Proof: json.RawMessage(`{"root":"0x00"}`)})
 	_ = store.Put(ctx, metagraph.MessageAnchorProof{MessageID: "msg-2", Commitment: leaves[2], Siblings: tree.ProofSiblings(2), MerkleLeafIndex: 2, MerkleRoot: root})
 
 	// No chain clients, no anchoring worker: the durable record is enough.
 	rt := NewRouter(nil)
 	rt.AnchorStore = store
-	rt.ChainNetwork = "sovereign"
+	rt.ChainNetwork = "besu"
 
 	do := func(method, target string) *httptest.ResponseRecorder {
 		rec := httptest.NewRecorder()
@@ -45,16 +42,11 @@ func TestHandleAnchorProofBundle(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &b); err != nil {
 		t.Fatal(err)
 	}
-	if b.Network != "sovereign" || b.MerkleRoot != root || !b.Finalized || b.LeafCount != 3 {
+	if b.Network != "besu" || b.MerkleRoot != root || !b.Finalized || b.LeafCount != 3 {
 		t.Fatalf("bundle header: %+v", b)
 	}
-	if b.MetagraphSnapshot == nil || b.MetagraphSnapshot.Ordinal != 42 || b.MetagraphSnapshot.Hash != "mh" ||
-		len(b.MetagraphSnapshot.Signers) != 2 || b.MetagraphSnapshot.SHA256 != "s1" ||
-		b.MetagraphSnapshot.ArchiveKey != "chain-archive/sovereign/ml0/42-mh.json" {
-		t.Fatalf("metagraph snapshot: %+v", b.MetagraphSnapshot)
-	}
-	if b.GlobalSnapshot == nil || b.GlobalSnapshot.Ordinal != 900 || b.GlobalSnapshot.Signers[0] != "g1" {
-		t.Fatalf("global snapshot: %+v", b.GlobalSnapshot)
+	if b.Chain == nil || b.Chain.BlockNumber != 42 || b.Chain.TxHash != "0xtx" || b.Chain.Contract != "0xc0" || len(b.Chain.Proof) == 0 {
+		t.Fatalf("chain evidence: %+v", b.Chain)
 	}
 	if b.Message == nil || b.Message.MessageID != "msg-2" {
 		t.Fatalf("message: %+v", b.Message)

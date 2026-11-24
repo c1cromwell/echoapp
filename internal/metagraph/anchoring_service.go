@@ -32,9 +32,9 @@ type AnchorConfirmation struct {
 	MerkleLeafIndex int      `json:"merkleLeafIndex,omitempty"`
 }
 
-// AnchoringService batches commitments and anchors Merkle roots on Data L1 (WO-15).
+// AnchoringService batches commitments and anchors Merkle roots on Echo's chain (WO-15).
 type AnchoringService struct {
-	dataL1      *MetagraphClient
+	dataL1      DataSubmitter
 	source      CommitmentSource
 	confirm     ConfirmationPublisher
 	proofs      ProofStore
@@ -49,7 +49,7 @@ type AnchoringService struct {
 
 // AnchoringConfig wires the anchoring worker.
 type AnchoringConfig struct {
-	DataL1    *MetagraphClient
+	DataL1    DataSubmitter
 	Source    CommitmentSource
 	Confirm   ConfirmationPublisher
 	Proofs    ProofStore
@@ -164,8 +164,10 @@ func (s *AnchoringService) submitBatch(ctx context.Context, batch *AnchoringBatc
 	}
 	batch.MerkleRoot = tree.Root
 
-	tx := DataL1MerkleRootUpdate{Root: tree.Root, LeafCount: batch.CommitmentCount}
-	txID, err := s.dataL1.SubmitDataL1(ctx, tx)
+	// Submits, then records the root and the chain's proof durably. Stores that only keep
+	// per-message proofs get the submission alone.
+	roots, _ := s.proofs.(RootStore)
+	txID, err := AnchorRoot(ctx, s.dataL1, roots, s.network, tree.Root, batch.CommitmentCount)
 	if err != nil {
 		// Re-queue commitments for a later attempt.
 		for _, c := range batch.Commitments {
@@ -175,14 +177,6 @@ func (s *AnchoringService) submitBatch(ctx context.Context, batch *AnchoringBatc
 	}
 	s.lastFlush = time.Now()
 	s.submissions++
-
-	// Durable record of the root, so the finality tracker can follow it across
-	// restarts. Stores that only keep per-message proofs skip this.
-	if roots, ok := s.proofs.(RootStore); ok {
-		if err := roots.RecordRootSubmitted(ctx, tree.Root, batch.CommitmentCount, s.network, s.lastFlush); err != nil {
-			log.Printf("anchoring: record root %s failed: %v", tree.Root, err)
-		}
-	}
 
 	for i, c := range batch.Commitments {
 		if c.MessageID == "" {

@@ -13,7 +13,7 @@ import (
 
 // GroupAnchoringService submits group metadata to Data L1 (WO-156).
 type GroupAnchoringService struct {
-	dataL1 *metagraph.MetagraphClient
+	dataL1 metagraph.DataSubmitter
 
 	mu            sync.Mutex
 	proofs        map[string]metagraph.GroupBlockchainProof
@@ -29,7 +29,7 @@ type pendingMembership struct {
 }
 
 // NewGroupAnchoringService creates a group metadata anchoring pipeline.
-func NewGroupAnchoringService(dataL1 *metagraph.MetagraphClient) *GroupAnchoringService {
+func NewGroupAnchoringService(dataL1 metagraph.DataSubmitter) *GroupAnchoringService {
 	return &GroupAnchoringService{
 		dataL1:        dataL1,
 		proofs:        make(map[string]metagraph.GroupBlockchainProof),

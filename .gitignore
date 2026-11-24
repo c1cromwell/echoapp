@@ -97,15 +97,11 @@ buck-out/
 
 # Go binaries at repo root (WO-280 / ADR-0001 — do not commit build outputs)
 /echoapp
+/echochain
+/verifyproof
 /credentials
 /cardanoidentity
 *.exe
-
-# Metagraph build artifacts
-metagraph/modules/*/target/
-metagraph/project/target/
-metagraph/project/project/
-metagraph/target/
 
 # MCP local dev server
 tools/echo-local-dev-mcp/.venv/
@@ -127,6 +123,10 @@ tools/echo-local-dev-mcp/**/__pycache__/
 # Local backups of generated/edited project files
 *.bak
 
-# Vendored Tessellation binaries (fetched/verified by metagraph/vendor/fetch.sh; checksums are committed)
-metagraph/vendor/tessellation/
-deploy/sovereign/networks/local/
+# Leftovers on developers' machines from the chain Echo no longer uses (build output, vendored
+# binaries, reference clones). Nothing here is tracked. Delete the directories, then these lines.
+/metagraph/
+/io/
+/spike/
+/euclid-development-environment/
+/deploy/sovereign/

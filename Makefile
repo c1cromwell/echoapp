@@ -1,9 +1,8 @@
 .PHONY: help build run test clean install-deps lint fmt vet build-prod tls-cert migrate \
-	dev dev-stop dev-stop-all dev-resume dev-reset start-identity stop-identity \
-	dev-status dev-logs dev-restart dev-comply dev-comply-stop validate-phase1 metagraph-verify-skeleton metagraph-test \
+	dev dev-stop dev-stop-all dev-reset dev-status dev-logs dev-restart dev-comply dev-comply-stop \
+	chain-up chain-down chain-reset chain-test contracts contracts-check validate-phase1 \
 	testnet-up testnet-down release-check regression regression-quick regression-with-phase1 ios-preflight \
-	phase3-signals-proof echooprf-ios screen-catalog knowledge-graph \
-	sovereign-up sovereign-down sovereign-reset sovereign-status
+	phase3-signals-proof echooprf-ios screen-catalog knowledge-graph
 
 # Variables
 BINARY_NAME=echoapp
@@ -14,17 +13,18 @@ PORT?=8000
 help:
 	@echo "EchoApp - REST API Framework"
 	@echo ""
-	@echo "Phase-1 testnet (WO-230):"
-	@echo "  make dev             Bring up full Phase-1 cluster (hydra start-genesis + backend)"
-	@echo "  make start-identity   Identity L0/L1 (optional — VC / validate-phase1 step 3)"
-	@echo "  make stop-identity    Stop Identity L0/L1"
-	@echo "  make dev-status      Show status of all testnet components"
+	@echo "Local environment:"
+	@echo "  make dev             Chain (4 Besu validators) + contract + backend stack"
+	@echo "  make dev-status      Show status of the chain and backend"
 	@echo "  make dev-logs        Tail backend stack logs"
-	@echo "  make dev-restart     Restart the backend stack only (keeps metagraph running)"
-	@echo "  make dev-stop        Tear down backend stack (metagraph stays up — use 'hydra stop' for that)"
-	@echo "  make dev-stop-all    Stop backend + Identity + hydra (keeps volumes / last snapshot)"
-	@echo "  make dev-resume      hydra start-rollback + backend (same chain + same Postgres)"
-	@echo "  make dev-reset       Wipe volumes + hydra containers; next 'make dev' is empty + new genesis"
+	@echo "  make dev-restart     Restart the backend stack only (chain keeps running)"
+	@echo "  make dev-stop        Stop the backend stack (chain keeps running)"
+	@echo "  make dev-stop-all    Stop backend and chain (data kept)"
+	@echo "  make dev-reset       Delete all local data: backend volumes, chain, keys, contract"
+	@echo "  make chain-up        Chain only (make dev does this)"
+	@echo "  make chain-test      Tests that need the live chain (anchor, prove, reject, fail over)"
+	@echo "  make contracts       Recompile contracts into internal/besu/contract (needs node)"
+	@echo "  make contracts-check Fail if the committed contract artefacts do not match the sources"
 	@echo "  make dev-comply      Comply-only stack (Postgres :5433 + Comply API :8011)"
 	@echo "  make dev-comply-stop Tear down Comply-only stack"
 	@echo "  make validate-phase1 Run scripts/validate-phase1.sh go/no-go check"
@@ -34,9 +34,7 @@ help:
 	@echo "  make ios-preflight   iOS E2E preflight (BUILD=1 TESTS=1) — docs/E2E_QUICK_START.md"
 	@echo "  make screen-catalog  SwiftUI PNG gallery → docs/screen_catalog/index.html"
 	@echo "  make knowledge-graph Factory 8090 WOs → requirements/code graph (docs/knowledge-graph)"
-	@echo "  make metagraph-verify-skeleton  Static WO-276 checks (euclid + build.sbt + sources; needs jq)"
-	@echo "  make metagraph-test     Scala tests: sharedData + identity metagraph layers (WO-272/277; sbt + JDK)"
-	@echo "  make testnet-up      Bring up backend stack only (assumes metagraph already running)"
+	@echo "  make testnet-up      Bring up backend stack only (assumes the chain is running)"
 	@echo "  make testnet-down    Bring down backend stack only"
 	@echo ""
 	@echo "Application:"
@@ -228,80 +226,26 @@ info:
 	@echo ""
 
 # =============================================================================
-# Phase-1 Testnet (WO-230)
+# Local environment
 #
-# Brings up the full local development environment in a single command:
-#   1. Euclid SDK metagraph cluster (Global L0 + Metagraph L0 + Currency L1 +
-#      Data L1) via `hydra` in the sibling ../euclid-development-environment
-#      directory. Identity L0/L1 are NOT managed by hydra — start them
-#      separately with `make start-identity` (see that target).
+#   1. Echo's chain: four Hyperledger Besu validators with QBFT consensus, and the
+#      anchor contract (deploy/besu/local). Keys made here are for local use only.
 #   2. Backend stack (Go API + Postgres + Redis + NATS + MinIO) via
-#      docker-compose.testnet.yml.
+#      docker-compose.testnet.yml, configured to anchor to that chain.
 #
-# After both are up, run `make validate-phase1` to execute the 6-step
-# go/no-go script defined in WO-230.
+# After both are up, `make validate-phase1` runs the go/no-go script.
 # =============================================================================
 
-EUCLID_DIR ?= $(abspath ../euclid-development-environment)
 COMPOSE_TESTNET := docker compose -f docker-compose.testnet.yml
 COMPOSE_COMPLY := docker compose -f docker-compose.comply.yml
-HYDRA_HEALTH_TIMEOUT := 300
+CHAIN_DIR := deploy/besu/local
+CHAIN_ENV := $(CHAIN_DIR)/.network/chain.env
+# Runs a command with the gateway's signing key and, when the chain is up, its settings exported.
+WITH_CHAIN := ECHOAPP_ROOT=$(CURDIR) bash -c 'source ./scripts/identity/ensure-identity-service-key.sh && { [ ! -f $(CHAIN_ENV) ] || source $(CHAIN_ENV); } && exec "$$@"' --
 
-dev: ## Bring up full Phase-1 cluster
-	@echo "===== Phase-1 Testnet Bring-up ====="
-	@echo ""
-	@echo "[1/4] Ensuring Euclid SDK is set up..."
-	@cd metagraph && EUCLID_DIR="$(EUCLID_DIR)" ./scripts/setup-euclid.sh
-	@echo ""
-	@echo "[2/4] Building metagraph Docker images (hydra install + build)..."
-	@if [ ! -d "$(EUCLID_DIR)" ]; then \
-		echo "  ✗ Euclid directory not found: $(EUCLID_DIR)"; \
-		echo "    setup-euclid.sh should have cloned it. Re-run 'cd metagraph && ./scripts/setup-euclid.sh'"; \
-		exit 1; \
-	fi
-	@cd "$(EUCLID_DIR)" && scripts/hydra build
-	@# Guard: the image must contain Echo's metagraph, not the Euclid template.
-	@main=$$(unzip -p "$(EUCLID_DIR)/infra/shared/jars/data-l1.jar" META-INF/MANIFEST.MF 2>/dev/null | tr -d '\r' | awk '/^Main-Class:/{print $$2}'); \
-	case "$$main" in \
-	  com.echo.*) echo "  ✓ data-l1.jar main class: $$main" ;; \
-	  *) echo "  ✗ data-l1.jar main class is '$$main' (expected com.echo.*) — the cluster would not run Echo's metagraph"; exit 1 ;; \
-	esac
-	@echo ""
-	@echo "[3/5] Starting metagraph cluster (hydra start-genesis)..."
-	@cd "$(EUCLID_DIR)" && scripts/hydra start-genesis || { \
-		echo "  ⚠ hydra start-genesis returned non-zero (cluster may already be running)"; \
-	}
-	@echo ""
-	@echo "[4/5] Waiting for core metagraph endpoints to come up..."
-	@# Only the core hydra-managed layers are waited on here. Identity L0/L1 are
-	@# started separately (`make start-identity`), so waiting for them would just
-	@# burn the timeout while they're down — they are intentionally not listed.
-	@deadline=$$(( $$(date +%s) + $(HYDRA_HEALTH_TIMEOUT) )); \
-	for endpoint in \
-	  "Global L0=http://localhost:9000/node/info" \
-	  "Metagraph L0=http://localhost:9200/node/info" \
-	  "Currency L1=http://localhost:9300/node/info" \
-	  "Data L1=http://localhost:9400/node/info"; do \
-	  label=$${endpoint%%=*}; url=$${endpoint#*=}; \
-	  printf "  waiting for %-14s ... " "$$label"; \
-	  while [ $$(date +%s) -lt $$deadline ]; do \
-	    if curl -fsS --max-time 2 "$$url" >/dev/null 2>&1; then \
-	      echo "✓"; break; \
-	    fi; \
-	    sleep 2; \
-	  done; \
-	  if ! curl -fsS --max-time 2 "$$url" >/dev/null 2>&1; then \
-	    echo "✗ TIMEOUT"; \
-	    echo "    Check 'cd $(EUCLID_DIR) && scripts/hydra status'"; \
-	    exit 1; \
-	  fi; \
-	done
-	@echo ""
-	@echo "[5/5] Starting backend stack (Postgres + Redis + NATS + MinIO + echoapp)..."
-	@ECHOAPP_ROOT=$(CURDIR) bash -c 'source ./scripts/identity/ensure-identity-service-key.sh && exec $(COMPOSE_TESTNET) up -d --build'
-	@echo ""
+dev: chain-up testnet-up ## Bring up the chain and the backend stack
 	@echo "Waiting for backend health..."
-	@deadline=$$(( $$(date +%s) + 60 )); \
+	@deadline=$$(( $$(date +%s) + 90 )); \
 	while [ $$(date +%s) -lt $$deadline ]; do \
 	  if curl -fsS --max-time 2 http://localhost:8000/health >/dev/null 2>&1; then \
 	    echo "  ✓ backend healthy at http://localhost:8000"; break; \
@@ -309,104 +253,49 @@ dev: ## Bring up full Phase-1 cluster
 	  sleep 2; \
 	done
 	@echo ""
-	@echo "===== Phase-1 cluster up ====="
-	@echo "  Backend:        http://localhost:8000"
-	@echo "  Global L0:      http://localhost:9000"
-	@echo "  Metagraph L0:   http://localhost:9200"
-	@echo "  Currency L1:    http://localhost:9300"
-	@echo "  Data L1:        http://localhost:9400"
-	@echo "  Identity L0/L1: 9600 / 9500  (optional, not started by 'make dev' —"
-	@echo "                  run 'make start-identity' for VC / trust-tier features)"
+	@echo "  Backend:  http://localhost:8000"
+	@echo "  Chain:    http://localhost:8545 (validators 1-4 on 8545-8548)"
 	@echo ""
 	@echo "Next: make validate-phase1"
 
-testnet-up: ## Bring up backend stack only (assumes metagraph already running)
-	@ECHOAPP_ROOT=$(CURDIR) bash -c 'source ./scripts/identity/ensure-identity-service-key.sh && exec $(COMPOSE_TESTNET) up -d --build'
+chain-up: ## Start Echo's local chain (4 Besu validators) and deploy the anchor contract
+	@echo "===== Chain ====="
+	@$(CHAIN_DIR)/up.sh
+
+chain-down: ## Stop the local chain (keeps its data, keys and contract)
+	@docker compose -f $(CHAIN_DIR)/docker-compose.yml down 2>/dev/null || true
+
+chain-reset: ## Delete the local chain (data, keys, contract) and start a new one
+	@$(CHAIN_DIR)/up.sh --reset
+
+chain-test: ## Tests that need the live chain: anchor, prove, verify offline, reject, fail over
+	@[ -f $(CHAIN_ENV) ] || { echo "chain is not set up; run: make chain-up"; exit 1; }
+	@$(WITH_CHAIN) $(GO) test ./internal/besu ./internal/metagraph -run Live -count=1 -v
+
+contracts: ## Recompile contracts into internal/besu/contract (needs node; compiler pinned in chain/package.json)
+	@cd chain && { [ -d node_modules/solc ] || npm install --silent; } && node compile.js
+
+contracts-check: ## Fail if the committed contract artefacts do not match the sources
+	@cd chain && { [ -d node_modules/solc ] || npm install --silent; } && node compile.js --check
+
+testnet-up: ## Bring up backend stack only (assumes the chain is running)
+	@echo "===== Backend stack ====="
+	@$(WITH_CHAIN) $(COMPOSE_TESTNET) up -d --build
 
 testnet-down: ## Tear down backend stack
 	@$(COMPOSE_TESTNET) down
 
-metagraph-verify-skeleton: ## WO-276: static verify Identity Metagraph skeleton (no sbt; needs jq)
-	@cd metagraph && ./scripts/verify-identity-skeleton.sh
+dev-stop: testnet-down ## Stop the backend stack (chain keeps running)
+	@echo "Backend stack down. The chain is still running: make dev-stop-all stops it too."
 
-metagraph-test: ## WO-272/277: run validators + Identity L1 wiring tests (sbt + JDK 21)
-	@JDK21=$$(ls -d /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home 2>/dev/null || ls -d /usr/lib/jvm/java-21* 2>/dev/null | head -1 || echo ""); \
-	if [ -n "$$JDK21" ]; then \
-	  cd metagraph && JAVA_HOME=$$JDK21 PATH=$$JDK21/bin:$$PATH SBT_OPTS="-Xss8m -Xmx2g" sbt "sharedData/test" "currencyL0/test" "currencyL1/test" "dataL1/test" "identityL0/test" "identityL1/test"; \
-	else \
-	  cd metagraph && SBT_OPTS="-Xss8m -Xmx2g" sbt "sharedData/test" "currencyL0/test" "currencyL1/test" "dataL1/test" "identityL0/test" "identityL1/test"; \
-	fi
+dev-stop-all: testnet-down chain-down ## Stop backend and chain (data kept)
+	@echo "Stopped. 'make dev' resumes with the same chain and the same Postgres."
 
-chain-supply-check: ## Chain builds without Constellation: no hosted URLs in build path, vendored binaries match checksums
-	@EUCLID_DIR="$(EUCLID_DIR)" ./scripts/chain-supply-check.sh
-
-# Rehearsal of the production-shaped network (docs/OWN_L0_PLAN.md stage 2): three Global L0 nodes
-# and three metagraph hosts, every process started by the production launcher with enforced
-# seedlists and signer allowlists. Uses the same host ports as `make dev`; run one or the other.
-COMPOSE_SOVEREIGN := docker compose -f deploy/sovereign/stack/docker-compose.yml
-SOVEREIGN_ENV := ECHOAPP_ROOT=$(CURDIR) bash -c 'source ./scripts/identity/ensure-identity-service-key.sh && exec "$$@"' --
-
-sovereign-up: ## Start the production-shaped chain rehearsal (3 Global L0 + 3 metagraph hosts)
-	@cd metagraph && SBT_OPTS="-Xss8m -Xmx3g" sbt -batch currencyL0/assembly currencyL1/assembly dataL1/assembly identityL0/assembly identityL1/assembly
-	@$(SOVEREIGN_ENV) $(COMPOSE_SOVEREIGN) up -d
-	@echo "Started. Layers come up in order over about 5 minutes: make sovereign-status"
-
-sovereign-status: ## State of every node in the rehearsal
-	@./deploy/sovereign/stack/status.sh
-
-sovereign-down: ## Stop the rehearsal (keeps keys and chain data)
-	@IDENTITY_SERVICE_PUBLIC_KEY_HEX=x IDENTITY_SERVICE_DID=x $(COMPOSE_SOVEREIGN) down
-
-sovereign-reset: ## Stop the rehearsal and delete its keys and chain data
-	@IDENTITY_SERVICE_PUBLIC_KEY_HEX=x IDENTITY_SERVICE_DID=x $(COMPOSE_SOVEREIGN) down -v
-
-dev-stop: testnet-down ## Tear down backend stack (does not stop metagraph)
-	@echo "Backend stack down. Metagraph still running — use:"
-	@echo "  make dev-stop-all    # also hydra stop + Identity"
-	@echo "  make dev-reset       # wipe all local data, then make dev"
-	@echo "  cd $(EUCLID_DIR) && scripts/hydra stop"
-
-dev-stop-all: ## Stop backend + Identity + hydra (keeps Docker volumes and last hydra snapshot)
-	@echo "===== Stopping local stacks (data kept) ====="
-	@$(MAKE) stop-identity
-	@$(COMPOSE_TESTNET) down --remove-orphans || true
-	@if [ -d "$(EUCLID_DIR)" ]; then \
-	  cd "$(EUCLID_DIR)" && scripts/hydra stop || true; \
-	else \
-	  echo "  Euclid not found at $(EUCLID_DIR) — skipped hydra stop"; \
-	fi
-	@echo "Stopped. Resume same data: make dev-resume"
-	@echo "Empty world + new genesis: make dev-reset && make dev"
-
-dev-resume: ## Start existing chain (hydra rollback) + existing backend volumes
-	@if [ ! -d "$(EUCLID_DIR)" ]; then \
-	  echo "  ✗ Euclid not found: $(EUCLID_DIR)"; \
-	  echo "    Run: cd metagraph && ./scripts/setup-euclid.sh"; \
-	  exit 1; \
-	fi
-	@echo "===== Resume last snapshot (not genesis) ====="
-	@cd "$(EUCLID_DIR)" && scripts/hydra start-rollback
-	@$(MAKE) testnet-up
-	@echo "Next: make dev-status   (Identity: make start-identity if you need it)"
-
-dev-reset: ## Wipe backend volumes + Identity volumes + hydra containers (no local user/chain data)
-	@echo "===== Clean slate — destroys local Postgres/Redis/NATS/MinIO + Identity + hydra ====="
-	@$(MAKE) stop-identity
-	@docker compose -f docker-compose.identity.yml down -v --remove-orphans 2>/dev/null || true
-	@$(COMPOSE_TESTNET) down -v --remove-orphans || true
-	@$(COMPOSE_COMPLY) down -v --remove-orphans || true
-	@if [ -d "$(EUCLID_DIR)" ]; then \
-	  cd "$(EUCLID_DIR)" && scripts/hydra stop || true; \
-	  cd "$(EUCLID_DIR)" && scripts/hydra destroy || true; \
-	else \
-	  echo "  Euclid not found at $(EUCLID_DIR) — skipped hydra stop/destroy"; \
-	fi
-	@echo ""
-	@echo "Local data gone. Do not confuse this with token genesis (ECHO_WALLET_GENESIS_AUTO)."
-	@echo "Next:"
-	@echo "  make dev              # hydra start-genesis (empty chain) + empty Postgres"
-	@echo "  make start-identity   # optional — new Identity genesis (VC / phase1 step 3)"
-	@echo "  Delete Echo from each Simulator/phone (or Erase Simulator) so first-run is empty."
+dev-reset: ## Delete all local data: backend volumes, chain, keys and contract
+	@echo "===== Clean slate: destroys local Postgres/Redis/NATS/MinIO and the local chain ====="
+	@$(COMPOSE_TESTNET) down -v --remove-orphans 2>/dev/null || true
+	@$(CHAIN_DIR)/up.sh --destroy
+	@echo "Done. Next: make dev"
 
 dev-comply: ## Comply-only stack (portal operators; no messaging gateway)
 	@echo "Starting Comply-only stack (postgres :5433, comply :8011)..."
@@ -417,47 +306,9 @@ dev-comply: ## Comply-only stack (portal operators; no messaging gateway)
 dev-comply-stop: ## Tear down Comply-only stack
 	@$(COMPOSE_COMPLY) down
 
-# Identity nodes (L0 port 9600, L1 port 9500) are custom Echo modules not
-# managed by Euclid hydra. They require sbt assembly JARs and their own
-# Docker setup. Use these targets once the core cluster is running.
 start-comply: ## Run ECHO Comply microservice on :8011 (WO-250/251/252)
 	@echo "Starting Comply service on :8011..."
 	COMPLY_PORT=8011 COMPLY_SERVICE_TOKEN=$${COMPLY_SERVICE_TOKEN:-dev-comply-token} $(GO) run ./cmd/comply
-
-start-identity: ## Start Identity L0 + L1 nodes (requires sbt assembly + running cluster)
-	@echo "Starting Identity nodes..."
-	@JAR_L0=$$(ls metagraph/modules/identity_l0/target/scala-2.13/*assembly*.jar 2>/dev/null | head -1); \
-	JAR_L1=$$(ls metagraph/modules/identity_l1/target/scala-2.13/*assembly*.jar 2>/dev/null | head -1); \
-	if [ -z "$$JAR_L0" ] || [ -z "$$JAR_L1" ]; then \
-	  echo "  ✗ Identity JARs not found. Run: cd metagraph && sbt identityL0/assembly identityL1/assembly"; \
-	  exit 1; \
-	fi; \
-	echo "  ✓ Found $$JAR_L0"; \
-	echo "  ✓ Found $$JAR_L1"; \
-	if ! docker image inspect metagraph-base-image:latest >/dev/null 2>&1; then \
-	  echo "  ✗ metagraph-base-image:latest not found — start the core cluster first: make dev"; \
-	  exit 1; \
-	fi; \
-	echo "  ✓ Base image present"; \
-	if ! curl -fsS --max-time 3 http://localhost:9000/node/info >/dev/null 2>&1; then \
-	  echo "  ✗ Global L0 not reachable on :9000 — Identity L0 peers with it. Run 'make dev' first."; \
-	  exit 1; \
-	fi; \
-	echo "  ✓ Global L0 reachable"; \
-	ECHOAPP_ROOT=$(CURDIR) bash -c 'source ./scripts/identity/ensure-identity-service-key.sh && export IDENTITY_SERVICE_DID IDENTITY_SERVICE_PUBLIC_KEY_HEX && docker compose -f docker-compose.identity.yml up -d'
-	@echo "  Waiting for Identity L0 on :9600 (genesis can take ~30s)..."
-	@for i in $$(seq 1 40); do \
-	  if curl -fsS --max-time 2 http://localhost:9600/node/info >/dev/null 2>&1; then \
-	    echo "  ✓ Identity L0 ready"; break; \
-	  fi; sleep 3; done
-	@echo "  Waiting for Identity L1 on :9500..."
-	@for i in $$(seq 1 40); do \
-	  if curl -fsS --max-time 2 http://localhost:9500/node/info >/dev/null 2>&1; then \
-	    echo "  ✓ Identity L1 ready"; break; \
-	  fi; sleep 3; done
-
-stop-identity: ## Stop Identity L0 + L1 nodes
-	@docker compose -f docker-compose.identity.yml down 2>/dev/null || true
 
 dev-restart: ## Restart backend stack
 	@$(COMPOSE_TESTNET) restart
@@ -465,33 +316,22 @@ dev-restart: ## Restart backend stack
 dev-logs: ## Tail backend stack logs
 	@$(COMPOSE_TESTNET) logs -f --tail=100
 
-dev-status: ## Show status of all testnet components
+dev-status: ## Show status of the chain and backend
 	@echo "===== Backend stack ====="
 	@$(COMPOSE_TESTNET) ps || true
 	@echo ""
-	@echo "===== Metagraph cluster ====="
-	@if [ -d "$(EUCLID_DIR)" ]; then \
-	  cd "$(EUCLID_DIR)" && scripts/hydra status || true; \
-	else \
-	  echo "  Euclid directory not found: $(EUCLID_DIR)"; \
-	fi
-	@echo ""
-	@echo "===== Endpoint reachability ====="
-	@for ep in \
-	  "Backend=http://localhost:8000/health" \
-	  "Global L0=http://localhost:9000/node/info" \
-	  "Metagraph L0=http://localhost:9200/node/info" \
-	  "Currency L1=http://localhost:9300/node/info" \
-	  "Data L1=http://localhost:9400/node/info" \
-	  "Identity L0=http://localhost:9600/node/info" \
-	  "Identity L1=http://localhost:9500/node/info"; do \
-	  label=$${ep%%=*}; url=$${ep#*=}; \
-	  if curl -fsS --max-time 2 "$$url" >/dev/null 2>&1; then \
-	    printf "  ✓ %-15s %s\n" "$$label" "$$url"; \
-	  else \
-	    printf "  ✗ %-15s %s (unreachable)\n" "$$label" "$$url"; \
-	  fi; \
+	@echo "===== Chain ====="
+	@for n in 1 2 3 4; do \
+	  port=$$((8544 + n)); \
+	  h=$$(curl -s --max-time 2 -X POST -H 'Content-Type: application/json' \
+	    --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' http://localhost:$$port 2>/dev/null \
+	    | sed -n 's/.*"result":"\(0x[0-9a-f]*\)".*/\1/p'); \
+	  if [ -n "$$h" ]; then printf "  ✓ validator %s  block %d  (localhost:%s)\n" $$n $$((h)) $$port; \
+	  else printf "  ✗ validator %s  unreachable (localhost:%s)\n" $$n $$port; fi; \
 	done
+	@echo ""
+	@if curl -fsS --max-time 2 http://localhost:8000/health >/dev/null 2>&1; then \
+	  echo "  ✓ backend   http://localhost:8000/health"; else echo "  ✗ backend   unreachable"; fi
 
 validate-phase1: ## Run the WO-230 6-step go/no-go validation script
 	@chmod +x scripts/validate-phase1.sh

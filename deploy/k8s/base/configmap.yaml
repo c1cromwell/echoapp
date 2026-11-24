@@ -19,27 +19,18 @@ data:
   DATABASE_SSLMODE: "require"
   REDIS_HOST: "10.0.1.50"
   REDIS_PORT: "6379"
-  # Chain network the gateway anchors to: "sovereign" (Echo's own chain) or
-  # "constellation" (Constellation's public network). Any other value fails startup.
-  ECHO_CHAIN_NETWORK: "sovereign"
+  # Echo's own chain: a private Hyperledger Besu network (docs/BESU_MIGRATION_PLAN.md).
+  # "besu" is the only accepted value; anything else fails startup.
+  ECHO_CHAIN_NETWORK: "besu"
+  # JSON-RPC endpoints of the validators, on the private network. The gateway uses the first that
+  # answers. REPLACE_ME until the staging deploy (plan stage B4) fixes the addresses; with these
+  # placeholders the gateway refuses to start, which is intended: production must not run
+  # without anchoring by accident.
+  BESU_RPC_URLS: "http://REPLACE_ME:8545"
+  BESU_ANCHOR_CONTRACT: "REPLACE_ME"
   # Constellation-hosted Digital Evidence API. The client is constructed only
   # when this is "true" and DIGITAL_EVIDENCE_API_KEY is set.
   DIGITAL_EVIDENCE_ENABLED: "false"
-  # Echo's own chain (docs/OWN_L0_PLAN.md). Every chain node is on the private network with a
-  # fixed address set by deploy/terraform/hetzner/gl0-nodes.tf — Global L0 at 10.0.2.11-13,
-  # metagraph hosts at 10.0.2.21-23 — the same in every environment, so no overlay is needed.
-  # Ports are the production layout from deploy/ansible/playbooks/group_vars/all.yml (Global L0 9000,
-  # Metagraph L0 9100, Currency L1 9200, Data L1 9300, Identity L1 9500, Identity L0 9600).
-  # The local dev cluster uses different ports; do not copy them here.
-  # Each URL names one node. If that node is down the gateway loses that layer until it returns
-  # or this value is changed; spreading requests across nodes is stage 3 work.
-  GLOBAL_L0_URL: "http://10.0.2.11:9000"
-  # Also switches on the anchor finality tracker, which archives signed snapshots.
-  METAGRAPH_L0_URL: "http://10.0.2.21:9100"
-  CURRENCY_L1_URL: "http://10.0.2.21:9200"
-  DATA_L1_URL: "http://10.0.2.21:9300"
-  IDENTITY_L0_URL: "http://10.0.2.21:9600"
-  IDENTITY_L1_URL: "http://10.0.2.21:9500"
   # Accept Apple-signed Sandbox purchases (TestFlight / App Review). Set to
   # "false" once only App Store builds should earn VIP.
   VIP_ALLOW_SANDBOX_STOREKIT: "true"

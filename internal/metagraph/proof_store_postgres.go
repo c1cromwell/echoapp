@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// PostgresProofStore is the durable AnchorStore (migration 036_anchor_proofs).
+// PostgresProofStore is the durable AnchorStore (migrations 036 and 037).
 // Proofs and finality survive gateway restarts and do not depend on the chain
 // being reachable.
 type PostgresProofStore struct {
@@ -75,47 +75,27 @@ func (s *PostgresProofStore) RecordRootSubmitted(ctx context.Context, root strin
 }
 
 const anchorRootColumns = `merkle_root, network, leaf_count, submitted_at, finalized, finalized_at,
-	ml0_snapshot_ordinal, ml0_snapshot_hash, ml0_contains_root, ml0_signers, ml0_archive_key, ml0_archive_sha256,
-	gl0_snapshot_ordinal, gl0_snapshot_hash, gl0_signers, gl0_archive_key, gl0_archive_sha256`
+	block_number, tx_hash, contract, chain_proof`
 
 func scanAnchoredRoot(row pgx.Row) (AnchoredRoot, error) {
 	var (
-		r                    AnchoredRoot
-		mlOrd, glOrd         *int64
-		mlHash, mlKey, mlSHA *string
-		glHash, glKey, glSHA *string
-		mlContains           *bool
-		mlSigners, glSigners []byte
-		deref                = func(p *string) string {
-			if p == nil {
-				return ""
-			}
-			return *p
-		}
+		r                AnchoredRoot
+		block            *int64
+		txHash, contract *string
+		proof            []byte
 	)
-	err := row.Scan(&r.MerkleRoot, &r.Network, &r.LeafCount, &r.SubmittedAt, &r.Finalized, &r.FinalizedAt,
-		&mlOrd, &mlHash, &mlContains, &mlSigners, &mlKey, &mlSHA,
-		&glOrd, &glHash, &glSigners, &glKey, &glSHA)
-	if err != nil {
+	if err := row.Scan(&r.MerkleRoot, &r.Network, &r.LeafCount, &r.SubmittedAt, &r.Finalized, &r.FinalizedAt,
+		&block, &txHash, &contract, &proof); err != nil {
 		return AnchoredRoot{}, err
 	}
-	if mlOrd != nil {
-		ref := &SnapshotRef{Ordinal: *mlOrd, Hash: deref(mlHash), ArchiveKey: deref(mlKey), SHA256: deref(mlSHA), ContainsRoot: mlContains}
-		if len(mlSigners) > 0 {
-			if err := json.Unmarshal(mlSigners, &ref.Signers); err != nil {
-				return AnchoredRoot{}, err
-			}
+	if block != nil {
+		r.Chain = &ChainAnchor{BlockNumber: *block, Proof: proof}
+		if txHash != nil {
+			r.Chain.TxHash = *txHash
 		}
-		r.ML0 = ref
-	}
-	if glOrd != nil {
-		ref := &SnapshotRef{Ordinal: *glOrd, Hash: deref(glHash), ArchiveKey: deref(glKey), SHA256: deref(glSHA)}
-		if len(glSigners) > 0 {
-			if err := json.Unmarshal(glSigners, &ref.Signers); err != nil {
-				return AnchoredRoot{}, err
-			}
+		if contract != nil {
+			r.Chain.Contract = *contract
 		}
-		r.GL0 = ref
 	}
 	return r, nil
 }
@@ -139,7 +119,7 @@ func (s *PostgresProofStore) ListIncompleteRoots(ctx context.Context, limit int)
 		limit = 200
 	}
 	rows, err := s.pool.Query(ctx, `SELECT `+anchorRootColumns+` FROM anchor_roots
-		WHERE NOT finalized OR ml0_snapshot_ordinal IS NULL
+		WHERE NOT finalized OR chain_proof IS NULL
 		ORDER BY submitted_at DESC LIMIT $1`, limit)
 	if err != nil {
 		return nil, err
@@ -164,47 +144,15 @@ func (s *PostgresProofStore) MarkRootFinalized(ctx context.Context, root string,
 	return err
 }
 
-// SaveRootSnapshots implements RootStore.
-func (s *PostgresProofStore) SaveRootSnapshots(ctx context.Context, root string, ml0, gl0 *SnapshotRef) error {
-	nullable := func(v string) *string {
-		if v == "" {
-			return nil
-		}
-		return &v
+// SaveChainAnchor implements RootStore.
+func (s *PostgresProofStore) SaveChainAnchor(ctx context.Context, root string, anchor ChainAnchor) error {
+	var proof *string
+	if len(anchor.Proof) > 0 {
+		p := string(anchor.Proof)
+		proof = &p
 	}
-	signers := func(ref *SnapshotRef) (string, error) {
-		ids := ref.Signers
-		if ids == nil {
-			ids = []string{}
-		}
-		b, err := json.Marshal(ids)
-		return string(b), err
-	}
-	if ml0 != nil {
-		sig, err := signers(ml0)
-		if err != nil {
-			return err
-		}
-		if _, err := s.pool.Exec(ctx, `
-			UPDATE anchor_roots SET ml0_snapshot_ordinal = $2, ml0_snapshot_hash = $3, ml0_contains_root = $4,
-				ml0_signers = $5::jsonb, ml0_archive_key = $6, ml0_archive_sha256 = $7
-			WHERE merkle_root = $1`,
-			root, ml0.Ordinal, ml0.Hash, ml0.ContainsRoot, sig, nullable(ml0.ArchiveKey), nullable(ml0.SHA256)); err != nil {
-			return err
-		}
-	}
-	if gl0 != nil {
-		sig, err := signers(gl0)
-		if err != nil {
-			return err
-		}
-		if _, err := s.pool.Exec(ctx, `
-			UPDATE anchor_roots SET gl0_snapshot_ordinal = $2, gl0_snapshot_hash = $3,
-				gl0_signers = $4::jsonb, gl0_archive_key = $5, gl0_archive_sha256 = $6
-			WHERE merkle_root = $1`,
-			root, gl0.Ordinal, gl0.Hash, sig, nullable(gl0.ArchiveKey), nullable(gl0.SHA256)); err != nil {
-			return err
-		}
-	}
-	return nil
+	_, err := s.pool.Exec(ctx, `
+		UPDATE anchor_roots SET block_number = $2, tx_hash = $3, contract = $4, chain_proof = $5::jsonb
+		WHERE merkle_root = $1`, root, anchor.BlockNumber, anchor.TxHash, anchor.Contract, proof)
+	return err
 }

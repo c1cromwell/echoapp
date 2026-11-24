@@ -7,7 +7,7 @@ import (
 )
 
 // ProofBundleVersion is bumped when the bundle layout changes.
-const ProofBundleVersion = 1
+const ProofBundleVersion = 2
 
 // ErrRootNotFound means no anchored-root record exists for the root.
 var ErrRootNotFound = errors.New("anchored root not found")
@@ -18,21 +18,21 @@ var ErrMessageNotInRoot = errors.New("no proof for this message under this root"
 // ProofBundle is the self-contained anchor proof served by
 // GET /v1/anchors/{root}/proof and checked offline by cmd/verifyproof.
 // It is built only from the gateway's own durable record; the chain is not
-// contacted. See FinalityTracker for what the snapshot fields mean.
+// contacted. Two links make up a full proof:
+//
+//	message commitment --(Merkle path)--> root --(chain proof)--> a block signed by the validators
+//
+// Chain.Proof carries the second link, including the validators' signatures.
 type ProofBundle struct {
-	Version     int        `json:"version"`
-	Network     string     `json:"network"`
-	MerkleRoot  string     `json:"merkleRoot"`
-	LeafCount   int        `json:"leafCount"`
-	SubmittedAt time.Time  `json:"submittedAt"`
-	Finalized   bool       `json:"finalized"`
-	FinalizedAt *time.Time `json:"finalizedAt,omitempty"`
-	// MetagraphSnapshot / GlobalSnapshot are the signed snapshots captured when
-	// finality was observed. Signers are the peer ids listed in the snapshot's
-	// proofs; their signatures were not verified by the gateway.
-	MetagraphSnapshot *SnapshotRef        `json:"metagraphSnapshot,omitempty"`
-	GlobalSnapshot    *SnapshotRef        `json:"globalSnapshot,omitempty"`
-	Message           *ProofBundleMessage `json:"message,omitempty"`
+	Version     int                 `json:"version"`
+	Network     string              `json:"network"`
+	MerkleRoot  string              `json:"merkleRoot"`
+	LeafCount   int                 `json:"leafCount"`
+	SubmittedAt time.Time           `json:"submittedAt"`
+	Finalized   bool                `json:"finalized"`
+	FinalizedAt *time.Time          `json:"finalizedAt,omitempty"`
+	Chain       *ChainAnchor        `json:"chain,omitempty"`
+	Message     *ProofBundleMessage `json:"message,omitempty"`
 }
 
 // ProofBundleMessage is one message's Merkle path to the bundle's root.
@@ -58,15 +58,14 @@ func BuildProofBundle(ctx context.Context, store AnchorStore, fallbackNetwork, r
 		network = fallbackNetwork
 	}
 	b := &ProofBundle{
-		Version:           ProofBundleVersion,
-		Network:           network,
-		MerkleRoot:        rec.MerkleRoot,
-		LeafCount:         rec.LeafCount,
-		SubmittedAt:       rec.SubmittedAt,
-		Finalized:         rec.Finalized,
-		FinalizedAt:       rec.FinalizedAt,
-		MetagraphSnapshot: rec.ML0,
-		GlobalSnapshot:    rec.GL0,
+		Version:     ProofBundleVersion,
+		Network:     network,
+		MerkleRoot:  rec.MerkleRoot,
+		LeafCount:   rec.LeafCount,
+		SubmittedAt: rec.SubmittedAt,
+		Finalized:   rec.Finalized,
+		FinalizedAt: rec.FinalizedAt,
+		Chain:       rec.Chain,
 	}
 	if messageID != "" {
 		p, ok, err := store.Get(ctx, messageID)

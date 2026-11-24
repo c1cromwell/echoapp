@@ -152,17 +152,15 @@ func (s *Server) Start() error {
 		}
 		router.IdentityL1 = metagraph.NewMetagraphClient(cfg)
 	}
-	if d1 := os.Getenv("DATA_L1_URL"); d1 != "" {
-		cfg := metagraph.MetagraphConfig{
-			DataL1URL: d1,
-			Timeout:   30 * time.Second,
-		}
-		if signer, err := loadIdentitySigningConfig(); err != nil {
-			log.Printf("Data L1 signing disabled: %v", err)
-		} else if signer != nil {
-			cfg.IdentitySigner = signer
-		}
-		router.DataL1 = metagraph.NewMetagraphClient(cfg)
+	// Echo's own chain (Besu). Unset BESU_RPC_URLS leaves anchoring off; a partly configured
+	// chain is a startup error, so anchoring is never silently missing.
+	chainAnchor, err := metagraph.BesuAnchorFromEnv()
+	if err != nil {
+		return fmt.Errorf("chain configuration: %w", err)
+	}
+	if chainAnchor != nil {
+		router.DataL1 = chainAnchor
+		log.Printf("Chain anchoring enabled: contract %s, writing as %s", chainAnchor.Client.AnchorContract().Hex(), chainAnchor.Client.SignerAddress().Hex())
 	}
 	var currencyL1 *metagraph.MetagraphClient
 	if c1 := os.Getenv("CURRENCY_L1_URL"); c1 != "" {
@@ -259,12 +257,6 @@ func (s *Server) Start() error {
 	}
 
 	emission := rewards.NewEmissionSchedule(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
-	// Chain snapshots are archived only to real object storage, never to the
-	// in-memory media fallback (which would not survive a restart).
-	var snapshotArchive metagraph.SnapshotArchive
-	if s3Store, ok := storage.(*media.S3Storage); ok {
-		snapshotArchive = s3Store
-	}
 	storage = wrapFilecoinArchiver(storage)
 	mediaSvc := media.NewService(db, storage)
 	mediaSvc.DataL1 = router.DataL1 // D3: anchor media content roots on Data L1
@@ -428,7 +420,7 @@ func (s *Server) Start() error {
 	var anchorStore metagraph.AnchorStore
 	if pgDB != nil {
 		anchorStore = metagraph.NewPostgresProofStore(pgDB.Pool())
-		log.Println("Anchor proof store backed by PostgreSQL (migration 036_anchor_proofs)")
+		log.Println("Anchor proof store backed by PostgreSQL (migrations 036, 037)")
 	} else {
 		anchorStore = metagraph.NewRedisProofStore(redisClient, metagraph.NewMemoryProofStore())
 		log.Println("Anchor proof store: Redis/in-memory (set DATABASE_HOST for durable proofs)")
@@ -446,15 +438,10 @@ func (s *Server) Start() error {
 		go anchoring.Run(context.Background())
 		log.Println("Message integrity anchoring enabled (WO-15)")
 	}
-	// Follows submitted roots to finality and archives the signed snapshots
-	// (no-op without METAGRAPH_L0_URL).
-	go metagraph.NewFinalityTracker(metagraph.FinalityTrackerConfig{
-		Roots:       anchorStore,
-		Network:     chainNetwork,
-		ML0URL:      os.Getenv("METAGRAPH_L0_URL"),
-		GlobalL0URL: os.Getenv("GLOBAL_L0_URL"),
-		Archive:     snapshotArchive,
-	}).Run(context.Background())
+	// Completes any root whose chain proof could not be taken when it was anchored.
+	if chainAnchor != nil {
+		go metagraph.BackfillChainProofs(context.Background(), chainAnchor, anchorStore, time.Minute)
+	}
 
 	tokenomicsSvc, err := tokenomics.NewService(tokenomics.Config{
 		GenesisDate: emission.GenesisDate,
