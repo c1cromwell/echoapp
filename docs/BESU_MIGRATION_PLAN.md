@@ -1,6 +1,6 @@
 # Moving Echo's chain from Tessellation to Hyperledger Besu
 
-**Written:** 2026-11-24 · **Status:** decisions final (§0); stages B1 and B2 built and their gates met locally (§7, §9); B3–B5 not started
+**Written:** 2026-11-24 · **Status:** decisions final (§0); stages B1, B2 and B3 built and their gates met locally (§7, §9, §10); B4–B5 not started
 
 Supersedes the implementation stages of [`OWN_L0_PLAN.md`](OWN_L0_PLAN.md) (its §12 records why).
 The goal of that plan is unchanged: Echo runs its own chain and depends on no outside network.
@@ -160,11 +160,11 @@ Estimates are from reading the code and one afternoon with Besu. Treat them as g
 | B0 | Spike | done 2026-11-24 | — |
 | B1 | Anchoring on Besu: contract, gateway client with fail-over, durable chain proofs, offline verifier with signature checks, four-validator local network in `make dev`, `validate-phase1` on Besu | done 2026-11-24 (§7) | Met locally |
 | B2 | Identity on-chain: `EchoIdentity` contract, records as hashes; gateway and credentials package on it; data-classification review; group and governance records as digests | done 2026-11-24 (§9) | Met locally |
-| B3 | Token on-chain from genesis: token contract (fixed supply, no transfer, no mint), locks, delegation, rewards, VIP allowance; gateway wallet and rewards on the contract; iOS wallet signing and addresses; contract review | 2–3 weeks | Token tests pass; supply and allocations read back exactly; independent review of the token contract done |
+| B3 | The reserve: one contract holding the fixed supply at a single address, with no way to move or add to it. Token features switched off across the gateway and the app | done 2026-11-24 (§10) | Met locally |
 | B4 | Deploy: Terraform for four hosts, Ansible Besu role, key ceremony, permissioning, monitoring, backup, restore drill, daily external checkpoint | 5–7 days | `validate-phase1` and `failure-tests.sh` pass on staging; staging rebuilt from backup alone |
 | B5 | Remove the last Tessellation-era code and documents; 7-day soak with failure tests; launch review; production genesis | 7 days soak + 2 days | Your sign-off before genesis |
 
-Total remaining: roughly five to six weeks of work plus the soak. B2 and B3 can overlap; B3 is the long one and the one with the most risk.
+Total remaining: B4 (about a week) and B5 (the soak, then genesis). B3 shrank from weeks to a day when the token was put on hold: there is no token contract holding user balances and no iOS signing to rewrite.
 
 ## 5. Risks and unknowns
 
@@ -313,3 +313,42 @@ Not done in B2:
 - The in-memory revocation-list publisher (used only without Postgres) restarts its count at zero
   after a restart, and the chain will then refuse its lists as stale. With Postgres the count is
   durable.
+
+## 10. Stage B3 results (2026-11-24) — gate met locally
+
+B3 was redefined by the decision to put the token on hold (§0). What it delivers now:
+
+| Check | Result |
+|---|---|
+| `make validate-phase1` | 31 passed, 0 failed, 0 skipped. New step 7 reads the reserve from a validator the gateway does not prefer: total supply exactly 1,000,000,000 (8 decimals), all of it at the reserved address |
+| The reserve cannot be moved or added to | `TestReserveContractCanOnlyBeRead` reads the compiled interface: every function is read-only, none is named transfer, mint, approve, burn, withdraw, set or owner, and the bytecode contains none of the standard transfer selectors |
+| Live | `TestLiveReserveHoldsTheWholeSupplyAtOneAddress`: deployed, read back, every other address holds zero, a reserve at the zero address is refused |
+| Token surface off | `TestTokenHold_*`: token, wallet, staking and reward routes return 404; gamification responses carry no token field or word; no quest depends on the token or rewards buying VIP |
+| App | Simulator build and 270 unit tests pass with the token surface hidden |
+
+| Piece | Where |
+|---|---|
+| Reserve contract: 40 lines, no owner, no state-changing function | `chain/contracts/EchoReserve.sol` |
+| Reader and deploy | `internal/besu/reserve.go`; `echochain deploy -name EchoReserve -reserved ADDRESS`; `echochain reserve` |
+| Local chain deploys it with a locally made "reserved" key | `deploy/besu/local/up.sh` (`BESU_RESERVE_CONTRACT`) |
+| Server switch | `ECHO_TOKEN_ENABLED`, default off (`internal/features`) |
+| App switch | `V1ReleaseScope.showsToken`, off in every build |
+
+To know:
+
+- **The reserve is deliberately not a token.** It has no transfer, so it does not follow the
+  ERC-20 interface and no wallet will show it as one. If units are ever issued to people, that is a
+  new contract and a new decision; this one cannot be extended.
+- **The reserved address's key controls nothing.** Nothing can be done with it on this contract.
+  It should still come from the key ceremony and stay offline, because a future contract may
+  recognise that address.
+- **The dormant token code is still in the repository** (wallet, staking, rewards, tokenomics, and
+  the Tessellation-format currency types they use), unreachable while the switch is off. It was
+  written for a chain Echo no longer runs; if the token returns it will be rebuilt against a
+  contract. Removing it is listed under B5.
+- **VIP still sets the purchaser's trust tier to 3.** That is the "VIP badge". With the token off
+  it changes a displayed score rate and nothing else. Say if VIP should not touch the trust tier
+  at all: a paid tier that raises a "trust" figure is worth a second look on its own terms.
+- **Points.** Quest rewards and the leaderboard are whole points. Nothing converts points to
+  anything, and the copy says so. If the token returns, do not promise that points will convert:
+  that promise is what would make points look like a pre-sale.

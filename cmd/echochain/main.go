@@ -4,6 +4,10 @@
 //	echochain newkey   -out FILE                     create a key file (hex), refusing to overwrite
 //	echochain deploy   -rpc URL -owner FILE -signer ADDRESS [-name EchoAnchor|EchoIdentity]
 //	                                                 deploy a contract; prints its address
+//	echochain deploy   -rpc URL -owner FILE -name EchoReserve -reserved ADDRESS
+//	                                                 deploy the reserve: the whole fixed supply at
+//	                                                 one address, with no way to move or add to it
+//	echochain reserve  -rpc URL -contract ADDRESS    print what a reserve contract holds
 //	echochain validators -rpc URL                    print the current validator addresses
 //	echochain trust-tier -rpc URL -identity ADDRESS -commitment HEX
 //	                                                 print the block a trust-tier commitment was
@@ -35,7 +39,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fail("usage: echochain address|newkey|deploy|validators|trust-tier|username|prove [flags]")
+		fail("usage: echochain address|newkey|deploy|validators|trust-tier|username|reserve|prove [flags]")
 	}
 	fs := flag.NewFlagSet(os.Args[1], flag.ExitOnError)
 	rpcURL := fs.String("rpc", "http://localhost:8545", "Besu JSON-RPC endpoint")
@@ -43,7 +47,8 @@ func main() {
 	ownerFile := fs.String("owner", "", "contract owner key file")
 	signer := fs.String("signer", "", "address allowed to write to the contract")
 	out := fs.String("out", "", "file to write")
-	name := fs.String("name", besu.ContractAnchor, "contract to deploy: EchoAnchor or EchoIdentity")
+	name := fs.String("name", besu.ContractAnchor, "contract to deploy: EchoAnchor, EchoIdentity or EchoReserve")
+	reserved := fs.String("reserved", "", "for EchoReserve: the one address that holds the supply")
 	contract := fs.String("contract", "", "anchor contract address")
 	root := fs.String("root", "", "Merkle root (64 hex characters)")
 	identity := fs.String("identity", "", "identity contract address")
@@ -70,7 +75,20 @@ func main() {
 		check(err)
 		check(os.WriteFile(*out, []byte(hex.EncodeToString(crypto.FromECDSA(key))+"\n"), 0o600))
 		fmt.Println(crypto.PubkeyToAddress(key.PublicKey).Hex())
+	case "reserve":
+		if !common.IsHexAddress(*contract) {
+			fail("reserve needs -contract ADDRESS")
+		}
+		r, err := besu.ReadReserve(ctx, *rpcURL, common.HexToAddress(*contract))
+		check(err)
+		fmt.Printf("reserved=%s\ntotal_supply=%s\nbalance_of_reserved=%s\ndecimals=%d\n", r.Reserved.Hex(), r.TotalSupply, r.Balance, r.Decimals)
 	case "deploy":
+		if *name == besu.ContractReserve {
+			if !common.IsHexAddress(*reserved) {
+				fail("deploying EchoReserve needs -reserved ADDRESS")
+			}
+			*signer = *reserved // the reserve's only constructor argument
+		}
 		if !common.IsHexAddress(*signer) {
 			fail("deploy needs -signer ADDRESS")
 		}
@@ -78,7 +96,11 @@ func main() {
 		check(err)
 		addr, receipt, err := besu.Deploy(ctx, *rpcURL, *name, owner, common.HexToAddress(*signer))
 		check(err)
-		fmt.Fprintf(os.Stderr, "deployed %s in block %d (tx %s); writer %s\n", *name, receipt.BlockNumber, receipt.TxHash.Hex(), *signer)
+		role := "writer"
+		if *name == besu.ContractReserve {
+			role = "reserved address"
+		}
+		fmt.Fprintf(os.Stderr, "deployed %s in block %d (tx %s); %s %s\n", *name, receipt.BlockNumber, receipt.TxHash.Hex(), role, *signer)
 		fmt.Println(addr.Hex())
 	case "validators":
 		client, err := rpc.DialContext(ctx, *rpcURL)

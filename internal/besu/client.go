@@ -38,15 +38,25 @@ var identityABIJSON string
 //go:embed contract/EchoIdentity.bin
 var identityBinHex string
 
+//go:embed contract/EchoReserve.abi
+var reserveABIJSON string
+
+//go:embed contract/EchoReserve.bin
+var reserveBinHex string
+
 var (
 	anchorABI   = mustABI(anchorABIJSON)
 	identityABI = mustABI(identityABIJSON)
+	reserveABI  = mustABI(reserveABIJSON)
 )
 
 // Contract names accepted by Deploy.
 const (
 	ContractAnchor   = "EchoAnchor"
 	ContractIdentity = "EchoIdentity"
+	// ContractReserve holds the fixed supply at one address. Its constructor argument is that
+	// address (passed to Deploy as `signer`); it has no writer.
+	ContractReserve = "EchoReserve"
 )
 
 func mustABI(raw string) abi.ABI {
@@ -394,6 +404,8 @@ func Deploy(ctx context.Context, rpcURL, contract string, ownerKey *ecdsa.Privat
 		contractABI, bin = anchorABI, anchorBinHex
 	case ContractIdentity:
 		contractABI, bin = identityABI, identityBinHex
+	case ContractReserve:
+		contractABI, bin = reserveABI, reserveBinHex
 	default:
 		return common.Address{}, Receipt{}, fmt.Errorf("besu: unknown contract %q", contract)
 	}

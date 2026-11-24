@@ -9,6 +9,7 @@
 #   5. Anchor a Merkle root through the gateway, export its proof from a
 #      validator, and verify that proof offline, signatures included
 #   6. Every validator keeps producing blocks and they agree on the chain
+#   7. The reserve contract holds the whole fixed supply at one address
 #
 # Exit codes:
 #   0  — all steps passed
@@ -400,6 +401,35 @@ else
     ok "all validators hold the same block $CHECK"
   else
     fail "validators disagree on block $CHECK ($HASHES distinct hashes)"
+  fi
+fi
+
+# -----------------------------------------------------------------------------
+# Step 7: the reserve holds the whole fixed supply at one address
+# -----------------------------------------------------------------------------
+step 7 "Verify the reserve: fixed supply, held at one address"
+
+if [ -z "${BESU_RESERVE_CONTRACT:-}" ]; then
+  fail "BESU_RESERVE_CONTRACT is not set; run 'make dev'"
+else
+  READER="${CHAIN_NODES[$(( ${#CHAIN_NODES[@]} - 1 ))]}"
+  if (cd "$REPO_ROOT" && go run ./cmd/echochain reserve -rpc "$READER" -contract "$BESU_RESERVE_CONTRACT") >"$TMP_DIR/reserve.out" 2>"$TMP_DIR/reserve.err"; then
+    SUPPLY=$(sed -n 's/^total_supply=//p' "$TMP_DIR/reserve.out")
+    HELD=$(sed -n 's/^balance_of_reserved=//p' "$TMP_DIR/reserve.out")
+    RESERVED=$(sed -n 's/^reserved=//p' "$TMP_DIR/reserve.out")
+    # 1,000,000,000 units with 8 decimal places.
+    if [ "$SUPPLY" = "100000000000000000" ]; then
+      ok "total supply is exactly 1,000,000,000 (8 decimals)"
+    else
+      fail "total supply is $SUPPLY, expected 100000000000000000"
+    fi
+    if [ -n "$HELD" ] && [ "$HELD" = "$SUPPLY" ]; then
+      ok "all of it is held at the reserved address $RESERVED"
+    else
+      fail "the reserved address holds $HELD of $SUPPLY"
+    fi
+  else
+    fail "could not read the reserve: $(tr '\n' ' ' < "$TMP_DIR/reserve.err")"
   fi
 fi
 

@@ -65,6 +65,15 @@ for contract in anchor:EchoAnchor identity:EchoIdentity; do
   fi
 done
 
+# The reserve: the whole fixed supply at one address, called "reserved". Its key is made here for
+# local use; in production it comes from the key ceremony and stays offline.
+[ -f $N/reserved.key ] || chain newkey -out "$PWD/$N/reserved.key" >/dev/null
+if [ ! -s $N/reserve.address ]; then
+  chain deploy -rpc http://localhost:8545 -owner "$PWD/$N/owner.key" -name EchoReserve \
+    -reserved "$(chain address -key "$PWD/$N/reserved.key")" > $N/reserve.address
+  echo "  deployed EchoReserve at $(cat $N/reserve.address)"
+fi
+
 cat > $N/chain.env <<ENV
 # Written by deploy/besu/local/up.sh. Local development only.
 export ECHO_CHAIN_NETWORK=besu
@@ -72,6 +81,7 @@ export BESU_RPC_URLS=http://localhost:8545,http://localhost:8546,http://localhos
 export BESU_RPC_URLS_DOCKER=http://host.docker.internal:8545,http://host.docker.internal:8546,http://host.docker.internal:8547,http://host.docker.internal:8548
 export BESU_ANCHOR_CONTRACT=$(cat $N/anchor.address)
 export BESU_IDENTITY_CONTRACT=$(cat $N/identity.address)
+export BESU_RESERVE_CONTRACT=$(cat $N/reserve.address)
 export BESU_VALIDATORS=$(cat $N/node*/address | paste -sd, -)
 export BESU_GATEWAY_ADDRESS=$signer
 ENV
