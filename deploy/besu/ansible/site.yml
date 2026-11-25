@@ -1,0 +1,167 @@
+# Installs or updates Echo's chain validators, one host at a time so the chain never loses more
+# than one at once.
+#
+#   ansible-playbook -i inventory.ini site.yml
+#
+# Needs the key ceremony's output on this machine (ceremony_dir). Keys are copied straight from
+# there to each host with mode 0400; they are not written anywhere else.
+- name: Echo chain validator
+  hosts: validators
+  serial: 1
+  become: true
+  vars:
+    enode_port: 30303
+  tasks:
+    - name: Ceremony output is present on the control machine
+      delegate_to: localhost
+      become: false
+      ansible.builtin.stat:
+        path: "{{ ceremony_dir }}/{{ item }}"
+      register: ceremony_files
+      failed_when: not ceremony_files.stat.exists
+      loop:
+        - genesis.json
+        - "node{{ node_index }}/key"
+        - "node{{ node_index }}/key.pub"
+
+    - name: Read every validator's public key
+      delegate_to: localhost
+      become: false
+      ansible.builtin.set_fact:
+        enodes: >-
+          {{ (enodes | default([])) + ['enode://' ~ (lookup('ansible.builtin.file', ceremony_dir ~ '/node' ~ hostvars[item].node_index ~ '/key.pub') | regex_replace('^0x', '')) ~ '@' ~ hostvars[item].private_ip ~ ':' ~ enode_port] }}
+      loop: "{{ groups['validators'] }}"
+      run_once: false
+
+    - name: Exactly four validators
+      ansible.builtin.assert:
+        that: enodes | length == 4
+        fail_msg: "The network is designed for four validators; the inventory lists {{ enodes | length }}."
+
+    - name: Docker and firewall packages
+      ansible.builtin.apt:
+        name: [docker.io, docker-compose-v2, ufw]
+        state: present
+        update_cache: true
+
+    - name: Directories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: /etc/echo-besu, mode: "0700" }
+        - { path: /var/lib/echo-besu, mode: "0700" }
+        - { path: /opt/echo-besu, mode: "0755" }
+
+    - name: Genesis
+      ansible.builtin.copy:
+        src: "{{ ceremony_dir }}/genesis.json"
+        dest: /etc/echo-besu/genesis.json
+        mode: "0444"
+      notify: Restart validator
+
+    - name: This node's key
+      ansible.builtin.copy:
+        src: "{{ ceremony_dir }}/node{{ node_index }}/key"
+        dest: /etc/echo-besu/key
+        mode: "0400"
+      no_log: true
+      notify: Restart validator
+
+    - name: Peers
+      ansible.builtin.copy:
+        content: "{{ enodes | to_json }}\n"
+        dest: /etc/echo-besu/static-nodes.json
+        mode: "0444"
+      notify: Restart validator
+
+    - name: Allowlist (only these four may connect)
+      ansible.builtin.copy:
+        content: "nodes-allowlist={{ enodes | to_json }}\n"
+        dest: /etc/echo-besu/permissions.toml
+        mode: "0444"
+      notify: Restart validator
+
+    - name: Compose file
+      ansible.builtin.copy:
+        src: ../host/docker-compose.yml
+        dest: /opt/echo-besu/docker-compose.yml
+        mode: "0644"
+      notify: Restart validator
+
+    - name: Settings
+      ansible.builtin.copy:
+        content: |
+          NODE_IP={{ private_ip }}
+          BESU_IMAGE={{ besu_image }}
+        dest: /opt/echo-besu/.env
+        mode: "0644"
+      notify: Restart validator
+
+    - name: Backup and restore scripts
+      ansible.builtin.copy:
+        src: "../ops/{{ item }}"
+        dest: "/opt/echo-besu/{{ item }}"
+        mode: "0755"
+      loop: [backup.sh, restore.sh]
+
+    - name: Firewall - deny inbound by default
+      community.general.ufw:
+        direction: incoming
+        policy: deny
+
+    - name: Firewall - SSH
+      community.general.ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+
+    - name: Firewall - peer port, other validators only
+      community.general.ufw:
+        rule: allow
+        port: "{{ enode_port }}"
+        proto: tcp
+        src: "{{ hostvars[item].private_ip }}"
+      loop: "{{ groups['validators'] | difference([inventory_hostname]) }}"
+
+    - name: Firewall - JSON-RPC and metrics, gateway subnet only
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+        src: "{{ gateway_cidr }}"
+      loop: ["8545", "9545"]
+
+    - name: Firewall on
+      community.general.ufw:
+        state: enabled
+
+    - name: Validator is running
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: /opt/echo-besu
+      changed_when: false
+
+    - name: Apply any restart now, before moving to the next host
+      ansible.builtin.meta: flush_handlers
+
+    - name: Validator answers and has peers
+      ansible.builtin.uri:
+        url: "http://{{ private_ip }}:8545"
+        method: POST
+        body_format: json
+        body: { jsonrpc: "2.0", method: net_peerCount, params: [], id: 1 }
+        return_content: true
+      register: peers
+      until: peers.status == 200 and (peers.json.result | default('0x0')) != '0x0'
+      retries: 30
+      delay: 5
+      # The first host of a new network has no one to connect to yet.
+      when: ansible_play_batch | length > 0 and (groups['validators'].index(inventory_hostname) > 0 or besu_expect_peers | default(false))
+
+  handlers:
+    - name: Restart validator
+      ansible.builtin.command:
+        cmd: docker compose up -d --force-recreate
+        chdir: /opt/echo-besu

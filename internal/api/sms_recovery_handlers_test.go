@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
@@ -169,5 +170,48 @@ func TestNewSMSProvider_ReturnsTwilioOrStub(t *testing.T) {
 		if _, ok := provider.(*infra.StubSMSProvider); !ok {
 			t.Error("non-Twilio NewSMSProvider should return StubSMSProvider")
 		}
+	}
+}
+
+// What is stored for a phone number must not be recoverable from the database alone.
+func TestPhoneStoreKey(t *testing.T) {
+	const phone = "+12125551234"
+	bare := phoneHash(phone)
+
+	t.Setenv("ENVIRONMENT", "development")
+	t.Setenv(phoneHashSecretEnv, "")
+	if key, err := phoneStoreKey(phone); err != nil || key != bare {
+		t.Fatalf("development without a secret: %q, %v", key, err)
+	}
+
+	t.Setenv("ENVIRONMENT", "production")
+	if _, err := phoneStoreKey(phone); err == nil {
+		t.Fatal("production stored a phone number with no secret")
+	}
+	t.Setenv(phoneHashSecretEnv, "too-short")
+	if _, err := phoneStoreKey(phone); err == nil {
+		t.Fatal("production accepted a short secret")
+	}
+
+	t.Setenv(phoneHashSecretEnv, strings.Repeat("a", 32))
+	keyA, err := phoneStoreKey(phone)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if keyA == bare || strings.Contains(keyA, strings.TrimPrefix(bare, "sha256:")) {
+		t.Fatalf("the stored value is the bare hash: %q", keyA)
+	}
+	if !strings.HasPrefix(keyA, "hmac:") || len(keyA) != len("hmac:")+64 {
+		t.Fatalf("unexpected form: %q", keyA)
+	}
+	if again, _ := phoneStoreKey(phone); again != keyA {
+		t.Fatal("the same number must give the same key, or lookup fails")
+	}
+	if other, _ := phoneStoreKey("+12125551235"); other == keyA {
+		t.Fatal("different numbers gave the same key")
+	}
+	t.Setenv(phoneHashSecretEnv, strings.Repeat("b", 32))
+	if keyB, _ := phoneStoreKey(phone); keyB == keyA {
+		t.Fatal("the key does not depend on the secret")
 	}
 }

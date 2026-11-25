@@ -14,6 +14,12 @@
 //	                                                 anchored in; exit 1 if it is not on the chain
 //	echochain username -rpc URL -identity ADDRESS -username NAME -did DID
 //	                                                 report who owns a username; exit 1 unless DID does
+//	echochain checkpoint -rpc URL [-out FILE]        write down the newest block with the validators'
+//	                                                 signatures, for publishing outside Echo
+//	echochain checkpoint-verify -in FILE -validators A,B,C,D [-rpc URL]
+//	                                                 check a checkpoint's signatures offline; with
+//	                                                 -rpc, also that the chain still holds that
+//	                                                 block (exit 3 if history was rewritten)
 //	echochain prove    -rpc URL -contract ADDRESS -root HEX [-out FILE]
 //	                                                 export a proof bundle for an anchored root,
 //	                                                 read straight from the chain (no gateway)
@@ -39,7 +45,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fail("usage: echochain address|newkey|deploy|validators|trust-tier|username|reserve|prove [flags]")
+		fail("usage: echochain address|newkey|deploy|validators|trust-tier|username|reserve|checkpoint|checkpoint-verify|prove [flags]")
 	}
 	fs := flag.NewFlagSet(os.Args[1], flag.ExitOnError)
 	rpcURL := fs.String("rpc", "http://localhost:8545", "Besu JSON-RPC endpoint")
@@ -55,6 +61,8 @@ func main() {
 	commitment := fs.String("commitment", "", "trust-tier commitment (64 hex characters)")
 	username := fs.String("username", "", "username")
 	did := fs.String("did", "", "DID")
+	in := fs.String("in", "", "file to read")
+	validatorList := fs.String("validators", "", "comma-separated validator addresses you trust")
 	_ = fs.Parse(os.Args[2:])
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
@@ -75,6 +83,47 @@ func main() {
 		check(err)
 		check(os.WriteFile(*out, []byte(hex.EncodeToString(crypto.FromECDSA(key))+"\n"), 0o600))
 		fmt.Println(crypto.PubkeyToAddress(key.PublicKey).Hex())
+	case "checkpoint":
+		cp, err := besu.TakeCheckpoint(ctx, *rpcURL)
+		check(err)
+		data, err := json.MarshalIndent(cp, "", "  ")
+		check(err)
+		if *out != "" {
+			check(os.WriteFile(*out, append(data, '\n'), 0o644))
+			fmt.Fprintf(os.Stderr, "checkpoint of block %d (%s) written to %s\n", cp.Number, cp.Hash.Hex(), *out)
+		} else {
+			fmt.Println(string(data))
+		}
+	case "checkpoint-verify":
+		if *in == "" || *validatorList == "" {
+			fail("checkpoint-verify needs -in FILE and -validators A,B,C,D")
+		}
+		data, err := os.ReadFile(*in)
+		check(err)
+		var cp besu.Checkpoint
+		check(json.Unmarshal(data, &cp))
+		var trusted []common.Address
+		for _, v := range strings.Split(*validatorList, ",") {
+			if v = strings.TrimSpace(v); v != "" {
+				if !common.IsHexAddress(v) {
+					fail("not an address: " + v)
+				}
+				trusted = append(trusted, common.HexToAddress(v))
+			}
+		}
+		signers, err := besu.VerifyCheckpoint(&cp, trusted)
+		check(err)
+		fmt.Printf("block %d (%s) at %s: signed by %d of %d trusted validators\n", cp.Number, cp.Hash.Hex(), cp.Time.Format(time.RFC3339), len(signers), len(trusted))
+		// -rpc has a default, so only compare with a chain when it was given on purpose.
+		rpcGiven := false
+		fs.Visit(func(f *flag.Flag) { rpcGiven = rpcGiven || f.Name == "rpc" })
+		if rpcGiven {
+			if err := besu.CompareWithChain(ctx, &cp, *rpcURL); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(3)
+			}
+			fmt.Println("the chain still holds this block")
+		}
 	case "reserve":
 		if !common.IsHexAddress(*contract) {
 			fail("reserve needs -contract ADDRESS")

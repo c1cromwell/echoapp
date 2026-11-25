@@ -121,6 +121,78 @@ func proofNodes(nodes []hexutil.Bytes) *memorydb.Database {
 	return db
 }
 
+// decodeHeader decodes a QBFT block header and its extraData.
+func decodeHeader(headerRLP []byte) (*types.Header, *qbftExtra, error) {
+	var header types.Header
+	if err := rlp.DecodeBytes(headerRLP, &header); err != nil {
+		return nil, nil, fmt.Errorf("besu: decode header: %w", err)
+	}
+	var extra qbftExtra
+	if err := rlp.DecodeBytes(header.Extra, &extra); err != nil {
+		return nil, nil, fmt.Errorf("besu: decode QBFT extra data: %w", err)
+	}
+	return &header, &extra, nil
+}
+
+// blockHash is the block's identity on the chain: the header hash computed with the commit seals
+// removed and the round set to zero. Validators can hold different seals for the same block (each
+// keeps the signatures it collected), so the seals cannot be part of what identifies it.
+func blockHash(headerRLP []byte) (common.Hash, error) {
+	header, extra, err := decodeHeader(headerRLP)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	stripped, err := rlp.EncodeToBytes([]interface{}{extra.Vanity, extra.Validators, extra.Vote, uint(0), [][]byte{}})
+	if err != nil {
+		return common.Hash{}, err
+	}
+	h := types.CopyHeader(header)
+	h.Extra = stripped
+	return h.Hash(), nil
+}
+
+// verifyHeader decodes a QBFT block header and checks that a quorum of the trusted validators
+// signed it and that nobody else did. It returns the header and the validators that signed.
+func verifyHeader(headerRLP []byte, trustedValidators []common.Address) (*types.Header, []common.Address, error) {
+	trusted := make(map[common.Address]bool, len(trustedValidators))
+	for _, v := range trustedValidators {
+		trusted[v] = true
+	}
+	var header types.Header
+	if err := rlp.DecodeBytes(headerRLP, &header); err != nil {
+		return nil, nil, fmt.Errorf("besu: decode header: %w", err)
+	}
+	var extra qbftExtra
+	if err := rlp.DecodeBytes(header.Extra, &extra); err != nil {
+		return nil, nil, fmt.Errorf("besu: decode QBFT extra data: %w", err)
+	}
+	digest, err := commitDigest(&header, extra)
+	if err != nil {
+		return nil, nil, err
+	}
+	seen := map[common.Address]bool{}
+	var signers []common.Address
+	for _, seal := range extra.Seals {
+		pub, err := crypto.SigToPub(digest[:], seal)
+		if err != nil {
+			return nil, nil, fmt.Errorf("besu: invalid commit signature: %w", err)
+		}
+		signer := crypto.PubkeyToAddress(*pub)
+		if !trusted[signer] {
+			return nil, nil, fmt.Errorf("besu: block signed by %s, which is not a trusted validator", signer.Hex())
+		}
+		if !seen[signer] {
+			seen[signer] = true
+			signers = append(signers, signer)
+		}
+	}
+	quorum := Quorum(len(trusted))
+	if len(signers) < quorum {
+		return nil, nil, fmt.Errorf("besu: %d of %d trusted validators signed the block; %d are required", len(signers), len(trusted), quorum)
+	}
+	return &header, signers, nil
+}
+
 // Verify checks a proof against the validator addresses the caller trusts. It makes no network
 // call. It fails unless:
 //  1. a quorum of the trusted validators signed the header, and no one else did;
@@ -133,43 +205,12 @@ func Verify(p *Proof, trustedValidators []common.Address) (*Verified, error) {
 	if len(trustedValidators) == 0 {
 		return nil, errors.New("besu: no trusted validators given")
 	}
-	trusted := make(map[common.Address]bool, len(trustedValidators))
-	for _, v := range trustedValidators {
-		trusted[v] = true
-	}
-
-	var header types.Header
-	if err := rlp.DecodeBytes(p.HeaderRLP, &header); err != nil {
-		return nil, fmt.Errorf("besu: decode header: %w", err)
-	}
-	var extra qbftExtra
-	if err := rlp.DecodeBytes(header.Extra, &extra); err != nil {
-		return nil, fmt.Errorf("besu: decode QBFT extra data: %w", err)
-	}
-	digest, err := commitDigest(&header, extra)
+	header, signers, err := verifyHeader(p.HeaderRLP, trustedValidators)
 	if err != nil {
 		return nil, err
 	}
-	seen := map[common.Address]bool{}
-	var signers []common.Address
-	for _, seal := range extra.Seals {
-		pub, err := crypto.SigToPub(digest[:], seal)
-		if err != nil {
-			return nil, fmt.Errorf("besu: invalid commit signature: %w", err)
-		}
-		signer := crypto.PubkeyToAddress(*pub)
-		if !trusted[signer] {
-			return nil, fmt.Errorf("besu: block signed by %s, which is not a trusted validator", signer.Hex())
-		}
-		if !seen[signer] {
-			seen[signer] = true
-			signers = append(signers, signer)
-		}
-	}
+	trusted := trustedValidators
 	quorum := Quorum(len(trusted))
-	if len(signers) < quorum {
-		return nil, fmt.Errorf("besu: %d of %d trusted validators signed the block; %d are required", len(signers), len(trusted), quorum)
-	}
 
 	accountRLP, err := trie.VerifyProof(header.Root, crypto.Keccak256(p.Contract[:]), proofNodes(p.AccountProof))
 	if err != nil {

@@ -1,6 +1,6 @@
 # Moving Echo's chain from Tessellation to Hyperledger Besu
 
-**Written:** 2026-11-24 · **Status:** decisions final (§0); stages B1, B2 and B3 built and their gates met locally (§7, §9, §10); B4–B5 not started
+**Written:** 2026-11-24 · **Status:** decisions final (§0); stages B1–B3 built and their gates met locally (§7, §9, §10); B4 built and rehearsed locally, not yet run on hosts (§11); B5 not started
 
 Supersedes the implementation stages of [`OWN_L0_PLAN.md`](OWN_L0_PLAN.md) (its §12 records why).
 The goal of that plan is unchanged: Echo runs its own chain and depends on no outside network.
@@ -161,7 +161,7 @@ Estimates are from reading the code and one afternoon with Besu. Treat them as g
 | B1 | Anchoring on Besu: contract, gateway client with fail-over, durable chain proofs, offline verifier with signature checks, four-validator local network in `make dev`, `validate-phase1` on Besu | done 2026-11-24 (§7) | Met locally |
 | B2 | Identity on-chain: `EchoIdentity` contract, records as hashes; gateway and credentials package on it; data-classification review; group and governance records as digests | done 2026-11-24 (§9) | Met locally |
 | B3 | The reserve: one contract holding the fixed supply at a single address, with no way to move or add to it. Token features switched off across the gateway and the app | done 2026-11-24 (§10) | Met locally |
-| B4 | Deploy: Terraform for four hosts, Ansible Besu role, key ceremony, permissioning, monitoring, backup, restore drill, daily external checkpoint | 5–7 days | `validate-phase1` and `failure-tests.sh` pass on staging; staging rebuilt from backup alone |
+| B4 | Deploy: Terraform for four hosts, Ansible playbook, key ceremony, permissioning, monitoring, backup, restore drill, checkpoints | built and rehearsed locally 2026-11-24 (§11); hosts not created | `validate-phase1` and `failure-tests.sh` pass on staging; staging rebuilt from backup alone. **Not met: needs real hosts** |
 | B5 | Remove the last Tessellation-era code and documents; 7-day soak with failure tests; launch review; production genesis | 7 days soak + 2 days | Your sign-off before genesis |
 
 Total remaining: B4 (about a week) and B5 (the soak, then genesis). B3 shrank from weeks to a day when the token was put on hold: there is no token contract holding user balances and no iOS signing to rewrite.
@@ -352,3 +352,27 @@ To know:
 - **Points.** Quest rewards and the leaderboard are whole points. Nothing converts points to
   anything, and the copy says so. If the token returns, do not promise that points will convert:
   that promise is what would make points look like a pre-sale.
+
+## 11. Stage B4 (2026-11-24) — built and rehearsed locally; the gate needs real hosts
+
+The B4 gate is about staging. No hosts exist yet, so it is not met. What exists is every piece,
+each exercised as far as one machine allows. Operating procedure: `docs/CHAIN_OPERATIONS.md`.
+
+| Piece | Where | How far it was tested |
+|---|---|---|
+| Backup and restore of a validator | `deploy/besu/ops/backup.sh`, `restore.sh` | **Run.** `make chain-restore-drill`: each validator backed up in turn while a root was anchored on the other three; all data, keys and genesis deleted; rebuilt from the archives alone. Afterwards the old proof verified offline, the old root was on the chain, the reserve was unchanged and a new root anchored. A tampered archive was refused |
+| Closed network | allowlist in `deploy/besu/local/up.sh` and the Ansible playbook | **Run.** `make chain-permission-test`: an outsider with the right genesis and peer list got no peers and no blocks. Control: the same node, added to the allowlist, connected |
+| Checkpoints | `internal/besu/checkpoint.go`, `echochain checkpoint`, `checkpoint-verify` | **Run.** Offline tests on a recorded signed block (tampering, strangers, too few signers all refused); live: a checkpoint from one validator matches the block every other validator reports, and an altered one is reported as rewritten history |
+| Key ceremony | `deploy/besu/ops/ceremony.sh` | **Run with throwaway keys**, then deleted. Refuses a non-empty directory. The real one is the owner's to run |
+| Metrics and alerts | `deploy/besu/monitoring/alerts.yml`; metrics on in the local chain (ports 9645–9648) | Metric names checked against what this Besu version exports. The rules have not been loaded into a Prometheus |
+| Validator host | `deploy/besu/host/docker-compose.yml` | Compose syntax checked. **Not run**: it binds to a private address a laptop does not have |
+| Install | `deploy/besu/ansible/site.yml` | Syntax checked. **Not run** |
+| Hosts | `deploy/terraform/hetzner/besu.tf` (off unless `besu_enabled = true`) | `terraform validate` passes. **Not applied** |
+
+Found while building: `--metrics-host-allowlist` does not exist in Besu 26.11.2 and stops the node
+from starting; `--network=dev` is gone too. Both were caught by running the image, which is why
+the unrun pieces above should be expected to need a fix or two on first contact with a host.
+
+Still needed from the owner for the gate: the hosts (size and price confirmed in the Hetzner
+console), the staging key ceremony, and the open items in `docs/CHAIN_OPERATIONS.md` §8 — above
+all, where checkpoints are published.

@@ -1,0 +1,57 @@
+# Prometheus alert rules for Echo's chain. Scrape each validator at <private ip>:9545/metrics
+# with the label job="echo-besu".
+groups:
+  - name: echo-chain
+    rules:
+      - alert: ChainValidatorDown
+        expr: up{job="echo-besu"} == 0
+        for: 2m
+        labels: { severity: page }
+        annotations:
+          summary: "Validator {{ $labels.instance }} is not answering"
+          description: "The chain runs on three of four. A second loss stops it. Restore this one first."
+
+      - alert: ChainTwoValidatorsDown
+        expr: count(up{job="echo-besu"} == 0) >= 2
+        for: 1m
+        labels: { severity: page }
+        annotations:
+          summary: "Two or more validators are down: the chain has stopped"
+          description: "QBFT needs three of four. No block can be made until one comes back. Nothing is lost; anchoring resumes when it does."
+
+      - alert: ChainStalled
+        # With no traffic the chain still makes an empty block every 30 seconds.
+        expr: changes(ethereum_blockchain_height{job="echo-besu"}[3m]) == 0
+        for: 2m
+        labels: { severity: page }
+        annotations:
+          summary: "No new block on {{ $labels.instance }} for five minutes"
+
+      - alert: ChainValidatorBehind
+        expr: max(ethereum_blockchain_height{job="echo-besu"}) - ethereum_blockchain_height{job="echo-besu"} > 20
+        for: 5m
+        labels: { severity: warn }
+        annotations:
+          summary: "Validator {{ $labels.instance }} is more than 20 blocks behind"
+
+      - alert: ChainValidatorIsolated
+        expr: ethereum_peer_count{job="echo-besu"} < 2
+        for: 3m
+        labels: { severity: warn }
+        annotations:
+          summary: "Validator {{ $labels.instance }} sees fewer than two peers"
+
+      - alert: ChainUnexpectedPeer
+        # A closed network of four: no validator should ever see more than three peers.
+        expr: ethereum_peer_count{job="echo-besu"} > 3
+        labels: { severity: page }
+        annotations:
+          summary: "Validator {{ $labels.instance }} has more than three peers"
+          description: "Something that is not one of the four validators is connected. Check the allowlist and the firewall."
+
+      - alert: ChainDiskFilling
+        expr: (node_filesystem_avail_bytes{mountpoint="/var/lib/echo-besu"} / node_filesystem_size_bytes{mountpoint="/var/lib/echo-besu"}) < 0.2
+        for: 15m
+        labels: { severity: warn }
+        annotations:
+          summary: "Chain data disk on {{ $labels.instance }} is over 80% full"

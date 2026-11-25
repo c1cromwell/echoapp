@@ -206,9 +206,11 @@ func (c *Client) dial(ctx context.Context, url string) (*ethclient.Client, error
 	return dialled, nil
 }
 
+var errNoSigner = errors.New("besu: no signing key configured")
+
 func (c *Client) transactOpts(ctx context.Context, ec *ethclient.Client) (*bind.TransactOpts, error) {
 	if c.cfg.Signer == nil {
-		return nil, errors.New("besu: no signing key configured")
+		return nil, errNoSigner
 	}
 	c.mu.Lock()
 	chainID := c.chainID
@@ -258,20 +260,15 @@ func (c *Client) transact(ctx context.Context, contract common.Address, contract
 	c.txMu.Lock()
 	defer c.txMu.Unlock()
 
+	// A call that cannot even be encoded is a programming error; say so before touching the chain.
+	if _, err := contractABI.Pack(method, args...); err != nil {
+		return Receipt{}, fmt.Errorf("besu: %s: %w", method, err)
+	}
 	deadline := time.Now().Add(c.cfg.ReceiptTimeout)
 	const maxSignings = 8
 	var lastErr error
 	for signing := 1; signing <= maxSignings; signing++ {
-		ec, err := c.conn(ctx)
-		if err != nil {
-			return Receipt{}, err
-		}
-		opts, err := c.transactOpts(ctx, ec)
-		if err != nil {
-			return Receipt{}, err
-		}
-		opts.NoSend = true // builds and signs; gas estimation here is where a contract refusal shows
-		tx, err := bind.NewBoundContract(contract, contractABI, ec, ec, ec).Transact(opts, method, args...)
+		tx, err := c.build(ctx, contract, contractABI, deadline, method, args...)
 		if err != nil {
 			return Receipt{}, fmt.Errorf("besu: %s: %w", method, describeRevert(contractABI, err))
 		}
@@ -296,6 +293,43 @@ func (c *Client) transact(ctx context.Context, contract common.Address, contract
 		}
 	}
 	return Receipt{}, fmt.Errorf("besu: %s: gave up after %d signings: %v", method, maxSignings, lastErr)
+}
+
+// build prepares and signs one transaction on whichever validator is furthest ahead. Building asks
+// that validator for the chain id, the next transaction number and a gas estimate; the gas
+// estimate is where a refusal by the contract shows.
+//
+// The validator can go away between being chosen and answering (a restart drops the connection
+// mid-request). That says nothing about the call, so it is tried again on whichever validator is
+// then furthest ahead, until the deadline. An answer of "no" from a validator is returned at once.
+func (c *Client) build(ctx context.Context, contract common.Address, contractABI abi.ABI, deadline time.Time, method string, args ...interface{}) (*types.Transaction, error) {
+	for {
+		tx, err := c.buildOnce(ctx, contract, contractABI, method, args...)
+		if err == nil || isNodeRejection(err) || errors.Is(err, errNoSigner) {
+			return tx, err
+		}
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("no validator could prepare the transaction within %s (last error: %w)", c.cfg.ReceiptTimeout, err)
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(500 * time.Millisecond):
+		}
+	}
+}
+
+func (c *Client) buildOnce(ctx context.Context, contract common.Address, contractABI abi.ABI, method string, args ...interface{}) (*types.Transaction, error) {
+	ec, err := c.conn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	opts, err := c.transactOpts(ctx, ec)
+	if err != nil {
+		return nil, err
+	}
+	opts.NoSend = true
+	return bind.NewBoundContract(contract, contractABI, ec, ec, ec).Transact(opts, method, args...)
 }
 
 // submitAndWait submits one signed transaction and waits for its receipt. superseded is true when

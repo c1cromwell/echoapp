@@ -1,4 +1,4 @@
-.PHONY: help build run test clean install-deps lint fmt vet build-prod tls-cert migrate \
+.PHONY: chain-restore-drill chain-permission-test chain-failure-tests chain-checkpoint help build run test clean install-deps lint fmt vet build-prod tls-cert migrate \
 	dev dev-stop dev-stop-all dev-reset dev-status dev-logs dev-restart dev-comply dev-comply-stop \
 	chain-up chain-down chain-reset chain-test contracts contracts-check validate-phase1 \
 	testnet-up testnet-down release-check regression regression-quick regression-with-phase1 ios-preflight \
@@ -271,6 +271,19 @@ chain-reset: ## Delete the local chain (data, keys, contract) and start a new on
 chain-test: ## Tests that need the live chain: anchor, prove, verify offline, reject, fail over
 	@[ -f $(CHAIN_ENV) ] || { echo "chain is not set up; run: make chain-up"; exit 1; }
 	@$(WITH_CHAIN) $(GO) test ./internal/besu ./internal/metagraph -run Live -count=1 -v
+
+chain-restore-drill: ## Back up every validator, destroy the local chain, rebuild it from the backups alone
+	@$(CHAIN_DIR)/restore-drill.sh
+
+chain-permission-test: ## Check that a node not on the allowlist cannot join the local chain
+	@$(CHAIN_DIR)/permission-test.sh
+
+chain-failure-tests: ## Validators down, restarted and wiped while anchoring continues (about 5 minutes)
+	@$(CHAIN_DIR)/failure-tests.sh
+
+chain-checkpoint: ## Write down the newest block with the validators' signatures (OUT=file)
+	@[ -f $(CHAIN_ENV) ] || { echo "chain is not set up; run: make chain-up"; exit 1; }
+	@$(GO) run ./cmd/echochain checkpoint -rpc http://localhost:8545 $(if $(OUT),-out $(OUT),)
 
 contracts: ## Recompile contracts into internal/besu/contract (needs node; compiler pinned in chain/package.json)
 	@cd chain && { [ -d node_modules/solc ] || npm install --silent; } && node compile.js

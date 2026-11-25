@@ -78,6 +78,8 @@ in pushes.
 | 11 | A forward that cannot be encrypted is not sent | compiles in the app build; no device test |
 | 12 | The app sends the socket token in the `Authorization` header. The server already accepted it there | `WebSocketURLBuilderTests` |
 | 13 | The three log lines no longer contain a DID, username or device label | code |
+| 15 (server half) | A phone number registered for recovery is stored as HMAC-SHA256 under a secret the database does not hold (`PHONE_HASH_SECRET`, required in production), not as a bare hash. This protects against a copy of the database; it does not protect against someone holding the database and the secret. The raw number still has to reach the server to send the SMS | `TestPhoneStoreKey` |
+| 17 | A link in a message someone else sent is shown as its domain only; the linked site is not contacted unless the user opts in. Previews for the user's own links use a session with no cookies that honours the proxy setting | `LinkPreviewPolicyTests` |
 
 One switch reverses the storage fixes for a deployment whose purpose is retention:
 `ECHO_RETAIN_MESSAGE_METADATA=true`. It exists for Echo Comply (finding 21). It must not be set on
@@ -118,15 +120,14 @@ The conversation id on the wire (finding 1) and the server seeing the sender of 
 | Finding | What is needed | Size |
 |---|---|---|
 | 14 | Stop storing the actor's DID with reactions, edits, pins and references, or key them by a per-message pseudonym; add expiry | Medium: the features read these columns |
-| 15 | Hash phone numbers with a server-held secret, not a bare SHA-256; correct the wording on the SMS screen (an auth screen: frozen design, text only) | Small on the server; touches lookups |
+| 15 (app half) | The SMS recovery screen says only a hash is stored, while the raw number is sent (it has to be, to send the SMS). The wording should say so. It is an auth screen: frozen design, text only | Small; needs your say-so |
 | 16 | Move ratchet state and the pre-key private key into the Keychain, with a migration | Medium; needs device testing |
-| 17 | Do not fetch link previews for received messages unless the user asks | Small |
 | 18 | Route every request through one proxy-aware session so the Tor/SOCKS option covers them all; add an onion address for the gateway (deploy stage) | Medium |
 | 19 | Add the notification extension to the app target so the device, not the server, decides what a notification says | Xcode project change |
 | 20 | Configure certificate pins | Small, but a wrong pin locks every user out; do it with a rollback plan |
 | 21 | Decide how Comply obtains records without the consumer gateway keeping them | Product decision |
 | — | In-memory rate-limit buckets keyed by DID or IP are never evicted *(reported)* | Small |
-| — | `GET /v3/messages/{id}/status` has no check that the caller is a party to the message *(reported)*. Ids are random, which limits the exposure | Small |
+| — | `GET /v3/messages/{id}/status` has no check that the caller is a party to the message. Since the server no longer records who sent a message, it cannot make that check; the random message id, known only to the two devices, is the permission. The response no longer has a conversation to reveal | By design |
 
 ## 5. Sealed delivery and opaque conversation ids (built 2026-11-24)
 

@@ -235,4 +235,18 @@ final class MembershipMarkTests: XCTestCase {
     }
 }
 
+final class LinkPreviewPolicyTests: XCTestCase {
+    // A link someone else sent must not make this device contact the linked site on its own.
+    func testReceivedLinksAreNotFetchedUnlessTheUserOptsIn() {
+        XCTAssertFalse(MessageLinkPreview.shouldFetch(isOwnMessage: false, receivedOptIn: false))
+        XCTAssertTrue(MessageLinkPreview.shouldFetch(isOwnMessage: false, receivedOptIn: true))
+        XCTAssertTrue(MessageLinkPreview.shouldFetch(isOwnMessage: true, receivedOptIn: false))
+    }
+
+    func testReceivedOptInIsOffByDefault() {
+        UserDefaults.standard.removeObject(forKey: "echo.link_previews.received")
+        XCTAssertFalse(MessageLinkPreview.fetchForReceivedMessages)
+        XCTAssertFalse(MessageLinkPreview.shouldFetch(isOwnMessage: false))
+    }
+}
 #endif

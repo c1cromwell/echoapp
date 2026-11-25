@@ -11,6 +11,7 @@ package api
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -81,12 +82,18 @@ func (rt *Router) handleSMSRecoveryRegister(w http.ResponseWriter, r *http.Reque
 		WriteError(w, http.StatusServiceUnavailable, "DB_NOT_CONFIGURED", "database unavailable", r.Header.Get("X-Request-ID"))
 		return
 	}
-	if err := rt.V3.DB.SetSMSRecovery(r.Context(), req.DID, expectedHash); err != nil {
+	// What is stored is keyed with a secret the database does not hold, never the bare hash.
+	storeKey, err := phoneStoreKey(req.PhoneRaw)
+	if err != nil {
+		WriteError(w, http.StatusServiceUnavailable, "PHONE_RECOVERY_UNAVAILABLE", "phone recovery is not configured", r.Header.Get("X-Request-ID"))
+		return
+	}
+	if err := rt.V3.DB.SetSMSRecovery(r.Context(), req.DID, storeKey); err != nil {
 		WriteError(w, http.StatusInternalServerError, "DB_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
 
-	sessionToken, otp, err := rt.dispatchOTP(r.Context(), req.PhoneRaw, req.PhoneHash, req.DID)
+	sessionToken, otp, err := rt.dispatchOTP(r.Context(), req.PhoneRaw, storeKey, req.DID)
 	if err != nil {
 		if errors.Is(err, errOTPSendRateLimited) {
 			WriteError(w, http.StatusTooManyRequests, "OTP_RATE_LIMITED", "too many codes requested for this number; try again later", r.Header.Get("X-Request-ID"))
@@ -206,14 +213,19 @@ func (rt *Router) handleSMSRecoveryChallenge(w http.ResponseWriter, r *http.Requ
 		WriteError(w, http.StatusServiceUnavailable, "DB_NOT_CONFIGURED", "database unavailable", r.Header.Get("X-Request-ID"))
 		return
 	}
-	did, err := rt.V3.DB.GetSMSRecoveryByPhoneHash(r.Context(), expectedHash)
+	storeKey, err := phoneStoreKey(req.PhoneRaw)
+	if err != nil {
+		WriteError(w, http.StatusServiceUnavailable, "PHONE_RECOVERY_UNAVAILABLE", "phone recovery is not configured", r.Header.Get("X-Request-ID"))
+		return
+	}
+	did, err := rt.V3.DB.GetSMSRecoveryByPhoneHash(r.Context(), storeKey)
 	if err != nil {
 		// Do not reveal whether the phone is registered (privacy).
 		WriteError(w, http.StatusNotFound, "PHONE_NOT_REGISTERED", "phone number is not registered for recovery", r.Header.Get("X-Request-ID"))
 		return
 	}
 
-	sessionToken, otp, err := rt.dispatchOTP(r.Context(), req.PhoneRaw, expectedHash, did)
+	sessionToken, otp, err := rt.dispatchOTP(r.Context(), req.PhoneRaw, storeKey, did)
 	if err != nil {
 		if errors.Is(err, errOTPSendRateLimited) {
 			WriteError(w, http.StatusTooManyRequests, "OTP_RATE_LIMITED", "too many codes requested for this number; try again later", r.Header.Get("X-Request-ID"))
@@ -236,7 +248,36 @@ func (rt *Router) handleSMSRecoveryChallenge(w http.ResponseWriter, r *http.Requ
 
 // --- helpers ---
 
-// phoneHash returns "sha256:" + lowercase hex of SHA-256(E.164 phone).
+// phoneHashSecretEnv names the secret that phone numbers are keyed with before they are stored.
+const phoneHashSecretEnv = "PHONE_HASH_SECRET"
+
+var errPhoneSecretMissing = errors.New("PHONE_HASH_SECRET is not set")
+
+// phoneStoreKey is what the server stores and looks up for a phone number:
+// "hmac:" + HMAC-SHA256(secret, E.164 number).
+//
+// A bare SHA-256 of a phone number is not a hash in any useful sense: there are few enough phone
+// numbers that anyone holding the stored value can try them all in minutes. Keying it with a
+// secret kept outside the database means a copy of the database alone gives up no numbers. It
+// does not protect against someone who has the database and the secret.
+//
+// In production the secret is required (at least 32 characters). Elsewhere, without one, the
+// bare hash is used so local development needs no setup.
+func phoneStoreKey(e164 string) (string, error) {
+	secret := os.Getenv(phoneHashSecretEnv)
+	if len(secret) < 32 {
+		if os.Getenv("ENVIRONMENT") == "production" {
+			return "", errPhoneSecretMissing
+		}
+		return phoneHash(e164), nil
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(e164))
+	return "hmac:" + hex.EncodeToString(mac.Sum(nil)), nil
+}
+
+// phoneHash returns "sha256:" + lowercase hex of SHA-256(E.164 phone). The app sends it beside
+// the number as a check that the number arrived intact; it is not what is stored (phoneStoreKey).
 func phoneHash(e164 string) string {
 	h := sha256.Sum256([]byte(e164))
 	return "sha256:" + hex.EncodeToString(h[:])

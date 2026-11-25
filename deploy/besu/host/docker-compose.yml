@@ -1,0 +1,44 @@
+# One validator of Echo's chain on its own host. Installed by deploy/besu/ansible/site.yml.
+#
+# Everything listens on the host's private address only (NODE_IP). Nothing is published on the
+# public interface: the peer port is for the other three validators, the JSON-RPC port is for the
+# gateway, and the metrics port is for monitoring, all over the private network.
+#
+# /etc/echo-besu holds genesis.json, static-nodes.json, permissions.toml and this node's key
+# (mode 0400). /var/lib/echo-besu holds the chain data.
+name: echo-besu
+services:
+  besu:
+    image: ${BESU_IMAGE:-hyperledger/besu:26.11.2}
+    container_name: echo-besu
+    restart: unless-stopped
+    network_mode: host
+    user: root
+    command:
+      - --data-path=/data
+      - --genesis-file=/config/genesis.json
+      - --node-private-key-file=/config/key
+      - --static-nodes-file=/config/static-nodes.json
+      - --permissions-nodes-config-file-enabled
+      - --permissions-nodes-config-file=/config/permissions.toml
+      - --discovery-enabled=false
+      - --min-gas-price=0
+      - --p2p-host=${NODE_IP:?set NODE_IP to this host's private address}
+      - --p2p-interface=${NODE_IP}
+      - --p2p-port=30303
+      - --rpc-http-enabled
+      - --rpc-http-host=${NODE_IP}
+      - --rpc-http-port=8545
+      # DEBUG is needed for debug_getRawHeader, which proofs and checkpoints are built from.
+      - --rpc-http-api=ETH,NET,WEB3,QBFT,DEBUG
+      - --host-allowlist=${RPC_HOST_ALLOWLIST:-*}
+      - --metrics-enabled
+      - --metrics-host=${NODE_IP}
+      - --metrics-port=9545
+      - --logging=INFO
+    volumes:
+      - /etc/echo-besu:/config:ro
+      - /var/lib/echo-besu:/data
+    logging:
+      driver: json-file
+      options: { max-size: "50m", max-file: "5" }

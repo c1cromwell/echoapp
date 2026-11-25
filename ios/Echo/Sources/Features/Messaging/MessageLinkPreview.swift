@@ -30,14 +30,43 @@ enum MessageLinkPreview {
         return Preview(url: url, domain: domain(for: url), title: nil)
     }
 
-    /// Best-effort HTML `<title>` fetch on-device. Caller should only invoke with user-visible content.
+    private static let receivedKey = "echo.link_previews.received"
+
+    /// Whether to fetch previews for links other people send. Off unless the user turns it on.
+    static var fetchForReceivedMessages: Bool {
+        get { UserDefaults.standard.bool(forKey: receivedKey) }
+        set { UserDefaults.standard.set(newValue, forKey: receivedKey) }
+    }
+
+    /// Fetching a preview contacts the linked site from this device, which tells that site the
+    /// device's network address and that the message was seen. For a link the user typed, the
+    /// user chose the site. For a link someone sent, the sender chose it, so a sender could use a
+    /// link to learn where a recipient is. Received links are not fetched unless the user opts in.
+    static func shouldFetch(isOwnMessage: Bool, receivedOptIn: Bool = fetchForReceivedMessages) -> Bool {
+        isOwnMessage || receivedOptIn
+    }
+
+    private static func makeSession() -> URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.httpCookieStorage = nil
+        configuration.httpShouldSetCookies = false
+        #if os(iOS)
+        TransportProxySettings.apply(to: configuration)
+        #endif
+        return URLSession(configuration: configuration)
+    }
+
+    /// Best-effort HTML `<title>` fetch on-device. Call only when `shouldFetch` allows it.
     static func fetchTitle(for url: URL) async -> String? {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.timeoutInterval = 8
         request.setValue("text/html", forHTTPHeaderField: "Accept")
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
+            // Its own session: no cookies kept between sites, and the proxy setting applies.
+            let session = makeSession()
+            defer { session.finishTasksAndInvalidate() }
+            let (data, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse,
                   (200...299).contains(http.statusCode),
                   let html = String(data: data.prefix(64_000), encoding: .utf8)
@@ -76,6 +105,8 @@ import SwiftUI
 struct ChatInlineLinkPreview: View {
     let text: String
     let alignTrailing: Bool
+    /// True for a message this user sent. A received link shows its domain only (see `shouldFetch`).
+    var isOwnMessage: Bool = false
 
     @State private var preview: MessageLinkPreview.Preview?
     @State private var loading = false
@@ -120,6 +151,7 @@ struct ChatInlineLinkPreview: View {
                 .buttonStyle(.plain)
                 .frame(maxWidth: 280, alignment: alignTrailing ? .trailing : .leading)
                 .task(id: preview.url.absoluteString) {
+                    guard MessageLinkPreview.shouldFetch(isOwnMessage: isOwnMessage) else { return }
                     guard preview.title == nil, !loading else { return }
                     loading = true
                     let title = await MessageLinkPreview.fetchTitle(for: preview.url)

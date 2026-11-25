@@ -1383,7 +1383,8 @@ struct ChatView: View {
                 if MessageLinkPreview.firstURL(in: message.content) != nil {
                     ChatInlineLinkPreview(
                         text: message.content,
-                        alignTrailing: message.isFromCurrentUser
+                        alignTrailing: message.isFromCurrentUser,
+                        isOwnMessage: message.isFromCurrentUser
                     )
                 }
                 #endif

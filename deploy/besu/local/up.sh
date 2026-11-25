@@ -36,6 +36,10 @@ if [ ! -f $N/genesis.json ]; then
   echo "  created 4 local validators"
 fi
 
+# Closed network: only the validators listed here may connect, whatever else can reach the port.
+# Written from the peer list, so an existing network gains it on the next start.
+[ -f $N/permissions.toml ] || echo "nodes-allowlist=$(tr -d ' \n' < $N/static-nodes.json)" > $N/permissions.toml
+
 $compose up -d >/dev/null 2>&1
 height() {
   curl -s -m 3 -X POST -H 'Content-Type: application/json' \
