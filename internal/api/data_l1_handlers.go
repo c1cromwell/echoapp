@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 	"github.com/thechadcromwell/echoapp/internal/validation"
 )
 
@@ -92,11 +92,11 @@ func (rt *Router) handleDataL1MerkleRoots(w http.ResponseWriter, r *http.Request
 	}
 
 	// Recorded with the chain's proof, so GET /v1/anchors/{root}/proof can serve it.
-	var roots metagraph.RootStore
+	var roots ledger.RootStore
 	if rt.AnchorStore != nil {
 		roots = rt.AnchorStore
 	}
-	txID, err := metagraph.AnchorRoot(r.Context(), rt.DataL1, roots, rt.ChainNetwork, root, leaf)
+	txID, err := ledger.AnchorRoot(r.Context(), rt.DataL1, roots, rt.ChainNetwork, root, leaf)
 	if err != nil {
 		WriteError(w, http.StatusBadGateway, "DATA_L1_SUBMIT_FAILED", err.Error(), r.Header.Get("X-Request-ID"))
 		return

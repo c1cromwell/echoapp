@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 // With CURRENCY_L1_URL unset, main passes a nil *MetagraphClient as the
@@ -13,7 +13,7 @@ import (
 // L1": the reconciler used to dereference it on its first tick and crash the
 // server five minutes after start.
 func TestLedgerQuerier_TypedNilSubmitterIsTreatedAsAbsent(t *testing.T) {
-	var client *metagraph.MetagraphClient // nil pointer, non-nil once boxed in the interface
+	var client *ledger.MetagraphClient // nil pointer, non-nil once boxed in the interface
 	q := NewLedgerQuerier(nil, client)
 	if q.submitter != nil {
 		t.Fatal("a nil *MetagraphClient must be normalised to a nil submitter")

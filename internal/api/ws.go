@@ -15,7 +15,7 @@ import (
 
 	"github.com/thechadcromwell/echoapp/internal/database"
 	"github.com/thechadcromwell/echoapp/internal/infra"
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 	"github.com/thechadcromwell/echoapp/internal/services/bots"
 	"github.com/thechadcromwell/echoapp/internal/services/messaging"
 	"github.com/thechadcromwell/echoapp/internal/services/relay"
@@ -297,7 +297,7 @@ type SignalPublisher interface {
 }
 
 // PublishConfirmation delivers a message-integrity confirmation to the sender (WO-15).
-func (h *Hub) PublishConfirmation(to string, confirmation metagraph.AnchorConfirmation) bool {
+func (h *Hub) PublishConfirmation(to string, confirmation ledger.AnchorConfirmation) bool {
 	if h == nil || to == "" {
 		return false
 	}

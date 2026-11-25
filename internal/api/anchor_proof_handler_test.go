@@ -9,19 +9,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 func TestHandleAnchorProofBundle(t *testing.T) {
 	ctx := context.Background()
-	store := metagraph.NewMemoryProofStore()
+	store := ledger.NewMemoryProofStore()
 	leaves := []string{strings.Repeat("a", 64), strings.Repeat("b", 64), strings.Repeat("c", 64)}
-	tree := metagraph.BuildMerkleTree(leaves)
+	tree := ledger.BuildMerkleTree(leaves)
 	root := tree.Root
 	_ = store.RecordRootSubmitted(ctx, root, len(leaves), "besu", time.Now())
 	_ = store.MarkRootFinalized(ctx, root, time.Now())
-	_ = store.SaveChainAnchor(ctx, root, metagraph.ChainAnchor{BlockNumber: 42, TxHash: "0xtx", Contract: "0xc0", Proof: json.RawMessage(`{"root":"0x00"}`)})
-	_ = store.Put(ctx, metagraph.MessageAnchorProof{MessageID: "msg-2", Commitment: leaves[2], Siblings: tree.ProofSiblings(2), MerkleLeafIndex: 2, MerkleRoot: root})
+	_ = store.SaveChainAnchor(ctx, root, ledger.ChainAnchor{BlockNumber: 42, TxHash: "0xtx", Contract: "0xc0", Proof: json.RawMessage(`{"root":"0x00"}`)})
+	_ = store.Put(ctx, ledger.MessageAnchorProof{MessageID: "msg-2", Commitment: leaves[2], Siblings: tree.ProofSiblings(2), MerkleLeafIndex: 2, MerkleRoot: root})
 
 	// No chain clients, no anchoring worker: the durable record is enough.
 	rt := NewRouter(nil)
@@ -38,7 +38,7 @@ func TestHandleAnchorProofBundle(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d body %s", rec.Code, rec.Body.String())
 	}
-	var b metagraph.ProofBundle
+	var b ledger.ProofBundle
 	if err := json.Unmarshal(rec.Body.Bytes(), &b); err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestHandleAnchorProofBundle(t *testing.T) {
 	if b.Message == nil || b.Message.MessageID != "msg-2" {
 		t.Fatalf("message: %+v", b.Message)
 	}
-	if err := metagraph.VerifyMerklePath(b.Message.Commitment, b.Message.Siblings, b.Message.LeafIndex, b.LeafCount, b.MerkleRoot); err != nil {
+	if err := ledger.VerifyMerklePath(b.Message.Commitment, b.Message.Siblings, b.Message.LeafIndex, b.LeafCount, b.MerkleRoot); err != nil {
 		t.Fatalf("served path does not verify: %v", err)
 	}
 
@@ -87,7 +87,7 @@ func TestHandleAnchorProofBundle(t *testing.T) {
 // like GET /v1/messages/{id}/merkle-proof.
 func TestAnchorProofRouteRequiresAuth(t *testing.T) {
 	rt := NewRouter(nil)
-	rt.AnchorStore = metagraph.NewMemoryProofStore()
+	rt.AnchorStore = ledger.NewMemoryProofStore()
 	for _, path := range []string{
 		"/v1/anchors/" + strings.Repeat("0", 64) + "/proof",
 		"/v1/messages/msg-1/merkle-proof",
@@ -103,8 +103,8 @@ func TestAnchorProofRouteRequiresAuth(t *testing.T) {
 // The per-message proof endpoint reads the durable store even when the
 // anchoring worker (and so the chain) is not configured.
 func TestHandleMessageMerkleProof_DurableStoreWithoutAnchoring(t *testing.T) {
-	store := metagraph.NewMemoryProofStore()
-	_ = store.Put(context.Background(), metagraph.MessageAnchorProof{MessageID: "msg-7", Commitment: "aa", MerkleRoot: "root"})
+	store := ledger.NewMemoryProofStore()
+	_ = store.Put(context.Background(), ledger.MessageAnchorProof{MessageID: "msg-7", Commitment: "aa", MerkleRoot: "root"})
 	rt := NewRouter(nil)
 	rt.AnchorStore = store
 	rec := httptest.NewRecorder()

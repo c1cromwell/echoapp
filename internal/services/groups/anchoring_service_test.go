@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 func TestMemberCountHashDeterministic(t *testing.T) {
@@ -20,7 +20,7 @@ func TestMemberCountHashDeterministic(t *testing.T) {
 
 func TestGroupAnchoringService_CachesProof(t *testing.T) {
 	var submitted bool
-	client := metagraph.SubmitterFunc(func(_ context.Context, tx interface{}) (string, error) {
+	client := ledger.SubmitterFunc(func(_ context.Context, tx interface{}) (string, error) {
 		submitted = true
 		return "tx-group-1", nil
 	})

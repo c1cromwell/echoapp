@@ -8,15 +8,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 // GroupAnchoringService submits group metadata to Data L1 (WO-156).
 type GroupAnchoringService struct {
-	dataL1 metagraph.DataSubmitter
+	dataL1 ledger.DataSubmitter
 
 	mu            sync.Mutex
-	proofs        map[string]metagraph.GroupBlockchainProof
+	proofs        map[string]ledger.GroupBlockchainProof
 	pending       map[string]pendingMembership
 	lastSubmitted map[string]time.Time
 }
@@ -29,10 +29,10 @@ type pendingMembership struct {
 }
 
 // NewGroupAnchoringService creates a group metadata anchoring pipeline.
-func NewGroupAnchoringService(dataL1 metagraph.DataSubmitter) *GroupAnchoringService {
+func NewGroupAnchoringService(dataL1 ledger.DataSubmitter) *GroupAnchoringService {
 	return &GroupAnchoringService{
 		dataL1:        dataL1,
-		proofs:        make(map[string]metagraph.GroupBlockchainProof),
+		proofs:        make(map[string]ledger.GroupBlockchainProof),
 		pending:       make(map[string]pendingMembership),
 		lastSubmitted: make(map[string]time.Time),
 	}
@@ -49,7 +49,7 @@ func (s *GroupAnchoringService) AnchorGroupCreated(ctx context.Context, groupID,
 	if s == nil || s.dataL1 == nil {
 		return "", nil
 	}
-	update := metagraph.GroupMetadataUpdate{
+	update := ledger.GroupMetadataUpdate{
 		Type:            "group_metadata",
 		GroupID:         groupID,
 		AdminDID:        adminDID,
@@ -109,7 +109,7 @@ func (s *GroupAnchoringService) AnchorGovernanceVote(ctx context.Context, groupI
 	if s == nil || s.dataL1 == nil {
 		return "", nil
 	}
-	anchor := metagraph.GovernanceVoteAnchor{
+	anchor := ledger.GovernanceVoteAnchor{
 		Type:             "governance_vote",
 		GroupID:          groupID,
 		ProposalID:       proposalID,
@@ -122,7 +122,7 @@ func (s *GroupAnchoringService) AnchorGovernanceVote(ctx context.Context, groupI
 		return "", err
 	}
 	s.mu.Lock()
-	s.proofs[groupID] = metagraph.GroupBlockchainProof{
+	s.proofs[groupID] = ledger.GroupBlockchainProof{
 		GroupID:    groupID,
 		TxHash:     txHash,
 		AnchoredAt: time.Now().UTC(),
@@ -133,9 +133,9 @@ func (s *GroupAnchoringService) AnchorGovernanceVote(ctx context.Context, groupI
 }
 
 // GetBlockchainProof returns the latest cached anchored metadata for a group.
-func (s *GroupAnchoringService) GetBlockchainProof(groupID string) (metagraph.GroupBlockchainProof, bool) {
+func (s *GroupAnchoringService) GetBlockchainProof(groupID string) (ledger.GroupBlockchainProof, bool) {
 	if s == nil {
-		return metagraph.GroupBlockchainProof{}, false
+		return ledger.GroupBlockchainProof{}, false
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -146,7 +146,7 @@ func (s *GroupAnchoringService) GetBlockchainProof(groupID string) (metagraph.Gr
 func (s *GroupAnchoringService) cacheProof(groupID, adminDID, memberCountHash, txHash, eventType string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.proofs[groupID] = metagraph.GroupBlockchainProof{
+	s.proofs[groupID] = ledger.GroupBlockchainProof{
 		GroupID:         groupID,
 		AdminDID:        adminDID,
 		MemberCountHash: memberCountHash,

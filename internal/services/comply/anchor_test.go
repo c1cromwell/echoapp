@@ -6,14 +6,14 @@ import (
 	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 func TestMetagraphAnchor_SubmitAndHealth(t *testing.T) {
 	var posted bool
-	client := metagraph.SubmitterFunc(func(_ context.Context, tx interface{}) (string, error) {
+	client := ledger.SubmitterFunc(func(_ context.Context, tx interface{}) (string, error) {
 		// A compliance anchor is a trust commitment: a 32-byte hash and an epoch, nothing else.
-		if _, ok := tx.(metagraph.DataL1TrustCommitmentUpdate); !ok {
+		if _, ok := tx.(ledger.DataL1TrustCommitmentUpdate); !ok {
 			t.Errorf("anchored a %T, want a trust commitment", tx)
 		}
 		posted = true

@@ -200,7 +200,7 @@ FEATURES = [
         "name": "Identity L1 username + trust anchors",
         "status": "shipped",
         "blueprints": ["Decentralized Identity and Authentication", "Dynamic Trust Network and Social Verification"],
-        "code": ["metagraph/modules/identity_l1/", "internal/metagraph/"],
+        "code": ["metagraph/modules/identity_l1/", "internal/ledger/"],
         "e2e": "Needed for validate-phase1 step 3 and username anchors. make start-identity.",
         "sept1": True,
     },

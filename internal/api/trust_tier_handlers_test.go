@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 // TestTrustTierCommitment_AnchorsHashOnly verifies D4: the handler anchors
@@ -17,7 +17,7 @@ import (
 func TestTrustTierCommitment_AnchorsHashOnly(t *testing.T) {
 	var onChain []byte
 	rt := &Router{
-		IdentityL1: metagraph.IdentitySubmitterFunc(func(_ context.Context, tx interface{}) (string, error) {
+		IdentityL1: ledger.IdentitySubmitterFunc(func(_ context.Context, tx interface{}) (string, error) {
 			onChain, _ = json.Marshal(tx) // what the handler hands to the chain client
 			return "0xtx", nil
 		}),
@@ -33,7 +33,7 @@ func TestTrustTierCommitment_AnchorsHashOnly(t *testing.T) {
 		t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	want := metagraph.TrustTierCommitmentHex(3, "secret-nonce-xyz")
+	want := ledger.TrustTierCommitmentHex(3, "secret-nonce-xyz")
 	var resp map[string]interface{}
 	_ = json.Unmarshal(rec.Body.Bytes(), &resp)
 	if resp["commitment"] != want {
@@ -51,7 +51,7 @@ func TestTrustTierCommitment_AnchorsHashOnly(t *testing.T) {
 
 func TestTrustTierCommitment_Validation(t *testing.T) {
 	rt := &Router{
-		IdentityL1: metagraph.IdentitySubmitterFunc(func(context.Context, interface{}) (string, error) { return "", nil }),
+		IdentityL1: ledger.IdentitySubmitterFunc(func(context.Context, interface{}) (string, error) { return "", nil }),
 	}
 	call := func(payload map[string]interface{}) int {
 		body, _ := json.Marshal(payload)

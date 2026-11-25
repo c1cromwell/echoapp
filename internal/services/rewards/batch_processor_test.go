@@ -7,17 +7,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 // mockSubmitter records calls and optionally returns an error.
 type mockSubmitter struct {
 	mu          sync.Mutex
-	submissions []metagraph.CurrencyL1Transaction
+	submissions []ledger.CurrencyL1Transaction
 	err         error
 }
 
-func (m *mockSubmitter) SubmitCurrencyL1(_ context.Context, tx metagraph.CurrencyL1Transaction) (string, error) {
+func (m *mockSubmitter) SubmitCurrencyL1(_ context.Context, tx ledger.CurrencyL1Transaction) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.submissions = append(m.submissions, tx)
@@ -177,13 +177,13 @@ func TestBatchProcessor_AtomicActionStructure(t *testing.T) {
 	}
 
 	ops := tx.AtomicAction.Operations
-	if ops[0].Type != metagraph.OpRewardClaim {
+	if ops[0].Type != ledger.OpRewardClaim {
 		t.Errorf("expected first op to be reward_claim, got %s", ops[0].Type)
 	}
-	if ops[1].Type != metagraph.OpTrustVerification {
+	if ops[1].Type != ledger.OpTrustVerification {
 		t.Errorf("expected second op to be trust_verification, got %s", ops[1].Type)
 	}
-	if ops[2].Type != metagraph.OpAutoScaleRateUpdate {
+	if ops[2].Type != ledger.OpAutoScaleRateUpdate {
 		t.Errorf("expected third op to be auto_scale_rate_update, got %s", ops[2].Type)
 	}
 }

@@ -31,7 +31,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/thechadcromwell/echoapp/internal/besu"
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 func main() {
@@ -87,7 +87,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return usage("read bundle: " + err.Error())
 	}
-	var b metagraph.ProofBundle
+	var b ledger.ProofBundle
 	if err := json.Unmarshal(raw, &b); err != nil {
 		return usage("decode bundle: " + err.Error())
 	}
@@ -101,7 +101,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	// Link 1: message -> root.
 	if b.Message == nil {
 		r.skip("no message in the bundle; only the root itself is checked")
-	} else if err := metagraph.VerifyMerklePath(b.Message.Commitment, b.Message.Siblings, b.Message.LeafIndex, b.LeafCount, b.MerkleRoot); err != nil {
+	} else if err := ledger.VerifyMerklePath(b.Message.Commitment, b.Message.Siblings, b.Message.LeafIndex, b.LeafCount, b.MerkleRoot); err != nil {
 		r.fail("message %s is not under the root: %v", b.Message.MessageID, err)
 	} else {
 		r.ok("message %s (commitment %s) is leaf %d of %d under the root", b.Message.MessageID, b.Message.Commitment, b.Message.LeafIndex, b.LeafCount)
@@ -118,7 +118,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-func verifyChain(r *report, b *metagraph.ProofBundle, validators []common.Address) {
+func verifyChain(r *report, b *ledger.ProofBundle, validators []common.Address) {
 	if b.Chain == nil || len(b.Chain.Proof) == 0 {
 		r.fail("the bundle carries no chain proof, so nothing shows the root is anchored")
 		return

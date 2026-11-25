@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 const (
@@ -90,7 +90,7 @@ type Service struct {
 	// DataL1 optionally anchors a content Merkle root (over chunk CIDs) on the
 	// Data L1 metagraph so media integrity/provenance is publicly verifiable (D3).
 	// Nil disables anchoring; only content-addressed backends (IPFS) yield CIDs.
-	DataL1 metagraph.DataSubmitter
+	DataL1 ledger.DataSubmitter
 }
 
 // NewService creates a media service.
@@ -202,11 +202,11 @@ func (s *Service) anchorContentRoot(ctx context.Context, fileID string, cidLeave
 	if len(cidLeaves) == 0 {
 		return ""
 	}
-	root := metagraph.ComputeMerkleRoot(cidLeaves)
+	root := ledger.ComputeMerkleRoot(cidLeaves)
 	if s.DataL1 == nil {
 		return root
 	}
-	if _, err := s.DataL1.SubmitDataL1(ctx, metagraph.DataL1MerkleRootUpdate{
+	if _, err := s.DataL1.SubmitDataL1(ctx, ledger.DataL1MerkleRootUpdate{
 		Root:      root,
 		LeafCount: len(cidLeaves),
 	}); err != nil {

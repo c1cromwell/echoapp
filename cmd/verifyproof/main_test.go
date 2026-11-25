@@ -8,21 +8,21 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 // testdata/bundle.json is a real bundle: three message commitments anchored on a four-validator
 // chain through the gateway's own code path, as served by GET /v1/anchors/{root}/proof
 // (BESU_UPDATE_FIXTURE=1 go test ./internal/metagraph -run TestLiveAnchorBatch).
-func fixture(t *testing.T) (*metagraph.ProofBundle, string) {
+func fixture(t *testing.T) (*ledger.ProofBundle, string) {
 	t.Helper()
 	raw, err := os.ReadFile("testdata/bundle.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 	var f struct {
-		Validators string                 `json:"validators"`
-		Bundle     *metagraph.ProofBundle `json:"bundle"`
+		Validators string              `json:"validators"`
+		Bundle     *ledger.ProofBundle `json:"bundle"`
 	}
 	if err := json.Unmarshal(raw, &f); err != nil {
 		t.Fatal(err)
@@ -31,7 +31,7 @@ func fixture(t *testing.T) (*metagraph.ProofBundle, string) {
 }
 
 // runWith writes the bundle to a temp file and runs the verifier on it.
-func runWith(t *testing.T, b *metagraph.ProofBundle, extra ...string) (int, string) {
+func runWith(t *testing.T, b *ledger.ProofBundle, extra ...string) (int, string) {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "bundle.json")
 	raw, err := json.Marshal(b)
@@ -47,10 +47,10 @@ func runWith(t *testing.T, b *metagraph.ProofBundle, extra ...string) (int, stri
 }
 
 // copyBundle deep-copies so a test can tamper with it.
-func copyBundle(t *testing.T, b *metagraph.ProofBundle) *metagraph.ProofBundle {
+func copyBundle(t *testing.T, b *ledger.ProofBundle) *ledger.ProofBundle {
 	t.Helper()
 	raw, _ := json.Marshal(b)
-	var out metagraph.ProofBundle
+	var out ledger.ProofBundle
 	if err := json.Unmarshal(raw, &out); err != nil {
 		t.Fatal(err)
 	}
@@ -108,32 +108,32 @@ func TestVerify_Failures(t *testing.T) {
 
 	cases := []struct {
 		name       string
-		tamper     func(b *metagraph.ProofBundle)
+		tamper     func(b *ledger.ProofBundle)
 		validators string
 		want       string
 	}{
-		{"validators the block was not signed by", func(*metagraph.ProofBundle) {}, strangers, "not a trusted validator"},
-		{"only two of the four real validators trusted", func(*metagraph.ProofBundle) {}, twoOfFour, "not a trusted validator"},
-		{"chain proof removed", func(b *metagraph.ProofBundle) { b.Chain = nil }, validators, "carries no chain proof"},
-		{"chain proof emptied", func(b *metagraph.ProofBundle) { b.Chain.Proof = nil }, validators, "carries no chain proof"},
-		{"chain proof is not JSON for a proof", func(b *metagraph.ProofBundle) { b.Chain.Proof = json.RawMessage(`"x"`) }, validators, "malformed"},
-		{"bundle claims a different root than the proof", func(b *metagraph.ProofBundle) {
+		{"validators the block was not signed by", func(*ledger.ProofBundle) {}, strangers, "not a trusted validator"},
+		{"only two of the four real validators trusted", func(*ledger.ProofBundle) {}, twoOfFour, "not a trusted validator"},
+		{"chain proof removed", func(b *ledger.ProofBundle) { b.Chain = nil }, validators, "carries no chain proof"},
+		{"chain proof emptied", func(b *ledger.ProofBundle) { b.Chain.Proof = nil }, validators, "carries no chain proof"},
+		{"chain proof is not JSON for a proof", func(b *ledger.ProofBundle) { b.Chain.Proof = json.RawMessage(`"x"`) }, validators, "malformed"},
+		{"bundle claims a different root than the proof", func(b *ledger.ProofBundle) {
 			b.MerkleRoot = strings.Repeat("ab", 32)
 		}, validators, "FAIL"},
-		{"bundle claims more leaves than the chain recorded", func(b *metagraph.ProofBundle) {
+		{"bundle claims more leaves than the chain recorded", func(b *ledger.ProofBundle) {
 			b.LeafCount = 4
 		}, validators, "FAIL"},
-		{"bundle claims a different block", func(b *metagraph.ProofBundle) { b.Chain.BlockNumber++ }, validators, "the bundle says block"},
-		{"bundle names a different contract", func(b *metagraph.ProofBundle) {
+		{"bundle claims a different block", func(b *ledger.ProofBundle) { b.Chain.BlockNumber++ }, validators, "the bundle says block"},
+		{"bundle names a different contract", func(b *ledger.ProofBundle) {
 			b.Chain.Contract = "0x00000000000000000000000000000000000000ff"
 		}, validators, "the bundle names contract"},
-		{"message commitment swapped", func(b *metagraph.ProofBundle) {
+		{"message commitment swapped", func(b *ledger.ProofBundle) {
 			b.Message.Commitment = strings.Repeat("cd", 32)
 		}, validators, "is not under the root"},
-		{"message path sibling altered", func(b *metagraph.ProofBundle) {
+		{"message path sibling altered", func(b *ledger.ProofBundle) {
 			b.Message.Siblings[0] = strings.Repeat("ef", 32)
 		}, validators, "is not under the root"},
-		{"message claimed at another position", func(b *metagraph.ProofBundle) { b.Message.LeafIndex = 0 }, validators, "is not under the root"},
+		{"message claimed at another position", func(b *ledger.ProofBundle) { b.Message.LeafIndex = 0 }, validators, "is not under the root"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

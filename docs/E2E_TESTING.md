@@ -37,7 +37,7 @@
 | Device checks after stage 2 or 4 | [§8](#8-physical-iphone) |
 | TestFlight & deploy | [§9](#9-testflight--backend-deploy) |
 | Release sign-off template | [§10](#10-release-sign-off-template) |
-| Metagraph cluster deep dive | [`metagraph-backend-e2e-testing.md`](metagraph-backend-e2e-testing.md) |
+| Metagraph cluster deep dive | removed with the Constellation metagraph; see [`CHAIN_OPERATIONS.md`](CHAIN_OPERATIONS.md) |
 
 ---
 
@@ -118,7 +118,7 @@ make start-identity   # Identity L0 :9600, Identity L1 :9500
 
 **Stop / wipe:** [§2.4](#24-start-stop-resume) and [§2.5](#25-clean-slate--empty-data--new-genesis). Do not use `make clean` — that only deletes Go build artifacts.
 
-Cluster deep dive: [`metagraph-backend-e2e-testing.md`](metagraph-backend-e2e-testing.md).
+Cluster deep dive: removed with the Constellation metagraph; see [`CHAIN_OPERATIONS.md`](CHAIN_OPERATIONS.md).
 
 Scheme: **EchoApp** / product **EchoMessaging**. Agents cannot tap Simulator UI — humans run [§5](#5-messaging-tests--run-in-this-order).
 
@@ -634,7 +634,7 @@ Do this only after [stage 2](#54-stage-2--simulator--your-iphone) passed.
 | `WEEK_A_B_LAUNCH.md` / `TESTFLIGHT_WEEK_A_B.md` | §5–§6 (two-client boot + Week A/B) |
 | `E2E_MESSAGING_SIGNOFF_CHECKLIST.md` | §7 |
 | `PHASE1_LAUNCH.md` | §4 Phase 1 |
-| `metagraph-backend-e2e-testing.md` | Linked (cluster-only depth) |
+| `metagraph-backend-e2e-testing.md` | Removed (described the Constellation metagraph) |
 | `TESTING.md` | Prefer this file + `make regression` |
 
 For Sept 1 planning (corporate, competitive, calendar): **[`GO_LIVE_SEPT_1_2026.md`](GO_LIVE_SEPT_1_2026.md)**.

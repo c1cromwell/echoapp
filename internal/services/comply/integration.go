@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/thechadcromwell/echoapp/internal/evidence"
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 // IntegrationConfig holds optional Data L1 and Digital Evidence wiring (Priority 2).
@@ -20,7 +20,7 @@ type IntegrationConfig struct {
 func LoadIntegrationFromEnv() IntegrationConfig {
 	var out IntegrationConfig
 
-	if anchor, err := metagraph.BesuAnchorFromEnv(); err != nil {
+	if anchor, err := ledger.BesuAnchorFromEnv(); err != nil {
 		log.Printf("comply: chain anchoring disabled: %v", err)
 	} else if anchor != nil {
 		out.DataL1 = NewMetagraphAnchor(anchor)

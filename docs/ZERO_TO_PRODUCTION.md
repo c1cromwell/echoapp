@@ -5,6 +5,14 @@ for the **messaging backend gateway** (Hetzner k3s), the **Constellation metagra
 integrationnet → mainnet), and the **iOS app** (TestFlight → App Store). Comply is out of scope here
 (see `PRODUCT_LAUNCH.md`).
 
+> ## ⚠️ The chain sections of this document are out of date (2026-11-25)
+> Echo no longer uses the Constellation metagraph. It runs its own Hyperledger Besu network.
+> Everything here about the metagraph, integrationnet, mainnet, seedlists, DAG staking and
+> `scripts/metagraph` describes a path that has been removed. For the chain, follow
+> [`CHAIN_OPERATIONS.md`](CHAIN_OPERATIONS.md) and [`BESU_MIGRATION_PLAN.md`](BESU_MIGRATION_PLAN.md).
+> The backend (Hetzner k3s) and iOS sections still apply. This document needs a rewrite of its
+> chain sections before it is used for a production launch.
+
 > ## ⚠️ Read this first
 > - **Local steps** are fully runnable today.
 > - **Cloud/chain steps** provision real infrastructure and cost money. Every secret/input is a
@@ -35,7 +43,7 @@ by `.github/workflows/backend-image.yml` to `ghcr.io/c1cromwell/echo-backend`.
 Follow the existing guides — do **not** duplicate them:
 - **Full stack from scratch:** `CONTRIBUTING.md` §1–9 (prereqs → `metagraph/scripts/setup-euclid.sh`
   → `make dev` → build the apps).
-- **Metagraph + backend E2E (local genesis):** `docs/metagraph-backend-e2e-testing.md`
+- **Metagraph + backend E2E (local genesis):** removed; see `docs/CHAIN_OPERATIONS.md`
   (`scripts/hydra build` → `start-genesis` → `status`, then `make dev`, then `scripts/validate-phase1.sh`).
 - **Test gates / sign-off:** `docs/E2E_TESTING.md`.
 

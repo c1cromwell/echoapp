@@ -18,8 +18,8 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/api"
 	"github.com/thechadcromwell/echoapp/internal/database"
 	"github.com/thechadcromwell/echoapp/internal/infra"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 	applog "github.com/thechadcromwell/echoapp/internal/logging"
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
 	"github.com/thechadcromwell/echoapp/internal/rewards"
 	"github.com/thechadcromwell/echoapp/internal/services/agentbus"
 	"github.com/thechadcromwell/echoapp/internal/services/bots"
@@ -103,7 +103,7 @@ func (s *Server) Start() error {
 
 	// One setting names the chain this gateway anchors to. Fail fast on a typo
 	// rather than silently labelling proofs with the wrong network.
-	chainNetwork, err := metagraph.ChainNetworkFromEnv()
+	chainNetwork, err := ledger.ChainNetworkFromEnv()
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func (s *Server) Start() error {
 	}
 	// Echo's own chain (Besu). Unset BESU_RPC_URLS leaves anchoring off; a partly configured
 	// chain is a startup error, so anchoring is never silently missing.
-	chainAnchor, err := metagraph.BesuAnchorFromEnv()
+	chainAnchor, err := ledger.BesuAnchorFromEnv()
 	if err != nil {
 		return fmt.Errorf("chain configuration: %w", err)
 	}
@@ -158,7 +158,7 @@ func (s *Server) Start() error {
 	}
 	// The token is on hold and the chain it once ran on is gone: no currency client is created.
 	// Code that takes one treats nil as "no chain".
-	var currencyL1 *metagraph.MetagraphClient
+	var currencyL1 *ledger.MetagraphClient
 
 	credCfg := credentials.LoadConfig()
 	if chainAnchor != nil && chainAnchor.HasIdentity() {
@@ -340,8 +340,8 @@ func (s *Server) Start() error {
 	var walletSvc *wallet.WalletService
 	if pgDB != nil {
 		walletStore := wallet.NewPGStore(pgDB.Pool())
-		ledger := wallet.NewLedgerQuerier(walletStore, currencyL1)
-		walletSvc = wallet.NewWalletService(ledger, wallet.NewRewardsAdapter(rewardsService))
+		walletLedger := wallet.NewLedgerQuerier(walletStore, currencyL1)
+		walletSvc = wallet.NewWalletService(walletLedger, wallet.NewRewardsAdapter(rewardsService))
 		walletChallenges := wallet.NewChallengeStore()
 		walletHandlers = &api.WalletHandlers{
 			Service:    walletSvc,
@@ -359,7 +359,7 @@ func (s *Server) Start() error {
 			log.Println("Wallet REAL-FUNDS custody mode ON; proof-of-ownership required")
 		}
 		// Reconcile cached wallet state against Currency L1 (no-op without it).
-		go wallet.NewReconciler(ledger).Run(context.Background())
+		go wallet.NewReconciler(walletLedger).Run(context.Background())
 		log.Printf("Wallet + staking API enabled (/v3/wallet/*), custody=%s", wallet.CustodyMode())
 	}
 
@@ -409,17 +409,17 @@ func (s *Server) Start() error {
 
 	// Anchor proofs + root finality: durable in PostgreSQL when available, so
 	// they survive restarts and stay readable with the chain switched off.
-	var anchorStore metagraph.AnchorStore
+	var anchorStore ledger.AnchorStore
 	if pgDB != nil {
-		anchorStore = metagraph.NewPostgresProofStore(pgDB.Pool())
+		anchorStore = ledger.NewPostgresProofStore(pgDB.Pool())
 		log.Println("Anchor proof store backed by PostgreSQL (migrations 036, 037)")
 	} else {
-		anchorStore = metagraph.NewRedisProofStore(redisClient, metagraph.NewMemoryProofStore())
+		anchorStore = ledger.NewRedisProofStore(redisClient, ledger.NewMemoryProofStore())
 		log.Println("Anchor proof store: Redis/in-memory (set DATABASE_HOST for durable proofs)")
 	}
 	router.AnchorStore = anchorStore
 	if router.DataL1 != nil {
-		anchoring := metagraph.NewAnchoringService(metagraph.AnchoringConfig{
+		anchoring := ledger.NewAnchoringService(ledger.AnchoringConfig{
 			DataL1:  router.DataL1,
 			Source:  router.WSHub,
 			Confirm: router.WSHub,
@@ -437,7 +437,7 @@ func (s *Server) Start() error {
 	}
 	// Completes any root whose chain proof could not be taken when it was anchored.
 	if chainAnchor != nil {
-		go metagraph.BackfillChainProofs(context.Background(), chainAnchor, anchorStore, time.Minute)
+		go ledger.BackfillChainProofs(context.Background(), chainAnchor, anchorStore, time.Minute)
 	}
 
 	tokenomicsSvc, err := tokenomics.NewService(tokenomics.Config{
@@ -525,7 +525,7 @@ func startBackgroundMaintenance(db database.DB, hub *api.Hub) {
 					log.Printf("purged %d expired offline queue entries", n)
 				}
 			}
-			_ = hub // anchoring flush handled by metagraph.AnchoringService (WO-15)
+			_ = hub // anchoring flush handled by ledger.AnchoringService (WO-15)
 		}
 	}()
 }

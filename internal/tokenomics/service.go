@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/infra"
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/emission"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/founder"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/genesis"
@@ -37,7 +37,7 @@ type Service struct {
 // Config holds tokenomics service dependencies.
 type Config struct {
 	GenesisDate  time.Time
-	CurrencyL1   *metagraph.MetagraphClient
+	CurrencyL1   *ledger.MetagraphClient
 	Redis        *infra.RedisClient
 	QuestStore   quests.Store
 	Wallet       *wallet.WalletService

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 // Pool describes a genesis allocation bucket.
@@ -158,20 +158,20 @@ func BuildSnapshot(genesisDate time.Time) (*Snapshot, error) {
 }
 
 // FounderTokenLockUpdates returns Currency L1 TokenLock payloads for genesis deploy.
-func FounderTokenLockUpdates(genesisDate time.Time) ([]metagraph.CurrencyL1Transaction, error) {
+func FounderTokenLockUpdates(genesisDate time.Time) ([]ledger.CurrencyL1Transaction, error) {
 	snap, err := BuildSnapshot(genesisDate)
 	if err != nil {
 		return nil, err
 	}
 	lockDays := FounderVestMonths * 30
-	out := make([]metagraph.CurrencyL1Transaction, 0, len(snap.Founders))
+	out := make([]ledger.CurrencyL1Transaction, 0, len(snap.Founders))
 	for _, f := range snap.Founders {
-		out = append(out, metagraph.CurrencyL1Transaction{
+		out = append(out, ledger.CurrencyL1Transaction{
 			Type: "tokenLock",
-			TokenLock: &metagraph.TokenLock{
-				BaseTx: metagraph.BaseTx{
+			TokenLock: &ledger.TokenLock{
+				BaseTx: ledger.BaseTx{
 					SenderDID: f.DID,
-					Layer:     metagraph.CurrencyL1,
+					Layer:     ledger.CurrencyL1,
 				},
 				Amount:       big.NewInt(f.Amount),
 				LockDuration: lockDays,

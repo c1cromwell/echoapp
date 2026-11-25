@@ -63,8 +63,9 @@ echoapp/
 **Chain:** Echo runs its own private Hyperledger Besu network (QBFT, four validators). Tessellation
 and Constellation were removed on 2026-11-24; do not add code for them. Only 32-byte hashes go
 on-chain, and identifiers (DIDs, usernames, keys) are hashed by `internal/besu/ids.go` first.
-`internal/metagraph` keeps its name until the rename in plan stage B5 and still holds the
-Tessellation currency client that stage B3 replaces.
+The gateway's chain-facing code is `internal/ledger` (renamed from `internal/metagraph` in plan
+stage B5). It still holds dormant Tessellation-format currency types used only by the token code,
+which is switched off (`ECHO_TOKEN_ENABLED`).
 
 ## Source-of-truth hierarchy
 

@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 	"github.com/thechadcromwell/echoapp/pkg/credentials"
 	"github.com/thechadcromwell/echoapp/pkg/didkey"
 )
@@ -402,13 +402,13 @@ func (rt *Router) handleIdentityAddDevice(w http.ResponseWriter, r *http.Request
 	// block the HTTP response. A background retry queue (NATS / Redis) handles
 	// transient L1 submission failures.
 	if rt.IdentityL1 != nil {
-		l1tx := metagraph.DeviceKeyRegistrationUpdate{
+		l1tx := ledger.DeviceKeyRegistrationUpdate{
 			SubjectDID:   req.SubjectDID,
 			PublicKeyHex: req.NewPublicKeyHex,
 			DeviceLabel:  deviceLabel,
 			AddedAt:      time.Now().UnixMilli(),
 		}
-		go func(tx metagraph.DeviceKeyRegistrationUpdate) {
+		go func(tx ledger.DeviceKeyRegistrationUpdate) {
 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 			defer cancel()
 			if _, err := rt.IdentityL1.SubmitIdentityL1(ctx, tx); err != nil {

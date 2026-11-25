@@ -270,7 +270,7 @@ chain-reset: ## Delete the local chain (data, keys, contract) and start a new on
 
 chain-test: ## Tests that need the live chain: anchor, prove, verify offline, reject, fail over
 	@[ -f $(CHAIN_ENV) ] || { echo "chain is not set up; run: make chain-up"; exit 1; }
-	@$(WITH_CHAIN) $(GO) test ./internal/besu ./internal/metagraph -run Live -count=1 -v
+	@$(WITH_CHAIN) $(GO) test ./internal/besu ./internal/ledger -run Live -count=1 -v
 
 chain-restore-drill: ## Back up every validator, destroy the local chain, rebuild it from the backups alone
 	@$(CHAIN_DIR)/restore-drill.sh

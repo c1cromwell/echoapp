@@ -26,7 +26,7 @@ type WalletHandlers struct {
 
 // TxContextProvider returns the signer address's last transaction reference for
 // a given Currency-L1 tx type (used to populate the `parent` of the body the
-// client signs). Implemented by *metagraph.MetagraphClient.
+// client signs). Implemented by *ledger.MetagraphClient.
 type TxContextProvider interface {
 	LastRef(ctx context.Context, txType, address string) (hash string, ordinal int64, err error)
 }

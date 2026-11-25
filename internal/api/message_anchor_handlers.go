@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 // anchorProofStore returns the proof index to read from: the durable store
 // when one is wired (it works with the chain and the anchoring worker off),
 // otherwise the anchoring service's own store.
-func (rt *Router) anchorProofStore() metagraph.ProofStore {
+func (rt *Router) anchorProofStore() ledger.ProofStore {
 	if rt.AnchorStore != nil {
 		return rt.AnchorStore
 	}
@@ -72,11 +72,11 @@ func (rt *Router) handleAnchorProofBundle(w http.ResponseWriter, r *http.Request
 		WriteError(w, http.StatusBadRequest, "INVALID_ROOT", "root must be 64 lowercase hex chars", reqID)
 		return
 	}
-	bundle, err := metagraph.BuildProofBundle(r.Context(), rt.AnchorStore, rt.ChainNetwork, root, r.URL.Query().Get("messageId"))
+	bundle, err := ledger.BuildProofBundle(r.Context(), rt.AnchorStore, rt.ChainNetwork, root, r.URL.Query().Get("messageId"))
 	switch {
-	case errors.Is(err, metagraph.ErrRootNotFound):
+	case errors.Is(err, ledger.ErrRootNotFound):
 		WriteError(w, http.StatusNotFound, "ROOT_NOT_FOUND", "No anchor record for this root", reqID)
-	case errors.Is(err, metagraph.ErrMessageNotInRoot):
+	case errors.Is(err, ledger.ErrMessageNotInRoot):
 		WriteError(w, http.StatusNotFound, "PROOF_NOT_FOUND", "No Merkle proof for this message under this root", reqID)
 	case err != nil:
 		WriteError(w, http.StatusInternalServerError, "PROOF_LOOKUP_FAILED", "Anchor proof lookup failed", reqID)

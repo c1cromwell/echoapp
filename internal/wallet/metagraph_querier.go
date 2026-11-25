@@ -7,16 +7,16 @@ import (
 	"reflect"
 
 	"github.com/google/uuid"
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 // CurrencySubmitter submits Currency L1 updates (optional when L1 URL unset).
 type CurrencySubmitter interface {
-	SubmitTokenLock(ctx context.Context, update metagraph.TokenLockUpdate) (string, error)
-	SubmitWithdrawLock(ctx context.Context, update metagraph.WithdrawLockUpdate) (string, error)
-	SubmitStakeDelegation(ctx context.Context, update metagraph.StakeDelegationUpdate) (string, error)
-	SubmitCurrencyL1(ctx context.Context, tx metagraph.CurrencyL1Transaction) (string, error)
-	QueryValidators(ctx context.Context) ([]metagraph.ValidatorSnapshot, error)
+	SubmitTokenLock(ctx context.Context, update ledger.TokenLockUpdate) (string, error)
+	SubmitWithdrawLock(ctx context.Context, update ledger.WithdrawLockUpdate) (string, error)
+	SubmitStakeDelegation(ctx context.Context, update ledger.StakeDelegationUpdate) (string, error)
+	SubmitCurrencyL1(ctx context.Context, tx ledger.CurrencyL1Transaction) (string, error)
+	QueryValidators(ctx context.Context) ([]ledger.ValidatorSnapshot, error)
 	// SubmitSignedByType relays a client-signed {value, proofs} payload to the
 	// metagraph endpoint for txType (tokenLock / delegatedStake). Real-funds.
 	SubmitSignedByType(ctx context.Context, txType string, signed []byte) (string, error)
@@ -75,7 +75,7 @@ func (q *LedgerQuerier) GetValidators(ctx context.Context) ([]ValidatorInfo, err
 
 // validatorsFromSnapshots converts metagraph validator snapshots into the
 // wallet's ValidatorInfo. Shared by GetValidators and the Reconciler.
-func validatorsFromSnapshots(snaps []metagraph.ValidatorSnapshot) []ValidatorInfo {
+func validatorsFromSnapshots(snaps []ledger.ValidatorSnapshot) []ValidatorInfo {
 	out := make([]ValidatorInfo, 0, len(snaps))
 	for _, s := range snaps {
 		out = append(out, ValidatorInfo{
@@ -106,7 +106,7 @@ func (q *LedgerQuerier) SubmitTokenLock(ctx context.Context, did string, amount 
 	lockID := NewLockID()
 	txHash := "local-" + lockID
 	if q.submitter != nil {
-		if h, err := q.submitter.SubmitTokenLock(ctx, metagraph.TokenLockUpdate{
+		if h, err := q.submitter.SubmitTokenLock(ctx, ledger.TokenLockUpdate{
 			Amount:   amount,
 			TierName: chain.ScalaName,
 			LockDays: chain.LockDays,
@@ -171,7 +171,7 @@ func (q *LedgerQuerier) SubmitSignedByType(ctx context.Context, txType string, s
 func (q *LedgerQuerier) SubmitStakeDelegation(ctx context.Context, delegatorDID, stakeID, validatorID string, amount int64) (string, error) {
 	txHash := "local-del-" + uuid.New().String()
 	if q.submitter != nil {
-		if h, err := q.submitter.SubmitStakeDelegation(ctx, metagraph.StakeDelegationUpdate{
+		if h, err := q.submitter.SubmitStakeDelegation(ctx, ledger.StakeDelegationUpdate{
 			TokenLockTxID: stakeID,
 			ValidatorDid:  validatorID,
 			Amount:        amount,
@@ -193,7 +193,7 @@ func (q *LedgerQuerier) SubmitStakeDelegation(ctx context.Context, delegatorDID,
 func (q *LedgerQuerier) SubmitWithdrawLock(ctx context.Context, did, stakeID string, amount int64) (string, error) {
 	txHash := "local-unstake-" + uuid.New().String()
 	if q.submitter != nil {
-		if h, err := q.submitter.SubmitWithdrawLock(ctx, metagraph.WithdrawLockUpdate{
+		if h, err := q.submitter.SubmitWithdrawLock(ctx, ledger.WithdrawLockUpdate{
 			TokenLockTxID: stakeID,
 			Amount:        amount,
 		}); err == nil && h != "" {
@@ -254,7 +254,7 @@ func (q *LedgerQuerier) SubmitAtomicRewardClaim(ctx context.Context, did string,
 
 	txHash := "local-claim-" + uuid.New().String()
 	if q.submitter != nil {
-		ops := make([]metagraph.AtomicOperation, 0, len(claims))
+		ops := make([]ledger.AtomicOperation, 0, len(claims))
 		for _, c := range claims {
 			payload, err := json.Marshal(map[string]interface{}{
 				"rewardType": c.RewardType,
@@ -263,15 +263,15 @@ func (q *LedgerQuerier) SubmitAtomicRewardClaim(ctx context.Context, did string,
 			if err != nil {
 				return "", err
 			}
-			ops = append(ops, metagraph.AtomicOperation{
-				Type:    metagraph.OpRewardClaim,
-				Layer:   metagraph.CurrencyL1,
+			ops = append(ops, ledger.AtomicOperation{
+				Type:    ledger.OpRewardClaim,
+				Layer:   ledger.CurrencyL1,
 				Payload: payload,
 			})
 		}
-		action, err := metagraph.NewAtomicAction(txHash, did, metagraph.CurrencyL1, ops)
+		action, err := ledger.NewAtomicAction(txHash, did, ledger.CurrencyL1, ops)
 		if err == nil {
-			if h, err := q.submitter.SubmitCurrencyL1(ctx, metagraph.CurrencyL1Transaction{
+			if h, err := q.submitter.SubmitCurrencyL1(ctx, ledger.CurrencyL1Transaction{
 				Type:         "atomic_action",
 				AtomicAction: action,
 			}); err == nil && h != "" {

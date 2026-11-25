@@ -44,7 +44,7 @@ Ranked by how much each one gives away.
 | 5 | Group messages queued one row per offline member, each naming the poster | `internal/api/ws.go` group fan-out |
 | 6 | Read receipts, reactions, edits, pins and anchoring confirmations were queued as rows naming both parties | `internal/api/ws.go` `PublishSignal` |
 | 7 | A sealed message has no message id, so the id its integrity proof is filed under was built as `<conversation id>:<timestamp>` — both DIDs and the time, kept for good | `internal/api/ws.go` |
-| 8 | The sender of every message was kept in two in-memory maps that were never emptied; with no chain configured one of them grew without limit | `internal/metagraph/anchoring.go`, `internal/services/relay` |
+| 8 | The sender of every message was kept in two in-memory maps that were never emptied; with no chain configured one of them grew without limit | `internal/ledger/anchoring.go`, `internal/services/relay` |
 | 9 | Each device's Apple push token is stored against its DID; with #1, Apple's own records named both parties per push | `user_devices`; `internal/infra/apns.go` |
 | 10 | Contact discovery uploaded contacts' phone numbers readable by the server. The private-matching library is not linked into the app, and the app silently used a test stand-in whose "blinded" values are `base64("mock:<phone>:<n>")` | `ios/Echo/Sources/Services/OPRF/` |
 | 11 | Forwarding a message fell back to sending it **unencrypted** if encryption failed | `ios/Echo/Sources/Features/Messaging/MessageComposerLogic.swift` |
@@ -79,6 +79,7 @@ in pushes.
 | 12 | The app sends the socket token in the `Authorization` header. The server already accepted it there | `WebSocketURLBuilderTests` |
 | 13 | The three log lines no longer contain a DID, username or device label | code |
 | 15 (server half) | A phone number registered for recovery is stored as HMAC-SHA256 under a secret the database does not hold (`PHONE_HASH_SECRET`, required in production), not as a bare hash. This protects against a copy of the database; it does not protect against someone holding the database and the secret. The raw number still has to reach the server to send the SMS | `TestPhoneStoreKey` |
+| 15 (app half) | The SMS recovery screen now says the number goes to the text-message provider once and that only a scrambled form is kept. Text only; the frozen design is unchanged | read |
 | 17 | A link in a message someone else sent is shown as its domain only; the linked site is not contacted unless the user opts in. Previews for the user's own links use a session with no cookies that honours the proxy setting | `LinkPreviewPolicyTests` |
 
 One switch reverses the storage fixes for a deployment whose purpose is retention:
@@ -120,7 +121,6 @@ The conversation id on the wire (finding 1) and the server seeing the sender of 
 | Finding | What is needed | Size |
 |---|---|---|
 | 14 | Stop storing the actor's DID with reactions, edits, pins and references, or key them by a per-message pseudonym; add expiry | Medium: the features read these columns |
-| 15 (app half) | The SMS recovery screen says only a hash is stored, while the raw number is sent (it has to be, to send the SMS). The wording should say so. It is an auth screen: frozen design, text only | Small; needs your say-so |
 | 16 | Move ratchet state and the pre-key private key into the Keychain, with a migration | Medium; needs device testing |
 | 18 | Route every request through one proxy-aware session so the Tor/SOCKS option covers them all; add an onion address for the gateway (deploy stage) | Medium |
 | 19 | Add the notification extension to the app target so the device, not the server, decides what a notification says | Xcode project change |

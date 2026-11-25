@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 const (
@@ -44,7 +44,7 @@ type BatchResult struct {
 
 // MetagraphSubmitter abstracts Currency L1 submission for testability.
 type MetagraphSubmitter interface {
-	SubmitCurrencyL1(ctx context.Context, tx metagraph.CurrencyL1Transaction) (string, error)
+	SubmitCurrencyL1(ctx context.Context, tx ledger.CurrencyL1Transaction) (string, error)
 }
 
 // BatchProcessor collects pending reward claims and periodically submits
@@ -165,7 +165,7 @@ func (bp *BatchProcessor) submitBatch(claims []PendingClaim) BatchResult {
 	}
 
 	// Build AtomicAction operations
-	ops := make([]metagraph.AtomicOperation, 0, len(claims)*2+1)
+	ops := make([]ledger.AtomicOperation, 0, len(claims)*2+1)
 
 	for _, claim := range claims {
 		// Reward claim operation
@@ -175,9 +175,9 @@ func (bp *BatchProcessor) submitBatch(claims []PendingClaim) BatchResult {
 			"reward_type": claim.RewardType,
 			"amount":      claim.Amount,
 		})
-		ops = append(ops, metagraph.AtomicOperation{
-			Type:    metagraph.OpRewardClaim,
-			Layer:   metagraph.CurrencyL1,
+		ops = append(ops, ledger.AtomicOperation{
+			Type:    ledger.OpRewardClaim,
+			Layer:   ledger.CurrencyL1,
 			Payload: claimPayload,
 		})
 
@@ -187,9 +187,9 @@ func (bp *BatchProcessor) submitBatch(claims []PendingClaim) BatchResult {
 			"trust_tier": claim.TrustTier,
 			"multiplier": claim.Multiplier,
 		})
-		ops = append(ops, metagraph.AtomicOperation{
-			Type:    metagraph.OpTrustVerification,
-			Layer:   metagraph.DataL1,
+		ops = append(ops, ledger.AtomicOperation{
+			Type:    ledger.OpTrustVerification,
+			Layer:   ledger.DataL1,
 			Payload: trustPayload,
 		})
 	}
@@ -202,15 +202,15 @@ func (bp *BatchProcessor) submitBatch(claims []PendingClaim) BatchResult {
 		"timestamp":            time.Now().UTC(),
 		"auto_scale_update_by": "batch_processor",
 	})
-	ops = append(ops, metagraph.AtomicOperation{
-		Type:    metagraph.OpAutoScaleRateUpdate,
-		Layer:   metagraph.CurrencyL1,
+	ops = append(ops, ledger.AtomicOperation{
+		Type:    ledger.OpAutoScaleRateUpdate,
+		Layer:   ledger.CurrencyL1,
 		Payload: capPayload,
 	})
 
 	// Build the AtomicAction
 	txID := uuid.New().String()
-	action, err := metagraph.NewAtomicAction(txID, "echo:treasury", metagraph.CurrencyL1, ops)
+	action, err := ledger.NewAtomicAction(txID, "echo:treasury", ledger.CurrencyL1, ops)
 	if err != nil {
 		log.Printf("[BatchProcessor] failed to build AtomicAction: %v", err)
 		return BatchResult{
@@ -227,7 +227,7 @@ func (bp *BatchProcessor) submitBatch(claims []PendingClaim) BatchResult {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	txHash, err := bp.submitter.SubmitCurrencyL1(ctx, metagraph.CurrencyL1Transaction{
+	txHash, err := bp.submitter.SubmitCurrencyL1(ctx, ledger.CurrencyL1Transaction{
 		Type:         "atomic_action",
 		AtomicAction: action,
 	})

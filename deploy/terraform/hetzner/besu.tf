@@ -20,9 +20,9 @@ variable "besu_enabled" {
 }
 
 variable "besu_server_type" {
-  description = "Server type for each validator. Confirm size and price in the Hetzner Cloud Console before applying."
+  description = "Server type for each validator. cpx22 (2 vCPU, 4 GB) is the floor: an idle validator uses about 1 GB. cpx32 (4 vCPU, 8 GB) if memory alerts fire."
   type        = string
-  default     = "cpx21"
+  default     = "cpx22"
 }
 
 variable "besu_locations" {

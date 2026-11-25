@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 var hex64 = regexp.MustCompile(`^[0-9a-f]{64}$`)
@@ -16,9 +16,9 @@ var hex64 = regexp.MustCompile(`^[0-9a-f]{64}$`)
 // content-addressed backend anchors a SHA-256 Merkle root over the chunk CIDs on
 // Data L1, and surfaces that root to the caller.
 func TestUpload_AnchorsContentRootOnDataL1(t *testing.T) {
-	var update metagraph.DataL1MerkleRootUpdate
-	chain := metagraph.SubmitterFunc(func(_ context.Context, tx interface{}) (string, error) {
-		update = tx.(metagraph.DataL1MerkleRootUpdate)
+	var update ledger.DataL1MerkleRootUpdate
+	chain := ledger.SubmitterFunc(func(_ context.Context, tx interface{}) (string, error) {
+		update = tx.(ledger.DataL1MerkleRootUpdate)
 		return "0xtx", nil
 	})
 

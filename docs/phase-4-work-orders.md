@@ -203,7 +203,7 @@ class MessageIntegrityValidator extends DataL1Validator {
 
 ### WO-15: Build Message Anchoring and Blockchain Verification System
 
-**Status:** ✅ Completed (2026-05-29) — see `internal/metagraph/anchoring_service.go`, `GET /v1/messages/{id}/merkle-proof`.
+**Status:** ✅ Completed (2026-05-29) — see `internal/ledger/anchoring_service.go`, `GET /v1/messages/{id}/merkle-proof`.
 
 **Blueprint:** Blockchain-Anchored Messaging with Provable Integrity
 

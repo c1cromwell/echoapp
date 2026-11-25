@@ -1,6 +1,6 @@
 # Moving Echo's chain from Tessellation to Hyperledger Besu
 
-**Written:** 2026-11-24 · **Status:** decisions final (§0); stages B1–B3 built and their gates met locally (§7, §9, §10); B4 built and rehearsed locally, not yet run on hosts (§11); B5 not started
+**Written:** 2026-11-24 · **Status:** decisions final (§0); stages B1–B3 built and their gates met locally (§7, §9, §10); B4 built and rehearsed locally, not yet run on hosts (§11); B5 started: rename and first clean-up done, soak and genesis need hosts (§12)
 
 Supersedes the implementation stages of [`OWN_L0_PLAN.md`](OWN_L0_PLAN.md) (its §12 records why).
 The goal of that plan is unchanged: Echo runs its own chain and depends on no outside network.
@@ -119,7 +119,7 @@ config), and get a review before production genesis.
 
 ### Gateway (Go)
 
-- A chain interface in front of `internal/metagraph`, with a Besu implementation selected by
+- A chain interface in front of `internal/ledger` (named `internal/metagraph` until B5), with a Besu implementation selected by
   `ECHO_CHAIN_NETWORK=besu` (the setting from stage 1; `sovereign` and `constellation` stay until
   Tessellation is removed).
 - Anchoring service, proof store (migration 036) and the proof endpoint keep their shape. The proof
@@ -209,7 +209,7 @@ What exists now:
 | Contract and pinned compiler; artefacts committed so builds need no Solidity tools | `chain/`, `internal/besu/contract/`, `make contracts-check` |
 | Chain client: several endpoints tried in turn, writes return when final | `internal/besu/` |
 | Offline proof: block header with validator signatures + state proof + storage entry | `internal/besu/proof.go`, `cmd/verifyproof` |
-| Durable proofs: stored with the root when it is anchored, completed later if that step fails | `internal/metagraph/chain_anchor.go`, migration 037 |
+| Durable proofs: stored with the root when it is anchored, completed later if that step fails | `internal/ledger/chain_anchor.go`, migration 037 |
 | Local chain | `deploy/besu/local/` (`make dev`, `make chain-up`, `make dev-reset`) |
 | Failure tests driven through the gateway | `deploy/besu/local/failure-tests.sh` |
 | Operator tool: keys, deploy, validators, proof export | `cmd/echochain` |
@@ -256,7 +256,7 @@ with the stage that replaces it:
 | Tessellation currency client and transaction types in `internal/metagraph` (rewards, locks, delegation) | B3 |
 | Wallet DAG addresses and client-signed Tessellation transactions (`internal/wallet`), iOS `Core/Stargazer/` | B3 |
 | Constellation Digital Evidence client (`internal/evidence`, off by default) and its iOS types | Your decision: the Comply service uses it (§9) |
-| The package name `internal/metagraph` itself | B5 (rename only) |
+| The package name `internal/metagraph` itself | Done in B5: now `internal/ledger` |
 | Mentions in older documents, `openapi.yaml`, the local-dev MCP server, `Makefile.did`, the tokenomics compose file, the `echo-metagraph-scala` skill | B5 |
 
 On your machine, not in git, and left for you to delete: the `euclid-development-environment`
@@ -280,7 +280,7 @@ What changed:
 |---|---|
 | Identity contract: device keys, trust tiers, usernames, credential issuance, revocation lists, digest attestations. Every identifier is a `bytes32` | `chain/contracts/EchoIdentity.sol` |
 | How identifiers are hashed, with domain separation, so a third party can recompute them | `internal/besu/ids.go` |
-| Gateway identity path | `internal/metagraph/chain_identity.go`; `BESU_IDENTITY_CONTRACT` |
+| Gateway identity path | `internal/ledger/chain_identity.go`; `BESU_IDENTITY_CONTRACT` |
 | Credentials package: issuance records and revocation lists go through an interface to the chain; its direct HTTP calls to the old chain are gone | `pkg/credentials` (`ChainPublisher`) |
 | Group metadata and governance votes: anchored as one digest of the record | `BesuAnchor.attest` |
 | Policy document | `docs/data-classification.md` |
@@ -376,3 +376,27 @@ the unrun pieces above should be expected to need a fix or two on first contact 
 Still needed from the owner for the gate: the hosts (size and price confirmed in the Hetzner
 console), the staging key ceremony, and the open items in `docs/CHAIN_OPERATIONS.md` §8 — above
 all, where checkpoints are published.
+
+## 12. Stage B5 (started 2026-11-25)
+
+B5 is: remove what is left of the Tessellation era, soak for seven days with failure tests, review,
+then production genesis on your sign-off. The soak and genesis need the hosts from B4.
+
+Done:
+
+| What | Detail |
+|---|---|
+| Package renamed | `internal/metagraph` → `internal/ledger`, across 74 Go files. Build, vet, unit tests, live chain tests and `validate-phase1` pass |
+| README | Described Constellation, a Scala metagraph and JDK/sbt. Now describes Echo's chain |
+| Removed | `scripts/metagraph/gen-prod-keys.sh` (Tessellation node keys; replaced by `deploy/besu/ops/ceremony.sh`) and `docs/metagraph-backend-e2e-testing.md` |
+| `.env.example` | Tessellation cluster-id settings removed |
+| `docs/ZERO_TO_PRODUCTION.md` | Marked at the top: its chain sections describe the removed path. **Not rewritten** |
+
+Not done:
+
+| What | Why not yet |
+|---|---|
+| The dormant token code: wallet, staking, delegation, rewards, tokenomics, and the Tessellation-format currency client and types they use (`internal/ledger/client.go`, `transactions.go`, `currency_submit.go`, `internal/wallet`, `internal/tokenomics`, iOS `Core/Stargazer/`) | It is unreachable with `ECHO_TOKEN_ENABLED` off, but deleting it is deleting the token implementation. That is the owner's decision (§0 says the token may return) |
+| `docs/ZERO_TO_PRODUCTION.md` chain sections; `CONTRIBUTING.md`; `docs/E2E_TESTING.md`; `openapi.yaml`; `docker-compose.tokenomics.yml`; the local-dev MCP server; five project skills | Each still mentions the metagraph. About 58 documents in all mention it; most are historical records and should stay as written |
+| Names inside the code that still say "metagraph" (struct fields, JSON fields such as `metagraph_tx_hash`, `internal/wallet/metagraph_querier.go`) | Renaming JSON fields changes the API; do it with the token decision |
+| Seven-day soak, launch review, production genesis | Need hosts; genesis needs your sign-off |

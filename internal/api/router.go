@@ -23,7 +23,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/auth"
 	"github.com/thechadcromwell/echoapp/internal/database"
 	"github.com/thechadcromwell/echoapp/internal/infra"
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 	"github.com/thechadcromwell/echoapp/internal/services/onboarding"
 	"github.com/thechadcromwell/echoapp/pkg/credentials"
 	"github.com/thechadcromwell/echoapp/pkg/credentials/oidc4vc"
@@ -90,8 +90,8 @@ type Router struct {
 	RateLimiter          *infra.RateLimiter               // WO-44 per-DID tiered rate limiting (optional)
 	PublicRateLimiter    *infra.RateLimiter               // S5: per-IP throttle for pre-auth public endpoints (optional)
 	SMSProvider          infra.SMSProvider                // Wave 12 SMS OTP recovery (optional; stub when nil)
-	IdentityL1           metagraph.IdentitySubmitter      // identity records on Echo's chain: device keys, trust tiers, usernames (optional)
-	DataL1               metagraph.DataSubmitter          // anchors Merkle roots and trust commitments on Echo's chain (optional)
+	IdentityL1           ledger.IdentitySubmitter         // identity records on Echo's chain: device keys, trust tiers, usernames (optional)
+	DataL1               ledger.DataSubmitter             // anchors Merkle roots and trust commitments on Echo's chain (optional)
 	DeliveryKeys         messaging.DeliveryKeyStore       // sealed delivery: delivery-key hash -> recipient (optional)
 	CredentialService    *credentials.Service             // WO-274 VC issuance (optional)
 	OIDC                 *gin.Engine                      // OpenID4VCI issuer + verifier mount (optional)
@@ -102,8 +102,8 @@ type Router struct {
 	PassportSync         *passport.SyncService            // WO-294 client-encrypted credential sync
 	PassportRecovery     *recovery.Service                // WO-296 social-threshold recovery metadata
 	Comply               *ComplyHandlers                  // WO-250 Comply REST (/comply/*)
-	Anchoring            *metagraph.AnchoringService      // WO-15 message integrity batching
-	AnchorStore          metagraph.AnchorStore            // durable anchor proofs + root finality (optional)
+	Anchoring            *ledger.AnchoringService         // WO-15 message integrity batching
+	AnchorStore          ledger.AnchorStore               // durable anchor proofs + root finality (optional)
 	ChainNetwork         string                           // ECHO_CHAIN_NETWORK ("sovereign" | "constellation")
 	Tokenomics           *TokenomicsHandlers              // WO-206/214/215/225/226/271
 	tokenService         *auth.TokenService               // ES256 JWT token service

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/infra"
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 const (
@@ -41,7 +41,7 @@ type SubscriptionService struct {
 	mu          sync.RWMutex
 	backendDID  string
 	records     map[string]*AllowSpendRecord
-	submitAllow func(ctx context.Context, tx metagraph.CurrencyL1Transaction) (string, error)
+	submitAllow func(ctx context.Context, tx ledger.CurrencyL1Transaction) (string, error)
 	submitSpend func(ctx context.Context, ownerDID string, amount int64) (string, error)
 	redis       *infra.RedisClient
 }
@@ -55,11 +55,11 @@ func NewSubscriptionService(backendDID string) *SubscriptionService {
 }
 
 // WithCurrencyL1 wires AllowSpend submission to Currency L1.
-func (s *SubscriptionService) WithCurrencyL1(client *metagraph.MetagraphClient) *SubscriptionService {
+func (s *SubscriptionService) WithCurrencyL1(client *ledger.MetagraphClient) *SubscriptionService {
 	if client == nil {
 		return s
 	}
-	s.submitAllow = func(ctx context.Context, tx metagraph.CurrencyL1Transaction) (string, error) {
+	s.submitAllow = func(ctx context.Context, tx ledger.CurrencyL1Transaction) (string, error) {
 		return client.SubmitCurrencyL1(ctx, tx)
 	}
 	return s
@@ -84,7 +84,7 @@ func (s *SubscriptionService) AuthorizeVIP(ctx context.Context, ownerDID string)
 	}
 
 	if s.submitAllow != nil {
-		as, err := metagraph.NewAllowSpend(
+		as, err := ledger.NewAllowSpend(
 			"vip-"+ownerDID,
 			ownerDID,
 			s.backendDID,
@@ -95,7 +95,7 @@ func (s *SubscriptionService) AuthorizeVIP(ctx context.Context, ownerDID string)
 		if err != nil {
 			return nil, err
 		}
-		txHash, err := s.submitAllow(ctx, metagraph.CurrencyL1Transaction{
+		txHash, err := s.submitAllow(ctx, ledger.CurrencyL1Transaction{
 			Type:       "allowSpend",
 			AllowSpend: as,
 		})

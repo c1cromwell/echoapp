@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 	"github.com/thechadcromwell/echoapp/pkg/didkey"
 )
 
@@ -31,11 +31,11 @@ func TestV3AuthRegister_AnchorsUsername(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var anchored metagraph.UsernameRegistrationUpdate
+	var anchored ledger.UsernameRegistrationUpdate
 	h := &V3Handlers{
 		DB: database.NewMemoryDB(),
-		IdentityL1: metagraph.IdentitySubmitterFunc(func(_ context.Context, tx interface{}) (string, error) {
-			anchored = tx.(metagraph.UsernameRegistrationUpdate)
+		IdentityL1: ledger.IdentitySubmitterFunc(func(_ context.Context, tx interface{}) (string, error) {
+			anchored = tx.(ledger.UsernameRegistrationUpdate)
 			return "0xtx", nil
 		}),
 	}

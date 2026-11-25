@@ -25,7 +25,7 @@ import (
 
 	"github.com/thechadcromwell/echoapp/internal/database"
 	"github.com/thechadcromwell/echoapp/internal/infra"
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 	"github.com/thechadcromwell/echoapp/internal/services/agentbus"
 	"github.com/thechadcromwell/echoapp/internal/services/bots"
 	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
@@ -55,7 +55,7 @@ type V3Handlers struct {
 	Groups                   *groups.GroupService
 	Broadcasts               *broadcast_channels.ChannelService
 	RateLimiter              *infra.RateLimiter                            // optional; enforces per-DID claim velocity (WO-35)
-	IdentityL1               metagraph.IdentitySubmitter                   // optional; anchors @username -> DID on Echo's chain (D1)
+	IdentityL1               ledger.IdentitySubmitter                      // optional; anchors @username -> DID on Echo's chain (D1)
 	Signals                  SignalPublisher                               // optional; pushes live typing/receipt/reaction signals over WS (WO-10/192)
 	Notifier                 OfflineNotifier                               // optional; content-blind push when a signal target is offline (WO-57)
 	MessageBackup            *passport.SyncService                         // optional; WO-64/CA2 client-encrypted history backup relay
@@ -1036,7 +1036,7 @@ func (h *V3Handlers) anchorUsername(ctx context.Context, did, username string) {
 	if h.IdentityL1 == nil {
 		return
 	}
-	_, err := h.IdentityL1.SubmitIdentityL1(ctx, metagraph.UsernameRegistrationUpdate{
+	_, err := h.IdentityL1.SubmitIdentityL1(ctx, ledger.UsernameRegistrationUpdate{
 		SubjectDID:   did,
 		Username:     username,
 		RegisteredAt: time.Now().UnixMilli(),

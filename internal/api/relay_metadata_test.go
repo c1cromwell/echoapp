@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 // A message that has to wait for an offline recipient is stored under the recipient alone: the
@@ -56,7 +56,7 @@ func TestAnchorConfirmationIsNeverQueued(t *testing.T) {
 	db := database.NewMemoryDB()
 	h := NewHub()
 	h.SetDurableOfflineQueue(db)
-	if h.PublishConfirmation("did:key:zAlice", metagraph.AnchorConfirmation{Type: "confirmation", MessageID: "m-1"}) {
+	if h.PublishConfirmation("did:key:zAlice", ledger.AnchorConfirmation{Type: "confirmation", MessageID: "m-1"}) {
 		t.Fatal("the sender is offline; nothing can have been delivered")
 	}
 	if rows, _ := db.Dequeue(context.Background(), "did:key:zAlice", 10); len(rows) != 0 {

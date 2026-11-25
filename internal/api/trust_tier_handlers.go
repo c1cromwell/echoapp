@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 func (rt *Router) handleTrustTierCommitment(w http.ResponseWriter, r *http.Request) {
@@ -52,9 +52,9 @@ func (rt *Router) handleTrustTierCommitment(w http.ResponseWriter, r *http.Reque
 		WriteError(w, http.StatusBadRequest, "MISSING_NONCE", "nonce is required", r.Header.Get("X-Request-ID"))
 		return
 	}
-	commitment := metagraph.TrustTierCommitmentHex(req.Tier, req.Nonce)
+	commitment := ledger.TrustTierCommitmentHex(req.Tier, req.Nonce)
 	anchoredAt := time.Now().UnixMilli()
-	tx := metagraph.TrustTierCommitmentUpdate{
+	tx := ledger.TrustTierCommitmentUpdate{
 		SubjectDID: req.SubjectDID,
 		Commitment: commitment,
 		AnchoredAt: anchoredAt,

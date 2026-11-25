@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 // DataL1Submitter anchors T6 compliance commitments on Echo Data L1.
@@ -23,13 +23,13 @@ type AnchorHealth interface {
 
 // MetagraphAnchor submits trust commitments to Echo's chain.
 type MetagraphAnchor struct {
-	client  metagraph.DataSubmitter
+	client  ledger.DataSubmitter
 	mu      sync.Mutex
 	lastOK  *time.Time
 	lastErr error
 }
 
-func NewMetagraphAnchor(client metagraph.DataSubmitter) *MetagraphAnchor {
+func NewMetagraphAnchor(client ledger.DataSubmitter) *MetagraphAnchor {
 	return &MetagraphAnchor{client: client}
 }
 
@@ -41,7 +41,7 @@ func (a *MetagraphAnchor) SubmitComplianceAnchor(ctx context.Context, commitment
 	if !a.Enabled() {
 		return "", nil
 	}
-	txID, err := a.client.SubmitDataL1(ctx, metagraph.DataL1TrustCommitmentUpdate{
+	txID, err := a.client.SubmitDataL1(ctx, ledger.DataL1TrustCommitmentUpdate{
 		Commitment: commitment,
 		Epoch:      epoch,
 	})

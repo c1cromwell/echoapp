@@ -40,7 +40,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/thechadcromwell/echoapp/internal/besu"
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 func main() {
@@ -192,15 +192,15 @@ func main() {
 		}
 		client, err := besu.New(besu.Config{RPCURLs: []string{*rpcURL}, AnchorContract: common.HexToAddress(*contract)})
 		check(err)
-		anchor := metagraph.NewBesuAnchor(client)
+		anchor := ledger.NewBesuAnchor(client)
 		status, err := client.RootStatus(ctx, *root)
 		check(err)
 		evidence, err := anchor.ProveRoot(ctx, *root)
 		check(err)
 		now := time.Now().UTC()
-		body, err := json.MarshalIndent(metagraph.ProofBundle{
-			Version:     metagraph.ProofBundleVersion,
-			Network:     metagraph.ChainNetworkBesu,
+		body, err := json.MarshalIndent(ledger.ProofBundle{
+			Version:     ledger.ProofBundleVersion,
+			Network:     ledger.ChainNetworkBesu,
 			MerkleRoot:  strings.TrimPrefix(strings.ToLower(*root), "0x"),
 			LeafCount:   int(status.LeafCount),
 			SubmittedAt: now,

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/thechadcromwell/echoapp/internal/metagraph"
+	"github.com/thechadcromwell/echoapp/internal/ledger"
 )
 
 // handlePhase1TrustTierCommitment exposes POST /v1/phase1/trust-tier-commitment for
@@ -62,9 +62,9 @@ func (rt *Router) handlePhase1TrustTierCommitment(w http.ResponseWriter, r *http
 		return
 	}
 
-	commitment := metagraph.TrustTierCommitmentHex(req.Tier, req.Nonce)
+	commitment := ledger.TrustTierCommitmentHex(req.Tier, req.Nonce)
 	anchoredAt := time.Now().UnixMilli()
-	tx := metagraph.TrustTierCommitmentUpdate{
+	tx := ledger.TrustTierCommitmentUpdate{
 		SubjectDID: req.SubjectDID,
 		Commitment: commitment,
 		AnchoredAt: anchoredAt,
