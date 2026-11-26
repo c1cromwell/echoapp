@@ -10,14 +10,7 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/quests"
 )
 
-// tokenOn switches the ECHO token surface on for a test. It is off by default: the token is on hold.
-func tokenOn(t *testing.T) {
-	t.Helper()
-	t.Setenv("ECHO_TOKEN_ENABLED", "true")
-	t.Setenv("ECHO_WALLET_GENESIS_AUTO", "1")
-}
-
-// tokenWords must not appear in anything the API says while the token is on hold.
+// tokenWords must not appear in anything the gamification API says: there is no token.
 var tokenWords = []string{"echo earned", "reward_echo", "redeemable", "transferable", "custody", "staking", "stake", "wallet", "token", "datum"}
 
 func assertNoTokenWords(t *testing.T, what, body string) {
@@ -25,7 +18,7 @@ func assertNoTokenWords(t *testing.T, what, body string) {
 	lower := strings.ToLower(body)
 	for _, w := range tokenWords {
 		if strings.Contains(lower, w) {
-			t.Errorf("%s mentions %q while the token is on hold: %s", what, w, body)
+			t.Errorf("%s mentions %q but there is no token: %s", what, w, body)
 		}
 	}
 }
@@ -40,20 +33,20 @@ func TestTokenHold_TokenRoutesDoNotExist(t *testing.T) {
 		rec := httptest.NewRecorder()
 		rt.handleTokenomicsSubroutes(rec, httptest.NewRequest(http.MethodGet, path, nil))
 		if rec.Code != http.StatusNotFound {
-			t.Errorf("%s: status %d, want 404 while the token is on hold", path, rec.Code)
+			t.Errorf("%s: status %d, want 404: there is no token", path, rec.Code)
 		}
 	}
 }
 
 func TestTokenHold_WalletAndRewardRoutesNotRegistered(t *testing.T) {
-	h := &V3Handlers{Wallet: &WalletHandlers{}}
+	h := &V3Handlers{}
 	mux := http.NewServeMux()
 	h.RegisterV3Routes(mux)
 	for _, path := range []string{"/v3/wallet", "/v3/wallet/stake", "/v3/wallet/claim", "/v3/rewards/claim", "/v3/rewards/daily-stats"} {
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
 		if rec.Code != http.StatusNotFound {
-			t.Errorf("%s: status %d, want 404 while the token is on hold", path, rec.Code)
+			t.Errorf("%s: status %d, want 404: there is no token", path, rec.Code)
 		}
 	}
 }

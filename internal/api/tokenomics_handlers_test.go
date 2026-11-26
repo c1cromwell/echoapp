@@ -6,42 +6,16 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/thechadcromwell/echoapp/internal/database"
-	"github.com/thechadcromwell/echoapp/internal/rewards"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics/quests"
 )
 
-func TestEmissionStatus(t *testing.T) {
-	svc, err := tokenomics.NewService(tokenomics.Config{
-		GenesisDate: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	h := &TokenomicsHandlers{Service: svc}
-	req := httptest.NewRequest(http.MethodGet, "/v1/tokens/emission/status", nil)
-	w := httptest.NewRecorder()
-	h.handleEmissionStatus(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("status %d body %s", w.Code, w.Body.String())
-	}
-	var resp map[string]interface{}
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatal(err)
-	}
-	if resp["current_year"] == nil {
-		t.Error("expected current_year")
-	}
-}
-
 func TestQuestClaim_AlreadyClaimed(t *testing.T) {
 	store := quests.NewMemStore()
 	svc, err := tokenomics.NewService(tokenomics.Config{
-		GenesisDate: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-		QuestStore:  store,
+		QuestStore: store,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -60,18 +34,9 @@ func TestQuestClaim_AlreadyClaimed(t *testing.T) {
 	}
 }
 
-func TestEmissionSchedule_Alignment(t *testing.T) {
-	em := rewards.NewEmissionSchedule(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
-	if em.YearlyBudget(1) == 0 {
-		t.Error("expected positive year 1 budget")
-	}
-}
-
 func TestGamificationStatus_IncludesEchoScoreWhenAuthed(t *testing.T) {
 	t.Setenv("ECHO_WALLET_REAL_FUNDS", "")
-	svc, err := tokenomics.NewService(tokenomics.Config{
-		GenesisDate: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-	})
+	svc, err := tokenomics.NewService(tokenomics.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,38 +69,8 @@ func TestGamificationStatus_IncludesEchoScoreWhenAuthed(t *testing.T) {
 	}
 }
 
-func TestGamificationStatus_InterimNonRedeemable(t *testing.T) {
-	tokenOn(t)
-	t.Setenv("ECHO_WALLET_REAL_FUNDS", "")
-	svc, err := tokenomics.NewService(tokenomics.Config{
-		GenesisDate: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	h := &TokenomicsHandlers{Service: svc}
-	req := httptest.NewRequest(http.MethodGet, "/v1/gamification/status", nil)
-	w := httptest.NewRecorder()
-	h.handleGamificationStatus(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("status %d body %s", w.Code, w.Body.String())
-	}
-	var resp map[string]interface{}
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatal(err)
-	}
-	if resp["custody_mode"] != "interim" {
-		t.Errorf("custody_mode: got %v want interim", resp["custody_mode"])
-	}
-	if resp["redeemable"] != false || resp["transferable"] != false {
-		t.Errorf("expected non-redeemable/non-transferable, got %+v", resp)
-	}
-}
-
 func TestActivityPing_IncrementsStreakIdempotentSameDay(t *testing.T) {
-	svc, err := tokenomics.NewService(tokenomics.Config{
-		GenesisDate: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-	})
+	svc, err := tokenomics.NewService(tokenomics.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,10 +99,7 @@ func TestActivityPing_IncrementsStreakIdempotentSameDay(t *testing.T) {
 }
 
 func TestLeaderboard_EmptyOK(t *testing.T) {
-	tokenOn(t)
-	svc, err := tokenomics.NewService(tokenomics.Config{
-		GenesisDate: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-	})
+	svc, err := tokenomics.NewService(tokenomics.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,15 +114,16 @@ func TestLeaderboard_EmptyOK(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 		t.Fatal(err)
 	}
-	if resp["redeemable"] != false {
-		t.Errorf("leaderboard should carry redeemable=false, got %+v", resp["redeemable"])
+	if resp["unit"] != "points" {
+		t.Errorf("leaderboard unit = %v, want points", resp["unit"])
+	}
+	if _, has := resp["redeemable"]; has {
+		t.Errorf("leaderboard carries a token field: %+v", resp)
 	}
 }
 
 func TestWeeklyPack_GetThenOpen(t *testing.T) {
-	svc, err := tokenomics.NewService(tokenomics.Config{
-		GenesisDate: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-	})
+	svc, err := tokenomics.NewService(tokenomics.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

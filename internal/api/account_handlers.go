@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"github.com/thechadcromwell/echoapp/internal/wallet"
 	"log"
 	"net/http"
 
@@ -108,7 +110,7 @@ func (rt *Router) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleLinkWallet implements POST /v1/identity/link-wallet.
-// Binds a Constellation wallet address to a did:key during first-run or enrollment.
+// Binds the recovery key's address to a did:key during first-run or enrollment.
 // An address belongs to one DID: linking an address that is already linked to
 // a different DID is refused with 409 WALLET_ALREADY_LINKED.
 func (rt *Router) handleLinkWallet(w http.ResponseWriter, r *http.Request) {
@@ -134,7 +136,7 @@ func (rt *Router) handleLinkWallet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// The durable wallet store, when configured, also knows address owners.
+	// The durable store, when configured, also knows address owners.
 	conflict := false
 	if owner := rt.lookupDIDByWallet(r.Context(), req.WalletAddress); owner != "" && owner != req.DID {
 		conflict = true
@@ -158,6 +160,20 @@ func (rt *Router) handleLinkWallet(w http.ResponseWriter, r *http.Request) {
 			delete(rt.enrollmentWalletProvisional, req.DID)
 		}
 		rt.enrollmentWalletMu.Unlock()
+	}
+	// Keep the link where a restart cannot lose it: restoring an account on a new device looks
+	// the account up by this address.
+	if !conflict && rt.RecoveryKeys != nil {
+		switch err := rt.RecoveryKeys.Link(r.Context(), req.DID, req.WalletAddress); {
+		case errors.Is(err, wallet.ErrLinkedElsewhere):
+			conflict = true
+			rt.enrollmentWalletMu.Lock()
+			delete(rt.enrollmentWalletByDID, req.DID)
+			rt.enrollmentWalletMu.Unlock()
+		case err != nil:
+			WriteError(w, http.StatusInternalServerError, "LINK_FAILED", "could not save the recovery link", reqID)
+			return
+		}
 	}
 	if conflict {
 		WriteError(w, http.StatusConflict, "WALLET_ALREADY_LINKED", "this wallet address is already linked to another account", reqID)

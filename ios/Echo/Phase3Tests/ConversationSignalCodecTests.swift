@@ -249,4 +249,17 @@ final class LinkPreviewPolicyTests: XCTestCase {
         XCTAssertFalse(MessageLinkPreview.shouldFetch(isOwnMessage: false))
     }
 }
+final class RecoveryLinkSyncTests: XCTestCase {
+    func testWhenTheAddressNeedsSending() {
+        XCTAssertFalse(RecoveryLinkSync.needsSync(address: nil, lastSent: nil))
+        XCTAssertFalse(RecoveryLinkSync.needsSync(address: "", lastSent: nil))
+        XCTAssertTrue(RecoveryLinkSync.needsSync(address: "DAG4abc", lastSent: nil))
+        XCTAssertFalse(RecoveryLinkSync.needsSync(address: "DAG4abc", lastSent: "DAG4abc"))
+        XCTAssertTrue(RecoveryLinkSync.needsSync(address: "DAG4new", lastSent: "DAG4abc"), "a new recovery key must be sent")
+    }
+
+    func testEndpoint() {
+        XCTAssertEqual(RecoveryLinkSync.LinkEndpoint().path, "/v1/identity/link-wallet")
+    }
+}
 #endif

@@ -20,7 +20,6 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/infra"
 	"github.com/thechadcromwell/echoapp/internal/ledger"
 	applog "github.com/thechadcromwell/echoapp/internal/logging"
-	"github.com/thechadcromwell/echoapp/internal/rewards"
 	"github.com/thechadcromwell/echoapp/internal/services/agentbus"
 	"github.com/thechadcromwell/echoapp/internal/services/bots"
 	"github.com/thechadcromwell/echoapp/internal/services/broadcast_channels"
@@ -33,7 +32,6 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/services/messaging"
 	"github.com/thechadcromwell/echoapp/internal/services/notification"
 	"github.com/thechadcromwell/echoapp/internal/services/onboarding"
-	rewardsSvc "github.com/thechadcromwell/echoapp/internal/services/rewards"
 	"github.com/thechadcromwell/echoapp/internal/services/zk"
 	"github.com/thechadcromwell/echoapp/internal/tokenomics"
 	"github.com/thechadcromwell/echoapp/internal/wallet"
@@ -156,10 +154,6 @@ func (s *Server) Start() error {
 			log.Println("Identity records are NOT anchored: BESU_IDENTITY_CONTRACT is not set")
 		}
 	}
-	// The token is on hold and the chain it once ran on is gone: no currency client is created.
-	// Code that takes one treats nil as "no chain".
-	var currencyL1 *ledger.MetagraphClient
-
 	credCfg := credentials.LoadConfig()
 	if chainAnchor != nil && chainAnchor.HasIdentity() {
 		// Issuance records and revocation lists are anchored as hashes.
@@ -240,7 +234,6 @@ func (s *Server) Start() error {
 		slog.Info("SMS provider: stub (set TWILIO_* env vars for production)")
 	}
 
-	emission := rewards.NewEmissionSchedule(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
 	storage = wrapFilecoinArchiver(storage)
 	mediaSvc := media.NewService(db, storage)
 	mediaSvc.DataL1 = router.DataL1 // D3: anchor media content roots on Data L1
@@ -334,41 +327,19 @@ func (s *Server) Start() error {
 	botRateLimiter := bots.NewRateLimiter(100, time.Minute)
 	botWebhooks := bots.NewWebhookRegistry()
 
-	rewardsService := rewardsSvc.NewService(db, emission)
-
-	var walletHandlers *api.WalletHandlers
-	var walletSvc *wallet.WalletService
+	// Recovery links (recovery address -> account) must outlive a restart: restoring an account
+	// on a new device looks the account up by that address.
+	var recoveryKeys wallet.Store = wallet.NewMemStore()
 	if pgDB != nil {
-		walletStore := wallet.NewPGStore(pgDB.Pool())
-		walletLedger := wallet.NewLedgerQuerier(walletStore, currencyL1)
-		walletSvc = wallet.NewWalletService(walletLedger, wallet.NewRewardsAdapter(rewardsService))
-		walletChallenges := wallet.NewChallengeStore()
-		walletHandlers = &api.WalletHandlers{
-			Service:    walletSvc,
-			Store:      walletStore,
-			RealFunds:  wallet.RealFundsEnabled(),
-			Challenges: walletChallenges,
-			// DagProofVerifier verifies client-signed proof-of-ownership against
-			// the bound secp256k1 key; enforced only in real-funds mode.
-			Proof: wallet.NewDagProofVerifier(walletStore, walletChallenges),
-		}
-		if currencyL1 != nil {
-			walletHandlers.TxContext = currencyL1 // last-reference for client tx building
-		}
-		if walletHandlers.RealFunds {
-			log.Println("Wallet REAL-FUNDS custody mode ON; proof-of-ownership required")
-		}
-		// Reconcile cached wallet state against Currency L1 (no-op without it).
-		go wallet.NewReconciler(walletLedger).Run(context.Background())
-		log.Printf("Wallet + staking API enabled (/v3/wallet/*), custody=%s", wallet.CustodyMode())
+		recoveryKeys = wallet.NewPGStore(pgDB.Pool())
 	}
+	router.RecoveryKeys = recoveryKeys
 
 	router.V3 = &api.V3Handlers{
 		DB:                       db,
 		Contacts:                 contactsSvc,
 		Notification:             notifSvc,
 		Media:                    mediaSvc,
-		Rewards:                  rewardsService,
 		Groups:                   groupSvc,
 		Broadcasts:               broadcast_channels.NewChannelService(broadcastOpts...),
 		RateLimiter:              rateLimiter,
@@ -388,7 +359,6 @@ func (s *Server) Start() error {
 		BotTokens:                botTokens,      // WO-11 bot relay auth
 		BotRateLimiter:           botRateLimiter, // WO-11 ~100 msg/min per bot
 		BotWebhooks:              botWebhooks,    // WO-11 inbound bot webhooks
-		Wallet:                   walletHandlers, // Currency L1 wallet + staking
 		DisappearingRestrictions: disappearingRestrictions,
 		GroupAnchoring:           groupAnchoring,
 		DataSov:                  datasov.NewService(),
@@ -440,24 +410,12 @@ func (s *Server) Start() error {
 		go ledger.BackfillChainProofs(context.Background(), chainAnchor, anchorStore, time.Minute)
 	}
 
-	tokenomicsSvc, err := tokenomics.NewService(tokenomics.Config{
-		GenesisDate: emission.GenesisDate,
-		CurrencyL1:  currencyL1,
-		Redis:       redisClient,
-		Wallet:      walletSvc,
-		ClaimedToday: func() int64 {
-			stats, err := rewardsService.GetDailyStats(context.Background())
-			if err != nil || stats == nil {
-				return 0
-			}
-			return stats.TotalDistributed
-		},
-	})
+	tokenomicsSvc, err := tokenomics.NewService(tokenomics.Config{})
 	if err != nil {
-		log.Printf("tokenomics service init failed: %v", err)
+		log.Printf("gamification service init failed: %v", err)
 	} else {
 		router.Tokenomics = &api.TokenomicsHandlers{Service: tokenomicsSvc, Trust: db}
-		log.Println("Tokenomics API enabled (/v1/tokens/*, /v1/gamification/*)")
+		log.Println("Gamification API enabled (/v1/gamification/*), scored in points")
 	}
 
 	go startBackgroundMaintenance(db, router.WSHub)

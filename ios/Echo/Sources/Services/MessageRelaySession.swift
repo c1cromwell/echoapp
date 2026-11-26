@@ -21,6 +21,7 @@ enum MessageRelaySession {
         try? await service.connect(accessToken: token)
         if let client = DIContainer.shared.resolveAPIClient() {
             await DeliveryKeyRegistration.registerIfNeeded(apiClient: client)
+            await RecoveryLinkSync.syncIfNeeded(apiClient: client)
         }
         await IncomingCallPresenter.shared.configureIfNeeded()
         ScreenshotAlertService.shared.configure(signalService: service)
@@ -67,6 +68,64 @@ enum MessageRelaySession {
         store.appendMessagePreview(conversationId: conversation.id, preview: preview)
         if ActiveChatRegistry.openConversationId != conversation.id {
             store.incrementUnread(conversationId: conversation.id)
+        }
+    }
+}
+
+// MARK: - Recovery link
+
+/// Tells the server which recovery address belongs to this account.
+///
+/// Restoring an account on a new device starts from the recovery phrase: the app derives the
+/// recovery key, and the server looks the account up by that key's address. The server can only
+/// do that if it was told the address. First run saves the address on this device; this sends it,
+/// once, the first time the app is signed in afterwards. It never blocks sign-in or first run:
+/// a failure is retried at the next connect.
+enum RecoveryLinkSync {
+    private static let syncedKey = "echo.recovery.linkedAddress"
+
+    enum Outcome: Equatable {
+        case nothingToSend, alreadySent, sent, refused, failed
+    }
+
+    struct LinkEndpoint: APIEndpoint {
+        var path: String { "/v1/identity/link-wallet" }
+    }
+
+    private struct Body: Encodable {
+        let did: String
+        let wallet_address: String
+    }
+
+    private struct Reply: Decodable {
+        let linked: Bool?
+    }
+
+    /// Whether `address` still needs sending, given what was last sent.
+    static func needsSync(address: String?, lastSent: String?) -> Bool {
+        guard let address, !address.isEmpty else { return false }
+        return address != lastSent
+    }
+
+    @discardableResult
+    static func syncIfNeeded(apiClient: APIClient, defaults: UserDefaults = .standard) async -> Outcome {
+        let address = try? await KeychainManager.shared.retrieve(key: WalletKeychain.dagAddressKey)
+        guard let address, !address.isEmpty else { return .nothingToSend }
+        guard needsSync(address: address, lastSent: defaults.string(forKey: syncedKey)) else { return .alreadySent }
+        guard let did = await CurrentUserSession.currentDID(), !did.isEmpty else { return .failed }
+        do {
+            let _: Reply = try await apiClient.post(
+                endpoint: LinkEndpoint(),
+                body: Body(did: did, wallet_address: address)
+            )
+            defaults.set(address, forKey: syncedKey)
+            return .sent
+        } catch APIError.unexpectedStatusCode(409) {
+            // The address belongs to another account. Sending it again will not change that.
+            defaults.set(address, forKey: syncedKey)
+            return .refused
+        } catch {
+            return .failed
         }
     }
 }

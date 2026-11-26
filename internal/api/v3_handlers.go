@@ -3,7 +3,6 @@
 // - Identity Service (port 8001)
 // - Message Relay (port 8002)
 // - Trust Service (port 8003)
-// - Rewards Service (port 8004)
 // - Contacts Service (port 8005)
 // - Notification Service (port 8007)
 // - Media Service (port 8008)
@@ -15,7 +14,6 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
-	"github.com/thechadcromwell/echoapp/internal/features"
 	"io"
 	"log"
 	"net/http"
@@ -37,7 +35,6 @@ import (
 	"github.com/thechadcromwell/echoapp/internal/services/media"
 	"github.com/thechadcromwell/echoapp/internal/services/messaging"
 	"github.com/thechadcromwell/echoapp/internal/services/notification"
-	"github.com/thechadcromwell/echoapp/internal/services/rewards"
 	"github.com/thechadcromwell/echoapp/internal/services/zk"
 	"github.com/thechadcromwell/echoapp/internal/validation"
 	"github.com/thechadcromwell/echoapp/pkg/didkey"
@@ -51,7 +48,6 @@ type V3Handlers struct {
 	Contacts                 *contacts.Service
 	Notification             *notification.Service
 	Media                    *media.Service
-	Rewards                  *rewards.Service
 	Groups                   *groups.GroupService
 	Broadcasts               *broadcast_channels.ChannelService
 	RateLimiter              *infra.RateLimiter                            // optional; enforces per-DID claim velocity (WO-35)
@@ -71,7 +67,6 @@ type V3Handlers struct {
 	BotTokens                *bots.TokenValidator                      // optional; WO-11 bot API tokens
 	BotRateLimiter           *bots.RateLimiter                         // optional; WO-11 bot send velocity
 	BotWebhooks              *bots.WebhookRegistry                     // optional; WO-11 inbound webhooks
-	Wallet                   *WalletHandlers                           // optional; Currency L1 wallet + staking
 	DisappearingRestrictions *messaging.DisappearingRestrictionService // WO-115 trust-tier TTL policy
 	GroupAnchoring           *groups.GroupAnchoringService             // WO-156 group metadata anchoring
 	DataSov                  *datasov.Service                          // WO-248/249 data sovereignty stub
@@ -109,27 +104,6 @@ func (h *V3Handlers) RegisterV3Routes(mux *http.ServeMux) {
 	// Profile endpoints (WO-187 / WO-190)
 	mux.HandleFunc("/v3/profile", h.handleProfile)
 	mux.HandleFunc("/v3/profile/", h.handleProfile)
-
-	// Token rewards, wallet and staking exist only while the token is switched on. The token is on
-	// hold (internal/features): by default none of these routes is registered. The wallet store
-	// itself stays constructed, because account recovery looks accounts up through it.
-	if features.TokenEnabled() {
-		mux.HandleFunc("/v3/rewards/claim", h.handleRewardsClaim)
-		mux.HandleFunc("/v3/rewards/pending/", h.handleRewardsPending)
-		mux.HandleFunc("/v3/rewards/daily-stats", h.handleRewardsDailyStats)
-		mux.HandleFunc("/v3/rewards/auto-scale-rate", h.handleRewardsAutoScaleRate)
-	}
-	if h.Wallet != nil && features.TokenEnabled() {
-		mux.HandleFunc("/v3/wallet", h.Wallet.handleWalletRoot)
-		mux.HandleFunc("/v3/wallet/stake", h.Wallet.handleWalletStake)
-		mux.HandleFunc("/v3/wallet/unstake", h.Wallet.handleWalletUnstake)
-		mux.HandleFunc("/v3/wallet/delegate", h.Wallet.handleWalletDelegate)
-		mux.HandleFunc("/v3/wallet/claim", h.Wallet.handleWalletClaim)
-		mux.HandleFunc("/v3/wallet/validators", h.Wallet.handleWalletValidators)
-		mux.HandleFunc("/v3/wallet/link", h.Wallet.handleWalletLink)
-		mux.HandleFunc("/v3/wallet/challenge", h.Wallet.handleWalletChallenge)
-		mux.HandleFunc("/v3/wallet/tx-context", h.Wallet.handleWalletTxContext)
-	}
 
 	// Notification endpoints
 	mux.HandleFunc("/v3/notifications/register", h.handleNotificationsRegister)
@@ -563,94 +537,6 @@ func (h *V3Handlers) handleContactsRelationship(w http.ResponseWriter, r *http.R
 		"blocked_me":            blockedMe,
 		"is_blocked":            blockedByMe || blockedMe,
 		"request_id":            r.Header.Get("X-Request-ID"),
-	})
-}
-
-// --- Rewards Handlers ---
-
-func (h *V3Handlers) handleRewardsClaim(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
-		return
-	}
-
-	did := h.getDID(r)
-	reqID := r.Header.Get("X-Request-ID")
-
-	// Anti-gaming: rate-limit reward claims at the HTTP layer (WO-35).
-	// The rewards service also runs velocity + duplicate checks internally.
-	if h.RateLimiter != nil {
-		if err := h.RateLimiter.Check(did, "reward_claim"); err != nil {
-			WriteError(w, http.StatusTooManyRequests, "RATE_LIMIT_EXCEEDED", "reward claim rate limit exceeded", reqID)
-			return
-		}
-	}
-
-	var req rewards.ClaimRequest
-	if err := h.readJSON(r, &req); err != nil {
-		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", reqID)
-		return
-	}
-	req.DID = did
-
-	result, err := h.Rewards.Claim(r.Context(), req)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "CLAIM_ERROR", err.Error(), reqID)
-		return
-	}
-
-	WriteJSON(w, http.StatusOK, result)
-}
-
-func (h *V3Handlers) handleRewardsPending(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
-		return
-	}
-
-	did := h.getDID(r)
-	tierStr := r.URL.Query().Get("tier")
-	tier := 1
-	if tierStr != "" {
-		if t, err := strconv.Atoi(tierStr); err == nil {
-			tier = t
-		}
-	}
-
-	result, err := h.Rewards.GetPending(r.Context(), did, tier)
-	if err != nil {
-		WriteError(w, http.StatusInternalServerError, "REWARDS_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
-		return
-	}
-
-	WriteJSON(w, http.StatusOK, result)
-}
-
-func (h *V3Handlers) handleRewardsDailyStats(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
-		return
-	}
-
-	stats, err := h.Rewards.GetDailyStats(r.Context())
-	if err != nil {
-		WriteError(w, http.StatusInternalServerError, "STATS_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
-		return
-	}
-
-	WriteJSON(w, http.StatusOK, stats)
-}
-
-func (h *V3Handlers) handleRewardsAutoScaleRate(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is allowed", r.Header.Get("X-Request-ID"))
-		return
-	}
-
-	WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"ratePerMessage": h.Rewards.AutoScaleRate(),
-		"decayFactor":    h.Rewards.MessagingDecayFactor(),
-		"timestamp":      time.Now().UTC().Format(time.RFC3339),
 	})
 }
 
@@ -2157,9 +2043,6 @@ func (h *V3Handlers) handleBroadcastPost(w http.ResponseWriter, r *http.Request)
 		WriteError(w, http.StatusBadRequest, "POST_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
-	if h.Rewards != nil {
-		h.Rewards.RecordEngagement(creatorDID, "channel_post")
-	}
 	WriteJSON(w, http.StatusCreated, post)
 }
 
@@ -2180,17 +2063,12 @@ func (h *V3Handlers) handleBroadcastSubscribe(w http.ResponseWriter, r *http.Req
 		return
 	}
 	subscriberDID := h.getDID(r)
-	_, alreadyErr := h.Broadcasts.GetSubscriber(req.ChannelID, subscriberDID)
-	wasNew := alreadyErr != nil
 	// Route through RequireApproval: approved channels subscribe immediately;
 	// approval-gated channels record a pending join request.
 	approved, err := h.Broadcasts.RequestJoin(req.ChannelID, subscriberDID)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "SUBSCRIBE_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
-	}
-	if approved && wasNew && h.Rewards != nil {
-		h.Rewards.RecordEngagement(subscriberDID, "channel_subscribe")
 	}
 	WriteJSON(w, http.StatusOK, map[string]any{"approved": approved, "pending": !approved})
 }
@@ -2555,9 +2433,6 @@ func (h *V3Handlers) handleBroadcastComment(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "COMMENT_ERROR", err.Error(), r.Header.Get("X-Request-ID"))
 		return
-	}
-	if h.Rewards != nil {
-		h.Rewards.RecordEngagement(author, "channel_comment")
 	}
 	created := *comment
 	created.DisplayName = h.publicDisplayName(r.Context(), author, author)

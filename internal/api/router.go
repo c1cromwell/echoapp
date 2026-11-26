@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/thechadcromwell/echoapp/internal/services/messaging"
+	"github.com/thechadcromwell/echoapp/internal/wallet"
 	"log"
 	"net"
 	"net/http"
@@ -93,6 +94,7 @@ type Router struct {
 	IdentityL1           ledger.IdentitySubmitter         // identity records on Echo's chain: device keys, trust tiers, usernames (optional)
 	DataL1               ledger.DataSubmitter             // anchors Merkle roots and trust commitments on Echo's chain (optional)
 	DeliveryKeys         messaging.DeliveryKeyStore       // sealed delivery: delivery-key hash -> recipient (optional)
+	RecoveryKeys         wallet.Store                     // recovery address -> account, durable (optional)
 	CredentialService    *credentials.Service             // WO-274 VC issuance (optional)
 	OIDC                 *gin.Engine                      // OpenID4VCI issuer + verifier mount (optional)
 	OIDCVerifier         *oidc4vc.Verifier                // OIDC4VC presentation verifier (optional)

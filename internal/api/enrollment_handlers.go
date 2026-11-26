@@ -58,9 +58,8 @@ func trustTierForIAL(ial string) int {
 	}
 }
 
-// deterministicDAGAddress is the interim, server-derivable wallet address.
-// Single source of truth lives in the wallet package so custody enforcement
-// (which rejects this exact form in real-funds mode) can never drift from it.
+// deterministicDAGAddress is the placeholder recovery address handed out before the app links
+// its real one. No private key corresponds to it, so it can never pass a restore.
 func deterministicDAGAddress(did string) string {
 	return wallet.ServerDerivableAddress(did)
 }
@@ -374,8 +373,8 @@ func (rt *Router) lookupDIDByWallet(ctx context.Context, addr string) string {
 		}
 	}
 	rt.enrollmentWalletMu.Unlock()
-	if rt.V3 != nil && rt.V3.Wallet != nil && rt.V3.Wallet.Store != nil {
-		if did, err := rt.V3.Wallet.Store.GetDIDByDAGAddress(ctx, addr); err == nil && did != "" {
+	if rt.RecoveryKeys != nil {
+		if did, err := rt.RecoveryKeys.AccountFor(ctx, addr); err == nil && did != "" {
 			return did
 		}
 	}
@@ -484,7 +483,7 @@ func (rt *Router) provisionEnrollmentWallet(did string, now time.Time) string {
 }
 
 // handleEnrollmentWallet handles POST /v1/enrollment/wallet.
-// Provisions a Constellation wallet address for the enrolled DID (Phase 2 proxy).
+// Returns the placeholder recovery address for the enrolled DID.
 func (rt *Router) handleEnrollmentWallet(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))

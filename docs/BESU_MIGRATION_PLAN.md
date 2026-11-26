@@ -392,11 +392,37 @@ Done:
 | `.env.example` | Tessellation cluster-id settings removed |
 | `docs/ZERO_TO_PRODUCTION.md` | Marked at the top: its chain sections describe the removed path. **Not rewritten** |
 
+**The token implementation was deleted on 2026-11-25 (owner's decision).** Gone from the server:
+the token wallet, staking, delegation, rewards, emission, treasury, founder vesting and
+revocation, token-weighted governance, the VIP allow-spend path, the genesis allocation tool and
+file, the Tessellation-format currency client and transaction types, the token test suite and
+its compose file, and the `ECHO_TOKEN_ENABLED` switch. About 12,000 lines of Go. Git keeps it.
+
+What stayed, and why:
+
+| Kept | Why |
+|---|---|
+| Quests, leaderboard, streaks, weekly pack, Echo Score (`internal/tokenomics`) | They are the points system. The package name is now a misnomer |
+| `internal/wallet`, reduced to about 250 lines | It is the **account recovery key**, not a token wallet: the recovery phrase derives a key, its address is linked to the account, and restoring on a new device is proven by signing with it. Deleting it would have broken account recovery |
+| The reserve contract (`EchoReserve`) | It is not a token and cannot become one (§10) |
+| Database tables for balances and staking | Dropping tables is a separate, deliberate migration. They are empty and unused |
+| iOS token screens and `Core/Stargazer` | **Not deleted yet.** The app hides them (`V1ReleaseScope.showsToken` is false). `Core/Stargazer` also creates the recovery key at first run, so it cannot simply be removed |
+
+Fixed on the way: the link between a recovery address and its account was kept only in the
+server's memory unless the token switch was on, so a restart would have lost it. It is now stored
+in the database (`TestRecoveryLinkSurvivesARestart`).
+
+Found on the way, **not fixed**: the iOS app never calls `POST /v1/identity/link-wallet`. Its
+`linkWalletToDID` saves the recovery address in the Keychain only. Unless something else tells the
+server, the server has no address to look an account up by, and restoring an account from the
+recovery phrase on a new device would answer "no identity is linked to this recovery phrase".
+This is in the first-run code (frozen design; the fix is one network call, not a design change)
+and needs checking on a device before and after.
+
 Not done:
 
 | What | Why not yet |
 |---|---|
-| The dormant token code: wallet, staking, delegation, rewards, tokenomics, and the Tessellation-format currency client and types they use (`internal/ledger/client.go`, `transactions.go`, `currency_submit.go`, `internal/wallet`, `internal/tokenomics`, iOS `Core/Stargazer/`) | It is unreachable with `ECHO_TOKEN_ENABLED` off, but deleting it is deleting the token implementation. That is the owner's decision (§0 says the token may return) |
 | `docs/ZERO_TO_PRODUCTION.md` chain sections; `CONTRIBUTING.md`; `docs/E2E_TESTING.md`; `openapi.yaml`; `docker-compose.tokenomics.yml`; the local-dev MCP server; five project skills | Each still mentions the metagraph. About 58 documents in all mention it; most are historical records and should stay as written |
 | Names inside the code that still say "metagraph" (struct fields, JSON fields such as `metagraph_tx_hash`, `internal/wallet/metagraph_querier.go`) | Renaming JSON fields changes the API; do it with the token decision |
 | Seven-day soak, launch review, production genesis | Need hosts; genesis needs your sign-off |

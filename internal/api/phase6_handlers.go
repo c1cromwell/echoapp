@@ -143,11 +143,6 @@ func (h *V3Handlers) handleBroadcastPosts(w http.ResponseWriter, r *http.Request
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
 	posts := h.Broadcasts.GetChannelPosts(channelID, limit, offset)
 	_ = h.Broadcasts.RecordView(channelID)
-	if h.Rewards != nil {
-		if did := h.getDID(r); did != "" {
-			h.Rewards.RecordEngagement(did, "channel_view")
-		}
-	}
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"channelId": channelID,
 		"posts":     posts,
@@ -175,10 +170,6 @@ func (h *V3Handlers) handleBroadcastReact(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		WriteError(w, http.StatusNotFound, "POST_NOT_FOUND", err.Error(), r.Header.Get("X-Request-ID"))
 		return
-	}
-	did := h.getDID(r)
-	if h.Rewards != nil && did != "" {
-		h.Rewards.RecordEngagement(did, "channel_react")
 	}
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"postId":    post.ID,
