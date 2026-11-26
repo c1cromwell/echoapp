@@ -8,15 +8,9 @@ struct ChannelsListView: View {
     @State private var errorMessage: String?
     @State private var showCreate = false
     @State private var selectedChannel: BroadcastChannelWire?
-    @State private var claimStatus: String?
 
     var body: some View {
         VStack(spacing: 0) {
-            // The banner offered token rewards for engagement. The token is on hold.
-            if V1ReleaseScope.showsToken {
-                engagementBanner
-            }
-
             if isLoading && channels.isEmpty {
                 ProgressView("Loading channels…")
                     .frame(maxWidth: .infinity)
@@ -68,50 +62,6 @@ struct ChannelsListView: View {
                 ChannelDetailView(channel: channel)
             }
         }
-    }
-
-    private var engagementBanner: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Image(systemName: "gift.fill")
-                    .foregroundStyle(Color.echoTrustGreen)
-                Text("Earn ECHO for engagement")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.echoInk)
-                Spacer()
-                Button("Create") { showCreate = true }
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color.echoSignal)
-            }
-            Text("Post, react, and subscribe in community channels to accrue rewards. Claim from Rewards when ready.")
-                .font(.system(size: 13))
-                .foregroundStyle(Color.echoInk55)
-            if let claimStatus {
-                Text(claimStatus)
-                    .font(.caption)
-                    .foregroundStyle(Color.echoTrustGreen)
-            }
-            Button {
-                Task {
-                    let ok = await ChannelsAPIClient.claimChannelEngagement(trustTier: 3)
-                    claimStatus = ok ? "Engagement rewards claimed" : "Nothing to claim yet (need Tier 2+)"
-                }
-            } label: {
-                Text("Claim channel rewards")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(Color.echoSignal)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(16)
-        .background(Color.echoPaperDim)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
     }
 
     private func channelRow(_ channel: BroadcastChannelWire) -> some View {

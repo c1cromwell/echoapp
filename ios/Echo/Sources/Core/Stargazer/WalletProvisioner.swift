@@ -1,11 +1,11 @@
 #if os(iOS)
 // Core/Stargazer/WalletProvisioner.swift
-// Links a deterministic DAG address to the authenticated DID until Stargazer SPM ships.
+// Creates the account recovery key and links its address to the account.
 
 import CryptoKit
 import Foundation
 
-/// Provisions and persists the user's Constellation wallet address (T7 public).
+/// Creates and persists the account recovery key's address.
 actor WalletProvisioner {
     static let dagAddressKey = WalletKeychain.dagAddressKey
 
@@ -19,46 +19,21 @@ actor WalletProvisioner {
         self.keyStore = keyStore
     }
 
-    /// Returns the user-held DAG address for `did`, generating the wallet key on
-    /// first use and linking the address (with proof-of-ownership) on the backend.
-    /// In real-funds mode the backend requires the proof; in interim mode it
-    /// ignores it (the proof is sent best-effort either way).
+    /// Returns the recovery key's address for `did`, creating the key on first use, and tells the
+    /// server which account the address belongs to. Restoring the account on a new device depends
+    /// on the server knowing that.
+    ///
+    /// Telling the server is best-effort here so that first run is never held up by it; a link
+    /// that did not get through is sent again after sign-in (`RecoveryLinkSync`).
     func ensureWalletLinked(did: String) async throws -> String {
-        if let existing = try? await keychain.retrieve(key: Self.dagAddressKey, as: String.self),
-           !existing.isEmpty {
-            return existing
-        }
-
         let account = try await keyStore.ensureWallet()
-        let proofHeaders = (try? await buildProofHeaders()) ?? [:]
-
-        struct LinkBody: Encodable { let address: String }
-        struct LinkResp: Decodable { let did: String; let address: String }
-        let _: LinkResp = try await apiClient.post(
-            endpoint: WalletEndpoint.link,
-            body: LinkBody(address: account.address),
-            headers: proofHeaders
-        )
         try await keychain.store(key: Self.dagAddressKey, value: account.address)
+        await RecoveryLinkSync.syncIfNeeded(apiClient: apiClient, did: did)
         return account.address
     }
 
-    /// Fetches a server challenge, signs it with the wallet key, and returns the
-    /// base64(JSON) X-Wallet-Proof header the backend verifier expects.
-    private func buildProofHeaders() async throws -> [String: String] {
-        struct ChallengeResp: Decodable { let challenge: String; let expiresAt: String }
-        let resp: ChallengeResp = try await apiClient.get(endpoint: WalletEndpoint.challenge)
-        let signed = try await keyStore.signChallenge(resp.challenge)
-
-        struct Proof: Encodable { let publicKey: String; let challenge: String; let signature: String }
-        let proof = Proof(publicKey: signed.publicKey, challenge: resp.challenge, signature: signed.signature)
-        let encoded = try JSONEncoder().encode(proof).base64EncodedString()
-        return ["X-Wallet-Proof": encoded]
-    }
-
-    /// The legacy server-derivable address (DAG = SHA256(did)). Retained only as
-    /// the reference value the backend REJECTS in real-funds mode; no longer used
-    /// for provisioning. Mirrors Go wallet.ServerDerivableAddress.
+    /// The placeholder address the server hands out before the real one is linked
+    /// (DAG + SHA256(did)). No key corresponds to it. Mirrors Go wallet.ServerDerivableAddress.
     static func deterministicDAGAddress(did: String) -> String {
         let digest = SHA256.hash(data: Data(did.utf8))
         let hex = digest.map { String(format: "%02x", $0) }.joined()

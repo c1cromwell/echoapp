@@ -647,17 +647,6 @@ struct CatalogMessagesHubPopulatedPreview: View {
 }
 
 struct CatalogRewardsPreview: View {
-    private let walletState = WalletState(
-        totalBalance: 12_450.75,
-        available: 8_200.50,
-        staked: 4_250.25,
-        pendingRewards: 125.00,
-        locks: [],
-        delegations: [],
-        dailyRewards: nil,
-        vesting: nil
-    )
-
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 6) {
@@ -696,7 +685,6 @@ struct CatalogRewardsPreview: View {
                         onOpen: {}
                     )
                     RewardHubNavRow(title: "Invite with @username")
-                    BalanceCard(state: walletState)
                 }
                 .padding(20)
             }
@@ -1022,47 +1010,6 @@ private func catalogNotificationRow(title: String, body: String, unread: Bool) -
 }
 
 // MARK: - Extended catalog (messaging, VIP, device, calls, wallet, governance)
-
-enum CatalogGovernanceMocks {
-    static var sampleTally: ProposalTally {
-        ProposalTally(
-            proposalId: "prop-001",
-            forWeight: 72_500,
-            againstWeight: 18_200,
-            abstainWeight: 9_300,
-            totalWeight: 100_000,
-            forPercent: 72.5,
-            voterCount: 184,
-            passed: false
-        )
-    }
-
-    static var sampleProposal: Proposal {
-        Proposal(
-            id: "prop-001",
-            title: "Increase community rewards allocation",
-            description: "Raise the annual community rewards cap by 5% to support early messaging incentives through Q4.",
-            type: .treasuryAllocation,
-            threshold: .supermajority67,
-            createdBy: "did:key:z6Mk…",
-            createdAt: Date(),
-            endsAt: Date().addingTimeInterval(864_000),
-            status: .active,
-            tally: sampleTally
-        )
-    }
-
-    static var votingPower: VotingPower {
-        VotingPower(
-            did: "did:key:z6Mk…",
-            trustTier: 2,
-            multiplier: 1.5,
-            totalStaked: 4_250,
-            weight: 6_375,
-            canVote: true
-        )
-    }
-}
 
 struct CatalogFullChatPreview: View {
     var body: some View {
@@ -1575,187 +1522,6 @@ private func catalogCallControlIcon(_ icon: String, active: Bool) -> some View {
         .foregroundStyle(active ? Color.echoInk : Color.echoInk55)
         .frame(width: 56, height: 56)
         .background(Circle().fill(Color.echoPaperDim))
-}
-
-struct CatalogStakingPreview: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            Text("Stake ECHO")
-                .font(.system(size: 28, weight: .bold))
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Stake Amount")
-                    .font(Font.Echo.titleLarge)
-                HStack {
-                    Text("1,000.00")
-                        .font(Font.Echo.displayMedium)
-                    Text("ECHO")
-                        .font(Font.Echo.bodyLarge)
-                        .foregroundStyle(Color.Echo.onSurfaceVariant)
-                }
-                Text("Available: 8,200.50 ECHO")
-                    .font(Font.Echo.labelMd)
-                    .foregroundStyle(Color.Echo.onSurfaceVariant)
-            }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.echoPaperDim)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-            .padding(.horizontal, 20)
-
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Select Tier")
-                    .font(Font.Echo.titleLarge)
-                catalogStakingTierRow("30 days", apr: "8", selected: false)
-                catalogStakingTierRow("90 days", apr: "12", selected: true)
-                catalogStakingTierRow("180 days", apr: "18", selected: false)
-            }
-            .padding(.horizontal, 20)
-
-            Text("Stake ECHO")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(Color.echoSignal)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .padding(.horizontal, 20)
-
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Color.echoPaper)
-    }
-}
-
-private func catalogStakingTierRow(_ duration: String, apr: String, selected: Bool) -> some View {
-    HStack {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(duration)
-                .font(Font.Echo.bodyLarge)
-            Text("Lock period")
-                .font(Font.Echo.labelMd)
-                .foregroundStyle(Color.Echo.onSurfaceVariant)
-        }
-        Spacer()
-        Text("\(apr)% APR")
-            .foregroundStyle(Color.Echo.primaryContainer)
-        if selected {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(Color.Echo.primaryContainer)
-        }
-    }
-    .padding(16)
-    .background(selected ? Color.Echo.surfaceContainerHigh : Color.Echo.surfaceContainer)
-    .clipShape(RoundedRectangle(cornerRadius: 20))
-}
-
-struct CatalogProposalListPreview: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Governance")
-                .font(.system(size: 28, weight: .bold))
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("YOUR VOTING POWER")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Color.echoInk55)
-                Text("6,375")
-                    .font(.system(size: 32, weight: .semibold))
-                Text("Trust tier T2 · 1.5× multiplier")
-                    .font(.subheadline)
-                    .foregroundStyle(Color.echoInk55)
-            }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.echoPaperDim)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .padding(.horizontal, 20)
-
-            catalogProposalCard(
-                type: "TREASURY ALLOCATION",
-                title: "Increase community rewards allocation",
-                forPercent: 72,
-                againstPercent: 18
-            )
-            .padding(.horizontal, 20)
-
-            catalogProposalCard(
-                type: "PARAMETER CHANGE",
-                title: "Adjust PQ handshake default",
-                forPercent: 54,
-                againstPercent: 31
-            )
-            .padding(.horizontal, 20)
-
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Color.echoPaper)
-    }
-}
-
-struct CatalogProposalDetailPreview: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            Text("Proposal")
-                .font(.system(size: 28, weight: .bold))
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-
-            VStack(alignment: .leading, spacing: 12) {
-                Text("TREASURY ALLOCATION")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Color.Echo.primaryContainer)
-                Text("Increase community rewards allocation")
-                    .font(.system(size: 22, weight: .bold))
-                Text("Raise the annual community rewards cap by 5% to support early messaging incentives through Q4.")
-                    .font(.system(size: 15))
-                    .foregroundStyle(Color.echoInk55)
-                    .lineSpacing(4)
-
-                HStack(spacing: 0) {
-                    Rectangle().fill(Color.echoTrustGreen).frame(width: 220, height: 8)
-                    Rectangle().fill(Color.echoAlert.opacity(0.7)).frame(width: 55, height: 8)
-                }
-                .clipShape(Capsule())
-
-                HStack {
-                    Text("72% For").font(.caption).foregroundStyle(Color.echoTrustGreen)
-                    Spacer()
-                    Text("18% Against").font(.caption).foregroundStyle(Color.echoAlert)
-                }
-
-                HStack(spacing: 12) {
-                    Text("Vote For")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.echoTrustGreen)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    Text("Vote Against")
-                        .font(.system(size: 15, weight: .semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.echoPaperDim)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-            }
-            .padding(20)
-            .background(Color.echoPaperDim)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .padding(.horizontal, 20)
-
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Color.echoPaper)
-    }
 }
 
 private func catalogProposalCard(type: String, title: String, forPercent: Int, againstPercent: Int) -> some View {

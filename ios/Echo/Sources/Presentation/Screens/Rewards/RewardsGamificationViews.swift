@@ -306,7 +306,7 @@ struct LeaderboardSection: View {
 
     private func formattedScore(_ amount: Decimal) -> String {
         let n = NSDecimalNumber(decimal: amount)
-        return String(format: V1ReleaseScope.showsToken ? "%.0f ECHO" : "%.0f pts", n.doubleValue)
+        return String(format: "%.0f pts", n.doubleValue)
     }
 }
 
@@ -316,7 +316,6 @@ struct LeaderboardSection: View {
 /// There is no wallet or balance. Pings daily activity on appear.
 struct RewardsHubView: View {
     let gamification: GamificationAPI
-    let walletAPI: WalletAPIClient
 
     @StateObject private var quests: QuestViewModel
     @State private var status: GamificationStatus?
@@ -328,9 +327,8 @@ struct RewardsHubView: View {
     @State private var loadState: RewardsHubLoadState = .loading
     @State private var packError: String?
 
-    init(gamification: GamificationAPI, walletAPI: WalletAPIClient) {
+    init(gamification: GamificationAPI) {
         self.gamification = gamification
-        self.walletAPI = walletAPI
         _quests = StateObject(wrappedValue: QuestViewModel(api: gamification))
     }
 
@@ -379,15 +377,6 @@ struct RewardsHubView: View {
                     RewardHubNavRow(title: "Invite with @username")
                 }
                 .buttonStyle(.plain)
-
-                if V1ReleaseScope.showsToken {
-                    NavigationLink {
-                        WalletTab(api: walletAPI)
-                    } label: {
-                        RewardHubNavRow(title: "Wallet & balance")
-                    }
-                    .buttonStyle(.plain)
-                }
             }
             .padding(Spacing.lg.rawValue)
         }

@@ -25,7 +25,6 @@ enum WalletDirection: String, Codable {
 
 // Note: DailyRewardProgress, RewardEarningEntry, AutoScaleRewardState,
 // VestingState, and ValidatorInfo are defined in Core/Stargazer/WalletTypes.swift
-// Proposal and VotingPower are defined in Features/Governance/GovernanceModels.swift
 
 // MARK: - Search Index Entry (Local persistence)
 

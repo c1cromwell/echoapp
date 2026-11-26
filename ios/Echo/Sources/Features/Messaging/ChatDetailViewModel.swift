@@ -1134,13 +1134,12 @@ enum FailedMessageLogic {
     }
 
     /// Only plain text can be re-sent from the row itself: attachments and polls no longer
-    /// have their payload, and a payment must never be re-issued by a retry tap.
+    /// have their payload.
     static func canRetry(_ message: ChatDetailMessage) -> Bool {
         guard isFailedOutgoing(message) else { return false }
         guard message.mediaRef == nil, message.pollId == nil else { return false }
         let body = message.content.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !body.isEmpty, !mediaPlaceholders.contains(body) else { return false }
-        return PaymentMessageEncoding.decode(message.content) == nil
+        return !body.isEmpty && !mediaPlaceholders.contains(body)
     }
 
     /// Caption under a failed bubble.

@@ -406,18 +406,24 @@ What stayed, and why:
 | `internal/wallet`, reduced to about 250 lines | It is the **account recovery key**, not a token wallet: the recovery phrase derives a key, its address is linked to the account, and restoring on a new device is proven by signing with it. Deleting it would have broken account recovery |
 | The reserve contract (`EchoReserve`) | It is not a token and cannot become one (§10) |
 | Database tables for balances and staking | Dropping tables is a separate, deliberate migration. They are empty and unused |
-| iOS token screens and `Core/Stargazer` | **Not deleted yet.** The app hides them (`V1ReleaseScope.showsToken` is false). `Core/Stargazer` also creates the recovery key at first run, so it cannot simply be removed |
+| iOS: `Core/Stargazer` key store, signer and provisioner | They create the recovery key and prove ownership of it on restore. The token screens around them were deleted on 2026-11-26: wallet, staking, delegation, transaction history, in-chat payments and token-weighted governance |
 
-Fixed on the way: the link between a recovery address and its account was kept only in the
-server's memory unless the token switch was on, so a restart would have lost it. It is now stored
-in the database (`TestRecoveryLinkSurvivesARestart`).
+**A regression of my own, found and fixed (2026-11-26).** The app links its recovery address
+during first run by calling `/v3/wallet/link`. When the token was put on hold (commit `67e8f5f`) I
+switched that route off with the rest of the wallet API, and later deleted it. First run did not
+fail visibly: the link call failed, the retry found the address already saved on the device and
+carried on. So from the 24th any account created against the new server had no recovery link, and
+restoring it from the recovery phrase would have answered "no identity is linked to this recovery
+phrase". My note of the 25th, that the app had never told the server its address, was wrong.
 
-Found on the way, **not fixed**: the iOS app never calls `POST /v1/identity/link-wallet`. Its
-`linkWalletToDID` saves the recovery address in the Keychain only. Unless something else tells the
-server, the server has no address to look an account up by, and restoring an account from the
-recovery phrase on a new device would answer "no identity is linked to this recovery phrase".
-This is in the first-run code (frozen design; the fix is one network call, not a design change)
-and needs checking on a device before and after.
+Now: first run links through `POST /v1/identity/link-wallet`, which stores the link in the
+database; if that call does not get through, the app sends it again after sign-in
+(`RecoveryLinkSync`); and an address cannot be claimed by a second account.
+
+Verified: `TestLive_AccountRestoreOnANewDeviceAcrossARestart` drives a running gateway as two
+devices: create an account, link the recovery address, restart the gateway, restore on a second
+device holding only the recovery key, and act as the account. It passes. That proves the server's
+side. The Swift side is unit-tested and compiles; it has **not** been run on a phone.
 
 Not done:
 

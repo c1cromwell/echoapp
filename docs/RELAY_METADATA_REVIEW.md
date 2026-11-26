@@ -177,6 +177,15 @@ The server cannot limit or block a sender it cannot see, so:
 | A key from a message is unused until that message is authenticated | `testPeerKeyIsUsedOnlyAfterTheMessageIsAuthenticated` |
 | The app's key hash equals the server's | `testKeyHashMatchesTheServer` |
 
+### 5.3a Verified against a running gateway
+
+`TestLive_SealedDeliveryNamesNoSender` (`test/integration/live_two_device_test.go`) runs against
+the real gateway over HTTP, WebSocket and Postgres: a recipient registers a delivery key; a
+sender with no identity delivers to it; the recipient receives the message online with no sender
+and the constant conversation id; a message sent while the recipient is offline sits in
+`message_queue` with empty sender and conversation, arrives on reconnect, and its envelope is then
+erased; a revoked key is refused. It passes. It speaks the app's protocol but is not the app.
+
 ### 5.4 Not verified: two phones
 
 Nothing above runs two real apps against each other. Before relying on this, with two devices

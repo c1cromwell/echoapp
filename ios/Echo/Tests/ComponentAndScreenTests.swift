@@ -820,11 +820,6 @@ final class RewardsScreenTests: XCTestCase {
         XCTAssertNotNil(rewards)
     }
     
-    func testStakingViewInitialization() {
-        let staking = StakingView()
-        XCTAssertNotNil(staking)
-    }
-    
     func testReferralViewInitialization() {
         let referral = ReferralView()
         XCTAssertNotNil(referral)

@@ -277,29 +277,6 @@ final class ScreenCatalogGeneratorTests: XCTestCase {
         )
 
         try ScreenCatalogRenderer.render(
-            CatalogStakingPreview(),
-            journey: "wallet",
-            stepId: "01-staking",
-            title: "Stake ECHO",
-            e2eRef: "StakingView"
-        )
-
-        try ScreenCatalogRenderer.render(
-            CatalogProposalListPreview(),
-            journey: "governance",
-            stepId: "01-proposals",
-            title: "Governance proposals",
-            e2eRef: "ProposalListView"
-        )
-        try ScreenCatalogRenderer.render(
-            CatalogProposalDetailPreview(),
-            journey: "governance",
-            stepId: "02-proposal-detail",
-            title: "Proposal detail",
-            e2eRef: "ProposalDetailView composite"
-        )
-
-        try ScreenCatalogRenderer.render(
             CatalogSOCKSProxyPreview(),
             journey: "privacy",
             stepId: "01-socks-proxy",

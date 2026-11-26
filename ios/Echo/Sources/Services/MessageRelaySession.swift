@@ -78,9 +78,9 @@ enum MessageRelaySession {
 ///
 /// Restoring an account on a new device starts from the recovery phrase: the app derives the
 /// recovery key, and the server looks the account up by that key's address. The server can only
-/// do that if it was told the address. First run saves the address on this device; this sends it,
-/// once, the first time the app is signed in afterwards. It never blocks sign-in or first run:
-/// a failure is retried at the next connect.
+/// do that if it was told the address. This sends it once: at first run when it can, otherwise
+/// the first time the app is signed in afterwards. It never blocks sign-in or first run: a
+/// failure is retried at the next connect.
 enum RecoveryLinkSync {
     private static let syncedKey = "echo.recovery.linkedAddress"
 
@@ -108,11 +108,13 @@ enum RecoveryLinkSync {
     }
 
     @discardableResult
-    static func syncIfNeeded(apiClient: APIClient, defaults: UserDefaults = .standard) async -> Outcome {
+    static func syncIfNeeded(apiClient: APIClient, did knownDID: String? = nil, defaults: UserDefaults = .standard) async -> Outcome {
         let address = try? await KeychainManager.shared.retrieve(key: WalletKeychain.dagAddressKey)
         guard let address, !address.isEmpty else { return .nothingToSend }
         guard needsSync(address: address, lastSent: defaults.string(forKey: syncedKey)) else { return .alreadySent }
-        guard let did = await CurrentUserSession.currentDID(), !did.isEmpty else { return .failed }
+        var resolved = knownDID
+        if resolved == nil || resolved?.isEmpty == true { resolved = await CurrentUserSession.currentDID() }
+        guard let did = resolved, !did.isEmpty else { return .failed }
         do {
             let _: Reply = try await apiClient.post(
                 endpoint: LinkEndpoint(),

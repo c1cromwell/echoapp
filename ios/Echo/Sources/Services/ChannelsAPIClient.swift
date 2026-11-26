@@ -135,25 +135,6 @@ enum ChannelsAPIClient {
         await post(path: "/v3/broadcasts/react", body: ["postId": postId, "emoji": emoji]) != nil
     }
 
-    static func claimChannelEngagement(trustTier: Int) async -> Bool {
-        guard let token = try? await KeychainManager.shared.getAuthToken(),
-              let url = URL(string: baseURL.absoluteString + "/v3/rewards/claim"),
-              let httpBody = try? JSONSerialization.data(withJSONObject: [
-                  "rewardType": "channel_engagement",
-                  "trustTier": trustTier,
-              ] as [String: Any]) else {
-            return false
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = httpBody
-        guard let (_, response) = try? await URLSession.shared.data(for: request),
-              let http = response as? HTTPURLResponse else { return false }
-        return (200...299).contains(http.statusCode)
-    }
-
     // MARK: - Channel admin (owner/admin only)
 
     static func listMembers(channelId: String) async -> [ChannelMemberWire] {

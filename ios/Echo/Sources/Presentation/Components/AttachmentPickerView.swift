@@ -10,7 +10,6 @@ struct AttachmentPickerView: View {
     var onCloudTapped: (() -> Void)? = nil
     var onVoiceNoteTapped: () -> Void
     var onPollTapped: (() -> Void)? = nil
-    var onPaymentTapped: (() -> Void)? = nil
     var onGifTapped: (() -> Void)? = nil
 
     @State private var selectedPhotoItem: PhotosPickerItem?
@@ -46,12 +45,6 @@ struct AttachmentPickerView: View {
                     attachmentButton(icon: "face.smiling", label: "GIF") {
                         isPresented = false
                         onGifTapped()
-                    }
-                }
-                if let onPaymentTapped {
-                    attachmentButton(icon: "dollarsign.circle.fill", label: "Pay") {
-                        isPresented = false
-                        onPaymentTapped()
                     }
                 }
             }

@@ -138,31 +138,11 @@ enum LegalLinks {
 
 /// What the v1 App Store build shows. See docs/V1_RELEASE.md.
 ///
-/// ECHO launches as a value-free, gamified reward (no redemption, no transfer,
-/// no promise of value). Yield percentages and token-supply internals are a
-/// value promise and the pattern App Review rejects under 3.1.5, so Release
-/// builds leave them out. Debug builds keep everything for development.
+/// Rewards are points: a score, with no token, balance or wallet anywhere in the app.
 enum V1ReleaseScope {
     #if DEBUG
     static let isFullSurface = true
     #else
     static let isFullSurface = false
     #endif
-
-    /// Whether any ECHO token surface exists in the app: wallet, balance, staking, token-denominated
-    /// rewards, or the word ECHO used as a unit. The token is on hold (docs/BESU_MIGRATION_PLAN.md
-    /// §0), so this is false in every build. Rewards are points: a score, not a token. A developer
-    /// can pass `-echoTokenSurface` to a Debug build to work on the dormant token screens.
-    static var showsToken: Bool {
-        #if DEBUG
-        return ProcessInfo.processInfo.arguments.contains("-echoTokenSurface")
-        #else
-        return false
-        #endif
-    }
-
-    /// "% APR" / "APY" figures on staking tiers and validators.
-    static var showsYieldRates: Bool { isFullSurface && showsToken }
-    /// Emission gauge and other token-supply internals on the wallet.
-    static var showsTokenInternals: Bool { isFullSurface && showsToken }
 }

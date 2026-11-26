@@ -4,27 +4,18 @@ import SwiftUI
 import UIKit
 #endif
 
-/// Rewards Dashboard Screen — live ECHO balance, staking, and claims.
+/// Rewards tab: the points hub.
 public struct RewardsDashboardView: View {
     public init() {}
 
     public var body: some View {
-        // The Rewards tab is the points hub. There is no wallet behind it: the token is on hold
-        // (V1ReleaseScope.showsToken), so if the hub cannot be built the tab says so, and never
-        // falls back to a balance screen.
+        // The Rewards tab is the points hub. There is no wallet or balance behind it.
         if let gamification = DIContainer.shared.resolveGamificationAPI() {
-            RewardsHubView(gamification: gamification, walletAPI: resolvedWalletAPI())
-        } else if V1ReleaseScope.showsToken {
-            WalletTab(api: resolvedWalletAPI())
+            RewardsHubView(gamification: gamification)
         } else {
             ContentUnavailableView("Rewards are unavailable", systemImage: "gift",
                                    description: Text("Try again in a moment."))
         }
-    }
-
-    @MainActor
-    private func resolvedWalletAPI() -> WalletAPIClient {
-        DIContainer.shared.resolveWalletAPI() ?? WalletAPIClientStub()
     }
 }
 
@@ -76,102 +67,6 @@ struct ActivityRow: View {
         .padding(Spacing.md.rawValue)
         .background(Color.echoSurface)
         .cornerRadius(12)
-    }
-}
-
-// MARK: - Staking View
-
-// Renamed to avoid conflict with Wallet/Staking/StakingView (which takes a WalletViewModel).
-public struct RewardsStakingView: View {
-    @Environment(\.dismiss) var dismiss
-    @State private var stakeAmount = ""
-    @State private var stakingPeriod = "30"
-    @State private var estimatedRewards = 0.0
-    
-    let currentStake = 500.0
-    
-    public init() {}
-    
-    public var body: some View {
-        ZStack {
-            Color.echoBackground.ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                EchoNavBar(
-                    title: "Staking",
-                    showBackButton: true,
-                    onBackPressed: { dismiss() }
-                )
-                
-                ScrollView {
-                    VStack(spacing: Spacing.xl.rawValue) {
-                        // Current Stake
-                        VStack(spacing: Spacing.md.rawValue) {
-                            Text("Current Stake")
-                                .typographyStyle(.caption, color: .echoGray500)
-                            
-                            Text("\(String(format: "%.2f", currentStake)) ECHO")
-                                .typographyStyle(.h3, color: .echoPrimary)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(Spacing.lg.rawValue)
-                        .background(Color.echoSurface)
-                        .cornerRadius(12)
-                        
-                        // Staking Form
-                        VStack(spacing: Spacing.lg.rawValue) {
-                            EchoTextField(
-                                label: "Amount to Stake",
-                                placeholder: "0.00",
-                                text: $stakeAmount
-                            )
-                            
-                            VStack(spacing: Spacing.md.rawValue) {
-                                HStack {
-                                    Text("Staking Period")
-                                        .typographyStyle(.caption, color: .echoGray500)
-                                    
-                                    Spacer()
-                                    
-                                    Picker("Period", selection: $stakingPeriod) {
-                                        Text("30 days - 5% APY").tag("30")
-                                        Text("90 days - 8% APY").tag("90")
-                                        Text("180 days - 12% APY").tag("180")
-                                        Text("365 days - 15% APY").tag("365")
-                                    }
-                                    .pickerStyle(.automatic)
-                                }
-                            }
-                            
-                            // APY Info
-                            VStack(spacing: Spacing.xs.rawValue) {
-                                HStack {
-                                    Text("Estimated APY")
-                                        .typographyStyle(.body, color: .echoSecondaryText)
-                                    Spacer()
-                                    Text("5-15%")
-                                        .typographyStyle(.body, color: .echoSuccess)
-                                }
-                            }
-                            .padding(Spacing.md.rawValue)
-                            .background(Color.echoSurface)
-                            .cornerRadius(12)
-                        }
-                        
-                        EchoButton(
-                            "Stake ECHO",
-                            style: .primary,
-                            size: .large,
-                            action: {}
-                        )
-                        
-                        Spacer()
-                    }
-                    .echoSpacing(.lg)
-                }
-            }
-        }
-        .navigationBarBackButtonHidden(true)
     }
 }
 
