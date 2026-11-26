@@ -130,3 +130,4 @@ tools/echo-local-dev-mcp/**/__pycache__/
 /spike/
 /euclid-development-environment/
 /deploy/sovereign/
+test-results/

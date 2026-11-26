@@ -11,17 +11,28 @@ import Foundation
 /// `X-Identity-Signature`. The backend verifies it against the already-registered signing
 /// device (`signing_did`) via ECDSA-P256-SHA256.
 struct MessagingKeyRegistrar {
-    /// Persisted once registration succeeds, so this is a cheap no-op on later calls.
-    static let registeredFlag = "echo.msgKey.registered.v1"
+    /// The identity whose key was last registered. Persisted so later calls are a cheap no-op.
+    /// It names the identity, not just "done": a new account on the same install has a different
+    /// DID and must publish its own key.
+    static let registeredDIDKey = "echo.msgKey.registeredDID.v2"
+
+    /// Whether `did` still has to publish its key, given what was registered last.
+    static func needsRegistration(did: String, lastRegistered: String?) -> Bool {
+        !did.isEmpty && did != lastRegistered
+    }
 
     private let identityKeyId = "echo-identity-signing"
     private let signatureHeader = "X-Identity-Signature"
 
-    /// Best-effort, idempotent. Safe to call on every session start / chat open: it
-    /// returns immediately once registered and never throws into the caller.
+    /// Best-effort, idempotent. Called at every sign-in (`MessageRelaySession.connect`) and on
+    /// chat open: it returns immediately once registered and never throws into the caller.
+    ///
+    /// It must have run before anyone writes to this account. Until the key is published, a
+    /// sender falls back to the identity signing key, and a message encrypted to that cannot be
+    /// decrypted on the device.
     func ensureRegistered(did: String) async {
         guard !did.isEmpty else { return }
-        guard !UserDefaults.standard.bool(forKey: Self.registeredFlag) else { return }
+        guard Self.needsRegistration(did: did, lastRegistered: UserDefaults.standard.string(forKey: Self.registeredDIDKey)) else { return }
 
         do {
             let pubHex = try await MessagingAgreementKey.publicKeyHex()
@@ -41,7 +52,7 @@ struct MessagingKeyRegistrar {
             guard let http = response as? HTTPURLResponse else { return }
             // 2xx = registered now; 409 = the key is already on file (idempotent success).
             if (200...299).contains(http.statusCode) || http.statusCode == 409 {
-                UserDefaults.standard.set(true, forKey: Self.registeredFlag)
+                UserDefaults.standard.set(did, forKey: Self.registeredDIDKey)
                 await DeviceIdentityStore.pinLocalPublicKey(hex: pubHex)
             }
         } catch {

@@ -38,12 +38,14 @@ final class DIContainer {
             return service
         }
         
-        if let factory = factories[key] as? (() -> T) {
-            let service = factory()
+        // Factories are stored as `() -> Any`. Run the factory and cast what it made: casting the
+        // closure itself to `() -> T` never succeeds, which used to make every factory-backed
+        // service resolve to nil.
+        if let factory = factories[key], let service = factory() as? T {
             services[key] = service
             return service
         }
-        
+
         return nil
     }
     

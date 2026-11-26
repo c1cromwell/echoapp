@@ -142,7 +142,10 @@ enum IdentityEndpoint: APIEndpoint {
         case .createDID:
             return "/identity/did/create"
         case .resolveDID(let did):
-            return "/identity/did/\(did)"
+            // The server serves a DID's device keys at /identity/resolve/{did}. This used to say
+            // /identity/did/{did}, which the server answers with "not registered", so no peer key
+            // could be found and no message could be encrypted.
+            return "/identity/resolve/\(did)"
         case .updateDIDDocument:
             return "/identity/did/update"
         case .listDIDs:

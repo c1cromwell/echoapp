@@ -83,6 +83,17 @@ actor PasskeySigningInterceptor: RequestInterceptor {
         self.keychain = keychain
     }
 
+    /// The bytes that get signed: `METHOD\npath\ntimestamp\nhex(SHA-256(body))`, exactly as the
+    /// server rebuilds them (internal/api/passkey_auth.go `canonicalSigningString`).
+    ///
+    /// These are the message, not a hash of it. `SecureEnclaveManager.sign` hashes its input with
+    /// SHA-256 as part of ECDSA, and the server hashes the same message once before verifying.
+    /// Hashing here as well makes every signature invalid.
+    static func signingInput(method: String, path: String, timestamp: String, body: Data) -> Data {
+        let bodyHashHex = SHA256.hash(data: body).map { String(format: "%02x", $0) }.joined()
+        return Data("\(method)\n\(path)\n\(timestamp)\n\(bodyHashHex)".utf8)
+    }
+
     func intercept(_ request: inout URLRequest) async throws {
         guard let path = request.url?.path,
               !Self.publicPaths.contains(path) else { return }
@@ -92,17 +103,11 @@ actor PasskeySigningInterceptor: RequestInterceptor {
             as: String.self
         ) else { return }
 
-        let bodyData = request.httpBody ?? Data()
-        let bodyHashHex = Data(SHA256.hash(data: bodyData))
-            .map { String(format: "%02x", $0) }.joined()
         let method = request.httpMethod ?? "GET"
         let timestamp = String(Int(Date().timeIntervalSince1970))
+        let message = Self.signingInput(method: method, path: path, timestamp: timestamp, body: request.httpBody ?? Data())
 
-        // Canonical string must byte-match the server (internal/api/passkey_auth.go).
-        let canonical = "\(method)\n\(path)\n\(timestamp)\n\(bodyHashHex)"
-        let digest = Data(SHA256.hash(data: Data(canonical.utf8)))
-
-        let sigDER = try await secureEnclave.sign(data: digest, keyId: "echo-identity-signing")
+        let sigDER = try await secureEnclave.sign(data: message, keyId: "echo-identity-signing")
 
         request.setValue(did, forHTTPHeaderField: "X-Sender-DID")
         request.setValue(sigDER.base64EncodedString(), forHTTPHeaderField: "X-Signature")
@@ -157,7 +162,7 @@ actor APIClient {
         method: HTTPMethod,
         body: Encodable? = nil
     ) async throws -> URLRequest {
-        let url = configuration.baseURL.appendingPathComponent(endpoint.path)
+        let url = Self.requestURL(base: configuration.baseURL, path: endpoint.path)
         var request = URLRequest(url: url)
         
         request.httpMethod = method.rawValue
@@ -228,7 +233,7 @@ actor APIClient {
         json: [String: Any],
         headers: [String: String] = [:]
     ) async throws -> T {
-        let url = configuration.baseURL.appendingPathComponent(endpoint.path)
+        let url = Self.requestURL(base: configuration.baseURL, path: endpoint.path)
         var request = URLRequest(url: url)
         request.httpMethod = HTTPMethod.post.rawValue
         for (key, value) in configuration.headers { request.setValue(value, forHTTPHeaderField: key) }
@@ -288,7 +293,7 @@ actor APIClient {
         filename: String,
         mimeType: String
     ) async throws -> T {
-        let url = configuration.baseURL.appendingPathComponent(endpoint.path)
+        let url = Self.requestURL(base: configuration.baseURL, path: endpoint.path)
         var request = URLRequest(url: url)
         request.httpMethod = HTTPMethod.post.rawValue
         
@@ -426,6 +431,36 @@ protocol APIEndpoint {
 extension APIEndpoint {
     var headers: [String: String] {
         [:]
+    }
+}
+
+extension APIClient {
+    /// The URL for an endpoint path that may carry a query string (`/v3/contacts/search?handle=bob`).
+    ///
+    /// `appendingPathComponent` treats the whole string as one path segment and percent-encodes
+    /// the `?`, so the server is asked for a route that does not exist. The path and the query
+    /// have to be attached separately.
+    static func requestURL(base: URL, path: String) -> URL {
+        // Some callers percent-encode an identifier before putting it in the path (a DID's ":"
+        // becomes "%3A"). Appending that as-is encodes the "%" a second time and the server is
+        // asked about an identifier that does not exist. Decode first; appending encodes once.
+        func append(_ rawPath: String) -> URL {
+            base.appendingPathComponent(rawPath.removingPercentEncoding ?? rawPath)
+        }
+        guard let mark = path.firstIndex(of: "?") else {
+            return append(path)
+        }
+        let pathPart = String(path[..<mark])
+        let query = String(path[path.index(after: mark)...])
+        let url = append(pathPart)
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+        // Callers may already have percent-encoded values; keep those, encode anything else.
+        if query.removingPercentEncoding != nil, query.range(of: "%") != nil {
+            components.percentEncodedQuery = query
+        } else {
+            components.query = query
+        }
+        return components.url ?? url
     }
 }
 

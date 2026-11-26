@@ -32,6 +32,9 @@ services:
       - DEV_MODE=${DEV_MODE:-false}
       - ALLOW_DEV_OTP=${ALLOW_DEV_OTP:-false}
       - LOG_LEVEL=debug
+      # One line per request (method, path without identifiers, status). Never who called.
+      - ECHO_ACCESS_LOG=${ECHO_ACCESS_LOG:-true}
+      - ECHO_ACCESS_LOG_ID_TAILS=${ECHO_ACCESS_LOG_ID_TAILS:-false}
       # Backing services (in-cluster)
       - DATABASE_HOST=postgres
       - DATABASE_PORT=5432

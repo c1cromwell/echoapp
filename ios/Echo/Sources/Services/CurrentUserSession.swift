@@ -4,6 +4,12 @@ import Foundation
 /// Resolves the authenticated user's DID for messaging and contacts (Wave 0).
 enum CurrentUserSession {
     static func currentDID() async -> String? {
+        // The DID is saved with the typed Keychain helper (`store(key:value:)`), which the request
+        // signer also reads. The untyped helper looks in a different place and never sees it, so
+        // reading it that way returned nothing until a later step wrote a second copy elsewhere.
+        if let did = try? await KeychainManager.shared.retrieve(key: "echo.did.current", as: String.self), !did.isEmpty {
+            return did
+        }
         if let did = try? await KeychainManager.shared.retrieve(key: "echo.did.current"), !did.isEmpty {
             return did
         }

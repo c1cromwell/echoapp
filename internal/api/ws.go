@@ -347,8 +347,10 @@ func (h *Hub) SetConversationNotificationPrefs(s *messaging.ConversationNotifica
 func (h *Hub) deliverOrQueue(recipient string, data []byte, senderID, conversationID string, silent bool) bool {
 	queueData := scrubRelayMetadataForQueue(data)
 	if h.SendToUser(recipient, queueData) {
+		debugTrace("message for %s: sent to its open socket", recipient)
 		return true
 	}
+	debugTrace("message for %s: no open socket, queued", recipient)
 	h.enqueueOffline(recipient, queueData, senderID, conversationID)
 	h.notifyUndelivered(recipient, senderID, conversationID, silent)
 	return false
@@ -460,6 +462,7 @@ func (h *Hub) flushOffline(c *Client) {
 			if err != nil || len(msgs) == 0 {
 				return
 			}
+			debugTrace("handing %s its queued messages", c.userID)
 			for i, msg := range msgs {
 				if msg == nil || len(msg.Payload) == 0 {
 					continue
@@ -696,6 +699,7 @@ func ServeWS(hub *Hub, userIDExtractor func(token string) string, w http.Respons
 		log.Printf("ws upgrade error: %v", err)
 		return
 	}
+	debugTrace("socket opened by %s", userID)
 
 	client := &Client{
 		hub:    hub,

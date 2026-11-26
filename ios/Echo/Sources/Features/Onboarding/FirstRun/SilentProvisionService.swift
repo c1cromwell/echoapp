@@ -205,7 +205,24 @@ protocol ProvisionPasskeyProtocol: Sendable {
 // MARK: - Real implementations
 
 final class RealProvisionSecureEnclave: ProvisionSecureEnclaveProtocol, @unchecked Sendable {
+    /// Whether to reuse the identity key that already exists instead of making another.
+    ///
+    /// The Face ID step of first run creates the identity key, registers it and records the DID.
+    /// This step runs straight afterwards. Making a second key here replaced the first under the
+    /// same name: the account was registered twice, and until the swap finished every signed
+    /// request, including the first sign-in, was refused.
+    static func shouldReuseExistingKey(recordedDID: String?, existingPublicKey: Data?) -> Bool {
+        guard let recordedDID, !recordedDID.isEmpty, let existingPublicKey, !existingPublicKey.isEmpty else { return false }
+        let hex = existingPublicKey.map { String(format: "%02x", $0) }.joined()
+        return (try? DidKeyDeriver.deriveFromPublicKeyHex(hex)) == recordedDID
+    }
+
     func createIdentityKey() async throws -> Data {
+        let recordedDID = try? await KeychainManager.shared.retrieve(key: "echo.did.current", as: String.self)
+        let existing = try? await SecureEnclaveManager.shared.getPublicKey(id: "echo-identity-signing")
+        if Self.shouldReuseExistingKey(recordedDID: recordedDID ?? nil, existingPublicKey: existing), let existing {
+            return existing
+        }
         let base64 = try await SecureEnclaveManager.shared
             .generateBiometricProtectedKey(id: "echo-identity-signing")
         guard let data = Data(base64Encoded: base64) else {

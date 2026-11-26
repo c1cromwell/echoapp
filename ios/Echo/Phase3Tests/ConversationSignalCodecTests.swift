@@ -1,3 +1,4 @@
+import CryptoKit
 import XCTest
 @testable import Echo
 
@@ -260,6 +261,154 @@ final class RecoveryLinkSyncTests: XCTestCase {
 
     func testEndpoint() {
         XCTAssertEqual(RecoveryLinkSync.LinkEndpoint().path, "/v1/identity/link-wallet")
+    }
+}
+@MainActor
+final class DIContainerTests: XCTestCase {
+    // Every screen that talks to the server asks the container for its client. If the container
+    // cannot build one, Contacts, Rewards, search and key registration all silently do nothing.
+    func testFactoryBackedServicesResolve() {
+        XCTAssertNotNil(DIContainer.shared.resolveAPIClient(), "the API client did not resolve")
+        XCTAssertNotNil(DIContainer.shared.resolveGamificationAPI(), "the gamification API did not resolve")
+        XCTAssertNotNil(DIContainer.shared.resolveConversationSignalService(), "the signal service did not resolve")
+        XCTAssertNotNil(DIContainer.shared.resolveKeychain())
+    }
+
+    func testAResolvedServiceIsReused() {
+        let first = DIContainer.shared.resolveAPIClient()
+        let second = DIContainer.shared.resolveAPIClient()
+        XCTAssertTrue(first === second, "resolving twice built two clients")
+    }
+}
+final class RequestSigningTests: XCTestCase {
+    // What the app signs must be the very bytes the server rebuilds and hashes once. If the app
+    // signs a hash of them instead, no signed request is ever accepted.
+    func testSigningInputIsTheCanonicalStringItself() {
+        let input = PasskeySigningInterceptor.signingInput(
+            method: "POST", path: "/v1/auth/session", timestamp: "1795737600", body: Data("{}".utf8)
+        )
+        XCTAssertEqual(
+            String(decoding: input, as: UTF8.self),
+            "POST\n/v1/auth/session\n1795737600\n44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        )
+        XCTAssertNotEqual(input.count, 32, "the signing input is a 32-byte hash; it must be the message")
+    }
+
+    func testEmptyBodyHashesTheEmptyString() {
+        let input = PasskeySigningInterceptor.signingInput(method: "GET", path: "/v3/prefs", timestamp: "1", body: Data())
+        XCTAssertTrue(String(decoding: input, as: UTF8.self)
+            .hasSuffix("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"))
+    }
+
+    // End to end with a software key: a signature made the way the app makes one verifies against
+    // the message hashed once, which is what the server does.
+    func testSignatureVerifiesTheWayTheServerChecksIt() throws {
+        let key = P256.Signing.PrivateKey()
+        let input = PasskeySigningInterceptor.signingInput(method: "PUT", path: "/v3/messages/delivery-key", timestamp: "42", body: Data("{\"a\":1}".utf8))
+        let signature = try key.signature(for: input) // hashes with SHA-256, as SecureEnclaveManager.sign does
+        XCTAssertTrue(key.publicKey.isValidSignature(signature, for: SHA256.hash(data: input)))
+    }
+}
+final class IdentityEndpointTests: XCTestCase {
+    // Must match the server route (internal/api/router.go: "/identity/resolve/").
+    func testPeerKeysAreResolvedAtTheRouteTheServerServes() {
+        XCTAssertEqual(IdentityEndpoint.resolveDID(did: "did:key:zAbc").path, "/identity/resolve/did:key:zAbc")
+    }
+}
+
+final class SessionTokenOwnershipTests: XCTestCase {
+    private func jwt(sub: String) -> String {
+        func b64(_ object: [String: Any]) -> String {
+            let data = try! JSONSerialization.data(withJSONObject: object)
+            return data.base64EncodedString().replacingOccurrences(of: "+", with: "-")
+                .replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
+        }
+        return "\(b64(["alg": "ES256"])).\(b64(["sub": sub, "exp": 4_102_444_800])).sig"
+    }
+
+    // The Keychain outlives the app. A token left by a previous account must not be used once
+    // this device is a different identity.
+    func testATokenForAnotherIdentityIsNotThisDevices() {
+        let old = jwt(sub: "did:key:zOldAccount")
+        XCTAssertEqual(SessionTokenBootstrap.subject(of: old), "did:key:zOldAccount")
+        XCTAssertTrue(SessionTokenBootstrap.belongsToSomeoneElse(old, currentDID: "did:key:zNewAccount"))
+        XCTAssertFalse(SessionTokenBootstrap.belongsToSomeoneElse(old, currentDID: "did:key:zOldAccount"))
+    }
+
+    func testAnUnreadableTokenOrUnknownIdentityIsLeftAlone() {
+        XCTAssertFalse(SessionTokenBootstrap.belongsToSomeoneElse("not-a-jwt", currentDID: "did:key:zNew"))
+        XCTAssertFalse(SessionTokenBootstrap.belongsToSomeoneElse(jwt(sub: "did:key:zOld"), currentDID: nil))
+    }
+}
+
+final class MessagingKeyRegistrationTests: XCTestCase {
+    // A second account on the same install has its own identity and must publish its own key.
+    func testANewIdentityStillHasToRegister() {
+        XCTAssertTrue(MessagingKeyRegistrar.needsRegistration(did: "did:key:zNew", lastRegistered: nil))
+        XCTAssertTrue(MessagingKeyRegistrar.needsRegistration(did: "did:key:zNew", lastRegistered: "did:key:zOld"))
+        XCTAssertFalse(MessagingKeyRegistrar.needsRegistration(did: "did:key:zNew", lastRegistered: "did:key:zNew"))
+        XCTAssertFalse(MessagingKeyRegistrar.needsRegistration(did: "", lastRegistered: nil))
+    }
+}
+
+final class FirstRunIdentityTests: XCTestCase {
+    // First run must end with one identity, not two: the provisioning step reuses the key the
+    // Face ID step made when that key is the one the recorded DID was derived from.
+    func testTheKeyFromTheFaceIDStepIsReused() throws {
+        let key = P256.Signing.PrivateKey().publicKey.x963Representation
+        let hex = key.map { String(format: "%02x", $0) }.joined()
+        let did = try DidKeyDeriver.deriveFromPublicKeyHex(hex)
+        XCTAssertTrue(RealProvisionSecureEnclave.shouldReuseExistingKey(recordedDID: did, existingPublicKey: key))
+    }
+
+    func testANewKeyIsMadeWhenThereIsNothingToReuse() throws {
+        let key = P256.Signing.PrivateKey().publicKey.x963Representation
+        let other = P256.Signing.PrivateKey().publicKey.x963Representation
+        let otherDID = try DidKeyDeriver.deriveFromPublicKeyHex(other.map { String(format: "%02x", $0) }.joined())
+        XCTAssertFalse(RealProvisionSecureEnclave.shouldReuseExistingKey(recordedDID: nil, existingPublicKey: key))
+        XCTAssertFalse(RealProvisionSecureEnclave.shouldReuseExistingKey(recordedDID: "did:key:zX", existingPublicKey: nil))
+        XCTAssertFalse(RealProvisionSecureEnclave.shouldReuseExistingKey(recordedDID: otherDID, existingPublicKey: key),
+                       "a key that does not belong to the recorded identity must not be reused")
+    }
+}
+
+final class RequestURLTests: XCTestCase {
+    private let base = URL(string: "http://localhost:8000")!
+
+    // A query string must reach the server as a query string. It used to be folded into the path
+    // with its "?" encoded, and the server answered 404 to every search.
+    func testQueryIsNotFoldedIntoThePath() {
+        let url = APIClient.requestURL(base: base, path: "/v3/contacts/search?handle=bob")
+        XCTAssertEqual(url.absoluteString, "http://localhost:8000/v3/contacts/search?handle=bob")
+        XCTAssertEqual(url.path, "/v3/contacts/search")
+        XCTAssertEqual(url.query, "handle=bob")
+    }
+
+    func testPathWithoutAQueryIsUnchanged() {
+        XCTAssertEqual(APIClient.requestURL(base: base, path: "/v3/prefs").absoluteString, "http://localhost:8000/v3/prefs")
+    }
+
+    func testAnAlreadyEncodedValueIsNotEncodedTwice() {
+        let url = APIClient.requestURL(base: base, path: "/v3/profile/view?did=did%3Akey%3AzAbc")
+        XCTAssertEqual(url.absoluteString, "http://localhost:8000/v3/profile/view?did=did%3Akey%3AzAbc")
+    }
+
+    // A DID encoded by the caller must reach the server encoded once, not twice.
+    func testAPreEncodedIdentifierInThePathIsNotEncodedTwice() {
+        let did = "did:key:zDnaeAbc"
+        let preEncoded = did.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
+        XCTAssertEqual(preEncoded, "did%3Akey%3AzDnaeAbc")
+        let fromEncoded = APIClient.requestURL(base: base, path: "/identity/resolve/\(preEncoded)")
+        let fromRaw = APIClient.requestURL(base: base, path: "/identity/resolve/\(did)")
+        XCTAssertEqual(fromEncoded.path, "/identity/resolve/did:key:zDnaeAbc", "the server would see a different identifier")
+        XCTAssertEqual(fromEncoded.path, fromRaw.path)
+        XCTAssertFalse(fromEncoded.absoluteString.contains("%25"), "the percent sign was encoded again")
+    }
+
+    func testEveryEndpointThatCarriesAQueryKeepsIt() {
+        let leaderboard = APIClient.requestURL(base: base, path: GamificationEndpoint.leaderboard(window: "weekly").path)
+        XCTAssertEqual(leaderboard.path, "/v1/gamification/leaderboard")
+        XCTAssertEqual(leaderboard.query, "window=weekly")
     }
 }
 #endif

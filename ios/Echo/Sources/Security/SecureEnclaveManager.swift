@@ -121,6 +121,12 @@ actor SecureEnclaveManager {
   }
 
   /// Simulator-only: software P-256 key (no Secure Enclave available).
+  /// Where the Simulator's stand-in identity key is kept. It has its own Keychain service so that
+  /// signing out, which clears the session services, leaves it alone, as it leaves the real
+  /// Secure Enclave key alone on a device. Kept with the session items, the key was destroyed by
+  /// signing out and the account could never sign back in on a Simulator.
+  static let simulatorKeyService = "com.echo.simulator-identity"
+
   private func generateSimulatorKey(id keyId: String) async throws -> String {
     let privateKey = P256.Signing.PrivateKey()
     let pubData = privateKey.publicKey.x963Representation
@@ -129,7 +135,8 @@ actor SecureEnclaveManager {
     // Store private key in Keychain so sign() can retrieve it
     try await keychain.store(
       data: privateKey.rawRepresentation,
-      key: "sim_privkey_\(keyId)"
+      key: "sim_privkey_\(keyId)",
+      service: Self.simulatorKeyService
     )
 
     try await keychain.store(
@@ -326,7 +333,8 @@ actor SecureEnclaveManager {
   /// Simulator-only: sign with the software key stored in Keychain.
   private func signSimulator(data: Data, keyId: String) async throws -> Data {
     guard let keyData = try await keychain.retrieveData(
-      key: "sim_privkey_\(keyId)"
+      key: "sim_privkey_\(keyId)",
+      service: Self.simulatorKeyService
     ) else {
       throw SecureEnclaveError.keyNotFound(keyId)
     }

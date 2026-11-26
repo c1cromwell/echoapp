@@ -302,7 +302,11 @@ func (rt *Router) Handler() http.Handler {
 
 	// Middleware chain: CORS -> body limit -> Auth -> RateLimit -> RequestID -> core.
 	// The limit sits in front of auth because passkey verification reads the body.
-	return rt.corsMiddleware(rt.bodyLimitMiddleware(rt.authMiddleware(rt.rateLimitMiddleware(rt.requestIDMiddleware(core)))))
+	chain := rt.corsMiddleware(rt.bodyLimitMiddleware(rt.authMiddleware(rt.rateLimitMiddleware(rt.requestIDMiddleware(core)))))
+	if accessLogEnabled() {
+		return accessLogMiddleware(chain)
+	}
+	return chain
 }
 
 // bodyLimitMiddleware caps request bodies. JSON routes get 1 MiB. Media

@@ -19,6 +19,11 @@ enum MessageRelaySession {
         }
 
         try? await service.connect(accessToken: token)
+        // Publish this account's encryption key before anything else: until it is on the server,
+        // a message from a new contact is encrypted to a key this device cannot decrypt with.
+        if let did = await CurrentUserSession.currentDID() {
+            await MessagingKeyRegistrar().ensureRegistered(did: did)
+        }
         if let client = DIContainer.shared.resolveAPIClient() {
             await DeliveryKeyRegistration.registerIfNeeded(apiClient: client)
             await RecoveryLinkSync.syncIfNeeded(apiClient: client)
@@ -109,7 +114,8 @@ enum RecoveryLinkSync {
 
     @discardableResult
     static func syncIfNeeded(apiClient: APIClient, did knownDID: String? = nil, defaults: UserDefaults = .standard) async -> Outcome {
-        let address = try? await KeychainManager.shared.retrieve(key: WalletKeychain.dagAddressKey)
+        // Saved with the typed Keychain helper; the untyped one looks elsewhere and finds nothing.
+        let address = (try? await KeychainManager.shared.retrieve(key: WalletKeychain.dagAddressKey, as: String.self)) ?? nil
         guard let address, !address.isEmpty else { return .nothingToSend }
         guard needsSync(address: address, lastSent: defaults.string(forKey: syncedKey)) else { return .alreadySent }
         var resolved = knownDID
@@ -176,14 +182,44 @@ actor SessionTokenBootstrap {
     }
 
     private static func resolve() async -> String? {
-        if let stored = try? await KeychainManager.shared.getAuthToken(),
-           !stored.isEmpty, !isExpiring(stored) {
-            return stored
+        let currentDID = await CurrentUserSession.currentDID()
+        if let stored = try? await KeychainManager.shared.getAuthToken(), !stored.isEmpty {
+            if belongsToSomeoneElse(stored, currentDID: currentDID) {
+                // A session left over from a different identity. The Keychain outlives the app:
+                // after deleting the app and creating a new account, the old account's tokens
+                // are still here. Using them would sign the socket in as the old identity while
+                // every signed request speaks as the new one. Drop them and start again.
+                try? await KeychainManager.shared.delete(key: "authToken")
+                try? await KeychainManager.shared.delete(key: "refreshToken")
+                return await openSession()
+            }
+            if !isExpiring(stored) { return stored }
         }
-        if let refreshed = await refresh() {
+        if let refreshed = await refresh(), !belongsToSomeoneElse(refreshed, currentDID: currentDID) {
             return refreshed
         }
         return await openSession()
+    }
+
+    /// The identity a session token was issued to (its `sub` claim), if readable.
+    static func subject(of jwt: String) -> String? {
+        let parts = jwt.split(separator: ".")
+        guard parts.count == 3 else { return nil }
+        var payload = String(parts[1])
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        while payload.count % 4 != 0 { payload.append("=") }
+        guard let data = Data(base64Encoded: payload),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        return json["sub"] as? String
+    }
+
+    /// True when the token names an identity other than the one this device now is.
+    static func belongsToSomeoneElse(_ jwt: String, currentDID: String?) -> Bool {
+        guard let currentDID, !currentDID.isEmpty, let subject = subject(of: jwt), !subject.isEmpty else {
+            return false
+        }
+        return subject != currentDID
     }
 
     /// True when the JWT's `exp` is missing, unreadable, or under a minute away.

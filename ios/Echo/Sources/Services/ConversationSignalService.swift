@@ -5,6 +5,8 @@ import Foundation
 final class ConversationSignalService: @unchecked Sendable {
     private let transport: ConversationSignalTransport
     private let lock = NSLock()
+    /// The task opening the most recent sealed message; the next one waits for it.
+    private var sealedOpening: Task<Void, Never>?
     private var handlersByConversation: [String: @Sendable (ConversationSignalEvent) -> Void] = [:]
     private var onGroupKeyReceived: (@Sendable (GroupKeySignalEvent) -> Void)?
     /// Updates inbox preview when a text arrives and no chat handler is registered.
@@ -263,10 +265,17 @@ final class ConversationSignalService: @unchecked Sendable {
         // A sealed message names neither its sender nor its thread. Open it first; everything
         // after this sees an ordinary message from a known peer in a known thread.
         if case .textMessage(let textEvent) = event, textEvent.sealedPayload != nil {
-            Task { [weak self] in
+            // One at a time, in arrival order. Opening each in its own task let two messages
+            // that arrived together be shown in either order.
+            lock.lock()
+            let previous = sealedOpening
+            let next = Task { [weak self] in
+                await previous?.value
                 guard let opened = await SealedInbound.open(textEvent) else { return }
                 self?.dispatch(.textMessage(opened))
             }
+            sealedOpening = next
+            lock.unlock()
             return
         }
         #endif

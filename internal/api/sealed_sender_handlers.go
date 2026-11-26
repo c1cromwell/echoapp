@@ -64,9 +64,11 @@ func (c *Client) routeSealedText(msg WSMessage) {
 	}
 	var payload sealedTextPayload
 	if err := json.Unmarshal(msg.Payload, &payload); err != nil || payload.DeliveryToken == "" {
+		debugTrace("sealed message from %s dropped: no delivery token in it", c.userID)
 		return
 	}
 	if !c.hub.sealedTokens.Consume(payload.DeliveryToken, c.userID) {
+		debugTrace("sealed message from %s dropped: its delivery token was not accepted", c.userID)
 		return
 	}
 	relay := msg
