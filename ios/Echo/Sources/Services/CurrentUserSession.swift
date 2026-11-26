@@ -20,6 +20,10 @@ enum CurrentUserSession {
     }
 
     static func currentUsername() async -> String {
+        // Saved with the typed helper, like the DID above.
+        if let name = try? await KeychainManager.shared.retrieve(key: "echo.username.current", as: String.self), !name.isEmpty {
+            return name
+        }
         if let name = try? await KeychainManager.shared.retrieve(key: "echo.username.current"), !name.isEmpty {
             return name
         }

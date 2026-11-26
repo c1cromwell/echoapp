@@ -864,9 +864,17 @@ func (h *V3Handlers) handleMediaScan(w http.ResponseWriter, r *http.Request, fil
 
 // --- Identity Handlers (stubs connecting to existing DID service) ---
 
+// handleAuthRegister claims a username for the caller's own identity.
+// POST /v3/auth/register {"username":"alice","publicKey":"<P-256 hex>"}
+//
+// The caller must be signed in as the identity the public key belongs to: a public key is not a
+// secret, and without this check anyone could attach a username to someone else's identity.
+// Usernames are unique regardless of case ("Alice" and "alice" are the same name). Asking again
+// for a username the caller already holds succeeds, so a retry after a dropped reply is safe.
 func (h *V3Handlers) handleAuthRegister(w http.ResponseWriter, r *http.Request) {
+	reqID := r.Header.Get("X-Request-ID")
 	if r.Method != http.MethodPost {
-		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r.Header.Get("X-Request-ID"))
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", reqID)
 		return
 	}
 
@@ -875,44 +883,68 @@ func (h *V3Handlers) handleAuthRegister(w http.ResponseWriter, r *http.Request) 
 		PublicKey string `json:"publicKey"`
 	}
 	if err := h.readJSON(r, &req); err != nil {
-		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r.Header.Get("X-Request-ID"))
+		WriteError(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", reqID)
+		return
+	}
+	username := strings.TrimPrefix(strings.TrimSpace(req.Username), "@")
+	if username == "" || req.PublicKey == "" {
+		WriteError(w, http.StatusBadRequest, "MISSING_FIELDS", "username and publicKey are required", reqID)
+		return
+	}
+	if !usernameRegex.MatchString(username) {
+		WriteError(w, http.StatusBadRequest, "INVALID_USERNAME", "username must be 3-30 letters, numbers or underscores", reqID)
 		return
 	}
 
-	if req.Username == "" || req.PublicKey == "" {
-		WriteError(w, http.StatusBadRequest, "MISSING_FIELDS", "username and publicKey are required", r.Header.Get("X-Request-ID"))
-		return
-	}
-
-	pubHex := strings.TrimSpace(req.PublicKey)
-	did, derr := didkey.DeriveFromPublicKeyHex(pubHex)
+	did, derr := didkey.DeriveFromPublicKeyHex(strings.TrimSpace(req.PublicKey))
 	if derr != nil {
-		WriteError(w, http.StatusBadRequest, "INVALID_PUBLIC_KEY", "publicKey must be SEC1 P-256 hex (uncompressed or compressed)", r.Header.Get("X-Request-ID"))
+		WriteError(w, http.StatusBadRequest, "INVALID_PUBLIC_KEY", "publicKey must be SEC1 P-256 hex (uncompressed or compressed)", reqID)
+		return
+	}
+	caller := h.getDID(r)
+	if caller == "" {
+		WriteError(w, http.StatusUnauthorized, "AUTH_REQUIRED", "authentication required", reqID)
+		return
+	}
+	if caller != did {
+		WriteError(w, http.StatusForbidden, "DID_MISMATCH", "publicKey must be the caller's own key", reqID)
 		return
 	}
 
-	user := &database.User{
-		UserID:   "user-" + req.Username,
-		DID:      did,
-		Username: req.Username,
+	respond := func(status int, user *database.User) {
+		WriteJSON(w, status, map[string]interface{}{
+			"userId":   user.UserID,
+			"did":      user.DID,
+			"username": user.Username,
+			"tier":     user.TrustTier,
+		})
 	}
 
+	// This identity already has a username: the same one is a repeat, a different one is refused.
+	if existing, err := h.DB.GetUserByDID(r.Context(), did); err == nil && existing != nil && existing.Username != "" {
+		if strings.EqualFold(existing.Username, username) {
+			respond(http.StatusOK, existing)
+			return
+		}
+		WriteError(w, http.StatusConflict, "ALREADY_REGISTERED", "this account already has a username", reqID)
+		return
+	}
+	if taken, err := h.DB.GetUserByUsername(r.Context(), username); err == nil && taken != nil {
+		WriteError(w, http.StatusConflict, "USERNAME_TAKEN", "that username is taken", reqID)
+		return
+	}
+
+	user := &database.User{UserID: "user-" + strings.ToLower(username), DID: did, Username: username}
 	if err := h.DB.CreateUser(r.Context(), user); err != nil {
-		WriteError(w, http.StatusConflict, "USER_EXISTS", "Username or DID already registered", r.Header.Get("X-Request-ID"))
+		// Lost a race with another registration of the same name.
+		WriteError(w, http.StatusConflict, "USERNAME_TAKEN", "that username is taken", reqID)
 		return
 	}
 
-	// Anchor the @username -> DID binding on the Identity Metagraph (D1). The
-	// Postgres row just created is a read-through cache of this public index;
-	// anchoring is best-effort and never blocks or fails registration.
+	// Anchor the username -> identity binding on the chain as hashes. Best-effort: it never
+	// blocks or fails registration.
 	h.anchorUsername(r.Context(), user.DID, user.Username)
-
-	WriteJSON(w, http.StatusCreated, map[string]interface{}{
-		"userId":   user.UserID,
-		"did":      user.DID,
-		"username": user.Username,
-		"tier":     user.TrustTier,
-	})
+	respond(http.StatusCreated, user)
 }
 
 // anchorUsername submits a public username->DID binding to the Identity

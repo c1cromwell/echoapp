@@ -532,7 +532,12 @@ enum SealedInbound {
             identityResolve: IdentityResolveClient(apiClient: client),
             apiClient: client
         )
-        guard let opened = try? await service.open(sealed) else { return nil }
+        guard let opened = try? await service.open(sealed) else {
+            // It cannot be decrypted, so there is no sender and no thread to put it in. Say so
+            // rather than drop it without a word.
+            UndecryptableMessages.record()
+            return nil
+        }
         if BlockedSenders.contains(opened.senderDID) { return nil }
         let localDID = await CurrentUserSession.currentDID() ?? ""
         guard let resolved = Self.event(from: opened, localDID: localDID, fallbackMessageId: event.messageId) else {
@@ -540,6 +545,27 @@ enum SealedInbound {
         }
         keys.notePending(peerDID: opened.senderDID, key: opened.senderDeliveryKey)
         return resolved
+    }
+}
+
+/// Messages that arrived but could not be decrypted on this device.
+enum UndecryptableMessages {
+    static let countKey = "echo.undecryptable.count"
+    static let notice = "A message arrived that this device could not decrypt. Ask the sender to send it again."
+
+    static var count: Int { UserDefaults.standard.integer(forKey: countKey) }
+
+    static func record(defaults: UserDefaults = .standard) {
+        defaults.set(defaults.integer(forKey: countKey) + 1, forKey: countKey)
+        NotificationCenter.default.post(
+            name: .echoRelayError,
+            object: nil,
+            userInfo: ["message": notice, "code": "UNDECRYPTABLE"]
+        )
+    }
+
+    static func clear(defaults: UserDefaults = .standard) {
+        defaults.removeObject(forKey: countKey)
     }
 }
 

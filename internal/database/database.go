@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -610,11 +611,16 @@ func (m *MemoryDB) GetUserByUsername(ctx context.Context, username string) (*Use
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	u, ok := m.byUser[username]
-	if !ok {
-		return nil, ErrNotFound
+	// Usernames are unique regardless of case.
+	if u, ok := m.byUser[username]; ok {
+		return u, nil
 	}
-	return u, nil
+	for name, u := range m.byUser {
+		if strings.EqualFold(name, username) {
+			return u, nil
+		}
+	}
+	return nil, ErrNotFound
 }
 
 func (m *MemoryDB) UpdatePhoneDiscoveryOptIn(_ context.Context, did string, optIn *bool) error {

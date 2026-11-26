@@ -2,11 +2,37 @@
 import Foundation
 
 /// Sends and receives conversation signals and text chat over a shared WebSocket.
+/// Runs async work one item at a time, in the order it was added. Incoming messages are opened,
+/// decrypted and stored asynchronously; without this, two that arrive together can be shown in
+/// either order.
+final class SerialAsyncQueue: @unchecked Sendable {
+    private let lock = NSLock()
+    private var tail: Task<Void, Never>?
+
+    func enqueue(_ work: @escaping @Sendable () async -> Void) {
+        lock.lock()
+        let previous = tail
+        tail = Task {
+            await previous?.value
+            await work()
+        }
+        lock.unlock()
+    }
+
+    /// Waits until everything added so far has run.
+    func drain() async {
+        lock.lock()
+        let current = tail
+        lock.unlock()
+        await current?.value
+    }
+}
+
 final class ConversationSignalService: @unchecked Sendable {
     private let transport: ConversationSignalTransport
     private let lock = NSLock()
-    /// The task opening the most recent sealed message; the next one waits for it.
-    private var sealedOpening: Task<Void, Never>?
+    /// Sealed messages are opened one at a time, in arrival order.
+    private let sealedQueue = SerialAsyncQueue()
     private var handlersByConversation: [String: @Sendable (ConversationSignalEvent) -> Void] = [:]
     private var onGroupKeyReceived: (@Sendable (GroupKeySignalEvent) -> Void)?
     /// Updates inbox preview when a text arrives and no chat handler is registered.
@@ -265,17 +291,10 @@ final class ConversationSignalService: @unchecked Sendable {
         // A sealed message names neither its sender nor its thread. Open it first; everything
         // after this sees an ordinary message from a known peer in a known thread.
         if case .textMessage(let textEvent) = event, textEvent.sealedPayload != nil {
-            // One at a time, in arrival order. Opening each in its own task let two messages
-            // that arrived together be shown in either order.
-            lock.lock()
-            let previous = sealedOpening
-            let next = Task { [weak self] in
-                await previous?.value
+            sealedQueue.enqueue { [weak self] in
                 guard let opened = await SealedInbound.open(textEvent) else { return }
                 self?.dispatch(.textMessage(opened))
             }
-            sealedOpening = next
-            lock.unlock()
             return
         }
         #endif

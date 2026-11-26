@@ -128,8 +128,13 @@ actor APIClient {
 
     /// Creates an APIClient whose URLSession uses `pinner` as its delegate.
     /// Pass `nil` to disable certificate pinning (dev/test builds).
-    init(configuration: APIConfiguration = .default, pinner: CertificatePinner? = nil) {
+    ///
+    /// Pass interceptors here rather than adding them afterwards: `addInterceptor` runs on the
+    /// actor, so adding the request signer in a detached task let the first few requests after
+    /// launch leave unsigned and be refused.
+    init(configuration: APIConfiguration = .default, pinner: CertificatePinner? = nil, interceptors: [RequestInterceptor] = []) {
         self.configuration = configuration
+        self.interceptors = interceptors
 
         let sessionConfig = URLSessionConfiguration.default
         sessionConfig.timeoutIntervalForRequest = configuration.timeout

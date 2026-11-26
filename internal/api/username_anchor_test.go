@@ -44,7 +44,7 @@ func TestV3AuthRegister_AnchorsUsername(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/v3/auth/register", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
-	h.handleAuthRegister(rec, req)
+	h.handleAuthRegister(rec, asCallerOfKey(t, req))
 
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("register want 201, got %d: %s", rec.Code, rec.Body.String())
@@ -73,7 +73,7 @@ func TestV3AuthRegister_NoMetagraph(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/v3/auth/register", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
-	h.handleAuthRegister(rec, req)
+	h.handleAuthRegister(rec, asCallerOfKey(t, req))
 
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("register want 201 without metagraph, got %d", rec.Code)

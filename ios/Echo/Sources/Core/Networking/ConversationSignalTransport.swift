@@ -29,6 +29,12 @@ final class WebSocketConversationSignalTransport: NSObject, ConversationSignalTr
             self?.onTextMessage?(text)
         }
         self.bridge = bridge
+        #if os(iOS)
+        await webSocket.setTokenProvider { rejected in
+            if rejected { await SessionTokenBootstrap.shared.discardAccessToken() }
+            return await SessionTokenBootstrap.shared.validAccessToken()
+        }
+        #endif
         try await webSocket.connect(accessToken: accessToken, apiBaseURL: apiBaseURL, delegate: bridge)
     }
 

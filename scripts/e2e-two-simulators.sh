@@ -17,8 +17,6 @@
 # The backend should run with ECHO_ACCESS_LOG=true (the local stack does) so the summary can show
 # what the app asked the server. ECHO_ACCESS_LOG_ID_TAILS=true adds delivery tracing; local only.
 #
-# One step is a fixture, not the product: the app does not yet register usernames with the
-# server, so the two usernames are inserted into the local database after the accounts exist.
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SIM_A="${SIM_A:-9E754BCF-A401-42A8-A5C4-034B05804579}"   # iPhone 17 Pro, iOS 26.0
@@ -59,11 +57,12 @@ grep -E "\*\* TEST BUILD" "$WORK/build.log" || { grep -E "error:" "$WORK/build.l
 T=$(date +%H%M%S); AL="alice$T"; BO="bob$T"
 START=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 echo "== 1. Alice creates an account ($AL)"; run "$SIM_A" testCreateAccount 1-alice-creates-account "TEST_RUNNER_E2E_USER=$AL"; sleep 6
-DA=$(sql "select did from identity_device order by created_at desc limit 1")
 echo "== 2. Bob creates an account ($BO)";   run "$SIM_B" testCreateAccount 2-bob-creates-account "TEST_RUNNER_E2E_USER=$BO"; sleep 6
-DB=$(sql "select did from identity_device where device_label='primary' order by created_at desc limit 1")
-DA=$(sql "select did from identity_device where device_label='primary' and did <> '$DB' order by created_at desc limit 1")
-sql "insert into users (user_id, did, username, trust_tier, display_name) values ('user-$AL','$DA','$AL',1,'$AL'), ('user-$BO','$DB','$BO',1,'$BO')" >/dev/null  # fixture
+# The app registers its own username. Nothing is inserted here: if these come back empty the
+# run fails, as it should.
+DA=$(sql "select did from users where lower(username) = lower('$AL')")
+DB=$(sql "select did from users where lower(username) = lower('$BO')")
+if [ -n "$DA" ] && [ -n "$DB" ]; then echo "   both usernames were registered by the app"; else echo "   FAIL: a username was not registered by the app ($AL: ${DA:-missing}, $BO: ${DB:-missing})"; fi
 
 echo "== 3. Bob finds Alice by username and sends two messages (Alice is offline)"
 run "$SIM_B" testConversation 3-bob-sends-first-messages "TEST_RUNNER_E2E_PEER=$AL" TEST_RUNNER_E2E_TAG=bob-1 "TEST_RUNNER_E2E_SEND=Hello Alice 👋|How are you today?"
@@ -105,6 +104,7 @@ echo "== what the server holds for the two accounts"
 sql "select 'identities', count(*) from identity_device where did in ('$DA','$DB') and device_label='primary'
      union all select 'encryption keys published', count(*) from identity_device where did in ('$DA','$DB') and device_label<>'primary'
      union all select 'recovery links', count(*) from wallet_accounts where did in ('$DA','$DB')
+     union all select 'usernames registered by the app', count(*) from users where did in ('$DA','$DB')
      union all select 'delivery keys', count(*) from delivery_keys where did in ('$DA','$DB')
      union all select 'messages queued then delivered', count(*) from message_queue where recipient_did in ('$DA','$DB') and status='delivered'
      union all select 'queue rows still holding a message', count(*) from message_queue where recipient_did in ('$DA','$DB') and octet_length(encrypted_payload)>0

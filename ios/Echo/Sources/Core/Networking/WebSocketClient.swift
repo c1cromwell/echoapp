@@ -136,6 +136,10 @@ actor WebSocketClient: NSObject, URLSessionWebSocketDelegate {
     // Connection state
     private var isConnected = false
     private var reconnectAttempt = 0
+    private var authenticatedURL: URL?
+    private var lastAccessToken: String?
+    private var handshakeRejected = false
+    private var tokenProvider: (@Sendable (_ rejected: Bool) async -> String?)?
     private var heartbeatTask: Task<Void, Never>?
     private var receiveTask: Task<Void, Never>?
     
@@ -170,8 +174,17 @@ actor WebSocketClient: NSObject, URLSessionWebSocketDelegate {
         try await connectInternal(url: url, accessToken: accessToken, delegate: delegate)
     }
 
+    /// Supplies the token for a reconnect. `rejected` is true when the server refused the last
+    /// handshake, in which case the provider must not hand back the same token.
+    func setTokenProvider(_ provider: (@Sendable (_ rejected: Bool) async -> String?)?) {
+        tokenProvider = provider
+    }
+
     private func connectInternal(url: URL, accessToken: String? = nil, delegate: WebSocketDelegate) async throws {
         self.delegate = delegate
+        authenticatedURL = accessToken == nil ? nil : url
+        lastAccessToken = accessToken
+        handshakeRejected = false
         
         let config = URLSessionConfiguration.default
         config.tlsMinimumSupportedProtocolVersion = .TLSv13
@@ -228,7 +241,16 @@ actor WebSocketClient: NSObject, URLSessionWebSocketDelegate {
         try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
         
         do {
-            try await connect(delegate: delegate ?? DummyDelegate())
+            if let url = authenticatedURL {
+                // Reconnect as the same account. This used to reconnect with no credentials at
+                // all, which the server refuses, so a dropped socket never came back.
+                let rejected = handshakeRejected
+                let token = await tokenProvider?(rejected) ?? (rejected ? nil : lastAccessToken)
+                guard let token, !token.isEmpty else { return }
+                try await connectInternal(url: url, accessToken: token, delegate: delegate ?? DummyDelegate())
+            } else {
+                try await connect(delegate: delegate ?? DummyDelegate())
+            }
         } catch {
             DispatchQueue.main.async {
                 self.delegate?.webSocketDidReceiveError(self, error: error)
@@ -348,6 +370,16 @@ actor WebSocketClient: NSObject, URLSessionWebSocketDelegate {
         }
     }
     
+    /// The handshake ended without a socket. A 401 or 403 means the token was refused.
+    nonisolated func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        guard let status = (task.response as? HTTPURLResponse)?.statusCode, status == 401 || status == 403 else { return }
+        Task { await self.markHandshakeRejected() }
+    }
+
+    private func markHandshakeRejected() {
+        handshakeRejected = true
+    }
+
     // MARK: - Connection State
     
     private func handleDisconnection() async {

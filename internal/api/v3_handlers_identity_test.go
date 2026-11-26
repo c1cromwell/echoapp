@@ -41,7 +41,7 @@ func TestV3HandleAuthRegister_DerivesDidKey(t *testing.T) {
 	req.Header.Set("X-Request-ID", "test-req")
 	rec := httptest.NewRecorder()
 
-	h.handleAuthRegister(rec, req)
+	h.handleAuthRegister(rec, asCallerOfKey(t, req))
 
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status %d, body %s", rec.Code, rec.Body.String())
@@ -71,7 +71,7 @@ func TestV3HandleAuthRegister_InvalidPublicKey(t *testing.T) {
 	req.Header.Set("X-Request-ID", "test-req-2")
 	rec := httptest.NewRecorder()
 
-	h.handleAuthRegister(rec, req)
+	h.handleAuthRegister(rec, asCallerOfKey(t, req))
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())

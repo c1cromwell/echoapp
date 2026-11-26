@@ -166,6 +166,8 @@ struct NewConversationSheet: View {
             }
             .padding(.horizontal, Spacing.lg.rawValue)
             .padding(.vertical, 12)
+            // The gap between the label and the chevron is empty; without a shape it ignores taps.
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }

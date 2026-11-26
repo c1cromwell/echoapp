@@ -87,11 +87,10 @@ final class DIContainer {
 
         registerFactory(ServiceKeys.apiClient) { [weak self] () -> APIClient in
             let pinner: CertificatePinner? = self?.resolve(ServiceKeys.certificatePinner)
-            let client = APIClient(configuration: APIConfiguration.default, pinner: pinner)
-            // Add passkey signing interceptor so all authenticated requests carry
-            // X-Sender-DID + X-Signature headers (WO-1 iOS side).
-            Task { await client.addInterceptor(PasskeySigningInterceptor()) }
-            return client
+            // The signer is installed at construction so every authenticated request, including
+            // the first after launch, carries X-Sender-DID + X-Signature (WO-1 iOS side).
+            return APIClient(configuration: APIConfiguration.default, pinner: pinner,
+                             interceptors: [PasskeySigningInterceptor()])
         }
         
         registerFactory(ServiceKeys.webSocketClient) {

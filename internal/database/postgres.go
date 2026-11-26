@@ -115,7 +115,7 @@ func (p *PostgresDB) GetUserByUsername(ctx context.Context, username string) (*U
 	var optIn *bool
 	err := p.pool.QueryRow(ctx,
 		`SELECT user_id, did, username, trust_tier, phone_discovery_opt_in, created_at, updated_at
-		 FROM users WHERE username = $1`, username).
+		 FROM users WHERE lower(username) = lower($1)`, username).
 		Scan(&u.UserID, &u.DID, &u.Username, &u.TrustTier, &optIn, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

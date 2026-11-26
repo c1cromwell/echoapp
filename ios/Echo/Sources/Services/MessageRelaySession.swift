@@ -5,6 +5,8 @@ import Foundation
 /// Opening the socket triggers server `flushOffline`, so queued messages land
 /// even if the recipient was not in the app when they were sent.
 enum MessageRelaySession {
+    private static let inboundQueue = SerialAsyncQueue()
+
     @MainActor
     static func connect() async {
         guard let service = DIContainer.shared.resolveConversationSignalService() else { return }
@@ -13,7 +15,8 @@ enum MessageRelaySession {
         guard let token = await SessionTokenBootstrap.shared.validAccessToken(), !token.isEmpty else { return }
 
         service.setInboundTextHandler { event in
-            Task { @MainActor in
+            // In arrival order: each message is decrypted and stored before the next starts.
+            inboundQueue.enqueue {
                 await ingestInbound(event)
             }
         }
@@ -27,6 +30,7 @@ enum MessageRelaySession {
         if let client = DIContainer.shared.resolveAPIClient() {
             await DeliveryKeyRegistration.registerIfNeeded(apiClient: client)
             await RecoveryLinkSync.syncIfNeeded(apiClient: client)
+            await UsernameRegistration.syncIfNeeded(apiClient: client)
         }
         await IncomingCallPresenter.shared.configureIfNeeded()
         ScreenshotAlertService.shared.configure(signalService: service)
@@ -73,6 +77,92 @@ enum MessageRelaySession {
         store.appendMessagePreview(conversationId: conversation.id, preview: preview)
         if ActiveChatRegistry.openConversationId != conversation.id {
             store.incrementUnread(conversationId: conversation.id)
+        }
+    }
+}
+
+// MARK: - Username
+
+/// Claims this account's username on the server, so other people can find it.
+///
+/// First run checks that the chosen name is free but, until this existed, never told the server
+/// the account had taken it: nobody could be found by username. This sends it once per identity,
+/// the first time the app is signed in. It never blocks sign-in; a failure is retried at the
+/// next connect.
+enum UsernameRegistration {
+    private static let registeredKey = "echo.username.registered"
+    /// Set when the server says the name now belongs to someone else (taken between the
+    /// availability check and registration). The account then has no findable name until the
+    /// person picks another.
+    static let conflictKey = "echo.username.conflict"
+
+    enum Outcome: Equatable {
+        case nothingToRegister, alreadyDone, registered, taken, failed
+    }
+
+    struct Endpoint: APIEndpoint {
+        var path: String { "/v3/auth/register" }
+    }
+
+    private struct Body: Encodable {
+        let username: String
+        let publicKey: String
+    }
+
+    private struct Reply: Decodable {
+        let did: String?
+        let username: String?
+    }
+
+    /// One entry per identity and name: a new account, or a changed name, registers again.
+    static func marker(did: String, username: String) -> String {
+        did + "|" + username.lowercased()
+    }
+
+    static func needsSync(did: String?, username: String?, lastRegistered: String?) -> Bool {
+        guard let did, !did.isEmpty, let username, isRegistrable(username) else { return false }
+        return marker(did: did, username: username) != lastRegistered
+    }
+
+    /// The server's rule: 3-30 letters, numbers or underscores. A placeholder such as "You" for
+    /// an account with no name yet must not be claimed.
+    static func isRegistrable(_ username: String) -> Bool {
+        guard (3...30).contains(username.count), username != "You" else { return false }
+        return username.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "_") }
+    }
+
+    private static func storedUsername() async -> String? {
+        if let name = try? await KeychainManager.shared.retrieve(key: "echo.username.current", as: String.self), !name.isEmpty {
+            return name
+        }
+        return UserDefaults.standard.string(forKey: "echo.displayName")
+    }
+
+    @discardableResult
+    static func syncIfNeeded(apiClient: APIClient, defaults: UserDefaults = .standard) async -> Outcome {
+        let did = await CurrentUserSession.currentDID()
+        let username = await storedUsername()
+        guard let did, !did.isEmpty, let username, isRegistrable(username) else { return .nothingToRegister }
+        guard needsSync(did: did, username: username, lastRegistered: defaults.string(forKey: registeredKey)) else {
+            return .alreadyDone
+        }
+        guard let key = try? await SecureEnclaveManager.shared.getPublicKey(id: "echo-identity-signing") else {
+            return .failed
+        }
+        let publicKeyHex = key.map { String(format: "%02x", $0) }.joined()
+        do {
+            let _: Reply = try await apiClient.post(endpoint: Endpoint(), body: Body(username: username, publicKey: publicKeyHex))
+            defaults.set(marker(did: did, username: username), forKey: registeredKey)
+            defaults.removeObject(forKey: conflictKey)
+            return .registered
+        } catch APIError.unexpectedStatusCode(409) {
+            // The name is someone else's now, or this account already holds a different one.
+            // Asking again will not change the answer.
+            defaults.set(marker(did: did, username: username), forKey: registeredKey)
+            defaults.set(username, forKey: conflictKey)
+            return .taken
+        } catch {
+            return .failed
         }
     }
 }
@@ -179,6 +269,12 @@ actor SessionTokenBootstrap {
         let value = await task.value
         inFlight = nil
         return value
+    }
+
+    /// Forgets the access token after the server refused it, so the next request for a token
+    /// refreshes or opens a new session instead of presenting the same one again.
+    func discardAccessToken() async {
+        try? await KeychainManager.shared.delete(key: "authToken")
     }
 
     private static func resolve() async -> String? {

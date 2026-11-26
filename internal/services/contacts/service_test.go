@@ -262,3 +262,22 @@ func TestInvalidInviteCode(t *testing.T) {
 		t.Errorf("expected ErrInvalidInvite, got %v", err)
 	}
 }
+
+// Every value the app sends for "how was this contact added" must map onto one the store accepts
+// (migrations/002_messaging.sql: manual, phone_discovery, qr_code, username_search, invite_link).
+func TestCanonicalAddedVia(t *testing.T) {
+	accepted := map[string]bool{"manual": true, "phone_discovery": true, "qr_code": true, "username_search": true, "invite_link": true}
+	for sent, want := range map[string]string{
+		"manual_add": "manual", "new_conversation": "username_search", "psi_discovery": "phone_discovery",
+		"qr_scan": "qr_code", "username_invite": "invite_link", "username_search": "username_search",
+		"": "manual", "something_new": "manual",
+	} {
+		got := canonicalAddedVia(sent)
+		if got != want {
+			t.Errorf("canonicalAddedVia(%q) = %q, want %q", sent, got, want)
+		}
+		if !accepted[got] {
+			t.Errorf("canonicalAddedVia(%q) = %q, which the store refuses", sent, got)
+		}
+	}
+}

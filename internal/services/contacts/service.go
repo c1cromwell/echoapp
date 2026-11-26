@@ -186,6 +186,26 @@ func (s *Service) SearchByUsername(ctx context.Context, callerDID, handle string
 	return results, nil
 }
 
+// canonicalAddedVia maps how the app describes where a contact came from onto the values the
+// store accepts. The app's names and the store's had drifted apart, and the store refuses
+// anything it does not know, so adding a contact from search, a QR code or an invite failed.
+func canonicalAddedVia(v string) string {
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "manual", "manual_add", "":
+		return "manual"
+	case "phone_discovery", "psi_discovery":
+		return "phone_discovery"
+	case "qr_code", "qr_scan":
+		return "qr_code"
+	case "username_search", "new_conversation":
+		return "username_search"
+	case "invite_link", "username_invite":
+		return "invite_link"
+	default:
+		return "manual"
+	}
+}
+
 // AddContact adds a contact to the caller's contact list.
 func (s *Service) AddContact(ctx context.Context, callerDID, contactDID, addedVia string) (*database.Contact, error) {
 	if callerDID == contactDID {
@@ -206,7 +226,7 @@ func (s *Service) AddContact(ctx context.Context, callerDID, contactDID, addedVi
 	contact := &database.Contact{
 		OwnerDID:   callerDID,
 		ContactDID: contactDID,
-		AddedVia:   addedVia,
+		AddedVia:   canonicalAddedVia(addedVia),
 	}
 
 	// Get trust badge for the contact

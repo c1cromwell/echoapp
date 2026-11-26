@@ -28,6 +28,7 @@ final class ChatDetailViewModel {
     // MARK: - Dependencies
 
     private let signalService: ConversationSignalService
+    private let inboundQueue = SerialAsyncQueue()
     private var relayErrorObserver: NSObjectProtocol?
     private let textCrypto: TextMessageCrypto
     private let pollService = PollService.shared
@@ -876,11 +877,21 @@ final class ChatDetailViewModel {
         await persistReadReceipts(batch)
     }
 
+    /// Whether read and delivery state for this conversation is also kept on the server.
+    ///
+    /// Not for 1:1 chats. The server no longer knows a 1:1 message by its id (it stores neither
+    /// sender nor conversation), so these calls only ever answered "not found", and each one
+    /// told the server, under the reader's own identity, which message had been read. The read
+    /// receipt reaches the other person as a signal sent to them directly.
+    nonisolated static func usesServerReceipts(conversationId: String) -> Bool {
+        !conversationId.hasPrefix("dm:")
+    }
+
     /// Best-effort durable read receipts (WO-192). The WS signal is the live nudge;
     /// this REST call is what makes read state survive an offline peer.
     private func persistReadReceipts(_ messageIds: [String]) async {
         guard !conversationIsMuted, privacy.sendReadReceipts else { return }
-        guard let receiptsAPI else { return }
+        guard Self.usesServerReceipts(conversationId: conversationId), let receiptsAPI else { return }
         for id in messageIds {
             _ = try? await receiptsAPI.markRead(messageId: id)
         }
@@ -889,7 +900,7 @@ final class ChatDetailViewModel {
     /// On open/reconnect, pull durable delivery state for our own sent messages so
     /// read receipts missed while offline are reconciled (WO-48). Never regresses.
     func reconcileReceiptsOnOpen() async {
-        guard let receiptsAPI else { return }
+        guard Self.usesServerReceipts(conversationId: conversationId), let receiptsAPI else { return }
         let ownIDs = messages.filter { $0.isFromCurrentUser }.map(\.id)
         for id in ownIDs {
             guard let status = try? await receiptsAPI.status(messageId: id),
@@ -986,7 +997,8 @@ final class ChatDetailViewModel {
             guard e.conversationId == conversationId else { return }
             guard e.peerDID == peerDID || !e.peerDID.isEmpty else { return }
             guard !messages.contains(where: { $0.id == e.messageId }) else { return }
-            Task { await appendInboundText(e) }
+            // In arrival order: decrypting one message must not let the next overtake it.
+            inboundQueue.enqueue { [weak self] in await self?.appendInboundText(e) }
         case .edit(let e):
             guard e.conversationId == conversationId else { return }
             Task { await applyInboundEdit(e) }

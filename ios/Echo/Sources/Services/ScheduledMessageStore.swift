@@ -91,6 +91,9 @@ enum ScheduledMessageStore {
 
     /// Pull pending rows from the gateway so a second device can see them (content omitted remotely).
     static func hydrateFromServer() async {
+        // Nothing to fetch before there is an identity: the request would go out unsigned and be
+        // refused.
+        guard let did = await CurrentUserSession.currentDID(), !did.isEmpty else { return }
         guard let api = DIContainer.shared.resolveAPIClient() else { return }
         let client = ScheduledMessageAPI(apiClient: api)
         guard let remote = try? await client.list() else { return }

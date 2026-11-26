@@ -372,6 +372,75 @@ final class FirstRunIdentityTests: XCTestCase {
     }
 }
 
+final class UsernameRegistrationTests: XCTestCase {
+    func testWhenAUsernameStillHasToBeRegistered() {
+        let did = "did:key:zNew"
+        XCTAssertTrue(UsernameRegistration.needsSync(did: did, username: "alice", lastRegistered: nil))
+        let done = UsernameRegistration.marker(did: did, username: "alice")
+        XCTAssertFalse(UsernameRegistration.needsSync(did: did, username: "alice", lastRegistered: done))
+        XCTAssertFalse(UsernameRegistration.needsSync(did: did, username: "Alice", lastRegistered: done), "case alone is not a new name")
+        XCTAssertTrue(UsernameRegistration.needsSync(did: "did:key:zOther", username: "alice", lastRegistered: done), "a new account registers its own name")
+        XCTAssertTrue(UsernameRegistration.needsSync(did: did, username: "alice2", lastRegistered: done))
+        XCTAssertFalse(UsernameRegistration.needsSync(did: nil, username: "alice", lastRegistered: nil))
+        XCTAssertFalse(UsernameRegistration.needsSync(did: did, username: nil, lastRegistered: nil))
+    }
+
+    // Must match the server's rule, and must never claim the placeholder name.
+    func testOnlyRealUsernamesAreRegistered() {
+        for good in ["bob", "Alice_1", "a23456789012345678901234567890"] {
+            XCTAssertTrue(UsernameRegistration.isRegistrable(good), good)
+        }
+        for bad in ["", "ab", "You", "has space", "émile", "semi;colon", "a234567890123456789012345678901"] {
+            XCTAssertFalse(UsernameRegistration.isRegistrable(bad), bad)
+        }
+    }
+
+    func testEndpoint() {
+        XCTAssertEqual(UsernameRegistration.Endpoint().path, "/v3/auth/register")
+    }
+}
+
+final class MessageOrderingTests: XCTestCase {
+    // Work added to the queue runs in the order it was added, even when an earlier item takes
+    // longer than a later one. Without this, two messages that arrive together can swap.
+    func testSerialQueueKeepsArrivalOrder() async {
+        let queue = SerialAsyncQueue()
+        let recorder = OrderRecorder()
+        for index in 0..<20 {
+            queue.enqueue {
+                // Earlier items sleep longer: unordered execution would finish them last.
+                try? await Task.sleep(nanoseconds: UInt64(20 - index) * 2_000_000)
+                await recorder.append(index)
+            }
+        }
+        await queue.drain()
+        let order = await recorder.values
+        XCTAssertEqual(order, Array(0..<20))
+    }
+
+    // Read state for a 1:1 chat is not sent to the server: it can no longer match a message by
+    // id, and the call would tell it which message this person read.
+    func testOnlyGroupsUseServerReceipts() {
+        XCTAssertFalse(ChatDetailViewModel.usesServerReceipts(conversationId: "dm:did:key:zA:did:key:zB"))
+        XCTAssertTrue(ChatDetailViewModel.usesServerReceipts(conversationId: "group:abc"))
+    }
+
+    func testAnUndecryptableMessageIsCountedAndAnnounced() {
+        let defaults = UserDefaults(suiteName: "undecryptable-\(UUID().uuidString)")!
+        let announced = expectation(forNotification: .echoRelayError, object: nil) { note in
+            (note.userInfo?["code"] as? String) == "UNDECRYPTABLE"
+        }
+        UndecryptableMessages.record(defaults: defaults)
+        wait(for: [announced], timeout: 2)
+        XCTAssertEqual(defaults.integer(forKey: UndecryptableMessages.countKey), 1)
+    }
+}
+
+private actor OrderRecorder {
+    private(set) var values: [Int] = []
+    func append(_ value: Int) { values.append(value) }
+}
+
 final class RequestURLTests: XCTestCase {
     private let base = URL(string: "http://localhost:8000")!
 
