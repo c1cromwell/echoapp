@@ -253,6 +253,64 @@ final class EchoLiveE2EUITests: XCTestCase {
 
     // MARK: - Sign out and sign back in
 
+    // MARK: - Username taken (scripts/e2e-username-taken.sh)
+
+    /// The account's username belongs to someone else on the server. The app must ask for
+    /// another, refuse the taken one, register the new one, and not ask again.
+    func testPickAnotherUsername() throws {
+        let taken = try param("E2E_USER")
+        let fresh = try param("E2E_NEW_NAME")
+        XCUIDevice.shared.orientation = .portrait
+        app.launch()
+
+        let field = app.textFields["usernameConflict.field"]
+        let deadline = Date().addingTimeInterval(90)
+        while Date() < deadline, !field.exists {
+            dismissSystemPrompts()
+            sleep(1)
+        }
+        snap("taken-1-prompt")
+        if !field.exists { describe("taken-no-prompt") }
+        XCTAssertTrue(field.exists, "the app did not ask for another username")
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", taken)).firstMatch.exists,
+                      "the prompt does not name the taken username")
+
+        let submit = app.buttons["usernameConflict.submit"]
+        field.tap()
+        field.typeText(taken)
+        XCTAssertTrue(app.staticTexts["That username is taken."].waitForExistence(timeout: 15),
+                      "the server did not report the taken name as taken")
+        XCTAssertFalse(submit.isEnabled, "a taken name can be submitted")
+        snap("taken-2-still-taken")
+        print("E2E-TAKEN refused \(taken)")
+
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: taken.count))
+        field.typeText(fresh)
+        XCTAssertTrue(app.staticTexts["Available"].waitForExistence(timeout: 15),
+                      "the server did not report the new name as available")
+        snap("taken-3-new-name-available")
+        submit.tap()
+
+        var closed = false
+        for _ in 0..<20 where !closed {
+            closed = !field.exists
+            if !closed { sleep(1) }
+        }
+        snap("taken-4-registered")
+        if !closed { describe("taken-not-closed") }
+        XCTAssertTrue(closed, "the prompt stayed open after choosing \(fresh)")
+        print("E2E-TAKEN chose \(fresh)")
+
+        // A second launch must not ask again.
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(waitForMain(timeout: 60), "the app did not reopen on the main screen")
+        sleep(8) // long enough for sign-in and the registration check
+        snap("taken-5-relaunch")
+        XCTAssertFalse(field.exists, "the app asked for a username again after one was registered")
+        print("E2E-TAKEN no prompt on relaunch")
+    }
+
     func testSignOutAndSignIn() throws {
         _ = try param("E2E_USER")
         XCUIDevice.shared.orientation = .portrait
