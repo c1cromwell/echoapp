@@ -97,7 +97,7 @@ enum UsernameRegistration {
     static let conflictKey = "echo.username.conflict"
 
     enum Outcome: Equatable {
-        case nothingToRegister, alreadyDone, registered, taken, failed
+        case nothingToRegister, alreadyDone, registered, taken, accountAlreadyNamed, failed
     }
 
     struct Endpoint: APIEndpoint {
@@ -138,6 +138,50 @@ enum UsernameRegistration {
         return UserDefaults.standard.string(forKey: "echo.displayName")
     }
 
+    struct AvailabilityEndpoint: APIEndpoint {
+        let username: String
+        var path: String { "/v1/users/check-username?username=\(username)" }
+    }
+
+    private struct Availability: Decodable {
+        let available: Bool
+    }
+
+    /// Whether nobody holds `username`. Nil when the server could not be asked.
+    static func isAvailable(_ username: String, apiClient: APIClient) async -> Bool? {
+        guard isRegistrable(username) else { return false }
+        let reply: Availability? = try? await apiClient.get(endpoint: AvailabilityEndpoint(username: username))
+        return reply?.available
+    }
+
+    /// What a refused registration (409) means, given whether the name is still free.
+    /// The server refuses for two reasons: someone else holds the name, or this account already
+    /// holds a different one. In the second case the name asked for is still free, and there is
+    /// nothing for the person to choose.
+    static func refusalOutcome(nameIsAvailable: Bool?) -> Outcome {
+        nameIsAvailable == true ? .accountAlreadyNamed : .taken
+    }
+
+    private static func publicKeyHex() async -> String? {
+        guard let key = try? await SecureEnclaveManager.shared.getPublicKey(id: "echo-identity-signing") else {
+            return nil
+        }
+        return key.map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Asks the server for `username`. Records nothing: the callers decide what to keep.
+    private static func register(_ username: String, apiClient: APIClient) async -> Outcome {
+        guard let publicKeyHex = await publicKeyHex() else { return .failed }
+        do {
+            let _: Reply = try await apiClient.post(endpoint: Endpoint(), body: Body(username: username, publicKey: publicKeyHex))
+            return .registered
+        } catch APIError.unexpectedStatusCode(409) {
+            return refusalOutcome(nameIsAvailable: await isAvailable(username, apiClient: apiClient))
+        } catch {
+            return .failed
+        }
+    }
+
     @discardableResult
     static func syncIfNeeded(apiClient: APIClient, defaults: UserDefaults = .standard) async -> Outcome {
         let did = await CurrentUserSession.currentDID()
@@ -146,24 +190,46 @@ enum UsernameRegistration {
         guard needsSync(did: did, username: username, lastRegistered: defaults.string(forKey: registeredKey)) else {
             return .alreadyDone
         }
-        guard let key = try? await SecureEnclaveManager.shared.getPublicKey(id: "echo-identity-signing") else {
-            return .failed
-        }
-        let publicKeyHex = key.map { String(format: "%02x", $0) }.joined()
-        do {
-            let _: Reply = try await apiClient.post(endpoint: Endpoint(), body: Body(username: username, publicKey: publicKeyHex))
+        let outcome = await register(username, apiClient: apiClient)
+        switch outcome {
+        case .registered:
             defaults.set(marker(did: did, username: username), forKey: registeredKey)
             defaults.removeObject(forKey: conflictKey)
-            return .registered
-        } catch APIError.unexpectedStatusCode(409) {
-            // The name is someone else's now, or this account already holds a different one.
-            // Asking again will not change the answer.
+        case .taken:
+            // The name is someone else's now. Asking again will not change the answer; the
+            // person is asked to pick another (`UsernameConflictPrompt`).
             defaults.set(marker(did: did, username: username), forKey: registeredKey)
             defaults.set(username, forKey: conflictKey)
-            return .taken
-        } catch {
-            return .failed
+        case .accountAlreadyNamed:
+            // The account holds a different name on the server. Nothing to choose.
+            defaults.set(marker(did: did, username: username), forKey: registeredKey)
+            defaults.removeObject(forKey: conflictKey)
+        default:
+            break
         }
+        return outcome
+    }
+
+    /// Registers the name the person picked after their first choice was taken. The new name is
+    /// only kept on this device once the server has accepted it.
+    static func choose(_ newName: String, apiClient: APIClient, defaults: UserDefaults = .standard) async -> Outcome {
+        let name = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard isRegistrable(name), let did = await CurrentUserSession.currentDID(), !did.isEmpty else {
+            return .nothingToRegister
+        }
+        let outcome = await register(name, apiClient: apiClient)
+        switch outcome {
+        case .registered:
+            try? await KeychainManager.shared.store(key: "echo.username.current", value: name)
+            defaults.set(name, forKey: "echo.displayName")
+            defaults.set(marker(did: did, username: name), forKey: registeredKey)
+            defaults.removeObject(forKey: conflictKey)
+        case .accountAlreadyNamed:
+            defaults.removeObject(forKey: conflictKey)
+        default:
+            break
+        }
+        return outcome
     }
 }
 

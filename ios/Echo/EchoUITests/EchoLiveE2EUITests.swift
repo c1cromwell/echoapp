@@ -84,8 +84,14 @@ final class EchoLiveE2EUITests: XCTestCase {
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", prefix)).firstMatch
     }
 
+    /// The hub's "New message" button, or the "+" on the empty screen a new account starts on.
+    private var composeButton: XCUIElement {
+        let hub = app.buttons["New message"]
+        return hub.exists ? hub : app.buttons["Start a new conversation"]
+    }
+
     private var onMainScreen: Bool {
-        app.buttons["New message"].exists || app.buttons["folders.manage"].exists
+        composeButton.exists || app.buttons["folders.manage"].exists
     }
 
     /// Waits for the Messages hub, answering system prompts on the way.
@@ -164,8 +170,9 @@ final class EchoLiveE2EUITests: XCTestCase {
             return
         }
         print("E2E-OPEN via New message (no hub row for \(peer))")
-        let newMessage = app.buttons["New message"]
-        XCTAssertTrue(newMessage.waitForExistence(timeout: 10), "New message button not found")
+        for _ in 0..<10 where !composeButton.exists { sleep(1) }
+        let newMessage = composeButton
+        XCTAssertTrue(newMessage.exists, "New message button not found")
         newMessage.tap()
         let usernameField = app.textFields.matching(NSPredicate(format: "placeholderValue == %@", "Username")).firstMatch
         for _ in 0..<4 where !usernameField.exists {

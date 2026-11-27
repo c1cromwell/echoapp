@@ -113,9 +113,11 @@ final class ConversationStore {
         conversations = decoded
     }
 
-    /// Keeps list non-empty in dev until real contacts exist; remove when WO-39 list API is wired.
+    /// A sample row for Debug builds that ask for demo data (`DemoData`). Otherwise the list
+    /// starts empty.
     private func seedDemoIfNeeded() {
         #if DEBUG
+        guard DemoData.isEnabled else { return }
         conversations = [
             StoredConversation(
                 id: "demo-1",

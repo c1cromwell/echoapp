@@ -130,6 +130,7 @@ Scheme: **EchoApp** / product **EchoMessaging**. Agents cannot tap Simulator UI 
 | `OIDC4VC_ENABLED` | Wallet enrollment E2E |
 | `ECHO_IN_CHAT_PAYMENTS` | Must stay **off** for release |
 | `ECHO_WALLET_GENESIS_AUTO` | **off** in prod/TF |
+| `ECHO_DEMO_DATA=1` (app scheme environment), or launch argument `-echoDemoData` | Debug builds only: fill the Messages tab with sample contacts, groups and hidden folders. Off by default, so a Debug build against a real backend starts empty. Release builds ignore it. |
 
 Full env table: historical detail retained in git history of `E2E_LAUNCH_AND_TESTING.md` §3e if needed; prefer `.env.example` / Compose files in repo.
 

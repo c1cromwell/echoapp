@@ -397,6 +397,37 @@ final class UsernameRegistrationTests: XCTestCase {
 
     func testEndpoint() {
         XCTAssertEqual(UsernameRegistration.Endpoint().path, "/v3/auth/register")
+        XCTAssertEqual(UsernameRegistration.AvailabilityEndpoint(username: "alice").path, "/v1/users/check-username?username=alice")
+    }
+
+    // The server refuses for two reasons. Only "someone else holds this name" asks the person
+    // to pick another; "this account already has a different name" leaves nothing to choose.
+    func testARefusalAsksForAnotherNameOnlyWhenTheNameIsTaken() {
+        XCTAssertEqual(UsernameRegistration.refusalOutcome(nameIsAvailable: false), .taken)
+        XCTAssertEqual(UsernameRegistration.refusalOutcome(nameIsAvailable: true), .accountAlreadyNamed)
+        XCTAssertEqual(UsernameRegistration.refusalOutcome(nameIsAvailable: nil), .taken, "unknown: ask rather than leave the account unfindable")
+    }
+
+    func testPromptOnlySubmitsANameThatMayBeFree() {
+        typealias Prompt = UsernameConflictPrompt
+        XCTAssertTrue(Prompt.canSubmit(check: .available, isSaving: false))
+        XCTAssertTrue(Prompt.canSubmit(check: .unreachable, isSaving: false), "the server decides when it could not be asked first")
+        for blocked in [Prompt.Check.idle, .checking, .unavailable, .invalid] {
+            XCTAssertFalse(Prompt.canSubmit(check: blocked, isSaving: false))
+        }
+        XCTAssertFalse(Prompt.canSubmit(check: .available, isSaving: true))
+        XCTAssertNil(Prompt.hint(for: .idle))
+        XCTAssertEqual(Prompt.hint(for: .unavailable), "That username is taken.")
+    }
+}
+
+final class DemoDataTests: XCTestCase {
+    // A Debug build starts empty unless demo data is asked for.
+    func testDemoDataIsOffUnlessAskedFor() {
+        XCTAssertFalse(DemoData.isRequested(arguments: ["Echo"], environment: [:]))
+        XCTAssertFalse(DemoData.isRequested(arguments: ["Echo", "-uiTestMode"], environment: ["ECHO_DEMO_DATA": "0"]))
+        XCTAssertTrue(DemoData.isRequested(arguments: ["Echo", "-echoDemoData"], environment: [:]))
+        XCTAssertTrue(DemoData.isRequested(arguments: ["Echo"], environment: ["ECHO_DEMO_DATA": "1"]))
     }
 }
 

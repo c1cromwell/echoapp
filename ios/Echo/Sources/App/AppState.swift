@@ -244,6 +244,7 @@ struct EchoRootView: View {
             case .authenticated:
                 MainTabView()
                     .environment(appState)
+                    .usernameConflictPrompt(appState: appState)
                     .onOpenURL { url in
                         if url.scheme == "echo-enroll" {
                             return
@@ -260,6 +261,156 @@ struct EchoRootView: View {
             }
         }
         .echoTranslationHost()
+    }
+}
+
+// MARK: - Username taken
+
+/// Asks for another username when the one chosen at first run turned out to be taken.
+///
+/// First run checks that a name is free, but the account only claims it at the first sign-in.
+/// If someone else claimed it in between, the account has no findable name until the person
+/// picks another. Shown over the main tabs, after first run, so the first-run screens are
+/// untouched. "Not now" closes it until the next launch.
+struct UsernameConflictPrompt: View {
+    let takenName: String
+    let onChosen: (String) -> Void
+    let onDismiss: () -> Void
+
+    enum Check: Equatable { case idle, checking, available, unavailable, invalid, unreachable }
+
+    @State private var name = ""
+    @State private var check: Check = .idle
+    @State private var isSaving = false
+    @State private var failure: String?
+    @FocusState private var focused: Bool
+
+    /// What to tell the person about the name as typed. Nil while there is nothing to say.
+    static func hint(for check: Check) -> String? {
+        switch check {
+        case .idle: return nil
+        case .checking: return "Checking…"
+        case .available: return "Available"
+        case .unavailable: return "That username is taken."
+        case .invalid: return "Use 3 to 30 letters, numbers or underscores."
+        case .unreachable: return "Couldn't check right now. You can still try it."
+        }
+    }
+
+    static func canSubmit(check: Check, isSaving: Bool) -> Bool {
+        !isSaving && (check == .available || check == .unreachable)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Username", text: $name)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .focused($focused)
+                        .accessibilityIdentifier("usernameConflict.field")
+                } header: {
+                    Text("Pick another username")
+                } footer: {
+                    VStack(alignment: .leading, spacing: 6) {
+                        if let hint = Self.hint(for: check) {
+                            Text(hint)
+                                .foregroundStyle(check == .available ? Color.green : Color.secondary)
+                                .accessibilityIdentifier("usernameConflict.hint")
+                        }
+                        if let failure {
+                            Text(failure).foregroundStyle(.red)
+                        }
+                        Text("\u{201C}\(takenName)\u{201D} was taken by someone else before your account finished setting up. Until you pick another, people can't find you by username. Your messages and contacts are not affected.")
+                    }
+                }
+                Section {
+                    Button {
+                        Task { await submit() }
+                    } label: {
+                        if isSaving { ProgressView() } else { Text("Use this username") }
+                    }
+                    .disabled(!Self.canSubmit(check: check, isSaving: isSaving))
+                    .accessibilityIdentifier("usernameConflict.submit")
+                }
+            }
+            .navigationTitle("Username taken")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Not now", action: onDismiss)
+                }
+            }
+            .task(id: name) { await runCheck() }
+            .onAppear { focused = true }
+        }
+    }
+
+    private var trimmed: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    private func runCheck() async {
+        failure = nil
+        let candidate = trimmed
+        guard !candidate.isEmpty else { check = .idle; return }
+        guard UsernameRegistration.isRegistrable(candidate) else { check = .invalid; return }
+        check = .checking
+        // Wait for a pause in typing; a new keystroke cancels this task.
+        try? await Task.sleep(nanoseconds: 350_000_000)
+        guard !Task.isCancelled else { return }
+        guard let client = DIContainer.shared.resolveAPIClient() else { check = .unreachable; return }
+        let available = await UsernameRegistration.isAvailable(candidate, apiClient: client)
+        guard !Task.isCancelled else { return }
+        switch available {
+        case .some(true): check = .available
+        case .some(false): check = .unavailable
+        case .none: check = .unreachable
+        }
+    }
+
+    private func submit() async {
+        let candidate = trimmed
+        guard let client = DIContainer.shared.resolveAPIClient() else {
+            failure = "Echo isn't reachable right now. Try again in a moment."
+            return
+        }
+        isSaving = true
+        defer { isSaving = false }
+        switch await UsernameRegistration.choose(candidate, apiClient: client) {
+        case .registered:
+            onChosen(candidate)
+        case .taken:
+            check = .unavailable
+        case .accountAlreadyNamed:
+            onDismiss()
+        default:
+            failure = "That didn't go through. Check your connection and try again."
+        }
+    }
+}
+
+private struct UsernameConflictPromptModifier: ViewModifier {
+    let appState: AppState
+    @AppStorage(UsernameRegistration.conflictKey) private var takenName = ""
+    @State private var dismissedThisLaunch = false
+
+    func body(content: Content) -> some View {
+        content.sheet(isPresented: Binding(
+            get: { !takenName.isEmpty && !dismissedThisLaunch },
+            set: { if !$0 { dismissedThisLaunch = true } }
+        )) {
+            UsernameConflictPrompt(
+                takenName: takenName,
+                onChosen: { appState.renamePrimaryPersona($0) },
+                onDismiss: { dismissedThisLaunch = true }
+            )
+        }
+    }
+}
+
+extension View {
+    func usernameConflictPrompt(appState: AppState) -> some View {
+        modifier(UsernameConflictPromptModifier(appState: appState))
     }
 }
 

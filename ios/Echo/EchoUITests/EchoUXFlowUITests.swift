@@ -32,7 +32,7 @@ final class EchoUXFlowUITests: XCTestCase {
     /// `authenticated: true` the app lands on the main tabs; otherwise it starts
     /// at first-run onboarding. Backed by `UITestSupport` in AppState.swift.
     private func launch(authenticated: Bool = false) {
-        app.launchArguments += ["-uiTestMode"]
+        app.launchArguments += ["-uiTestMode", "-echoDemoData"]
         if authenticated { app.launchArguments += ["-uiTestAuthenticated"] }
         app.launchEnvironment["ECHO_UITEST"] = "1"
         app.launch()
@@ -61,6 +61,36 @@ final class EchoUXFlowUITests: XCTestCase {
             field.typeText("qa_chad")
             snap("03-username-filled")
         }
+    }
+
+    /// The chosen username was taken before the account claimed it: the app asks for another,
+    /// rejects a name the server would refuse, and "Not now" closes the prompt.
+    func testUsernameTakenPrompt() {
+        // Launch arguments of the form `-key value` are read as UserDefaults.
+        app.launchArguments += ["-echo.username.conflict", "qa_taken"]
+        launch(authenticated: true)
+
+        let field = app.textFields["usernameConflict.field"]
+        XCTAssertTrue(field.waitForExistence(timeout: 15), "the pick-another-username prompt did not appear")
+        XCTAssertTrue(
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "qa_taken")).firstMatch.exists,
+            "the prompt does not name the username that was taken"
+        )
+        snap("01-username-taken")
+
+        let submit = app.buttons["usernameConflict.submit"]
+        XCTAssertFalse(submit.isEnabled, "an empty name can be submitted")
+        field.tap()
+        field.typeText("a b")
+        XCTAssertTrue(
+            app.staticTexts["Use 3 to 30 letters, numbers or underscores."].waitForExistence(timeout: 5),
+            "a name the server would refuse is not explained"
+        )
+        XCTAssertFalse(submit.isEnabled, "an invalid name can be submitted")
+        snap("02-username-invalid")
+
+        app.buttons["Not now"].tap()
+        XCTAssertFalse(field.waitForExistence(timeout: 3), "\"Not now\" did not close the prompt")
     }
 
     /// "Already have an account" branch from the welcome screen.

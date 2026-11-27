@@ -1,7 +1,7 @@
 #if os(iOS)
 import Foundation
 
-/// One-time DEBUG population of the Messages tab with realistic local test data:
+/// One-time DEBUG population (only when demo data is asked for, see `DemoData`) of the Messages tab with realistic local test data:
 /// 4 DM contacts (with threads + trust tiers), 2 group chats, and 2 hidden folders
 /// each holding a hidden chat. Everything is injected through the same device-local
 /// stores the Messages tab reads from (`ConversationStore`, `ConversationThreadStore`,
@@ -10,6 +10,31 @@ import Foundation
 ///
 /// Compiles out entirely in release builds. Supersedes the single "Echo Support" row
 /// from `ConversationStore.seedDemoIfNeeded()` on first run.
+///
+/// Off unless asked for: a Debug build against a real backend starts empty, like a release
+/// build. Turn it on with the launch argument `-echoDemoData` or `ECHO_DEMO_DATA=1` in the
+/// environment (the UX-flow UI tests pass the argument).
+enum DemoData {
+    static let launchArgument = "-echoDemoData"
+    static let environmentKey = "ECHO_DEMO_DATA"
+
+    static func isRequested(arguments: [String], environment: [String: String]) -> Bool {
+        arguments.contains(launchArgument) || environment[environmentKey] == "1"
+    }
+
+    /// Always false in release builds.
+    static var isEnabled: Bool {
+        #if DEBUG
+        return isRequested(
+            arguments: ProcessInfo.processInfo.arguments,
+            environment: ProcessInfo.processInfo.environment
+        )
+        #else
+        return false
+        #endif
+    }
+}
+
 @MainActor
 enum DebugSeedData {
     private static let seededFlag = "echo.debug.seeded.v1"
@@ -18,6 +43,7 @@ enum DebugSeedData {
     /// available (pre-auth). Safe to call repeatedly (e.g. every `.active` scene phase).
     static func seedIfNeeded() async {
         #if DEBUG
+        guard DemoData.isEnabled else { return }
         guard !UserDefaults.standard.bool(forKey: seededFlag) else { return }
         guard let localDID = await CurrentUserSession.currentDID(), !localDID.isEmpty else { return }
 
